@@ -1,0 +1,165 @@
+# JammLab
+
+JammLab is a native macOS practice app for importing local audio or video,
+building a timeline, marking song sections, looping difficult parts, and
+separating stems locally.
+
+The app is local-first: playback, waveform rendering, project files, stem
+separation jobs, and video-audio extraction run on the user's Mac. JammLab does
+not require a server, paid API, cloud upload, or user-installed
+`audio-separator` runtime.
+
+## Features
+
+- Import local audio files: MP3 and WAV.
+- Import local video files: MP4, MOV, and M4V.
+- Extract video audio to M4A for the normal audio pipeline.
+- Open an optional muted Video Window from the View menu; audio playback remains
+  the source of truth.
+- DAW-style transport with play, pause, stop, seek, speed, and pitch controls.
+- Waveform timeline with dynamic beat grid, zoom/scroll controls, and playhead.
+- Notes, markers, and colored regions for section-based practice.
+- Loop region editing with audio-engine loop execution.
+- Click, Snap, and editable time signature controls.
+- Global Settings for theme colors, click sound, stem backend compute mode, and
+  audio input/output device preferences.
+- Local stem separation through bundled helper processes.
+- Project-local artifacts for saved projects: `stems/`, `peaks/`, and `media/`
+  live next to the `.jammlab` project file.
+- Undo/redo for project edits and modified-project save prompts.
+
+## Development Environment
+
+JammLab is a native macOS SwiftUI application.
+
+- macOS deployment target: `14.0`.
+- Verified local toolchain: Xcode `26.5` (`17F42`).
+- Main project: `JammLab.xcodeproj`.
+- Main scheme: `JammLab`.
+- Build configurations are backed by `Configurations/*.xcconfig`.
+- Python separator helper is packaged with PyInstaller one-dir.
+
+Before building the app target, build the bundled separator helper:
+
+```sh
+scripts/build_separator_helper.sh
+```
+
+The `JammLab` target copies the resulting artifact from
+`build/JammLabSeparatorHelper/dist/JammLabSeparatorHelper` into
+`JammLab.app/Contents/Resources/JammLabSeparatorHelper`. If the artifact is
+missing, Xcode fails with an explicit build error.
+
+Run the app locally:
+
+```sh
+open JammLab.xcodeproj
+```
+
+Then select the `JammLab` scheme, choose `My Mac`, and press `Cmd+R`.
+
+Run the main verification commands:
+
+```sh
+xcodebuild test -project JammLab.xcodeproj -scheme JammLab -destination 'platform=macOS' -derivedDataPath build
+python3 -m unittest JammLabSeparatorHelper/test_runner.py
+```
+
+For an unsigned CI-style release build smoke test:
+
+```sh
+xcodebuild build -project JammLab.xcodeproj -scheme JammLab -configuration Release -destination 'platform=macOS' -derivedDataPath build-ci -xcconfig Configurations/CI.xcconfig
+```
+
+## Stem Separation
+
+Stem separation runs through two bundled helpers:
+
+- `JammLabStemHelper`: a Swift job watcher that owns heartbeat, cancellation,
+  cache, and job status protocol.
+- `JammLabSeparatorHelper`: a PyInstaller-packaged Python runtime that wraps
+  `audio-separator`.
+
+No user-installed `pipx`, Python, `audio-separator`, Demucs, `ffmpeg`,
+`onnxruntime`, `torch`, or `numpy` runtime is required. The packaged separator
+includes its Python runtime, FFmpeg provider, and a prefilled model cache for
+the configured separator models. At runtime JammLab seeds
+`Application Support/JammLab/StemModels` from the bundled cache before
+separation.
+
+Stem separation is an offline background job and can take a while on longer
+tracks.
+
+## Project Artifacts
+
+Unsaved projects use app cache as temporary staging storage. After a project is
+saved, project-specific artifacts move next to the project file:
+
+```text
+Song/
+  Song.jammlab
+  stems/
+  peaks/
+  media/
+```
+
+- `stems/` stores separated stem WAV files and metadata.
+- `peaks/` stores main and stem peakform cache files.
+- `media/` stores extracted video audio such as `audio.m4a`.
+
+The shared separator model cache remains under Application Support because it is
+a backend dependency, not a project artifact.
+
+## Design Philosophy
+
+JammLab favors a compact, audio-first workflow over a large editing surface.
+The main audio engine owns transport time, playback state, loop execution, and
+click timing. UI views display the audio clock and send explicit editing
+commands; they do not drive playback timing themselves.
+
+The interface follows a DAW-inspired style: dense controls, minimal chrome,
+drag-adjustable numeric fields, compact value sliders, and editable theme
+colors. Project state is portable when saved as a project folder, while global
+preferences such as app colors, audio devices, and click sound settings stay in
+application settings.
+
+## Project Structure
+
+```text
+JammLab/
+  Models/
+  Services/
+  ViewModels/
+  Views/
+  DesignSystem/
+  Utilities/
+JammLabStemHelper/
+JammLabSeparatorHelper/
+Configurations/
+scripts/
+docs/
+```
+
+The app uses SwiftUI + MVVM with a service layer and focused pure logic models.
+`AudioPlayerViewModel` coordinates import/open/save, playback state, project
+edits, stems, video follower state, and undo/dirty tracking. Timeline rendering
+uses `TimelineViewport` as the shared time-to-pixel model so waveform, beat
+grid, regions, markers, loop handles, and playhead stay synchronized.
+
+## Approximate Analysis
+
+- BPM is estimated from a short-time RMS energy envelope and autocorrelation.
+- Key is estimated from a Goertzel-based pitch-class chroma and
+  Krumhansl-style major/minor profile matching.
+- Waveform rendering uses cached multi-resolution min/max/rms peakform data.
+
+The analysis is intentionally lightweight and local. It is useful for practice
+workflow hints, not as a replacement for a full music-information-retrieval
+pipeline.
+
+## License
+
+JammLab is released under the MIT License. See [LICENSE](LICENSE).
+
+Third-party runtime and build dependency notices are listed in
+[THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).
