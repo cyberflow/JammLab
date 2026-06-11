@@ -65,7 +65,7 @@ xcodebuild test -project JammLab.xcodeproj -scheme JammLab -destination 'platfor
 python3 -m unittest JammLabSeparatorHelper/test_runner.py
 ```
 
-For an unsigned CI-style release build smoke test:
+For a CI-style release build smoke test with ad-hoc signing:
 
 ```sh
 xcodebuild build -project JammLab.xcodeproj -scheme JammLab -configuration Release -destination 'platform=macOS' -derivedDataPath build-ci -xcconfig Configurations/CI.xcconfig

@@ -1,0 +1,29 @@
+.DS_Store
+
+# Xcode / local build output
+build/
+build-ci/
+build-ci-config-check/
+build-ci*/
+DerivedData/
+*.xcuserstate
+xcuserdata/
+
+# Local signing material
+Configurations/Signing-Local.xcconfig
+*.p12
+*.mobileprovision
+*.provisionprofile
+
+# Python helper local artifacts
+JammLabSeparatorHelper/__pycache__/
+JammLabSeparatorHelper/.venv/
+JammLabSeparatorHelper/build/
+JammLabSeparatorHelper/dist/
+*.pyc
+
+# Local packaging output
+dist/
+
+# Others
+AGENT.local.md
