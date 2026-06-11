@@ -1,0 +1,9 @@
+// CI uses ad-hoc signing instead of disabling code signing entirely.
+// This keeps macOS sandbox entitlements active for tests while avoiding
+// Developer ID or team-specific signing secrets.
+CODE_SIGNING_ALLOWED = YES
+CODE_SIGNING_REQUIRED = YES
+CODE_SIGN_IDENTITY = -
+CODE_SIGN_STYLE = Manual
+DEVELOPMENT_TEAM =
+PROVISIONING_PROFILE_SPECIFIER =

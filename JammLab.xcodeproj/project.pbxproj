@@ -1,0 +1,1032 @@
+// !$*UTF8*$!
+{
+	archiveVersion = 1;
+	classes = {
+	};
+	objectVersion = 56;
+	objects = {
+
+/* Begin PBXBuildFile section */
+		9F8A01012C00000100112233 /* JammLabApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9F8A00012C00000100112233 /* JammLabApp.swift */; };
+		9F8A01022C00000100112233 /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9F8A00022C00000100112233 /* ContentView.swift */; };
+		9F8A01032C00000100112233 /* AudioPlayerViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9F8A00032C00000100112233 /* AudioPlayerViewModel.swift */; };
+		9FB200012D30000100112233 /* AudioPlayerViewModel+Project.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9FB201012D30000100112233 /* AudioPlayerViewModel+Project.swift */; };
+		9FB200022D30000100112233 /* AudioPlayerViewModel+Playback.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9FB201022D30000100112233 /* AudioPlayerViewModel+Playback.swift */; };
+		9FB200032D30000100112233 /* AudioPlayerViewModel+Stems.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9FB201032D30000100112233 /* AudioPlayerViewModel+Stems.swift */; };
+		9FB200042D30000100112233 /* AudioPlayerViewModel+Timeline.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9FB201042D30000100112233 /* AudioPlayerViewModel+Timeline.swift */; };
+		9FB200052D30000100112233 /* AudioPlayerViewModel+Notes.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9FB201052D30000100112233 /* AudioPlayerViewModel+Notes.swift */; };
+		9FB200062D30000100112233 /* AudioPlayerViewModel+Video.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9FB201062D30000100112233 /* AudioPlayerViewModel+Video.swift */; };
+		9FB200072D30000100112233 /* AudioPlayerViewModel+UndoDirty.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9FB201072D30000100112233 /* AudioPlayerViewModel+UndoDirty.swift */; };
+		9F8A01042C00000100112233 /* AudioFileImporter.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9F8A00042C00000100112233 /* AudioFileImporter.swift */; };
+		9F8A01052C00000100112233 /* AudioAnalyzer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9F8A00052C00000100112233 /* AudioAnalyzer.swift */; };
+		9FB001012D06000100112233 /* AudioDeviceService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9FB001002D06000100112233 /* AudioDeviceService.swift */; };
+		9F8A01062C00000100112233 /* AnalysisResult.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9F8A00062C00000100112233 /* AnalysisResult.swift */; };
+		9F8A01072C00000100112233 /* LoopRegion.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9F8A00072C00000100112233 /* LoopRegion.swift */; };
+		9F8A01082C00000100112233 /* WaveformTimelineView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9F8A00082C00000100112233 /* WaveformTimelineView.swift */; };
+		9F8A01092C00000100112233 /* TimeFormatter.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9F8A00092C00000100112233 /* TimeFormatter.swift */; };
+		9F8A010A2C00000100112233 /* ImportedAudioFile.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9F8A000A2C00000100112233 /* ImportedAudioFile.swift */; };
+		9F8A010B2C00000100112233 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 9F8A000B2C00000100112233 /* Assets.xcassets */; };
+		9FB204012D32000100112233 /* CachedPeakformProvider.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9FB204002D32000100112233 /* CachedPeakformProvider.swift */; };
+		9FB204032D32000100112233 /* PeakformGenerator.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9FB204022D32000100112233 /* PeakformGenerator.swift */; };
+		9FB204052D32000100112233 /* PeakformBinaryCache.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9FB204042D32000100112233 /* PeakformBinaryCache.swift */; };
+		9F8A010C2C00000100112233 /* WaveformProvider.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9F8A000E2C00000100112233 /* WaveformProvider.swift */; };
+		9F8A010D2C00000100112233 /* AppHotkey.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9F8A000F2C00000100112233 /* AppHotkey.swift */; };
+		9F8A010E2C00000100112233 /* HotkeysHelpView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9F8A00102C00000100112233 /* HotkeysHelpView.swift */; };
+		9F8A01102C00000100112233 /* TimecodedNote.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9F8A00122C00000100112233 /* TimecodedNote.swift */; };
+		9F8A01112C00000100112233 /* JammLabProject.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9F8A00132C00000100112233 /* JammLabProject.swift */; };
+		9F8A01122C00000100112233 /* ProjectDocumentService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9F8A00142C00000100112233 /* ProjectDocumentService.swift */; };
+		9FB202012D31000100112233 /* ProjectPersistenceCoordinator.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9FB202002D31000100112233 /* ProjectPersistenceCoordinator.swift */; };
+		9F8A01132C00000100112233 /* RecentProjectsStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9F8A00152C00000100112233 /* RecentProjectsStore.swift */; };
+		9F8A01192C00000100112233 /* ProjectArtifactStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9F8A00192C00000100112233 /* ProjectArtifactStore.swift */; };
+		9F8A01142C00000100112233 /* BeatGridSettings.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9F8A00162C00000100112233 /* BeatGridSettings.swift */; };
+		9F8A01152C00000100112233 /* BeatGridCalculator.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9F8A00172C00000100112233 /* BeatGridCalculator.swift */; };
+		9F8A01162C00000100112233 /* MetronomeClickScheduler.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9F8A00182C00000100112233 /* MetronomeClickScheduler.swift */; };
+		9F8B01012C10000100112233 /* TimelineViewport.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9F8B00012C10000100112233 /* TimelineViewport.swift */; };
+		9F8B01022C10000100112233 /* ProjectStateNormalizer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9F8B00022C10000100112233 /* ProjectStateNormalizer.swift */; };
+		9F8B01032C10000100112233 /* PeakformTimelineView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9F8B00032C10000100112233 /* PeakformTimelineView.swift */; };
+		9F8B01042C10000100112233 /* TimelineTracks.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9F8B00042C10000100112233 /* TimelineTracks.swift */; };
+		9F8B01052C10000100112233 /* TimelineInteractionHelpers.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9F8B00052C10000100112233 /* TimelineInteractionHelpers.swift */; };
+		9F8B01062C10000100112233 /* TestSupport.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9F8B00072C10000100112233 /* TestSupport.swift */; };
+		9F8C01012C20000100112233 /* AppTheme.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9F8C00012C20000100112233 /* AppTheme.swift */; };
+		9F8C01022C20000100112233 /* AppPanel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9F8C00022C20000100112233 /* AppPanel.swift */; };
+		9F8C01032C20000100112233 /* AppControls.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9F8C00032C20000100112233 /* AppControls.swift */; };
+		9FB205012D33000100112233 /* AppKitControlHelpers.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9FB205002D33000100112233 /* AppKitControlHelpers.swift */; };
+		9FD001012D20000100112233 /* ControlHelpText.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9FD001002D20000100112233 /* ControlHelpText.swift */; };
+		9F8C01052C20000100112233 /* NoteRowView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9F8C00052C20000100112233 /* NoteRowView.swift */; };
+		9F8C01062C20000100112233 /* MainWorkspacePanels.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9F8C00062C20000100112233 /* MainWorkspacePanels.swift */; };
+		9F8C01072C20000100112233 /* TransportBarView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9F8C00072C20000100112233 /* TransportBarView.swift */; };
+		9F8C01082C20000100112233 /* WindowTitleUpdater.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9F8C00082C20000100112233 /* WindowTitleUpdater.swift */; };
+		9F8C01092C20000100112233 /* TopToolbarView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9F8C00092C20000100112233 /* TopToolbarView.swift */; };
+		9F8D01012C30000100112233 /* StemModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9F8D00012C30000100112233 /* StemModels.swift */; };
+		9F8D01022C30000100112233 /* StemSeparationService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9F8D00022C30000100112233 /* StemSeparationService.swift */; };
+		9F8D01032C30000100112233 /* StemMixAudioPlayer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9F8D00032C30000100112233 /* StemMixAudioPlayer.swift */; };
+		9F8E01012C40000100112233 /* StemSeparationJobModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9F8E00012C40000100112233 /* StemSeparationJobModels.swift */; };
+		9F8E01022C40000100112233 /* main.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9F8E00032C40000100112233 /* main.swift */; };
+		9F8E01032C40000100112233 /* StemModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9F8D00012C30000100112233 /* StemModels.swift */; };
+		9F8E01042C40000100112233 /* StemSeparationJobModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9F8E00012C40000100112233 /* StemSeparationJobModels.swift */; };
+		9F8F01012C50000100112233 /* AppDefaults.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9F8F00012C50000100112233 /* AppDefaults.swift */; };
+		9F8F01022C50000100112233 /* AppDefaults.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9F8F00012C50000100112233 /* AppDefaults.swift */; };
+		9F8F01032C50000100112233 /* AudioPlaybackControlling.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9F8F00022C50000100112233 /* AudioPlaybackControlling.swift */; };
+		9F9001012C60000100112233 /* TransportControlsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9F9000012C60000100112233 /* TransportControlsView.swift */; };
+		9F9001032C60000100112233 /* InspectorSidebarView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9F9000032C60000100112233 /* InspectorSidebarView.swift */; };
+		9F9101012C70000100112233 /* TempoGridCalculator.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9F9100012C70000100112233 /* TempoGridCalculator.swift */; };
+		9F9101022C70000100112233 /* TempoGridRulerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9F9100022C70000100112233 /* TempoGridRulerView.swift */; };
+		9F9201012C80000100112233 /* StemHelperProcessController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9F9200012C80000100112233 /* StemHelperProcessController.swift */; };
+		9F9201022C80000100112233 /* JammLabStemHelper in Embed Stem Helper */ = {isa = PBXBuildFile; fileRef = 9F8E00022C40000100112233 /* JammLabStemHelper */; settings = {ATTRIBUTES = (CodeSignOnCopy, ); }; };
+		9F9301012C90000100112233 /* StemBackendResolver.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9F9300012C90000100112233 /* StemBackendResolver.swift */; };
+		9F9301022C90000100112233 /* StemBackendResolver.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9F9300012C90000100112233 /* StemBackendResolver.swift */; };
+		9F9301032C90000100112233 /* StemBackendResolver.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9F9300012C90000100112233 /* StemBackendResolver.swift */; };
+		9F9401012CA0000100112233 /* AppSettingsStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9F9400012CA0000100112233 /* AppSettingsStore.swift */; };
+		9F9401022CA0000100112233 /* AppSettingsStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9F9400012CA0000100112233 /* AppSettingsStore.swift */; };
+		9F9401032CA0000100112233 /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9F9400022CA0000100112233 /* SettingsView.swift */; };
+		9F9501012CB0000100112233 /* AbletonNumberField.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9F9500012CB0000100112233 /* AbletonNumberField.swift */; };
+		9F9601012CC0000100112233 /* JammValueSlider.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9F9600012CC0000100112233 /* JammValueSlider.swift */; };
+		9F9701012CD0000100112233 /* TimelineViewportControlBar.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9F9700012CD0000100112233 /* TimelineViewportControlBar.swift */; };
+		9F9801012CF0000100112233 /* RenameNoteDialog.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9F9800012CF0000100112233 /* RenameNoteDialog.swift */; };
+		9FAB01012CE0000100112233 /* AudioTimingLogicTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9FAB00012CE0000100112233 /* AudioTimingLogicTests.swift */; };
+		9FAB01022CE0000100112233 /* PeakformLogicTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9FAB00022CE0000100112233 /* PeakformLogicTests.swift */; };
+		9FAB01032CE0000100112233 /* TimelineProjectLogicTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9FAB00032CE0000100112233 /* TimelineProjectLogicTests.swift */; };
+		9FAB01042CE0000100112233 /* ViewModelLifecycleTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9FAB00042CE0000100112233 /* ViewModelLifecycleTests.swift */; };
+		9FAB01052CE0000100112233 /* StemWorkflowLogicTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9FAB00052CE0000100112233 /* StemWorkflowLogicTests.swift */; };
+		9FAB01062CE0000100112233 /* StemHelperProcessControllerTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9FAB00062CE0000100112233 /* StemHelperProcessControllerTests.swift */; };
+		9FAB01072CE0000100112233 /* SettingsAndControlLogicTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9FAB00072CE0000100112233 /* SettingsAndControlLogicTests.swift */; };
+		9FAC01012CF0000100112233 /* ProjectEditableState.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9FAC00012CF0000100112233 /* ProjectEditableState.swift */; };
+		9FAE01012D01000100112233 /* VideoAudioExtractionService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9FAE00012D01000100112233 /* VideoAudioExtractionService.swift */; };
+		9FAE01022D01000100112233 /* VideoFollowerController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9FAE00022D01000100112233 /* VideoFollowerController.swift */; };
+		9FAF01012D02000100112233 /* JammLabAppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9FAF00012D02000100112233 /* JammLabAppDelegate.swift */; };
+		9FAF01022D02000100112233 /* WindowCloseGuard.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9FAF00022D02000100112233 /* WindowCloseGuard.swift */; };
+/* End PBXBuildFile section */
+
+/* Begin PBXContainerItemProxy section */
+		9F8B08012C10000100112233 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 9F8A05012C00000100112233 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 9F8A04012C00000100112233;
+			remoteInfo = JammLab;
+		};
+		9F9203012C80000100112233 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 9F8A05012C00000100112233 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 9F8E04012C40000100112233;
+			remoteInfo = JammLabStemHelper;
+		};
+/* End PBXContainerItemProxy section */
+
+/* Begin PBXCopyFilesBuildPhase section */
+		9F9202012C80000100112233 /* Embed Stem Helper */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = Contents/Helpers;
+			dstSubfolderSpec = 1;
+			files = (
+				9F9201022C80000100112233 /* JammLabStemHelper in Embed Stem Helper */,
+			);
+			name = "Embed Stem Helper";
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXCopyFilesBuildPhase section */
+
+/* Begin PBXFileReference section */
+		9F8A00012C00000100112233 /* JammLabApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = JammLabApp.swift; sourceTree = "<group>"; };
+		9F8A00022C00000100112233 /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
+		9F8A00032C00000100112233 /* AudioPlayerViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AudioPlayerViewModel.swift; sourceTree = "<group>"; };
+		9FB201012D30000100112233 /* AudioPlayerViewModel+Project.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "AudioPlayerViewModel+Project.swift"; sourceTree = "<group>"; };
+		9FB201022D30000100112233 /* AudioPlayerViewModel+Playback.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "AudioPlayerViewModel+Playback.swift"; sourceTree = "<group>"; };
+		9FB201032D30000100112233 /* AudioPlayerViewModel+Stems.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "AudioPlayerViewModel+Stems.swift"; sourceTree = "<group>"; };
+		9FB201042D30000100112233 /* AudioPlayerViewModel+Timeline.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "AudioPlayerViewModel+Timeline.swift"; sourceTree = "<group>"; };
+		9FB201052D30000100112233 /* AudioPlayerViewModel+Notes.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "AudioPlayerViewModel+Notes.swift"; sourceTree = "<group>"; };
+		9FB201062D30000100112233 /* AudioPlayerViewModel+Video.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "AudioPlayerViewModel+Video.swift"; sourceTree = "<group>"; };
+		9FB201072D30000100112233 /* AudioPlayerViewModel+UndoDirty.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "AudioPlayerViewModel+UndoDirty.swift"; sourceTree = "<group>"; };
+		9F8A00042C00000100112233 /* AudioFileImporter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AudioFileImporter.swift; sourceTree = "<group>"; };
+		9F8A00052C00000100112233 /* AudioAnalyzer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AudioAnalyzer.swift; sourceTree = "<group>"; };
+		9FB001002D06000100112233 /* AudioDeviceService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AudioDeviceService.swift; sourceTree = "<group>"; };
+		9F8A00062C00000100112233 /* AnalysisResult.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AnalysisResult.swift; sourceTree = "<group>"; };
+		9F8A00072C00000100112233 /* LoopRegion.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LoopRegion.swift; sourceTree = "<group>"; };
+		9F8A00082C00000100112233 /* WaveformTimelineView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WaveformTimelineView.swift; sourceTree = "<group>"; };
+		9F8A00092C00000100112233 /* TimeFormatter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TimeFormatter.swift; sourceTree = "<group>"; };
+		9F8A000A2C00000100112233 /* ImportedAudioFile.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ImportedAudioFile.swift; sourceTree = "<group>"; };
+		9F8A000B2C00000100112233 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
+		9F8A000C2C00000100112233 /* JammLab.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = JammLab.entitlements; sourceTree = "<group>"; };
+		9F8A000D2C00000100112233 /* JammLab.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = JammLab.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		9FB204002D32000100112233 /* CachedPeakformProvider.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CachedPeakformProvider.swift; sourceTree = "<group>"; };
+		9FB204022D32000100112233 /* PeakformGenerator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PeakformGenerator.swift; sourceTree = "<group>"; };
+		9FB204042D32000100112233 /* PeakformBinaryCache.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PeakformBinaryCache.swift; sourceTree = "<group>"; };
+		9F8A000E2C00000100112233 /* WaveformProvider.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WaveformProvider.swift; sourceTree = "<group>"; };
+		9F8A000F2C00000100112233 /* AppHotkey.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppHotkey.swift; sourceTree = "<group>"; };
+		9F8A00102C00000100112233 /* HotkeysHelpView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HotkeysHelpView.swift; sourceTree = "<group>"; };
+		9F8A00122C00000100112233 /* TimecodedNote.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TimecodedNote.swift; sourceTree = "<group>"; };
+		9F8A00132C00000100112233 /* JammLabProject.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = JammLabProject.swift; sourceTree = "<group>"; };
+		9F8A00142C00000100112233 /* ProjectDocumentService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProjectDocumentService.swift; sourceTree = "<group>"; };
+		9F8A00152C00000100112233 /* RecentProjectsStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RecentProjectsStore.swift; sourceTree = "<group>"; };
+		9F8A00192C00000100112233 /* ProjectArtifactStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProjectArtifactStore.swift; sourceTree = "<group>"; };
+		9F8A00162C00000100112233 /* BeatGridSettings.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BeatGridSettings.swift; sourceTree = "<group>"; };
+		9FB202002D31000100112233 /* ProjectPersistenceCoordinator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProjectPersistenceCoordinator.swift; sourceTree = "<group>"; };
+		9F8A00172C00000100112233 /* BeatGridCalculator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BeatGridCalculator.swift; sourceTree = "<group>"; };
+		9F8A00182C00000100112233 /* MetronomeClickScheduler.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MetronomeClickScheduler.swift; sourceTree = "<group>"; };
+		9F8B00012C10000100112233 /* TimelineViewport.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TimelineViewport.swift; sourceTree = "<group>"; };
+		9F8B00022C10000100112233 /* ProjectStateNormalizer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProjectStateNormalizer.swift; sourceTree = "<group>"; };
+		9F8B00032C10000100112233 /* PeakformTimelineView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PeakformTimelineView.swift; sourceTree = "<group>"; };
+		9F8B00042C10000100112233 /* TimelineTracks.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TimelineTracks.swift; sourceTree = "<group>"; };
+		9F8B00052C10000100112233 /* TimelineInteractionHelpers.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TimelineInteractionHelpers.swift; sourceTree = "<group>"; };
+		9F8B00062C10000100112233 /* JammLabTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = JammLabTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		9F8B00072C10000100112233 /* TestSupport.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TestSupport.swift; sourceTree = "<group>"; };
+		9F8B00082C10000100112233 /* AGENT.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = AGENT.md; sourceTree = "<group>"; };
+		9F8C00012C20000100112233 /* AppTheme.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppTheme.swift; sourceTree = "<group>"; };
+		9F8C00022C20000100112233 /* AppPanel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppPanel.swift; sourceTree = "<group>"; };
+		9F8C00032C20000100112233 /* AppControls.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppControls.swift; sourceTree = "<group>"; };
+		9FB205002D33000100112233 /* AppKitControlHelpers.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppKitControlHelpers.swift; sourceTree = "<group>"; };
+		9FD001002D20000100112233 /* ControlHelpText.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ControlHelpText.swift; sourceTree = "<group>"; };
+		9F8C00052C20000100112233 /* NoteRowView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NoteRowView.swift; sourceTree = "<group>"; };
+		9F8C00062C20000100112233 /* MainWorkspacePanels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MainWorkspacePanels.swift; sourceTree = "<group>"; };
+		9F8C00072C20000100112233 /* TransportBarView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TransportBarView.swift; sourceTree = "<group>"; };
+		9F8C00082C20000100112233 /* WindowTitleUpdater.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WindowTitleUpdater.swift; sourceTree = "<group>"; };
+		9F8C00092C20000100112233 /* TopToolbarView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TopToolbarView.swift; sourceTree = "<group>"; };
+		9F8D00012C30000100112233 /* StemModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StemModels.swift; sourceTree = "<group>"; };
+		9F8D00022C30000100112233 /* StemSeparationService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StemSeparationService.swift; sourceTree = "<group>"; };
+		9F8D00032C30000100112233 /* StemMixAudioPlayer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StemMixAudioPlayer.swift; sourceTree = "<group>"; };
+		9F8E00012C40000100112233 /* StemSeparationJobModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StemSeparationJobModels.swift; sourceTree = "<group>"; };
+		9F8E00022C40000100112233 /* JammLabStemHelper */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = JammLabStemHelper; sourceTree = BUILT_PRODUCTS_DIR; };
+		9F8E00032C40000100112233 /* main.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = main.swift; sourceTree = "<group>"; };
+		9F8F00012C50000100112233 /* AppDefaults.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppDefaults.swift; sourceTree = "<group>"; };
+		9F8F00022C50000100112233 /* AudioPlaybackControlling.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AudioPlaybackControlling.swift; sourceTree = "<group>"; };
+		9F9000012C60000100112233 /* TransportControlsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TransportControlsView.swift; sourceTree = "<group>"; };
+		9F9000032C60000100112233 /* InspectorSidebarView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InspectorSidebarView.swift; sourceTree = "<group>"; };
+		9F9100012C70000100112233 /* TempoGridCalculator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TempoGridCalculator.swift; sourceTree = "<group>"; };
+		9F9100022C70000100112233 /* TempoGridRulerView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TempoGridRulerView.swift; sourceTree = "<group>"; };
+		9F9200012C80000100112233 /* StemHelperProcessController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StemHelperProcessController.swift; sourceTree = "<group>"; };
+		9F9300012C90000100112233 /* StemBackendResolver.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StemBackendResolver.swift; sourceTree = "<group>"; };
+		9F9400012CA0000100112233 /* AppSettingsStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppSettingsStore.swift; sourceTree = "<group>"; };
+		9F9400022CA0000100112233 /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
+		9F9500012CB0000100112233 /* AbletonNumberField.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AbletonNumberField.swift; sourceTree = "<group>"; };
+		9F9600012CC0000100112233 /* JammValueSlider.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = JammValueSlider.swift; sourceTree = "<group>"; };
+		9F9700012CD0000100112233 /* TimelineViewportControlBar.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TimelineViewportControlBar.swift; sourceTree = "<group>"; };
+		9F9800012CF0000100112233 /* RenameNoteDialog.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RenameNoteDialog.swift; sourceTree = "<group>"; };
+		9FAB00012CE0000100112233 /* AudioTimingLogicTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AudioTimingLogicTests.swift; sourceTree = "<group>"; };
+		9FAB00022CE0000100112233 /* PeakformLogicTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PeakformLogicTests.swift; sourceTree = "<group>"; };
+		9FAB00032CE0000100112233 /* TimelineProjectLogicTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TimelineProjectLogicTests.swift; sourceTree = "<group>"; };
+		9FAB00042CE0000100112233 /* ViewModelLifecycleTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ViewModelLifecycleTests.swift; sourceTree = "<group>"; };
+		9FAB00052CE0000100112233 /* StemWorkflowLogicTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StemWorkflowLogicTests.swift; sourceTree = "<group>"; };
+		9FAB00062CE0000100112233 /* StemHelperProcessControllerTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StemHelperProcessControllerTests.swift; sourceTree = "<group>"; };
+		9FAB00072CE0000100112233 /* SettingsAndControlLogicTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsAndControlLogicTests.swift; sourceTree = "<group>"; };
+		9FAC00012CF0000100112233 /* ProjectEditableState.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProjectEditableState.swift; sourceTree = "<group>"; };
+		9FAE00012D01000100112233 /* VideoAudioExtractionService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VideoAudioExtractionService.swift; sourceTree = "<group>"; };
+		9FAE00022D01000100112233 /* VideoFollowerController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VideoFollowerController.swift; sourceTree = "<group>"; };
+		9FAF00012D02000100112233 /* JammLabAppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = JammLabAppDelegate.swift; sourceTree = "<group>"; };
+		9FAF00022D02000100112233 /* WindowCloseGuard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WindowCloseGuard.swift; sourceTree = "<group>"; };
+		9FC100012D10000100112233 /* Base.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = Base.xcconfig; sourceTree = "<group>"; };
+		9FC100022D10000100112233 /* Debug.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = Debug.xcconfig; sourceTree = "<group>"; };
+		9FC100032D10000100112233 /* Release.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = Release.xcconfig; sourceTree = "<group>"; };
+		9FC100042D10000100112233 /* CI.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = CI.xcconfig; sourceTree = "<group>"; };
+		9FC100052D10000100112233 /* Signing-Local.xcconfig.example */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = "Signing-Local.xcconfig.example"; sourceTree = "<group>"; };
+		9FC100062D10000100112233 /* README.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = README.md; sourceTree = "<group>"; };
+/* End PBXFileReference section */
+
+/* Begin PBXFrameworksBuildPhase section */
+		9F8A02012C00000100112233 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		9F8B02012C10000100112233 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		9F8E02012C40000100112233 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXFrameworksBuildPhase section */
+
+/* Begin PBXGroup section */
+		9F8A03012C00000100112233 = {
+			isa = PBXGroup;
+			children = (
+				9F8A03022C00000100112233 /* JammLab */,
+				9F8E03012C40000100112233 /* JammLabStemHelper */,
+				9F8B03012C10000100112233 /* JammLabTests */,
+				9FC100002D10000100112233 /* Configurations */,
+				9F8B00082C10000100112233 /* AGENT.md */,
+				9F8A03082C00000100112233 /* Products */,
+			);
+			sourceTree = "<group>";
+		};
+		9FC100002D10000100112233 /* Configurations */ = {
+			isa = PBXGroup;
+			children = (
+				9FC100012D10000100112233 /* Base.xcconfig */,
+				9FC100022D10000100112233 /* Debug.xcconfig */,
+				9FC100032D10000100112233 /* Release.xcconfig */,
+				9FC100042D10000100112233 /* CI.xcconfig */,
+				9FC100052D10000100112233 /* Signing-Local.xcconfig.example */,
+				9FC100062D10000100112233 /* README.md */,
+			);
+			path = Configurations;
+			sourceTree = "<group>";
+		};
+		9F8A03022C00000100112233 /* JammLab */ = {
+			isa = PBXGroup;
+			children = (
+				9F8A00012C00000100112233 /* JammLabApp.swift */,
+				9F8A00022C00000100112233 /* ContentView.swift */,
+				9F8C03012C20000100112233 /* DesignSystem */,
+				9F8A03032C00000100112233 /* Models */,
+				9F8A03042C00000100112233 /* Services */,
+				9F8A03052C00000100112233 /* ViewModels */,
+				9F8A03062C00000100112233 /* Views */,
+				9F8A03072C00000100112233 /* Utilities */,
+				9F8A000B2C00000100112233 /* Assets.xcassets */,
+				9F8A000C2C00000100112233 /* JammLab.entitlements */,
+			);
+			path = JammLab;
+			sourceTree = "<group>";
+		};
+		9F8A03032C00000100112233 /* Models */ = {
+			isa = PBXGroup;
+			children = (
+				9F8A00062C00000100112233 /* AnalysisResult.swift */,
+				9F8F00012C50000100112233 /* AppDefaults.swift */,
+				9F9400012CA0000100112233 /* AppSettingsStore.swift */,
+				9F8A00162C00000100112233 /* BeatGridSettings.swift */,
+				9F8A000A2C00000100112233 /* ImportedAudioFile.swift */,
+				9F8A00072C00000100112233 /* LoopRegion.swift */,
+				9F8A00132C00000100112233 /* JammLabProject.swift */,
+				9F8B00022C10000100112233 /* ProjectStateNormalizer.swift */,
+				9FAC00012CF0000100112233 /* ProjectEditableState.swift */,
+				9F9300012C90000100112233 /* StemBackendResolver.swift */,
+				9F8D00012C30000100112233 /* StemModels.swift */,
+				9F8E00012C40000100112233 /* StemSeparationJobModels.swift */,
+				9F8A00122C00000100112233 /* TimecodedNote.swift */,
+				9F8B00012C10000100112233 /* TimelineViewport.swift */,
+			);
+			path = Models;
+			sourceTree = "<group>";
+		};
+		9F8A03042C00000100112233 /* Services */ = {
+			isa = PBXGroup;
+			children = (
+				9F8A00052C00000100112233 /* AudioAnalyzer.swift */,
+				9FB001002D06000100112233 /* AudioDeviceService.swift */,
+				9F8A00042C00000100112233 /* AudioFileImporter.swift */,
+				9F8F00022C50000100112233 /* AudioPlaybackControlling.swift */,
+				9F8A00172C00000100112233 /* BeatGridCalculator.swift */,
+				9F8A00182C00000100112233 /* MetronomeClickScheduler.swift */,
+				9F8A00192C00000100112233 /* ProjectArtifactStore.swift */,
+				9F8A00142C00000100112233 /* ProjectDocumentService.swift */,
+				9FB202002D31000100112233 /* ProjectPersistenceCoordinator.swift */,
+				9F8A00152C00000100112233 /* RecentProjectsStore.swift */,
+				9FB204002D32000100112233 /* CachedPeakformProvider.swift */,
+				9FB204042D32000100112233 /* PeakformBinaryCache.swift */,
+				9FB204022D32000100112233 /* PeakformGenerator.swift */,
+				9F8D00032C30000100112233 /* StemMixAudioPlayer.swift */,
+				9F9200012C80000100112233 /* StemHelperProcessController.swift */,
+				9F8D00022C30000100112233 /* StemSeparationService.swift */,
+				9F9100012C70000100112233 /* TempoGridCalculator.swift */,
+				9FAE00012D01000100112233 /* VideoAudioExtractionService.swift */,
+				9FAE00022D01000100112233 /* VideoFollowerController.swift */,
+				9F8A000E2C00000100112233 /* WaveformProvider.swift */,
+			);
+			path = Services;
+			sourceTree = "<group>";
+		};
+		9F8A03052C00000100112233 /* ViewModels */ = {
+			isa = PBXGroup;
+			children = (
+				9F8A00032C00000100112233 /* AudioPlayerViewModel.swift */,
+				9FB201012D30000100112233 /* AudioPlayerViewModel+Project.swift */,
+				9FB201022D30000100112233 /* AudioPlayerViewModel+Playback.swift */,
+				9FB201032D30000100112233 /* AudioPlayerViewModel+Stems.swift */,
+				9FB201042D30000100112233 /* AudioPlayerViewModel+Timeline.swift */,
+				9FB201052D30000100112233 /* AudioPlayerViewModel+Notes.swift */,
+				9FB201062D30000100112233 /* AudioPlayerViewModel+Video.swift */,
+				9FB201072D30000100112233 /* AudioPlayerViewModel+UndoDirty.swift */,
+			);
+			path = ViewModels;
+			sourceTree = "<group>";
+		};
+		9F8A03062C00000100112233 /* Views */ = {
+			isa = PBXGroup;
+			children = (
+				9F8C03022C20000100112233 /* Components */,
+				9F8A00102C00000100112233 /* HotkeysHelpView.swift */,
+				9F8C00062C20000100112233 /* MainWorkspacePanels.swift */,
+				9F8B00032C10000100112233 /* PeakformTimelineView.swift */,
+				9F9400022CA0000100112233 /* SettingsView.swift */,
+				9F9100022C70000100112233 /* TempoGridRulerView.swift */,
+				9F8B00052C10000100112233 /* TimelineInteractionHelpers.swift */,
+				9F8B00042C10000100112233 /* TimelineTracks.swift */,
+				9F8A00082C00000100112233 /* WaveformTimelineView.swift */,
+			);
+			path = Views;
+			sourceTree = "<group>";
+		};
+		9F8A03072C00000100112233 /* Utilities */ = {
+			isa = PBXGroup;
+			children = (
+				9F8A000F2C00000100112233 /* AppHotkey.swift */,
+				9FAF00012D02000100112233 /* JammLabAppDelegate.swift */,
+				9F8A00092C00000100112233 /* TimeFormatter.swift */,
+			);
+			path = Utilities;
+			sourceTree = "<group>";
+		};
+		9F8A03082C00000100112233 /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				9F8A000D2C00000100112233 /* JammLab.app */,
+				9F8E00022C40000100112233 /* JammLabStemHelper */,
+				9F8B00062C10000100112233 /* JammLabTests.xctest */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+		9F8B03012C10000100112233 /* JammLabTests */ = {
+			isa = PBXGroup;
+			children = (
+				9FAB00012CE0000100112233 /* AudioTimingLogicTests.swift */,
+				9FAB00022CE0000100112233 /* PeakformLogicTests.swift */,
+				9FAB00032CE0000100112233 /* TimelineProjectLogicTests.swift */,
+				9FAB00042CE0000100112233 /* ViewModelLifecycleTests.swift */,
+				9FAB00052CE0000100112233 /* StemWorkflowLogicTests.swift */,
+				9FAB00062CE0000100112233 /* StemHelperProcessControllerTests.swift */,
+				9FAB00072CE0000100112233 /* SettingsAndControlLogicTests.swift */,
+				9F8B00072C10000100112233 /* TestSupport.swift */,
+			);
+			path = JammLabTests;
+			sourceTree = "<group>";
+		};
+		9F8C03012C20000100112233 /* DesignSystem */ = {
+			isa = PBXGroup;
+			children = (
+				9F8C00012C20000100112233 /* AppTheme.swift */,
+			);
+			path = DesignSystem;
+			sourceTree = "<group>";
+		};
+		9F8C03022C20000100112233 /* Components */ = {
+			isa = PBXGroup;
+			children = (
+				9F9500012CB0000100112233 /* AbletonNumberField.swift */,
+				9F9600012CC0000100112233 /* JammValueSlider.swift */,
+				9F8C00032C20000100112233 /* AppControls.swift */,
+				9FB205002D33000100112233 /* AppKitControlHelpers.swift */,
+				9F8C00022C20000100112233 /* AppPanel.swift */,
+				9FD001002D20000100112233 /* ControlHelpText.swift */,
+				9F9000032C60000100112233 /* InspectorSidebarView.swift */,
+				9F8C00052C20000100112233 /* NoteRowView.swift */,
+				9F9800012CF0000100112233 /* RenameNoteDialog.swift */,
+				9F9700012CD0000100112233 /* TimelineViewportControlBar.swift */,
+				9F8C00092C20000100112233 /* TopToolbarView.swift */,
+				9F8C00072C20000100112233 /* TransportBarView.swift */,
+				9F9000012C60000100112233 /* TransportControlsView.swift */,
+				9FAF00022D02000100112233 /* WindowCloseGuard.swift */,
+				9F8C00082C20000100112233 /* WindowTitleUpdater.swift */,
+			);
+			path = Components;
+			sourceTree = "<group>";
+		};
+		9F8E03012C40000100112233 /* JammLabStemHelper */ = {
+			isa = PBXGroup;
+			children = (
+				9F8E00032C40000100112233 /* main.swift */,
+			);
+			path = JammLabStemHelper;
+			sourceTree = "<group>";
+		};
+/* End PBXGroup section */
+
+/* Begin PBXNativeTarget section */
+		9F8A04012C00000100112233 /* JammLab */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 9F8A07022C00000100112233 /* Build configuration list for PBXNativeTarget "JammLab" */;
+			buildPhases = (
+				9F8A02022C00000100112233 /* Sources */,
+				9F8A02012C00000100112233 /* Frameworks */,
+				9F8A02032C00000100112233 /* Resources */,
+				9F9202012C80000100112233 /* Embed Stem Helper */,
+				9F9502012CB0000100112233 /* Embed Separator Helper */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				9F9203022C80000100112233 /* PBXTargetDependency */,
+			);
+			name = JammLab;
+			productName = JammLab;
+			productReference = 9F8A000D2C00000100112233 /* JammLab.app */;
+			productType = "com.apple.product-type.application";
+		};
+		9F8B04012C10000100112233 /* JammLabTests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 9F8B07012C10000100112233 /* Build configuration list for PBXNativeTarget "JammLabTests" */;
+			buildPhases = (
+				9F8B02032C10000100112233 /* Sources */,
+				9F8B02012C10000100112233 /* Frameworks */,
+				9F8B02022C10000100112233 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				9F8B08022C10000100112233 /* PBXTargetDependency */,
+			);
+			name = JammLabTests;
+			productName = JammLabTests;
+			productReference = 9F8B00062C10000100112233 /* JammLabTests.xctest */;
+			productType = "com.apple.product-type.bundle.unit-test";
+		};
+		9F8E04012C40000100112233 /* JammLabStemHelper */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 9F8E07012C40000100112233 /* Build configuration list for PBXNativeTarget "JammLabStemHelper" */;
+			buildPhases = (
+				9F8E02022C40000100112233 /* Sources */,
+				9F8E02012C40000100112233 /* Frameworks */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = JammLabStemHelper;
+			productName = JammLabStemHelper;
+			productReference = 9F8E00022C40000100112233 /* JammLabStemHelper */;
+			productType = "com.apple.product-type.tool";
+		};
+/* End PBXNativeTarget section */
+
+/* Begin PBXProject section */
+		9F8A05012C00000100112233 /* Project object */ = {
+			isa = PBXProject;
+			attributes = {
+				BuildIndependentTargetsInParallel = 1;
+				LastSwiftUpdateCheck = 2650;
+				LastUpgradeCheck = 2650;
+				TargetAttributes = {
+					9F8A04012C00000100112233 = {
+						CreatedOnToolsVersion = 26.5;
+					};
+					9F8B04012C10000100112233 = {
+						CreatedOnToolsVersion = 26.5;
+						TestTargetID = 9F8A04012C00000100112233;
+					};
+					9F8E04012C40000100112233 = {
+						CreatedOnToolsVersion = 26.5;
+					};
+				};
+			};
+			buildConfigurationList = 9F8A07012C00000100112233 /* Build configuration list for PBXProject "JammLab" */;
+			compatibilityVersion = "Xcode 14.0";
+			developmentRegion = en;
+			hasScannedForEncodings = 0;
+			knownRegions = (
+				en,
+				Base,
+			);
+			mainGroup = 9F8A03012C00000100112233;
+			productRefGroup = 9F8A03082C00000100112233 /* Products */;
+			projectDirPath = "";
+			projectRoot = "";
+			targets = (
+				9F8A04012C00000100112233 /* JammLab */,
+				9F8E04012C40000100112233 /* JammLabStemHelper */,
+				9F8B04012C10000100112233 /* JammLabTests */,
+			);
+		};
+/* End PBXProject section */
+
+/* Begin PBXResourcesBuildPhase section */
+		9F8A02032C00000100112233 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				9F8A010B2C00000100112233 /* Assets.xcassets in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		9F8B02022C10000100112233 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXResourcesBuildPhase section */
+
+/* Begin PBXShellScriptBuildPhase section */
+		9F9502012CB0000100112233 /* Embed Separator Helper */ = {
+			isa = PBXShellScriptBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			inputFileListPaths = (
+			);
+			inputPaths = (
+				"$(SRCROOT)/build/JammLabSeparatorHelper/dist/JammLabSeparatorHelper/JammLabSeparatorHelper",
+			);
+			name = "Embed Separator Helper";
+			outputFileListPaths = (
+			);
+			outputPaths = (
+				"$(TARGET_BUILD_DIR)/$(CONTENTS_FOLDER_PATH)/Resources/JammLabSeparatorHelper/JammLabSeparatorHelper",
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+			shellPath = /bin/bash;
+			shellScript = "set -euo pipefail\nif [[ \"${SKIP_BUNDLED_SEPARATOR_HELPER:-}\" == \"1\" ]]; then\n  echo \"warning: skipping bundled separator helper embed because SKIP_BUNDLED_SEPARATOR_HELPER=1\"\n  exit 0\nfi\nSOURCE_DIR=\"$SRCROOT/build/JammLabSeparatorHelper/dist/JammLabSeparatorHelper\"\nDEST_DIR=\"$TARGET_BUILD_DIR/$CONTENTS_FOLDER_PATH/Resources/JammLabSeparatorHelper\"\nLEGACY_DEST_DIR=\"$TARGET_BUILD_DIR/$CONTENTS_FOLDER_PATH/Helpers/JammLabSeparatorHelper\"\nif [[ ! -x \"$SOURCE_DIR/JammLabSeparatorHelper\" ]]; then\n  echo \"error: missing bundled separator helper at $SOURCE_DIR. Run scripts/build_separator_helper.sh before building JammLab.\" >&2\n  exit 1\nfi\nrm -rf \"$DEST_DIR\" \"$LEGACY_DEST_DIR\"\nmkdir -p \"$(dirname \"$DEST_DIR\")\"\ncp -R \"$SOURCE_DIR\" \"$DEST_DIR\"\nfind \"$DEST_DIR\" -type f -name \"*.py\" -exec perl -i -0pe 's/\\A#![^\\n]*\\n//' {} +\nSIGN_IDENTITY=\"${EXPANDED_CODE_SIGN_IDENTITY:--}\"\nif [[ -z \"$SIGN_IDENTITY\" ]]; then\n  SIGN_IDENTITY=\"-\"\nfi\nwhile IFS= read -r file; do\n  /usr/bin/codesign --force --sign \"$SIGN_IDENTITY\" --timestamp=none \"$file\"\ndone < <(find \"$DEST_DIR\" -type f \\( -perm -111 -o -name \"*.so\" -o -name \"*.dylib\" \\))\n";
+		};
+/* End PBXShellScriptBuildPhase section */
+
+/* Begin PBXSourcesBuildPhase section */
+		9F8A02022C00000100112233 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				9F8A01062C00000100112233 /* AnalysisResult.swift in Sources */,
+				9F8F01012C50000100112233 /* AppDefaults.swift in Sources */,
+				9F8A01052C00000100112233 /* AudioAnalyzer.swift in Sources */,
+				9FB001012D06000100112233 /* AudioDeviceService.swift in Sources */,
+				9F8A01042C00000100112233 /* AudioFileImporter.swift in Sources */,
+				9F8F01032C50000100112233 /* AudioPlaybackControlling.swift in Sources */,
+				9F8A01032C00000100112233 /* AudioPlayerViewModel.swift in Sources */,
+				9FB200012D30000100112233 /* AudioPlayerViewModel+Project.swift in Sources */,
+				9FB200022D30000100112233 /* AudioPlayerViewModel+Playback.swift in Sources */,
+				9FB200032D30000100112233 /* AudioPlayerViewModel+Stems.swift in Sources */,
+				9FB200042D30000100112233 /* AudioPlayerViewModel+Timeline.swift in Sources */,
+				9FB200052D30000100112233 /* AudioPlayerViewModel+Notes.swift in Sources */,
+				9FB200062D30000100112233 /* AudioPlayerViewModel+Video.swift in Sources */,
+				9FB200072D30000100112233 /* AudioPlayerViewModel+UndoDirty.swift in Sources */,
+				9F8C01032C20000100112233 /* AppControls.swift in Sources */,
+				9FB205012D33000100112233 /* AppKitControlHelpers.swift in Sources */,
+				9F9501012CB0000100112233 /* AbletonNumberField.swift in Sources */,
+				9FD001012D20000100112233 /* ControlHelpText.swift in Sources */,
+				9F9601012CC0000100112233 /* JammValueSlider.swift in Sources */,
+				9F8C01022C20000100112233 /* AppPanel.swift in Sources */,
+				9F8C01012C20000100112233 /* AppTheme.swift in Sources */,
+				9F8A01152C00000100112233 /* BeatGridCalculator.swift in Sources */,
+				9F8A01162C00000100112233 /* MetronomeClickScheduler.swift in Sources */,
+				9F8A01142C00000100112233 /* BeatGridSettings.swift in Sources */,
+				9F8A01022C00000100112233 /* ContentView.swift in Sources */,
+				9F8A010E2C00000100112233 /* HotkeysHelpView.swift in Sources */,
+				9F8A010A2C00000100112233 /* ImportedAudioFile.swift in Sources */,
+				9F9001032C60000100112233 /* InspectorSidebarView.swift in Sources */,
+				9F9801012CF0000100112233 /* RenameNoteDialog.swift in Sources */,
+				9F8A01072C00000100112233 /* LoopRegion.swift in Sources */,
+				9F8A01012C00000100112233 /* JammLabApp.swift in Sources */,
+				9FAF01012D02000100112233 /* JammLabAppDelegate.swift in Sources */,
+				9F8A01112C00000100112233 /* JammLabProject.swift in Sources */,
+				9F8C01062C20000100112233 /* MainWorkspacePanels.swift in Sources */,
+				9F8C01052C20000100112233 /* NoteRowView.swift in Sources */,
+				9F8A010D2C00000100112233 /* AppHotkey.swift in Sources */,
+				9F8B01032C10000100112233 /* PeakformTimelineView.swift in Sources */,
+				9F8A01192C00000100112233 /* ProjectArtifactStore.swift in Sources */,
+				9F8B01022C10000100112233 /* ProjectStateNormalizer.swift in Sources */,
+				9FAC01012CF0000100112233 /* ProjectEditableState.swift in Sources */,
+				9F8A01122C00000100112233 /* ProjectDocumentService.swift in Sources */,
+				9FB202012D31000100112233 /* ProjectPersistenceCoordinator.swift in Sources */,
+				9F8A01132C00000100112233 /* RecentProjectsStore.swift in Sources */,
+				9F9401012CA0000100112233 /* AppSettingsStore.swift in Sources */,
+				9F8D01032C30000100112233 /* StemMixAudioPlayer.swift in Sources */,
+				9F9301012C90000100112233 /* StemBackendResolver.swift in Sources */,
+				9F8D01012C30000100112233 /* StemModels.swift in Sources */,
+				9F9201012C80000100112233 /* StemHelperProcessController.swift in Sources */,
+				9F8E01012C40000100112233 /* StemSeparationJobModels.swift in Sources */,
+				9F8D01022C30000100112233 /* StemSeparationService.swift in Sources */,
+				9F9101012C70000100112233 /* TempoGridCalculator.swift in Sources */,
+				9F9101022C70000100112233 /* TempoGridRulerView.swift in Sources */,
+				9F9401032CA0000100112233 /* SettingsView.swift in Sources */,
+				9F8A01092C00000100112233 /* TimeFormatter.swift in Sources */,
+				9F8A01102C00000100112233 /* TimecodedNote.swift in Sources */,
+				9F8B01052C10000100112233 /* TimelineInteractionHelpers.swift in Sources */,
+				9F8B01042C10000100112233 /* TimelineTracks.swift in Sources */,
+				9F8B01012C10000100112233 /* TimelineViewport.swift in Sources */,
+				9F9701012CD0000100112233 /* TimelineViewportControlBar.swift in Sources */,
+				9F8C01092C20000100112233 /* TopToolbarView.swift in Sources */,
+				9F8C01072C20000100112233 /* TransportBarView.swift in Sources */,
+				9F9001012C60000100112233 /* TransportControlsView.swift in Sources */,
+				9FAE01012D01000100112233 /* VideoAudioExtractionService.swift in Sources */,
+				9FAE01022D01000100112233 /* VideoFollowerController.swift in Sources */,
+				9FB204012D32000100112233 /* CachedPeakformProvider.swift in Sources */,
+				9FB204052D32000100112233 /* PeakformBinaryCache.swift in Sources */,
+				9FB204032D32000100112233 /* PeakformGenerator.swift in Sources */,
+				9F8A01082C00000100112233 /* WaveformTimelineView.swift in Sources */,
+				9F8A010C2C00000100112233 /* WaveformProvider.swift in Sources */,
+				9FAF01022D02000100112233 /* WindowCloseGuard.swift in Sources */,
+				9F8C01082C20000100112233 /* WindowTitleUpdater.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		9F8B02032C10000100112233 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				9FAB01012CE0000100112233 /* AudioTimingLogicTests.swift in Sources */,
+				9FAB01022CE0000100112233 /* PeakformLogicTests.swift in Sources */,
+				9FAB01032CE0000100112233 /* TimelineProjectLogicTests.swift in Sources */,
+				9FAB01042CE0000100112233 /* ViewModelLifecycleTests.swift in Sources */,
+				9FAB01052CE0000100112233 /* StemWorkflowLogicTests.swift in Sources */,
+				9FAB01062CE0000100112233 /* StemHelperProcessControllerTests.swift in Sources */,
+				9FAB01072CE0000100112233 /* SettingsAndControlLogicTests.swift in Sources */,
+				9F8B01062C10000100112233 /* TestSupport.swift in Sources */,
+				9F9401022CA0000100112233 /* AppSettingsStore.swift in Sources */,
+				9F9301032C90000100112233 /* StemBackendResolver.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		9F8E02022C40000100112233 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				9F8F01022C50000100112233 /* AppDefaults.swift in Sources */,
+				9F8E01022C40000100112233 /* main.swift in Sources */,
+				9F8E01032C40000100112233 /* StemModels.swift in Sources */,
+				9F8E01042C40000100112233 /* StemSeparationJobModels.swift in Sources */,
+				9F9301022C90000100112233 /* StemBackendResolver.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXSourcesBuildPhase section */
+
+/* Begin PBXTargetDependency section */
+		9F8B08022C10000100112233 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 9F8A04012C00000100112233 /* JammLab */;
+			targetProxy = 9F8B08012C10000100112233 /* PBXContainerItemProxy */;
+		};
+		9F9203022C80000100112233 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 9F8E04012C40000100112233 /* JammLabStemHelper */;
+			targetProxy = 9F9203012C80000100112233 /* PBXContainerItemProxy */;
+		};
+/* End PBXTargetDependency section */
+
+/* Begin XCBuildConfiguration section */
+		9F8A06012C00000100112233 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			baseConfigurationReference = 9FC100022D10000100112233 /* Debug.xcconfig */;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = dwarf;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				GCC_DYNAMIC_NO_PIC = NO;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_OPTIMIZATION_LEVEL = 0;
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					"DEBUG=1",
+					"$(inherited)",
+				);
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
+				MTL_FAST_MATH = YES;
+			};
+			name = Debug;
+		};
+		9F8A06022C00000100112233 /* Release */ = {
+			isa = XCBuildConfiguration;
+			baseConfigurationReference = 9FC100032D10000100112233 /* Release.xcconfig */;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				ENABLE_NS_ASSERTIONS = NO;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				MTL_ENABLE_DEBUG_INFO = NO;
+				MTL_FAST_MATH = YES;
+				SWIFT_COMPILATION_MODE = wholemodule;
+			};
+			name = Release;
+		};
+		9F8A06032C00000100112233 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			baseConfigurationReference = 9FC100022D10000100112233 /* Debug.xcconfig */;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_INCLUDE_ALL_APPICON_ASSETS = YES;
+				AUTOMATION_APPLE_EVENTS = NO;
+				CODE_SIGN_ENTITLEMENTS = JammLab/JammLab.entitlements;
+				CODE_SIGN_STYLE = Automatic;
+				COMBINE_HIDPI_IMAGES = YES;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_ASSET_PATHS = "";
+				DEVELOPMENT_TEAM = L7X42BE58F;
+				ENABLE_APP_SANDBOX = YES;
+				ENABLE_HARDENED_RUNTIME = YES;
+				ENABLE_INCOMING_NETWORK_CONNECTIONS = NO;
+				ENABLE_OUTGOING_NETWORK_CONNECTIONS = NO;
+				ENABLE_PREVIEWS = YES;
+				ENABLE_RESOURCE_ACCESS_AUDIO_INPUT = NO;
+				ENABLE_RESOURCE_ACCESS_BLUETOOTH = NO;
+				ENABLE_RESOURCE_ACCESS_CALENDARS = NO;
+				ENABLE_RESOURCE_ACCESS_CAMERA = NO;
+				ENABLE_RESOURCE_ACCESS_CONTACTS = NO;
+				ENABLE_RESOURCE_ACCESS_LOCATION = NO;
+				ENABLE_RESOURCE_ACCESS_PHOTO_LIBRARY = NO;
+				ENABLE_RESOURCE_ACCESS_PRINTING = NO;
+				ENABLE_RESOURCE_ACCESS_USB = NO;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_CFBundleDisplayName = JammLab;
+				INFOPLIST_KEY_CFBundleIconFile = AppIcon;
+				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.music";
+				INFOPLIST_KEY_NSHumanReadableCopyright = "© 2026 Cyberflow";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.cyberflow.JammLab;
+				RUNTIME_EXCEPTION_ALLOW_DYLD_ENVIRONMENT_VARIABLES = NO;
+				RUNTIME_EXCEPTION_ALLOW_JIT = NO;
+				RUNTIME_EXCEPTION_ALLOW_UNSIGNED_EXECUTABLE_MEMORY = NO;
+				RUNTIME_EXCEPTION_DEBUGGING_TOOL = NO;
+				RUNTIME_EXCEPTION_DISABLE_EXECUTABLE_PAGE_PROTECTION = NO;
+				RUNTIME_EXCEPTION_DISABLE_LIBRARY_VALIDATION = NO;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+			};
+			name = Debug;
+		};
+		9F8A06042C00000100112233 /* Release */ = {
+			isa = XCBuildConfiguration;
+			baseConfigurationReference = 9FC100032D10000100112233 /* Release.xcconfig */;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_INCLUDE_ALL_APPICON_ASSETS = YES;
+				AUTOMATION_APPLE_EVENTS = NO;
+				CODE_SIGN_ENTITLEMENTS = JammLab/JammLab.entitlements;
+				CODE_SIGN_STYLE = Automatic;
+				COMBINE_HIDPI_IMAGES = YES;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_ASSET_PATHS = "";
+				DEVELOPMENT_TEAM = L7X42BE58F;
+				ENABLE_APP_SANDBOX = YES;
+				ENABLE_HARDENED_RUNTIME = YES;
+				ENABLE_INCOMING_NETWORK_CONNECTIONS = NO;
+				ENABLE_OUTGOING_NETWORK_CONNECTIONS = NO;
+				ENABLE_RESOURCE_ACCESS_AUDIO_INPUT = NO;
+				ENABLE_RESOURCE_ACCESS_BLUETOOTH = NO;
+				ENABLE_RESOURCE_ACCESS_CALENDARS = NO;
+				ENABLE_RESOURCE_ACCESS_CAMERA = NO;
+				ENABLE_RESOURCE_ACCESS_CONTACTS = NO;
+				ENABLE_RESOURCE_ACCESS_LOCATION = NO;
+				ENABLE_RESOURCE_ACCESS_PHOTO_LIBRARY = NO;
+				ENABLE_RESOURCE_ACCESS_PRINTING = NO;
+				ENABLE_RESOURCE_ACCESS_USB = NO;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_CFBundleDisplayName = JammLab;
+				INFOPLIST_KEY_CFBundleIconFile = AppIcon;
+				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.music";
+				INFOPLIST_KEY_NSHumanReadableCopyright = "© 2026 Cyberflow";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.cyberflow.JammLab;
+				RUNTIME_EXCEPTION_ALLOW_DYLD_ENVIRONMENT_VARIABLES = NO;
+				RUNTIME_EXCEPTION_ALLOW_JIT = NO;
+				RUNTIME_EXCEPTION_ALLOW_UNSIGNED_EXECUTABLE_MEMORY = NO;
+				RUNTIME_EXCEPTION_DEBUGGING_TOOL = NO;
+				RUNTIME_EXCEPTION_DISABLE_EXECUTABLE_PAGE_PROTECTION = NO;
+				RUNTIME_EXCEPTION_DISABLE_LIBRARY_VALIDATION = NO;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+			};
+			name = Release;
+		};
+		9F8B06012C10000100112233 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			baseConfigurationReference = 9FC100022D10000100112233 /* Debug.xcconfig */;
+			buildSettings = {
+				ALWAYS_EMBED_SWIFT_STANDARD_LIBRARIES = YES;
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				"CODE_SIGN_IDENTITY[sdk=macosx*]" = "Apple Development";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = L7X42BE58F;
+				GENERATE_INFOPLIST_FILE = YES;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+					"@loader_path/../Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.cyberflow.JammLabTests;
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/JammLab.app/Contents/MacOS/JammLab";
+			};
+			name = Debug;
+		};
+		9F8B06022C10000100112233 /* Release */ = {
+			isa = XCBuildConfiguration;
+			baseConfigurationReference = 9FC100032D10000100112233 /* Release.xcconfig */;
+			buildSettings = {
+				ALWAYS_EMBED_SWIFT_STANDARD_LIBRARIES = YES;
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				"CODE_SIGN_IDENTITY[sdk=macosx*]" = "Apple Development";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = L7X42BE58F;
+				GENERATE_INFOPLIST_FILE = YES;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+					"@loader_path/../Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.cyberflow.JammLabTests;
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/JammLab.app/Contents/MacOS/JammLab";
+			};
+			name = Release;
+		};
+		9F8E06012C40000100112233 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			baseConfigurationReference = 9FC100022D10000100112233 /* Debug.xcconfig */;
+			buildSettings = {
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = L7X42BE58F;
+				ENABLE_HARDENED_RUNTIME = NO;
+				GENERATE_INFOPLIST_FILE = YES;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.cyberflow.JammLabStemHelper;
+				SWIFT_EMIT_LOC_STRINGS = NO;
+			};
+			name = Debug;
+		};
+		9F8E06022C40000100112233 /* Release */ = {
+			isa = XCBuildConfiguration;
+			baseConfigurationReference = 9FC100032D10000100112233 /* Release.xcconfig */;
+			buildSettings = {
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = L7X42BE58F;
+				ENABLE_HARDENED_RUNTIME = NO;
+				GENERATE_INFOPLIST_FILE = YES;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.cyberflow.JammLabStemHelper;
+				SWIFT_EMIT_LOC_STRINGS = NO;
+			};
+			name = Release;
+		};
+/* End XCBuildConfiguration section */
+
+/* Begin XCConfigurationList section */
+		9F8A07012C00000100112233 /* Build configuration list for PBXProject "JammLab" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				9F8A06012C00000100112233 /* Debug */,
+				9F8A06022C00000100112233 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		9F8A07022C00000100112233 /* Build configuration list for PBXNativeTarget "JammLab" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				9F8A06032C00000100112233 /* Debug */,
+				9F8A06042C00000100112233 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		9F8B07012C10000100112233 /* Build configuration list for PBXNativeTarget "JammLabTests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				9F8B06012C10000100112233 /* Debug */,
+				9F8B06022C10000100112233 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		9F8E07012C40000100112233 /* Build configuration list for PBXNativeTarget "JammLabStemHelper" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				9F8E06012C40000100112233 /* Debug */,
+				9F8E06022C40000100112233 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+/* End XCConfigurationList section */
+	};
+	rootObject = 9F8A05012C00000100112233 /* Project object */;
+}

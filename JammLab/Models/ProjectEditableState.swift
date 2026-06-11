@@ -1,0 +1,35 @@
+import Foundation
+
+struct ProjectEditableState: Equatable {
+    var notes: [TimecodedNote]
+    var selectedRegionID: TimecodedNote.ID?
+    var activeLoopRegionID: TimecodedNote.ID?
+    var loopRegion: LoopRegion
+    var isLooping: Bool
+    var tempoBPM: Double?
+    var beatGridSettings: BeatGridSettings
+    var playbackRate: Float
+    var pitchShiftSemitones: Float
+    var mainTrackVolume: Float
+    var stemMixState: StemMixState
+    var playbackMode: PlaybackMode
+    var isClickEnabled: Bool
+    var clickVolume: Float
+    var isSnapEnabled: Bool
+}
+
+struct ProjectPersistedEditableState: Equatable {
+    var notes: [TimecodedNote]
+    var loopRegion: LoopRegion
+    var isLooping: Bool
+    var tempoBPM: Double?
+    var beatGridSettings: BeatGridSettings
+    var playbackRate: Float
+    var pitchShiftSemitones: Float
+    var mainTrackVolume: Float
+    var stemMixState: StemMixState
+    var playbackMode: PlaybackMode
+    var isClickEnabled: Bool
+    var clickVolume: Float
+    var isSnapEnabled: Bool
+}

@@ -65,11 +65,22 @@ xcodebuild test -project JammLab.xcodeproj -scheme JammLab -destination 'platfor
 python3 -m unittest JammLabSeparatorHelper/test_runner.py
 ```
 
-For an unsigned CI-style release build smoke test:
+For a CI-style release build smoke test with ad-hoc signing:
 
 ```sh
 xcodebuild build -project JammLab.xcodeproj -scheme JammLab -configuration Release -destination 'platform=macOS' -derivedDataPath build-ci -xcconfig Configurations/CI.xcconfig
 ```
+
+GitHub CI uses three modes:
+
+- feature branches and pull requests to `main`: Python helper tests and Swift tests;
+- `main` pushes: tests plus unsigned Debug/Release build smoke;
+- release tags `vMAJOR.MINOR.PATCH`: tests, bundled separator build, unsigned
+  Release app build, DMG packaging, and source archive upload.
+
+Release versions are derived from Git tags. A tag such as `v0.1.0` builds the
+app with `MARKETING_VERSION=0.1.0`; the standard macOS About panel reads that
+value from the generated app `Info.plist`.
 
 ## Stem Separation
 
