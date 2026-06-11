@@ -26,6 +26,9 @@
 		9F8A01092C00000100112233 /* TimeFormatter.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9F8A00092C00000100112233 /* TimeFormatter.swift */; };
 		9F8A010A2C00000100112233 /* ImportedAudioFile.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9F8A000A2C00000100112233 /* ImportedAudioFile.swift */; };
 		9F8A010B2C00000100112233 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 9F8A000B2C00000100112233 /* Assets.xcassets */; };
+		9FB204012D32000100112233 /* CachedPeakformProvider.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9FB204002D32000100112233 /* CachedPeakformProvider.swift */; };
+		9FB204032D32000100112233 /* PeakformGenerator.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9FB204022D32000100112233 /* PeakformGenerator.swift */; };
+		9FB204052D32000100112233 /* PeakformBinaryCache.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9FB204042D32000100112233 /* PeakformBinaryCache.swift */; };
 		9F8A010C2C00000100112233 /* WaveformProvider.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9F8A000E2C00000100112233 /* WaveformProvider.swift */; };
 		9F8A010D2C00000100112233 /* AppHotkey.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9F8A000F2C00000100112233 /* AppHotkey.swift */; };
 		9F8A010E2C00000100112233 /* HotkeysHelpView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9F8A00102C00000100112233 /* HotkeysHelpView.swift */; };
@@ -146,6 +149,9 @@
 		9F8A000B2C00000100112233 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		9F8A000C2C00000100112233 /* JammLab.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = JammLab.entitlements; sourceTree = "<group>"; };
 		9F8A000D2C00000100112233 /* JammLab.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = JammLab.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		9FB204002D32000100112233 /* CachedPeakformProvider.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CachedPeakformProvider.swift; sourceTree = "<group>"; };
+		9FB204022D32000100112233 /* PeakformGenerator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PeakformGenerator.swift; sourceTree = "<group>"; };
+		9FB204042D32000100112233 /* PeakformBinaryCache.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PeakformBinaryCache.swift; sourceTree = "<group>"; };
 		9F8A000E2C00000100112233 /* WaveformProvider.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WaveformProvider.swift; sourceTree = "<group>"; };
 		9F8A000F2C00000100112233 /* AppHotkey.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppHotkey.swift; sourceTree = "<group>"; };
 		9F8A00102C00000100112233 /* HotkeysHelpView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HotkeysHelpView.swift; sourceTree = "<group>"; };
@@ -316,6 +322,9 @@
 				9F8A00142C00000100112233 /* ProjectDocumentService.swift */,
 				9FB202002D31000100112233 /* ProjectPersistenceCoordinator.swift */,
 				9F8A00152C00000100112233 /* RecentProjectsStore.swift */,
+				9FB204002D32000100112233 /* CachedPeakformProvider.swift */,
+				9FB204042D32000100112233 /* PeakformBinaryCache.swift */,
+				9FB204022D32000100112233 /* PeakformGenerator.swift */,
 				9F8D00032C30000100112233 /* StemMixAudioPlayer.swift */,
 				9F9200012C80000100112233 /* StemHelperProcessController.swift */,
 				9F8D00022C30000100112233 /* StemSeparationService.swift */,
@@ -638,6 +647,9 @@
 				9F9001012C60000100112233 /* TransportControlsView.swift in Sources */,
 				9FAE01012D01000100112233 /* VideoAudioExtractionService.swift in Sources */,
 				9FAE01022D01000100112233 /* VideoFollowerController.swift in Sources */,
+				9FB204012D32000100112233 /* CachedPeakformProvider.swift in Sources */,
+				9FB204052D32000100112233 /* PeakformBinaryCache.swift in Sources */,
+				9FB204032D32000100112233 /* PeakformGenerator.swift in Sources */,
 				9F8A01082C00000100112233 /* WaveformTimelineView.swift in Sources */,
 				9F8A010C2C00000100112233 /* WaveformProvider.swift in Sources */,
 				9FAF01022D02000100112233 /* WindowCloseGuard.swift in Sources */,
