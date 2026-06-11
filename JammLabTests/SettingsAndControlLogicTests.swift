@@ -425,6 +425,19 @@ final class SettingsAndControlLogicTests: XCTestCase {
         XCTAssertEqual(JammValueSliderLogic.dragValue(startValue: 0, deltaX: -7, deltaY: 0, configuration: config), -1, accuracy: 0.0001)
     }
 
+    func testAppKitDragThresholdUsesVerticalDistanceForNumberField() {
+        XCTAssertFalse(AppKitDragThreshold.exceedsVerticalThreshold(deltaY: 2.9, threshold: 3))
+        XCTAssertTrue(AppKitDragThreshold.exceedsVerticalThreshold(deltaY: 3, threshold: 3))
+        XCTAssertTrue(AppKitDragThreshold.exceedsVerticalThreshold(deltaY: -3.1, threshold: 3))
+    }
+
+    func testAppKitDragThresholdUsesDominantAxisForValueSlider() {
+        XCTAssertFalse(AppKitDragThreshold.exceedsDominantAxisThreshold(deltaX: 2.9, deltaY: 1, threshold: 3))
+        XCTAssertTrue(AppKitDragThreshold.exceedsDominantAxisThreshold(deltaX: 3, deltaY: 1, threshold: 3))
+        XCTAssertTrue(AppKitDragThreshold.exceedsDominantAxisThreshold(deltaX: 1, deltaY: -3.1, threshold: 3))
+        XCTAssertTrue(AppKitDragThreshold.exceedsDominantAxisThreshold(deltaX: -2, deltaY: 4, threshold: 3))
+    }
+
     func testClickSoundSettingsDefaultsMatchCurrentGeneratedClick() {
         let defaults = ClickSoundSettings.defaultValue
 

@@ -148,7 +148,7 @@ final class AbletonNumberFieldNSView: NSView {
     private var dragStartValue: Double = 0
     private var isDraggingValue = false
     private var trackingArea: NSTrackingArea?
-    private var outsideClickMonitor: Any?
+    private let outsideClickMonitor = AppKitOutsideClickMonitor()
 
     override var acceptsFirstResponder: Bool { isFieldEnabled }
 
@@ -158,16 +158,16 @@ final class AbletonNumberFieldNSView: NSView {
 
     override init(frame frameRect: NSRect) {
         super.init(frame: frameRect)
-        configureLayoutPriorities()
+        configureCompactVerticalControlSizing()
     }
 
     required init?(coder: NSCoder) {
         super.init(coder: coder)
-        configureLayoutPriorities()
+        configureCompactVerticalControlSizing()
     }
 
     deinit {
-        removeOutsideClickMonitor()
+        outsideClickMonitor.remove()
     }
 
     func configure(
@@ -276,7 +276,10 @@ final class AbletonNumberFieldNSView: NSView {
         guard isFieldEnabled else { return }
 
         let deltaY = event.locationInWindow.y - dragStartPoint.y
-        if !isDraggingValue, abs(deltaY) < AppTheme.AbletonNumberField.dragThreshold {
+        if !isDraggingValue, !AppKitDragThreshold.exceedsVerticalThreshold(
+            deltaY: deltaY,
+            threshold: AppTheme.AbletonNumberField.dragThreshold
+        ) {
             return
         }
 
@@ -325,7 +328,7 @@ final class AbletonNumberFieldNSView: NSView {
     override func resignFirstResponder() -> Bool {
         commitInput()
         selected = false
-        removeOutsideClickMonitor()
+        outsideClickMonitor.remove()
         needsDisplay = true
         return true
     }
@@ -334,31 +337,10 @@ final class AbletonNumberFieldNSView: NSView {
         inputBuffer != nil
     }
 
-    private func configureLayoutPriorities() {
-        setContentHuggingPriority(.required, for: .vertical)
-        setContentCompressionResistancePriority(.required, for: .vertical)
-    }
-
     private func installOutsideClickMonitor() {
-        guard outsideClickMonitor == nil else { return }
-
-        outsideClickMonitor = NSEvent.addLocalMonitorForEvents(matching: .leftMouseDown) { [weak self] event in
-            guard let self else { return event }
-            guard event.window === self.window else { return event }
-
-            let location = self.convert(event.locationInWindow, from: nil)
-            if !self.bounds.contains(location) {
-                self.window?.makeFirstResponder(nil)
-            }
-
-            return event
+        outsideClickMonitor.install(for: self) { view in
+            view.window?.makeFirstResponder(nil)
         }
-    }
-
-    private func removeOutsideClickMonitor() {
-        guard let outsideClickMonitor else { return }
-        NSEvent.removeMonitor(outsideClickMonitor)
-        self.outsideClickMonitor = nil
     }
 
     private var backgroundColor: NSColor {

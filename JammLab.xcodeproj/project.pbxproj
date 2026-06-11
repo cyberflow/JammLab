@@ -50,6 +50,7 @@
 		9F8C01012C20000100112233 /* AppTheme.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9F8C00012C20000100112233 /* AppTheme.swift */; };
 		9F8C01022C20000100112233 /* AppPanel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9F8C00022C20000100112233 /* AppPanel.swift */; };
 		9F8C01032C20000100112233 /* AppControls.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9F8C00032C20000100112233 /* AppControls.swift */; };
+		9FB205012D33000100112233 /* AppKitControlHelpers.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9FB205002D33000100112233 /* AppKitControlHelpers.swift */; };
 		9FD001012D20000100112233 /* ControlHelpText.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9FD001002D20000100112233 /* ControlHelpText.swift */; };
 		9F8C01052C20000100112233 /* NoteRowView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9F8C00052C20000100112233 /* NoteRowView.swift */; };
 		9F8C01062C20000100112233 /* MainWorkspacePanels.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9F8C00062C20000100112233 /* MainWorkspacePanels.swift */; };
@@ -175,6 +176,7 @@
 		9F8C00012C20000100112233 /* AppTheme.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppTheme.swift; sourceTree = "<group>"; };
 		9F8C00022C20000100112233 /* AppPanel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppPanel.swift; sourceTree = "<group>"; };
 		9F8C00032C20000100112233 /* AppControls.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppControls.swift; sourceTree = "<group>"; };
+		9FB205002D33000100112233 /* AppKitControlHelpers.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppKitControlHelpers.swift; sourceTree = "<group>"; };
 		9FD001002D20000100112233 /* ControlHelpText.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ControlHelpText.swift; sourceTree = "<group>"; };
 		9F8C00052C20000100112233 /* NoteRowView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NoteRowView.swift; sourceTree = "<group>"; };
 		9F8C00062C20000100112233 /* MainWorkspacePanels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MainWorkspacePanels.swift; sourceTree = "<group>"; };
@@ -416,6 +418,7 @@
 				9F9500012CB0000100112233 /* AbletonNumberField.swift */,
 				9F9600012CC0000100112233 /* JammValueSlider.swift */,
 				9F8C00032C20000100112233 /* AppControls.swift */,
+				9FB205002D33000100112233 /* AppKitControlHelpers.swift */,
 				9F8C00022C20000100112233 /* AppPanel.swift */,
 				9FD001002D20000100112233 /* ControlHelpText.swift */,
 				9F9000032C60000100112233 /* InspectorSidebarView.swift */,
@@ -599,6 +602,7 @@
 				9FB200062D30000100112233 /* AudioPlayerViewModel+Video.swift in Sources */,
 				9FB200072D30000100112233 /* AudioPlayerViewModel+UndoDirty.swift in Sources */,
 				9F8C01032C20000100112233 /* AppControls.swift in Sources */,
+				9FB205012D33000100112233 /* AppKitControlHelpers.swift in Sources */,
 				9F9501012CB0000100112233 /* AbletonNumberField.swift in Sources */,
 				9FD001012D20000100112233 /* ControlHelpText.swift in Sources */,
 				9F9601012CC0000100112233 /* JammValueSlider.swift in Sources */,

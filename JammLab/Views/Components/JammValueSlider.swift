@@ -161,7 +161,7 @@ final class JammValueSliderNSView: NSView {
     private var dragStartValue: Double = 0
     private var isDraggingValue = false
     private var trackingArea: NSTrackingArea?
-    private var outsideClickMonitor: Any?
+    private let outsideClickMonitor = AppKitOutsideClickMonitor()
 
     override var acceptsFirstResponder: Bool { isControlEnabled }
 
@@ -174,16 +174,16 @@ final class JammValueSliderNSView: NSView {
 
     override init(frame frameRect: NSRect) {
         super.init(frame: frameRect)
-        configureLayoutPriorities()
+        configureCompactVerticalControlSizing()
     }
 
     required init?(coder: NSCoder) {
         super.init(coder: coder)
-        configureLayoutPriorities()
+        configureCompactVerticalControlSizing()
     }
 
     deinit {
-        removeOutsideClickMonitor()
+        outsideClickMonitor.remove()
     }
 
     func configure(
@@ -317,8 +317,11 @@ final class JammValueSliderNSView: NSView {
 
         let deltaX = event.locationInWindow.x - dragStartPoint.x
         let deltaY = event.locationInWindow.y - dragStartPoint.y
-        let dominantDistance = max(abs(deltaX), abs(deltaY))
-        if !isDraggingValue, dominantDistance < AppTheme.JammValueSlider.dragThreshold {
+        if !isDraggingValue, !AppKitDragThreshold.exceedsDominantAxisThreshold(
+            deltaX: deltaX,
+            deltaY: deltaY,
+            threshold: AppTheme.JammValueSlider.dragThreshold
+        ) {
             return
         }
 
@@ -364,7 +367,7 @@ final class JammValueSliderNSView: NSView {
     override func resignFirstResponder() -> Bool {
         selected = false
         isDraggingValue = false
-        removeOutsideClickMonitor()
+        outsideClickMonitor.remove()
         needsDisplay = true
         return true
     }
@@ -392,31 +395,10 @@ final class JammValueSliderNSView: NSView {
         displayFormatter?(value) ?? JammValueSliderLogic.format(value, configuration: configuration)
     }
 
-    private func configureLayoutPriorities() {
-        setContentHuggingPriority(.required, for: .vertical)
-        setContentCompressionResistancePriority(.required, for: .vertical)
-    }
-
     private func installOutsideClickMonitor() {
-        guard outsideClickMonitor == nil else { return }
-
-        outsideClickMonitor = NSEvent.addLocalMonitorForEvents(matching: .leftMouseDown) { [weak self] event in
-            guard let self else { return event }
-            guard event.window === self.window else { return event }
-
-            let location = self.convert(event.locationInWindow, from: nil)
-            if !self.bounds.contains(location) {
-                self.window?.makeFirstResponder(nil)
-            }
-
-            return event
+        outsideClickMonitor.install(for: self) { view in
+            view.window?.makeFirstResponder(nil)
         }
-    }
-
-    private func removeOutsideClickMonitor() {
-        guard let outsideClickMonitor else { return }
-        NSEvent.removeMonitor(outsideClickMonitor)
-        self.outsideClickMonitor = nil
     }
 
     private func setValue(_ newValue: Double) {
