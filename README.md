@@ -75,15 +75,22 @@ GitHub CI uses three modes:
 
 - feature branches and pull requests to `main`: Python helper tests and Swift tests;
 - `main` pushes: tests plus unsigned Debug/Release build smoke;
-- release tags `vMAJOR.MINOR.PATCH`: tests, bundled separator build, unsigned
-  Release app build, DMG packaging, source archive upload, and a published
-  GitHub Release with downloadable assets.
+- stable release tags `vMAJOR.MINOR.PATCH`: tests, bundled separator build,
+  unsigned Release app build, DMG packaging, source archive upload, and a
+  published latest GitHub Release with downloadable assets;
+- beta release tags `vMAJOR.MINOR.PATCH-beta`: the same artifact build, published
+  as a GitHub prerelease and not marked latest;
+- development tags `vMAJOR.MINOR.PATCH-dev.N`: the same artifact build, uploaded
+  only as workflow artifacts. Dev tags do not create GitHub Releases.
 
-Release versions are derived from Git tags. A tag such as `v0.1.0` builds the
-app with `MARKETING_VERSION=0.1.0`; the standard macOS About panel reads that
-value from the generated app `Info.plist`. GitHub release notes are generated
-automatically. Re-running a tag workflow replaces release assets with the same
-names, while workflow artifacts remain available for build debugging.
+Release versions are derived from Git tags. Tags such as `v0.1.0`,
+`v0.1.0-beta`, and `v0.1.0-dev.1` all build the app with
+`MARKETING_VERSION=0.1.0`; the standard macOS About panel reads that base app
+version from the generated app `Info.plist`. The tag suffix is used only for the
+release channel and artifact names. GitHub release notes are generated
+automatically for stable and beta releases. Re-running a tag workflow replaces
+release assets with the same names, while workflow artifacts remain available
+for build debugging.
 
 ## Stem Separation
 
