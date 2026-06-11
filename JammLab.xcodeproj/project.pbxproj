@@ -32,6 +32,7 @@
 		9F8A01102C00000100112233 /* TimecodedNote.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9F8A00122C00000100112233 /* TimecodedNote.swift */; };
 		9F8A01112C00000100112233 /* JammLabProject.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9F8A00132C00000100112233 /* JammLabProject.swift */; };
 		9F8A01122C00000100112233 /* ProjectDocumentService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9F8A00142C00000100112233 /* ProjectDocumentService.swift */; };
+		9FB202012D31000100112233 /* ProjectPersistenceCoordinator.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9FB202002D31000100112233 /* ProjectPersistenceCoordinator.swift */; };
 		9F8A01132C00000100112233 /* RecentProjectsStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9F8A00152C00000100112233 /* RecentProjectsStore.swift */; };
 		9F8A01192C00000100112233 /* ProjectArtifactStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9F8A00192C00000100112233 /* ProjectArtifactStore.swift */; };
 		9F8A01142C00000100112233 /* BeatGridSettings.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9F8A00162C00000100112233 /* BeatGridSettings.swift */; };
@@ -154,6 +155,7 @@
 		9F8A00152C00000100112233 /* RecentProjectsStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RecentProjectsStore.swift; sourceTree = "<group>"; };
 		9F8A00192C00000100112233 /* ProjectArtifactStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProjectArtifactStore.swift; sourceTree = "<group>"; };
 		9F8A00162C00000100112233 /* BeatGridSettings.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BeatGridSettings.swift; sourceTree = "<group>"; };
+		9FB202002D31000100112233 /* ProjectPersistenceCoordinator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProjectPersistenceCoordinator.swift; sourceTree = "<group>"; };
 		9F8A00172C00000100112233 /* BeatGridCalculator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BeatGridCalculator.swift; sourceTree = "<group>"; };
 		9F8A00182C00000100112233 /* MetronomeClickScheduler.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MetronomeClickScheduler.swift; sourceTree = "<group>"; };
 		9F8B00012C10000100112233 /* TimelineViewport.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TimelineViewport.swift; sourceTree = "<group>"; };
@@ -312,6 +314,7 @@
 				9F8A00182C00000100112233 /* MetronomeClickScheduler.swift */,
 				9F8A00192C00000100112233 /* ProjectArtifactStore.swift */,
 				9F8A00142C00000100112233 /* ProjectDocumentService.swift */,
+				9FB202002D31000100112233 /* ProjectPersistenceCoordinator.swift */,
 				9F8A00152C00000100112233 /* RecentProjectsStore.swift */,
 				9F8D00032C30000100112233 /* StemMixAudioPlayer.swift */,
 				9F9200012C80000100112233 /* StemHelperProcessController.swift */,
@@ -612,6 +615,7 @@
 				9F8B01022C10000100112233 /* ProjectStateNormalizer.swift in Sources */,
 				9FAC01012CF0000100112233 /* ProjectEditableState.swift in Sources */,
 				9F8A01122C00000100112233 /* ProjectDocumentService.swift in Sources */,
+				9FB202012D31000100112233 /* ProjectPersistenceCoordinator.swift in Sources */,
 				9F8A01132C00000100112233 /* RecentProjectsStore.swift in Sources */,
 				9F9401012CA0000100112233 /* AppSettingsStore.swift in Sources */,
 				9F8D01032C30000100112233 /* StemMixAudioPlayer.swift in Sources */,

@@ -73,6 +73,7 @@ final class AudioPlayerViewModel: ObservableObject {
     let stemSeparationService: StemSeparationService
     let projectService: ProjectDocumentService
     let projectArtifactStore: ProjectArtifactStore
+    let projectPersistenceCoordinator: ProjectPersistenceCoordinator
     let recentProjectsStore: RecentProjectsStore
     let isSandboxed: () -> Bool
     var clockTask: Task<Void, Never>?
@@ -145,18 +146,27 @@ final class AudioPlayerViewModel: ObservableObject {
         stemSeparationService: StemSeparationService? = nil,
         projectService: ProjectDocumentService = ProjectDocumentService(),
         projectArtifactStore: ProjectArtifactStore = ProjectArtifactStore(),
+        projectPersistenceCoordinator: ProjectPersistenceCoordinator? = nil,
         recentProjectsStore: RecentProjectsStore? = nil,
         isSandboxed: @escaping () -> Bool = AudioPlayerViewModel.defaultSandboxDetection
     ) {
+        let resolvedStemSeparationService = stemSeparationService ?? StemSeparationService(appSettingsStore: appSettingsStore)
         self.importer = importer
         self.analyzer = analyzer
         self.peakformProvider = peakformProvider
         self.playbackEngine = playbackEngine ?? MultiTrackAudioPlayer()
         self.videoFollower = videoFollower ?? VideoFollowerController()
         self.appSettingsStore = appSettingsStore
-        self.stemSeparationService = stemSeparationService ?? StemSeparationService(appSettingsStore: appSettingsStore)
+        self.stemSeparationService = resolvedStemSeparationService
         self.projectService = projectService
         self.projectArtifactStore = projectArtifactStore
+        self.projectPersistenceCoordinator = projectPersistenceCoordinator ?? ProjectPersistenceCoordinator(
+            projectArtifactStore: projectArtifactStore,
+            projectDocumentService: projectService,
+            importer: importer,
+            peakformProvider: peakformProvider,
+            stemSeparationService: resolvedStemSeparationService
+        )
         self.recentProjectsStore = recentProjectsStore ?? .shared
         self.isSandboxed = isSandboxed
         self.playbackEngine.setClickVolume(clickVolume)

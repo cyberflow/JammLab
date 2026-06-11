@@ -170,27 +170,11 @@ extension AudioPlayerViewModel {
             if let artifactRootURL = try? project.resolvedArtifactRootURL() {
                 beginProjectSecurityScopedAccess(for: artifactRootURL)
             }
-            let projectDuration = ProjectStateNormalizer.normalizedDuration(project.audioDuration)
-            guard projectDuration > 0 else {
-                throw ProjectDocumentError.invalidProjectData("audio duration is missing or zero.")
-            }
-
-            let mediaKind = project.mediaKind ?? .audio
-            let localVideoAudioURL = projectArtifactStore.existingVideoAudioURL(for: url)
-            let mediaURL: URL?
-            let mediaWarning: String?
-            do {
-                let resolvedMediaURL = try project.resolvedMediaURL()
+            let mediaResult = try await projectPersistenceCoordinator.resolveProjectMedia(project: project, projectURL: url)
+            if let resolvedMediaURL = mediaResult.resolvedMediaURL {
                 beginSecurityScopedAccess(for: resolvedMediaURL)
-                mediaURL = resolvedMediaURL
-                mediaWarning = nil
-            } catch {
-                guard mediaKind == .video, localVideoAudioURL != nil else {
-                    throw error
-                }
-                mediaURL = nil
-                mediaWarning = "Video source is unavailable; opened saved project audio only."
             }
+            let projectDuration = mediaResult.projectDuration
 
             playbackEngine.stop()
             videoFollower.stop()
@@ -199,8 +183,6 @@ extension AudioPlayerViewModel {
             mainTrackVolume = clampedVolume(project.mainTrackVolume ?? AppSliderDefaults.mainTrackVolume)
             clickVolume = clampedVolume(project.clickVolume ?? AppSliderDefaults.clickVolume)
             isSnapEnabled = project.isSnapEnabled ?? false
-            let storedProjectTempo = ProjectStateNormalizer.normalizedTempo(project.beatGridSettings?.bpm ?? project.tempoBPM)
-            let shouldAnalyzeTempo = storedProjectTempo == nil
             beatGridSettings = ProjectStateNormalizer.normalizedBeatGridSettings(
                 projectSettings: project.beatGridSettings,
                 legacyTempoBPM: project.tempoBPM,
@@ -211,48 +193,11 @@ extension AudioPlayerViewModel {
             }
             tempoBPM = beatGridSettings.bpm
             beatGridSettings.bpm = tempoBPM
-            shouldAcceptAnalyzedTempo = shouldAnalyzeTempo
+            shouldAcceptAnalyzedTempo = mediaResult.shouldAnalyzeTempo
             isClickEnabled = (project.isClickEnabled ?? false) && beatGridSettings.bpm != nil
             let restoredPlaybackMode = project.playbackMode ?? project.stemState?.playbackMode ?? .original
-            let file: ImportedAudioFile
-            switch mediaKind {
-            case .audio:
-                guard let mediaURL else {
-                    throw ProjectDocumentError.invalidProjectData("audio file is missing.")
-                }
-                file = ImportedAudioFile(
-                    url: mediaURL,
-                    displayName: project.audioDisplayName,
-                    duration: projectDuration
-                )
-            case .video:
-                if let localVideoAudioURL,
-                   let localDuration = try? AudioFileImporter.decodedDuration(for: localVideoAudioURL) {
-                    file = ImportedAudioFile(
-                        url: localVideoAudioURL,
-                        sourceMediaURL: mediaURL ?? localVideoAudioURL,
-                        displayName: project.audioDisplayName,
-                        duration: localDuration,
-                        mediaKind: mediaURL == nil ? .audio : .video
-                    )
-                } else {
-                    guard let mediaURL else {
-                        throw ProjectDocumentError.invalidProjectData("video source is missing.")
-                    }
-                    let importedVideo = try await importer.importFile(from: mediaURL)
-                    file = ImportedAudioFile(
-                        url: importedVideo.url,
-                        sourceMediaURL: mediaURL,
-                        displayName: project.audioDisplayName,
-                        duration: importedVideo.duration,
-                        mediaKind: .video
-                    )
-                }
-            }
-            let resolvedProjectDuration = ProjectStateNormalizer.normalizedDuration(file.duration)
-            guard resolvedProjectDuration > 0 else {
-                throw ProjectDocumentError.invalidProjectData("audio duration is missing or zero.")
-            }
+            let file = mediaResult.file
+            let resolvedProjectDuration = mediaResult.projectDuration
             beatGridSettings = beatGridSettings.clamped(to: resolvedProjectDuration)
             beatGridSettings.bpm = tempoBPM
             try configurePlayer(with: file)
@@ -280,8 +225,8 @@ extension AudioPlayerViewModel {
             isImporting = false
             clearUndoHistory()
             markProjectClean()
-            if let mediaWarning {
-                errorMessage = mediaWarning
+            if let warningMessage = mediaResult.warningMessage {
+                errorMessage = warningMessage
             }
 
             addRecentProject(url: url)
@@ -316,15 +261,43 @@ extension AudioPlayerViewModel {
             guard ensureProjectArtifactAccess(for: url) else {
                 throw ProjectDocumentError.projectArtifactAccessDenied
             }
-            let persistenceResult = try await prepareProjectArtifacts(to: url)
-            let previousImportedFile = importedFile
+            guard let currentImportedFile = importedFile else {
+                throw ProjectDocumentError.missingAudioFile
+            }
+            let persistenceResult = try await projectPersistenceCoordinator.prepareSaveArtifacts(ProjectSaveArtifactsInput(
+                importedFile: currentImportedFile,
+                projectURL: url,
+                peakformData: peakformData,
+                stemPeakforms: stemPeakforms,
+                stemFiles: stemFiles,
+                stemCacheMetadata: stemCacheMetadata
+            ))
+            let previousImportedFile = currentImportedFile
 
             if let persistedFile = persistenceResult.importedFile {
                 importedFile = persistedFile
             }
 
             do {
-                let project = try makeProject(projectURL: url)
+                let project = try projectPersistenceCoordinator.makeProject(ProjectDocumentSnapshot(
+                    importedFile: self.importedFile ?? currentImportedFile,
+                    projectURL: url,
+                    duration: duration,
+                    notes: notes,
+                    loopRegion: loopRegion,
+                    loopMinimumLength: activeRangeMinimumLength,
+                    isLooping: isLooping,
+                    playbackRate: playbackRate,
+                    pitchShiftSemitones: pitchShiftSemitones,
+                    tempoBPM: tempoBPM,
+                    beatGridSettings: beatGridSettings,
+                    mainTrackVolume: mainTrackVolume,
+                    isClickEnabled: isClickEnabled,
+                    clickVolume: clickVolume,
+                    isSnapEnabled: isSnapEnabled,
+                    playbackMode: playbackMode,
+                    stemState: makeStemProjectState()
+                ))
                 try projectService.save(project, to: url)
             } catch {
                 importedFile = previousImportedFile
@@ -332,7 +305,12 @@ extension AudioPlayerViewModel {
             }
 
             currentProjectURL = url
-            await applyProjectArtifactPersistence(persistenceResult)
+            await projectPersistenceCoordinator.finalizeSavedArtifacts(persistenceResult)
+            if let metadata = persistenceResult.stemMetadata {
+                stemCacheMetadata = metadata
+                stemFiles = metadata.stems
+                stemMixState.setAvailability(from: metadata.stems)
+            }
             addRecentProject(url: url)
             markProjectClean()
             return true
@@ -340,98 +318,6 @@ extension AudioPlayerViewModel {
             errorMessage = "Project save failed: \(error.localizedDescription)"
             return false
         }
-    }
-
-    struct ProjectArtifactPersistenceResult {
-        var importedFile: ImportedAudioFile?
-        var temporaryVideoAudioURLToRemove: URL?
-        var peakformURLsToRemove: [URL] = []
-        var stemMetadata: StemCacheMetadata?
-        var stemCacheKeyToRemove: String?
-    }
-
-    func prepareProjectArtifacts(to projectURL: URL) async throws -> ProjectArtifactPersistenceResult {
-        guard var file = importedFile else {
-            throw ProjectDocumentError.missingAudioFile
-        }
-
-        var result = ProjectArtifactPersistenceResult()
-        try projectArtifactStore.ensureArtifactRoot(for: projectURL)
-        try projectArtifactStore.ensureArtifactDirectories(for: projectURL)
-        let previousAudioURL = file.url
-        file = try projectArtifactStore.persistVideoAudioIfNeeded(file, projectURL: projectURL)
-        if file.url != previousAudioURL {
-            result.importedFile = file
-            result.temporaryVideoAudioURLToRemove = previousAudioURL
-        }
-
-        if let peakformData {
-            try projectArtifactStore.writeMainPeakform(peakformData, projectURL: projectURL)
-            result.peakformURLsToRemove.append(previousAudioURL)
-        }
-
-        if !stemPeakforms.isEmpty {
-            try projectArtifactStore.writeStemPeakforms(stemPeakforms, projectURL: projectURL)
-            result.peakformURLsToRemove.append(contentsOf: stemFiles.map(\.url))
-        }
-
-        if let metadata = stemCacheMetadata {
-            let localMetadata = try projectArtifactStore.writeStemMetadata(metadata, projectURL: projectURL)
-            result.stemMetadata = localMetadata
-            result.stemCacheKeyToRemove = localMetadata.cacheKey
-        }
-
-        return result
-    }
-
-    func applyProjectArtifactPersistence(_ result: ProjectArtifactPersistenceResult) async {
-        if let oldURL = result.temporaryVideoAudioURLToRemove,
-           let persistedURL = result.importedFile?.url {
-            removeTemporaryVideoAudioIfNeeded(oldURL, persistedURL: persistedURL)
-        }
-
-        for url in result.peakformURLsToRemove {
-            await peakformProvider.removeCachedPeakform(for: url)
-        }
-
-        if let metadata = result.stemMetadata {
-            stemCacheMetadata = metadata
-            stemFiles = metadata.stems
-            stemMixState.setAvailability(from: metadata.stems)
-        }
-
-        if let cacheKey = result.stemCacheKeyToRemove {
-            stemSeparationService.removeCachedResult(cacheKey: cacheKey)
-        }
-    }
-
-    func makeProject(projectURL: URL) throws -> JammLabProject {
-        guard let importedFile else {
-            throw ProjectDocumentError.missingAudioFile
-        }
-        let artifactRootURL = projectArtifactStore.artifactRoot(for: projectURL)
-
-        return JammLabProject(
-            audioBookmarkData: try projectService.bookmarkData(for: importedFile.sourceMediaURL),
-            artifactRootBookmarkData: try? projectService.bookmarkData(for: artifactRootURL),
-            audioDisplayName: importedFile.displayName,
-            audioDuration: duration,
-            mediaKind: importedFile.mediaKind,
-            notes: ProjectStateNormalizer.normalizedNotes(notes, duration: duration),
-            loopStart: loopRegion.clamped(to: duration, minimumLength: activeRangeMinimumLength).start,
-            loopEnd: loopRegion.clamped(to: duration, minimumLength: activeRangeMinimumLength).end,
-            isLoopEnabled: isLooping,
-            playbackRate: playbackRate,
-            pitchShiftSemitones: pitchShiftSemitones,
-            tempoBPM: tempoBPM,
-            beatGridSettings: beatGridSettings.clamped(to: duration),
-            mainTrackVolume: mainTrackVolume,
-            isClickEnabled: isClickEnabled,
-            clickVolume: clickVolume,
-            isSnapEnabled: isSnapEnabled,
-            playbackMode: playbackMode,
-            stemState: makeStemProjectState()
-        )
     }
 
     func defaultProjectFilename() -> String {
@@ -530,16 +416,6 @@ extension AudioPlayerViewModel {
         let localMetadata = try projectArtifactStore.writeStemMetadata(metadata, projectURL: currentProjectURL)
         stemSeparationService.removeCachedResult(cacheKey: metadata.cacheKey)
         return localMetadata
-    }
-
-    func removeTemporaryVideoAudioIfNeeded(_ oldURL: URL, persistedURL: URL) {
-        guard oldURL != persistedURL,
-              oldURL.path.contains("/MediaCache/")
-        else {
-            return
-        }
-
-        try? FileManager.default.removeItem(at: oldURL.deletingLastPathComponent())
     }
 
     func buildPeakform(file: ImportedAudioFile) {
