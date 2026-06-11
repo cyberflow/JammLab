@@ -197,13 +197,17 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           set -euo pipefail
+          REPO="${GITHUB_REPOSITORY:?}"
           DMG_ASSET="dist/JammLab-$RELEASE_VERSION-unsigned.dmg"
           SOURCE_ASSET="dist/JammLab-$RELEASE_VERSION-source.zip"
 
-          if gh release view "$GITHUB_REF_NAME" >/dev/null 2>&1; then
-            gh release upload "$GITHUB_REF_NAME" "$DMG_ASSET" "$SOURCE_ASSET" --clobber
+          test -f "$DMG_ASSET"
+          test -f "$SOURCE_ASSET"
+
+          if gh release view "$GITHUB_REF_NAME" --repo "$REPO" >/dev/null 2>&1; then
+            gh release upload "$GITHUB_REF_NAME" "$DMG_ASSET" "$SOURCE_ASSET" --repo "$REPO" --clobber
           elif [[ "$IS_PRERELEASE" == "true" ]]; then
-            gh release create "$GITHUB_REF_NAME" "$DMG_ASSET" "$SOURCE_ASSET" --verify-tag --generate-notes --prerelease --latest=false
+            gh release create "$GITHUB_REF_NAME" "$DMG_ASSET" "$SOURCE_ASSET" --repo "$REPO" --verify-tag --generate-notes --prerelease --latest=false
           else
-            gh release create "$GITHUB_REF_NAME" "$DMG_ASSET" "$SOURCE_ASSET" --verify-tag --generate-notes --latest
+            gh release create "$GITHUB_REF_NAME" "$DMG_ASSET" "$SOURCE_ASSET" --repo "$REPO" --verify-tag --generate-notes --latest
           fi
