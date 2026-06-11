@@ -10,6 +10,13 @@
 		9F8A01012C00000100112233 /* JammLabApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9F8A00012C00000100112233 /* JammLabApp.swift */; };
 		9F8A01022C00000100112233 /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9F8A00022C00000100112233 /* ContentView.swift */; };
 		9F8A01032C00000100112233 /* AudioPlayerViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9F8A00032C00000100112233 /* AudioPlayerViewModel.swift */; };
+		9FB200012D30000100112233 /* AudioPlayerViewModel+Project.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9FB201012D30000100112233 /* AudioPlayerViewModel+Project.swift */; };
+		9FB200022D30000100112233 /* AudioPlayerViewModel+Playback.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9FB201022D30000100112233 /* AudioPlayerViewModel+Playback.swift */; };
+		9FB200032D30000100112233 /* AudioPlayerViewModel+Stems.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9FB201032D30000100112233 /* AudioPlayerViewModel+Stems.swift */; };
+		9FB200042D30000100112233 /* AudioPlayerViewModel+Timeline.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9FB201042D30000100112233 /* AudioPlayerViewModel+Timeline.swift */; };
+		9FB200052D30000100112233 /* AudioPlayerViewModel+Notes.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9FB201052D30000100112233 /* AudioPlayerViewModel+Notes.swift */; };
+		9FB200062D30000100112233 /* AudioPlayerViewModel+Video.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9FB201062D30000100112233 /* AudioPlayerViewModel+Video.swift */; };
+		9FB200072D30000100112233 /* AudioPlayerViewModel+UndoDirty.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9FB201072D30000100112233 /* AudioPlayerViewModel+UndoDirty.swift */; };
 		9F8A01042C00000100112233 /* AudioFileImporter.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9F8A00042C00000100112233 /* AudioFileImporter.swift */; };
 		9F8A01052C00000100112233 /* AudioAnalyzer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9F8A00052C00000100112233 /* AudioAnalyzer.swift */; };
 		9FB001012D06000100112233 /* AudioDeviceService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9FB001002D06000100112233 /* AudioDeviceService.swift */; };
@@ -120,6 +127,13 @@
 		9F8A00012C00000100112233 /* JammLabApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = JammLabApp.swift; sourceTree = "<group>"; };
 		9F8A00022C00000100112233 /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
 		9F8A00032C00000100112233 /* AudioPlayerViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AudioPlayerViewModel.swift; sourceTree = "<group>"; };
+		9FB201012D30000100112233 /* AudioPlayerViewModel+Project.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "AudioPlayerViewModel+Project.swift"; sourceTree = "<group>"; };
+		9FB201022D30000100112233 /* AudioPlayerViewModel+Playback.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "AudioPlayerViewModel+Playback.swift"; sourceTree = "<group>"; };
+		9FB201032D30000100112233 /* AudioPlayerViewModel+Stems.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "AudioPlayerViewModel+Stems.swift"; sourceTree = "<group>"; };
+		9FB201042D30000100112233 /* AudioPlayerViewModel+Timeline.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "AudioPlayerViewModel+Timeline.swift"; sourceTree = "<group>"; };
+		9FB201052D30000100112233 /* AudioPlayerViewModel+Notes.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "AudioPlayerViewModel+Notes.swift"; sourceTree = "<group>"; };
+		9FB201062D30000100112233 /* AudioPlayerViewModel+Video.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "AudioPlayerViewModel+Video.swift"; sourceTree = "<group>"; };
+		9FB201072D30000100112233 /* AudioPlayerViewModel+UndoDirty.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "AudioPlayerViewModel+UndoDirty.swift"; sourceTree = "<group>"; };
 		9F8A00042C00000100112233 /* AudioFileImporter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AudioFileImporter.swift; sourceTree = "<group>"; };
 		9F8A00052C00000100112233 /* AudioAnalyzer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AudioAnalyzer.swift; sourceTree = "<group>"; };
 		9FB001002D06000100112233 /* AudioDeviceService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AudioDeviceService.swift; sourceTree = "<group>"; };
@@ -314,6 +328,13 @@
 			isa = PBXGroup;
 			children = (
 				9F8A00032C00000100112233 /* AudioPlayerViewModel.swift */,
+				9FB201012D30000100112233 /* AudioPlayerViewModel+Project.swift */,
+				9FB201022D30000100112233 /* AudioPlayerViewModel+Playback.swift */,
+				9FB201032D30000100112233 /* AudioPlayerViewModel+Stems.swift */,
+				9FB201042D30000100112233 /* AudioPlayerViewModel+Timeline.swift */,
+				9FB201052D30000100112233 /* AudioPlayerViewModel+Notes.swift */,
+				9FB201062D30000100112233 /* AudioPlayerViewModel+Video.swift */,
+				9FB201072D30000100112233 /* AudioPlayerViewModel+UndoDirty.swift */,
 			);
 			path = ViewModels;
 			sourceTree = "<group>";
@@ -558,6 +579,13 @@
 				9F8A01042C00000100112233 /* AudioFileImporter.swift in Sources */,
 				9F8F01032C50000100112233 /* AudioPlaybackControlling.swift in Sources */,
 				9F8A01032C00000100112233 /* AudioPlayerViewModel.swift in Sources */,
+				9FB200012D30000100112233 /* AudioPlayerViewModel+Project.swift in Sources */,
+				9FB200022D30000100112233 /* AudioPlayerViewModel+Playback.swift in Sources */,
+				9FB200032D30000100112233 /* AudioPlayerViewModel+Stems.swift in Sources */,
+				9FB200042D30000100112233 /* AudioPlayerViewModel+Timeline.swift in Sources */,
+				9FB200052D30000100112233 /* AudioPlayerViewModel+Notes.swift in Sources */,
+				9FB200062D30000100112233 /* AudioPlayerViewModel+Video.swift in Sources */,
+				9FB200072D30000100112233 /* AudioPlayerViewModel+UndoDirty.swift in Sources */,
 				9F8C01032C20000100112233 /* AppControls.swift in Sources */,
 				9F9501012CB0000100112233 /* AbletonNumberField.swift in Sources */,
 				9FD001012D20000100112233 /* ControlHelpText.swift in Sources */,
