@@ -195,6 +195,7 @@ final class ViewModelLifecycleTests: XCTestCase {
         try viewModel.loadImportedAudio(media)
 
         XCTAssertTrue(viewModel.canShowVideoWindow)
+        XCTAssertTrue(viewModel.canToggleVideoWindow)
         XCTAssertEqual(videoFollower.loadedVideoURL, videoURL)
         XCTAssertTrue(videoFollower.showWindowEvents.isEmpty)
 
@@ -211,6 +212,46 @@ final class ViewModelLifecycleTests: XCTestCase {
         XCTAssertEqual(event.rate, 0.5, accuracy: 0.0001)
 
         viewModel.newProject()
+    }
+
+    @MainActor
+    func testToggleVideoWindowIsNoOpWithoutVideoMedia() {
+        let videoFollower = MockVideoFollower()
+        let viewModel = AudioPlayerViewModel(videoFollower: videoFollower)
+
+        XCTAssertFalse(viewModel.canToggleVideoWindow)
+
+        viewModel.toggleVideoWindow()
+
+        XCTAssertTrue(videoFollower.toggleWindowEvents.isEmpty)
+    }
+
+    @MainActor
+    func testToggleVideoWindowForwardsCurrentPlaybackStateForVideoMedia() throws {
+        let engine = MockPlaybackEngine()
+        let videoFollower = MockVideoFollower()
+        let viewModel = AudioPlayerViewModel(playbackEngine: engine, videoFollower: videoFollower)
+        let audioURL = try temporaryAudioFile(duration: 2)
+        defer { try? FileManager.default.removeItem(at: audioURL) }
+        let videoURL = URL(fileURLWithPath: "/tmp/lesson.mov")
+        let media = ImportedAudioFile(
+            url: audioURL,
+            sourceMediaURL: videoURL,
+            displayName: "lesson.mov",
+            duration: 0.5,
+            mediaKind: .video
+        )
+
+        try viewModel.loadImportedAudio(media)
+        viewModel.setPlaybackRate(0.5)
+        viewModel.play()
+        viewModel.toggleVideoWindow()
+
+        let event = try XCTUnwrap(videoFollower.toggleWindowEvents.last)
+        XCTAssertEqual(event.time, viewModel.currentTime, accuracy: 0.0001)
+        XCTAssertTrue(event.isPlaying)
+        XCTAssertEqual(event.rate, 0.5, accuracy: 0.0001)
+        XCTAssertTrue(videoFollower.showWindowEvents.isEmpty)
     }
 
     @MainActor

@@ -339,4 +339,27 @@ final class TimelineProjectLogicTests: XCTestCase {
         XCTAssertEqual(AppHotkey.togglePlaybackMode.key, "Tab")
     }
 
+    func testAppHotkeyRecognizesOptionVForVideoWindowToggle() throws {
+        let event = try XCTUnwrap(NSEvent.keyEvent(
+            with: .keyDown,
+            location: .zero,
+            modifierFlags: [.option],
+            timestamp: 0,
+            windowNumber: 0,
+            context: nil,
+            characters: "v",
+            charactersIgnoringModifiers: "v",
+            isARepeat: false,
+            keyCode: 9
+        ))
+
+        XCTAssertEqual(AppHotkey(event: event), .toggleVideoWindow)
+        XCTAssertEqual(AppHotkey.toggleVideoWindow.key, "Opt+V")
+        XCTAssertEqual(AppHotkey.toggleVideoWindow.title, "Video Window")
+        XCTAssertEqual(
+            AppHotkey.toggleVideoWindow.detail,
+            "Open or close the sidecar video window for the current video project."
+        )
+    }
+
 }

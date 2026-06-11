@@ -210,6 +210,7 @@ final class MockVideoFollower: VideoFollowerControlling {
     var playbackRate: Float?
     var syncEvents: [(time: TimeInterval, isPlaying: Bool, rate: Float)] = []
     var showWindowEvents: [(time: TimeInterval, isPlaying: Bool, rate: Float)] = []
+    var toggleWindowEvents: [(time: TimeInterval, isPlaying: Bool, rate: Float)] = []
 
     func load(videoURL: URL?) {
         loadedVideoURL = videoURL
@@ -222,6 +223,10 @@ final class MockVideoFollower: VideoFollowerControlling {
 
     func showWindow(at time: TimeInterval, isPlaying: Bool, rate: Float) {
         showWindowEvents.append((time, isPlaying, rate))
+    }
+
+    func toggleWindow(at time: TimeInterval, isPlaying: Bool, rate: Float) {
+        toggleWindowEvents.append((time, isPlaying, rate))
     }
 
     func play(rate: Float) {

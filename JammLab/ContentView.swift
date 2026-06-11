@@ -158,6 +158,8 @@ struct ContentView: View {
                 viewModel.toggleSnap()
             case .togglePlaybackMode:
                 viewModel.togglePlaybackMode()
+            case .toggleVideoWindow:
+                viewModel.toggleVideoWindow()
             }
 
             return nil

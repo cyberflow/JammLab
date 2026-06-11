@@ -11,6 +11,7 @@ enum AppHotkey: CaseIterable, Hashable {
     case toggleClick
     case toggleSnap
     case togglePlaybackMode
+    case toggleVideoWindow
 
     // Keep this enum as the single source of truth for keyboard shortcuts.
     // When adding a new handled hotkey, add a case here with its help metadata
@@ -23,6 +24,8 @@ enum AppHotkey: CaseIterable, Hashable {
         switch (event.keyCode, relevantModifiers) {
         case (1, [.option]):
             self = .toggleSnap
+        case (9, [.option]):
+            self = .toggleVideoWindow
         default:
             guard relevantModifiers.isEmpty else {
                 return nil
@@ -75,6 +78,8 @@ enum AppHotkey: CaseIterable, Hashable {
             return "Opt+S"
         case .togglePlaybackMode:
             return "Tab"
+        case .toggleVideoWindow:
+            return "Opt+V"
         }
     }
 
@@ -98,6 +103,8 @@ enum AppHotkey: CaseIterable, Hashable {
             return "Snap On / Off"
         case .togglePlaybackMode:
             return "Original / Stems"
+        case .toggleVideoWindow:
+            return "Video Window"
         }
     }
 
@@ -121,6 +128,8 @@ enum AppHotkey: CaseIterable, Hashable {
             return "Snap playback cursor, loop and region edits to the nearest beat."
         case .togglePlaybackMode:
             return "Switch between original playback and stems playback when stems are available."
+        case .toggleVideoWindow:
+            return "Open or close the sidecar video window for the current video project."
         }
     }
 }

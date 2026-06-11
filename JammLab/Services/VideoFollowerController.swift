@@ -8,6 +8,7 @@ protocol VideoFollowerControlling: AnyObject {
     func load(videoURL: URL?)
     func unload()
     func showWindow(at time: TimeInterval, isPlaying: Bool, rate: Float)
+    func toggleWindow(at time: TimeInterval, isPlaying: Bool, rate: Float)
     func play(rate: Float)
     func pause()
     func stop()
@@ -110,6 +111,17 @@ final class VideoFollowerController: NSObject, VideoFollowerControlling, NSWindo
         } else {
             player.pause()
         }
+    }
+
+    func toggleWindow(at time: TimeInterval, isPlaying: Bool, rate: Float) {
+        guard currentVideoURL != nil else { return }
+
+        if window != nil {
+            window?.close()
+            return
+        }
+
+        showWindow(at: time, isPlaying: isPlaying, rate: rate)
     }
 
     private func showWindow() {

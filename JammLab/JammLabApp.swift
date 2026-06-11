@@ -125,9 +125,9 @@ struct JammLabCommands: Commands {
 
         CommandGroup(after: .toolbar) {
             Button("Video Window") {
-                viewModel.showVideoWindow()
+                viewModel.toggleVideoWindow()
             }
-            .disabled(!viewModel.canShowVideoWindow)
+            .disabled(!viewModel.canToggleVideoWindow)
         }
 
         CommandGroup(replacing: .help) {
