@@ -28,6 +28,28 @@ The project is an offline-first MVP. Keep the app local-only: no server, no paid
 - Do not use system macOS alert/beep sounds for the metronome. Use the app's metronome sound abstraction.
 - Keep hotkeys centralized in `AppHotkey`; Help > Keyboard Shortcuts is generated from it.
 
+## Git Workflow
+
+- `main` is the pre-release/release baseline. Do not change tracked files directly on `main`.
+- Any task that creates, edits, renames, or deletes repository files must start from a dedicated task branch and go back to `main` through a GitHub Pull Request/MR.
+- Keep one logical task per branch. Do not mix unrelated fixes, refactors, UI changes, or release work in the same branch.
+- Read-only analysis, discussion, review, and planning tasks do not require a branch.
+- If work is already happening on a suitable non-`main` branch for the same logical task, continue there instead of creating another branch.
+- Final reports for file-changing tasks should include the current branch, changed files, verification performed, and a proposed English Conventional Commit message.
+
+## Branch naming
+
+Use descriptive kebab-case branch names:
+- `feature/<area>-<task>` for new functionality.
+- `fix/<area>-<bug>` for bug fixes.
+- `ui/<component>-<change>` for visual changes, layout, controls, and colors.
+- `refactor/<area>-<goal>` for structural changes without behavior changes.
+- `spike/<area>-<question>` for research branches and experiments.
+- `chore/<system>-<task>` for CI, dependencies, and project settings.
+- `docs/<topic>` for documentation, `AGENT.md`, `README`, and instructions.
+- `hotfix/` for urgent fixes on top of release or `main`.
+Do not use vague names such as `ai-work`, `codex-fix`, `changes`, `update`, or `test`.
+
 ## Coding Guidelines
 
 - Keep SwiftUI views declarative. Move business rules into ViewModels, Services, or pure Models.
@@ -83,12 +105,3 @@ The project is an offline-first MVP. Keep the app local-only: no server, no paid
 - Audio access uses security-scoped bookmarks.
 - Recent projects are stored in user defaults and capped to 10 entries.
 - Project load must normalize/clamp duration-dependent state: beat grid, loop range, notes, regions, playback rate, pitch shift, and tempo.
-
-## Future Roadmap
-
-- Better BPM/key detection with stronger DSP or Core ML.
-- Chord detection and chord markers.
-- Stem export, backend diagnostics, and packaged separator hardening.
-- Advanced zoom, zoom-to-selection, follow playhead, minimap.
-- Beat-grid snapping improvements and quantize tools.
-- Metronome count-in, subdivisions, sound presets, and MIDI output.
