@@ -25,42 +25,54 @@ struct BeatGridConfiguration: Equatable {
     }
 }
 
+struct TimelineViewState: Equatable {
+    var peakformData: PeakformData?
+    var duration: TimeInterval
+    var currentTime: TimeInterval
+    var loopStart: TimeInterval
+    var loopEnd: TimeInterval
+    var notes: [TimecodedNote]
+    var selectedRegionID: TimecodedNote.ID?
+    var sections: [TimelineSection]
+    var beatGrid: BeatGridConfiguration
+    var isLoadingPeakform: Bool
+    var mainTrackVolume: Float
+    var playbackMode: PlaybackMode
+    var mixState: StemMixState
+    var stemPeakforms: [StemType: PeakformData]
+    var isLoadingStemPeakforms: Bool
+}
+
+struct TimelineViewActions {
+    var seek: (TimeInterval) -> Void
+    var addNote: (TimeInterval) -> Void
+    var editNote: (TimecodedNote) -> Void
+    var deleteNote: (TimecodedNote.ID) -> Void
+    var noteColorChanged: (TimecodedNote.ID, MarkerColor) -> Void
+    var noteCustomColorChanged: (TimecodedNote.ID, String) -> Void
+    var markerTimeChanged: (TimecodedNote.ID, TimeInterval) -> Void
+    var saveLoopRegion: () -> Void
+    var selectRegion: (TimecodedNote.ID) -> Void
+    var activateRegion: (TimecodedNote.ID) -> Void
+    var focusRegion: (TimecodedNote.ID) -> Void
+    var regionRangeChanged: (TimecodedNote.ID, TimeInterval, TimeInterval) -> Void
+    var loopStartChanged: (TimeInterval) -> Void
+    var loopEndChanged: (TimeInterval) -> Void
+    var loopRegionChanged: (TimeInterval, TimeInterval) -> Void
+    var timelineScroll: (Double, Double, TimeInterval?) -> Void
+    var mainTrackVolumeChanged: (Float) -> Void
+}
+
+struct StemTrackActions {
+    var volumeChanged: (StemType, Float) -> Void
+    var muteToggled: (StemType) -> Void
+    var soloToggled: (StemType) -> Void
+}
+
 struct WaveformTimelineView: View {
-    let peakformData: PeakformData?
-    let duration: TimeInterval
-    let currentTime: TimeInterval
-    let loopStart: TimeInterval
-    let loopEnd: TimeInterval
-    let notes: [TimecodedNote]
-    let selectedRegionID: TimecodedNote.ID?
-    let sections: [TimelineSection]
-    let beatGrid: BeatGridConfiguration
-    let isLoadingPeakform: Bool
-    let mainTrackVolume: Float
-    let playbackMode: PlaybackMode
-    let mixState: StemMixState
-    let stemPeakforms: [StemType: PeakformData]
-    let isLoadingStemPeakforms: Bool
-    let onSeek: (TimeInterval) -> Void
-    let onAddNote: (TimeInterval) -> Void
-    let onEditNote: (TimecodedNote) -> Void
-    let onDeleteNote: (TimecodedNote.ID) -> Void
-    let onNoteColorChanged: (TimecodedNote.ID, MarkerColor) -> Void
-    let onNoteCustomColorChanged: (TimecodedNote.ID, String) -> Void
-    let onMarkerTimeChanged: (TimecodedNote.ID, TimeInterval) -> Void
-    let onSaveLoopRegion: () -> Void
-    let onSelectRegion: (TimecodedNote.ID) -> Void
-    let onActivateRegion: (TimecodedNote.ID) -> Void
-    let onFocusRegion: (TimecodedNote.ID) -> Void
-    let onRegionRangeChanged: (TimecodedNote.ID, TimeInterval, TimeInterval) -> Void
-    let onLoopStartChanged: (TimeInterval) -> Void
-    let onLoopEndChanged: (TimeInterval) -> Void
-    let onLoopRegionChanged: (TimeInterval, TimeInterval) -> Void
-    let onTimelineScroll: (Double, Double, TimeInterval?) -> Void
-    let onMainTrackVolumeChanged: (Float) -> Void
-    let onStemVolumeChanged: (StemType, Float) -> Void
-    let onStemMuteToggled: (StemType) -> Void
-    let onStemSoloToggled: (StemType) -> Void
+    let state: TimelineViewState
+    let actions: TimelineViewActions
+    let stemActions: StemTrackActions
 
     private let trackControlWidth: CGFloat = AppTheme.Timeline.trackControlWidth
     @Environment(\.appColors) private var appColors
@@ -85,16 +97,14 @@ struct WaveformTimelineView: View {
 
     private var stemTracksSection: some View {
         StemTracksSection(
-            playbackMode: playbackMode,
-            mixState: mixState,
-            stemPeakforms: stemPeakforms,
-            isLoadingStemPeakforms: isLoadingStemPeakforms,
-            duration: duration,
+            playbackMode: state.playbackMode,
+            mixState: state.mixState,
+            stemPeakforms: state.stemPeakforms,
+            isLoadingStemPeakforms: state.isLoadingStemPeakforms,
+            duration: state.duration,
             viewport: viewport,
             trackControlWidth: trackControlWidth,
-            onStemVolumeChanged: onStemVolumeChanged,
-            onStemMuteToggled: onStemMuteToggled,
-            onStemSoloToggled: onStemSoloToggled
+            actions: stemActions
         )
         .frame(height: AppTheme.Timeline.stemTracksHeight, alignment: .top)
     }
@@ -104,43 +114,43 @@ struct WaveformTimelineView: View {
             timelineTrackRow(height: AppTheme.Timeline.regionTrackHeight) {
                 RegionTrackView(
                     duration: timelineDuration,
-                    notes: notes,
-                    selectedRegionID: selectedRegionID,
-                    configuration: beatGrid,
-                    onSelectRegion: onSelectRegion,
-                    onActivateRegion: onActivateRegion,
-                    onFocusRegion: onFocusRegion,
-                    onEditRegion: onEditNote,
-                    onDeleteRegion: onDeleteNote,
-                    onRegionColorChanged: onNoteColorChanged,
-                    onRegionCustomColorChanged: onNoteCustomColorChanged,
-                    onRegionRangeChanged: onRegionRangeChanged
+                    notes: state.notes,
+                    selectedRegionID: state.selectedRegionID,
+                    configuration: state.beatGrid,
+                    onSelectRegion: actions.selectRegion,
+                    onActivateRegion: actions.activateRegion,
+                    onFocusRegion: actions.focusRegion,
+                    onEditRegion: actions.editNote,
+                    onDeleteRegion: actions.deleteNote,
+                    onRegionColorChanged: actions.noteColorChanged,
+                    onRegionCustomColorChanged: actions.noteCustomColorChanged,
+                    onRegionRangeChanged: actions.regionRangeChanged
                 )
             }
 
             timelineTrackRow(height: AppTheme.Timeline.markerTrackHeight) {
                 MarkerTrackView(
                     duration: timelineDuration,
-                    notes: notes,
-                    configuration: beatGrid,
-                    onEditMarker: onEditNote,
-                    onDeleteMarker: onDeleteNote,
-                    onMarkerColorChanged: onNoteColorChanged,
-                    onMarkerCustomColorChanged: onNoteCustomColorChanged,
-                    onMarkerTimeChanged: onMarkerTimeChanged
+                    notes: state.notes,
+                    configuration: state.beatGrid,
+                    onEditMarker: actions.editNote,
+                    onDeleteMarker: actions.deleteNote,
+                    onMarkerColorChanged: actions.noteColorChanged,
+                    onMarkerCustomColorChanged: actions.noteCustomColorChanged,
+                    onMarkerTimeChanged: actions.markerTimeChanged
                 )
             }
 
             timelineTrackRow(height: AppTheme.Timeline.tempoTrackHeight) {
                 TempoTrackView(
                     duration: timelineDuration,
-                    loopStart: loopStart,
-                    loopEnd: loopEnd,
-                    configuration: beatGrid,
-                    onSaveLoopRegion: onSaveLoopRegion,
-                    onLoopStartChanged: onLoopStartChanged,
-                    onLoopEndChanged: onLoopEndChanged,
-                    onLoopRegionChanged: onLoopRegionChanged
+                    loopStart: state.loopStart,
+                    loopEnd: state.loopEnd,
+                    configuration: state.beatGrid,
+                    onSaveLoopRegion: actions.saveLoopRegion,
+                    onLoopStartChanged: actions.loopStartChanged,
+                    onLoopEndChanged: actions.loopEndChanged,
+                    onLoopRegionChanged: actions.loopRegionChanged
                 )
             }
 
@@ -156,7 +166,7 @@ struct WaveformTimelineView: View {
 
             TimelineScrollCaptureView { event in
                 let anchorTime = viewport.time(forX: event.locationX, width: event.width)
-                onTimelineScroll(event.deltaX, event.deltaY, anchorTime)
+                actions.timelineScroll(event.deltaX, event.deltaY, anchorTime)
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
         }
@@ -193,8 +203,8 @@ struct WaveformTimelineView: View {
 
             JammValueSlider(
                 value: Binding(
-                    get: { Double(mainTrackVolume) },
-                    set: { onMainTrackVolumeChanged(Float($0)) }
+                    get: { Double(state.mainTrackVolume) },
+                    set: { actions.mainTrackVolumeChanged(Float($0)) }
                 ),
                 minValue: 0,
                 maxValue: 1,
@@ -209,7 +219,7 @@ struct WaveformTimelineView: View {
                 width: AppTheme.ControlSize.jammValueSliderWidth,
                 height: AppTheme.ControlSize.jammValueSliderHeight
             )
-            .disabled(duration <= 0)
+            .disabled(state.duration <= 0)
             .help(ControlHelpText.mainTrackVolume)
         }
         .padding(.horizontal, AppTheme.Spacing.md)
@@ -227,19 +237,19 @@ struct WaveformTimelineView: View {
 
                 let visibleRange = viewport.clampedRange
                 PeakformTimelineView(
-                    peakformData: peakformData,
+                    peakformData: state.peakformData,
                     duration: timelineDuration,
-                    currentTime: currentTime,
-                    loopStart: loopStart,
-                    loopEnd: loopEnd,
-                    notes: notes,
-                    selectedRegionID: selectedRegionID,
-                    sections: sections,
-                    beatGridSettings: beatGrid.settings,
+                    currentTime: state.currentTime,
+                    loopStart: state.loopStart,
+                    loopEnd: state.loopEnd,
+                    notes: state.notes,
+                    selectedRegionID: state.selectedRegionID,
+                    sections: state.sections,
+                    beatGridSettings: state.beatGrid.settings,
                     visibleStartTime: visibleRange.lowerBound,
                     visibleEndTime: visibleRange.upperBound,
-                    isLoading: isLoadingPeakform,
-                    showsImportPlaceholder: duration <= 0,
+                    isLoading: state.isLoadingPeakform,
+                    showsImportPlaceholder: state.duration <= 0,
                     waveformColor: mainTrackWaveformColor
                 )
 
@@ -254,19 +264,19 @@ struct WaveformTimelineView: View {
     }
 
     var viewport: TimelineViewport {
-        if duration > 0 {
-            return beatGrid.viewport(duration: duration)
+        if state.duration > 0 {
+            return state.beatGrid.viewport(duration: state.duration)
         }
 
         return TimelineViewport(duration: timelineDuration, visibleRange: 0...timelineDuration)
     }
 
     private var timelineDuration: TimeInterval {
-        duration > 0 ? duration : AppDefaults.startupGridDuration
+        state.duration > 0 ? state.duration : AppDefaults.startupGridDuration
     }
 
     private var isMainTrackActive: Bool {
-        playbackMode == .original
+        state.playbackMode == .original
     }
 
     private var mainTrackBackgroundColor: Color {
@@ -286,9 +296,7 @@ private struct StemTracksSection: View {
     let duration: TimeInterval
     let viewport: TimelineViewport
     let trackControlWidth: CGFloat
-    let onStemVolumeChanged: (StemType, Float) -> Void
-    let onStemMuteToggled: (StemType) -> Void
-    let onStemSoloToggled: (StemType) -> Void
+    let actions: StemTrackActions
     @Environment(\.appColors) private var appColors
 
     var body: some View {
@@ -347,7 +355,7 @@ private struct StemTracksSection: View {
                     activeFillColor: appColors.statusButtonCriticalFill,
                     inactiveTextColor: appColors.statusButtonCriticalFill
                 ) {
-                    onStemMuteToggled(type)
+                    actions.muteToggled(type)
                 }
                 .disabled(!isRowEnabled)
                 .help(ControlHelpText.muteTrack(type.title))
@@ -358,7 +366,7 @@ private struct StemTracksSection: View {
                 JammValueSlider(
                     value: Binding(
                         get: { Double(item.volume) },
-                        set: { onStemVolumeChanged(type, Float($0)) }
+                        set: { actions.volumeChanged(type, Float($0)) }
                     ),
                     minValue: 0,
                     maxValue: 1,
@@ -384,7 +392,7 @@ private struct StemTracksSection: View {
                     activeFillColor: appColors.statusButtonAttentionFill,
                     inactiveTextColor: appColors.statusButtonAttentionFill
                 ) {
-                    onStemSoloToggled(type)
+                    actions.soloToggled(type)
                 }
                 .disabled(!isRowEnabled)
                 .help(ControlHelpText.soloTrack(type.title))

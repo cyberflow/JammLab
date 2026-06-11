@@ -4,13 +4,13 @@ import SwiftUI
 extension WaveformTimelineView {
     func rightClickNoteTarget(width: CGFloat) -> some View {
         RightClickCaptureView { point in
-            onAddNote(viewport.time(forX: point.x, width: width))
+            actions.addNote(viewport.time(forX: point.x, width: width))
         }
     }
 
     func noteLines(width: CGFloat) -> some View {
         ZStack(alignment: .leading) {
-            ForEach(notes.filter(\.isMarker)) { note in
+            ForEach(state.notes.filter(\.isMarker)) { note in
                 noteLine(note, width: width)
             }
         }
@@ -28,12 +28,12 @@ extension WaveformTimelineView {
     func seekGesture(width: CGFloat) -> some Gesture {
         DragGesture(minimumDistance: 0)
             .onChanged { value in
-                guard duration > 0 else { return }
-                onSeek(viewport.time(forX: value.location.x, width: width))
+                guard state.duration > 0 else { return }
+                actions.seek(viewport.time(forX: value.location.x, width: width))
             }
             .onEnded { value in
-                guard duration > 0 else { return }
-                onSeek(viewport.time(forX: value.location.x, width: width))
+                guard state.duration > 0 else { return }
+                actions.seek(viewport.time(forX: value.location.x, width: width))
             }
     }
 }

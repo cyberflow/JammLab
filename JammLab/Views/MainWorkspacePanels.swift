@@ -85,6 +85,15 @@ extension ContentView {
 
     var timelineSection: some View {
         WaveformTimelineView(
+            state: timelineViewState,
+            actions: timelineViewActions,
+            stemActions: stemTrackActions
+        )
+        .frame(height: AppTheme.Timeline.tracksMinimumHeight, alignment: .top)
+    }
+
+    var timelineViewState: TimelineViewState {
+        TimelineViewState(
             peakformData: viewModel.peakformData,
             duration: viewModel.duration,
             currentTime: viewModel.currentTime,
@@ -99,29 +108,38 @@ extension ContentView {
             playbackMode: viewModel.playbackMode,
             mixState: viewModel.stemMixState,
             stemPeakforms: viewModel.stemPeakforms,
-            isLoadingStemPeakforms: viewModel.isBuildingStemPeakforms,
-            onSeek: { viewModel.seek(to: $0) },
-            onAddNote: { viewModel.addNote(at: $0) },
-            onEditNote: { beginEditingMarker($0) },
-            onDeleteNote: { viewModel.deleteNote(id: $0) },
-            onNoteColorChanged: { viewModel.updateNoteColor(id: $0, color: $1) },
-            onNoteCustomColorChanged: { viewModel.updateNoteCustomColor(id: $0, hex: $1) },
-            onMarkerTimeChanged: { viewModel.updateMarkerTime(id: $0, time: $1) },
-            onSaveLoopRegion: { viewModel.saveCurrentLoopRegionAsRegion() },
-            onSelectRegion: { viewModel.selectRegion(id: $0) },
-            onActivateRegion: { viewModel.activateRegionAsLoop(id: $0, shouldSeek: true) },
-            onFocusRegion: { viewModel.focusRegion(id: $0) },
-            onRegionRangeChanged: { viewModel.updateRegionRange(id: $0, start: $1, end: $2) },
-            onLoopStartChanged: { viewModel.updateLoopStart($0) },
-            onLoopEndChanged: { viewModel.updateLoopEnd($0) },
-            onLoopRegionChanged: { viewModel.updateLoopRegion(start: $0, end: $1) },
-            onTimelineScroll: { viewModel.handleTimelineScroll(deltaX: $0, deltaY: $1, anchorTime: $2) },
-            onMainTrackVolumeChanged: { viewModel.setMainTrackVolume($0) },
-            onStemVolumeChanged: { viewModel.setStemVolume($0, volume: $1) },
-            onStemMuteToggled: { viewModel.toggleStemMute($0) },
-            onStemSoloToggled: { viewModel.toggleStemSolo($0) }
+            isLoadingStemPeakforms: viewModel.isBuildingStemPeakforms
         )
-        .frame(height: AppTheme.Timeline.tracksMinimumHeight, alignment: .top)
+    }
+
+    var timelineViewActions: TimelineViewActions {
+        TimelineViewActions(
+            seek: { viewModel.seek(to: $0) },
+            addNote: { viewModel.addNote(at: $0) },
+            editNote: { beginEditingMarker($0) },
+            deleteNote: { viewModel.deleteNote(id: $0) },
+            noteColorChanged: { viewModel.updateNoteColor(id: $0, color: $1) },
+            noteCustomColorChanged: { viewModel.updateNoteCustomColor(id: $0, hex: $1) },
+            markerTimeChanged: { viewModel.updateMarkerTime(id: $0, time: $1) },
+            saveLoopRegion: { viewModel.saveCurrentLoopRegionAsRegion() },
+            selectRegion: { viewModel.selectRegion(id: $0) },
+            activateRegion: { viewModel.activateRegionAsLoop(id: $0, shouldSeek: true) },
+            focusRegion: { viewModel.focusRegion(id: $0) },
+            regionRangeChanged: { viewModel.updateRegionRange(id: $0, start: $1, end: $2) },
+            loopStartChanged: { viewModel.updateLoopStart($0) },
+            loopEndChanged: { viewModel.updateLoopEnd($0) },
+            loopRegionChanged: { viewModel.updateLoopRegion(start: $0, end: $1) },
+            timelineScroll: { viewModel.handleTimelineScroll(deltaX: $0, deltaY: $1, anchorTime: $2) },
+            mainTrackVolumeChanged: { viewModel.setMainTrackVolume($0) }
+        )
+    }
+
+    var stemTrackActions: StemTrackActions {
+        StemTrackActions(
+            volumeChanged: { viewModel.setStemVolume($0, volume: $1) },
+            muteToggled: { viewModel.toggleStemMute($0) },
+            soloToggled: { viewModel.toggleStemSolo($0) }
+        )
     }
 
     var timelineViewportControlBar: some View {
