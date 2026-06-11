@@ -88,6 +88,8 @@ jobs:
       - python-tests
       - swift-tests
     if: startsWith(github.ref, 'refs/tags/v')
+    permissions:
+      contents: write
     env:
       SKIP_BUNDLED_SEPARATOR_HELPER: "0"
     steps:
@@ -148,6 +150,20 @@ jobs:
           set -euo pipefail
           mkdir -p dist
           git archive --format=zip --output "dist/JammLab-$RELEASE_VERSION-source.zip" "$GITHUB_REF_NAME"
+
+      - name: Publish GitHub Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          DMG_ASSET="dist/JammLab-$RELEASE_VERSION-unsigned.dmg"
+          SOURCE_ASSET="dist/JammLab-$RELEASE_VERSION-source.zip"
+
+          if gh release view "$GITHUB_REF_NAME" >/dev/null 2>&1; then
+            gh release upload "$GITHUB_REF_NAME" "$DMG_ASSET" "$SOURCE_ASSET" --clobber
+          else
+            gh release create "$GITHUB_REF_NAME" "$DMG_ASSET" "$SOURCE_ASSET" --verify-tag --generate-notes --latest
+          fi
 
       - name: Upload unsigned DMG
         uses: actions/upload-artifact@v4

@@ -76,11 +76,14 @@ GitHub CI uses three modes:
 - feature branches and pull requests to `main`: Python helper tests and Swift tests;
 - `main` pushes: tests plus unsigned Debug/Release build smoke;
 - release tags `vMAJOR.MINOR.PATCH`: tests, bundled separator build, unsigned
-  Release app build, DMG packaging, and source archive upload.
+  Release app build, DMG packaging, source archive upload, and a published
+  GitHub Release with downloadable assets.
 
 Release versions are derived from Git tags. A tag such as `v0.1.0` builds the
 app with `MARKETING_VERSION=0.1.0`; the standard macOS About panel reads that
-value from the generated app `Info.plist`.
+value from the generated app `Info.plist`. GitHub release notes are generated
+automatically. Re-running a tag workflow replaces release assets with the same
+names, while workflow artifacts remain available for build debugging.
 
 ## Stem Separation
 
