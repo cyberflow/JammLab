@@ -21,9 +21,10 @@ struct JammLabProject: Codable {
     var isSnapEnabled: Bool?
     var playbackMode: PlaybackMode?
     var stemState: StemProjectState?
+    var isVideoWindowOpen: Bool?
 
     init(
-        formatVersion: Int = 6,
+        formatVersion: Int = 7,
         audioBookmarkData: Data,
         artifactRootBookmarkData: Data? = nil,
         audioDisplayName: String,
@@ -42,7 +43,8 @@ struct JammLabProject: Codable {
         clickVolume: Float? = nil,
         isSnapEnabled: Bool? = nil,
         playbackMode: PlaybackMode? = nil,
-        stemState: StemProjectState? = nil
+        stemState: StemProjectState? = nil,
+        isVideoWindowOpen: Bool? = nil
     ) {
         self.formatVersion = formatVersion
         self.audioBookmarkData = audioBookmarkData
@@ -64,6 +66,7 @@ struct JammLabProject: Codable {
         self.isSnapEnabled = isSnapEnabled
         self.playbackMode = playbackMode
         self.stemState = stemState
+        self.isVideoWindowOpen = isVideoWindowOpen
     }
 
     func resolvedAudioURL() throws -> URL {
