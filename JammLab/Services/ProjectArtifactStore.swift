@@ -73,7 +73,7 @@ struct ProjectArtifactStore {
 
         var localMetadata = metadata
         localMetadata.stems = try metadata.stems.map { stem in
-            let destination = directory.appendingPathComponent(stem.type.demucsFilename, isDirectory: false)
+            let destination = directory.appendingPathComponent(stem.type.canonicalStemFilename, isDirectory: false)
             if stem.url.standardizedFileURL != destination.standardizedFileURL {
                 if fileManager.fileExists(atPath: destination.path) {
                     try fileManager.removeItem(at: destination)
@@ -159,7 +159,7 @@ struct ProjectArtifactStore {
             .compactMap { $0 as? URL }) ?? []
 
         return StemType.allCases.compactMap { type in
-            guard let url = files.first(where: { $0.lastPathComponent.lowercased() == type.demucsFilename }) else {
+            guard let url = files.first(where: { $0.lastPathComponent.lowercased() == type.canonicalStemFilename }) else {
                 return nil
             }
             return StemFile(type: type, url: url, displayName: type.title)

@@ -37,7 +37,7 @@ enum StemType: String, Codable, CaseIterable, Identifiable {
         }
     }
 
-    var demucsFilename: String {
+    var canonicalStemFilename: String {
         "\(rawValue).wav"
     }
 
@@ -46,7 +46,7 @@ enum StemType: String, Codable, CaseIterable, Identifiable {
         guard name.hasSuffix(".wav") || name.hasSuffix(".flac") || name.hasSuffix(".mp3") else {
             return false
         }
-        return name == demucsFilename || name.contains(rawValue)
+        return name == canonicalStemFilename || name.contains(rawValue)
     }
 }
 

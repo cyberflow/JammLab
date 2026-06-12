@@ -227,7 +227,7 @@ private final class StemHelperRunner {
                 throw HelperError.incompleteOutput(type.rawValue)
             }
 
-            let destinationURL = cacheDirectory.appendingPathComponent(type.demucsFilename)
+            let destinationURL = cacheDirectory.appendingPathComponent(type.canonicalStemFilename)
             if fileManager.fileExists(atPath: destinationURL.path) {
                 try fileManager.removeItem(at: destinationURL)
             }

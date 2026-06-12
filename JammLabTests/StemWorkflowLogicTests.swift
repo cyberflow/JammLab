@@ -344,6 +344,13 @@ final class StemWorkflowLogicTests: XCTestCase {
         XCTAssertFalse(StemType.bass.matchesOutputFilename("drums.wav"))
     }
 
+    func testStemTypesExposeCanonicalStemFilenames() {
+        XCTAssertEqual(StemType.vocals.canonicalStemFilename, "vocals.wav")
+        XCTAssertEqual(StemType.drums.canonicalStemFilename, "drums.wav")
+        XCTAssertEqual(StemType.bass.canonicalStemFilename, "bass.wav")
+        XCTAssertEqual(StemType.other.canonicalStemFilename, "other.wav")
+    }
+
     func testHelperJobFailureDiagnosticsIncludesDetails() {
         let error = StemSeparationError.helperJobFailed(
             """
@@ -474,6 +481,7 @@ final class StemWorkflowLogicTests: XCTestCase {
         XCTAssertEqual(Set(restored.stems.map(\.type)), Set(StemType.allCases))
         for stem in restored.stems {
             XCTAssertEqual(stem.url.deletingLastPathComponent(), store.stemsDirectory(for: projectURL))
+            XCTAssertEqual(stem.url.lastPathComponent, stem.type.canonicalStemFilename)
             XCTAssertEqual(try String(contentsOf: stem.url, encoding: .utf8), stem.type.rawValue)
         }
     }
