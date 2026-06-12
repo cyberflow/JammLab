@@ -8,6 +8,7 @@ development artifact builds use `vMAJOR.MINOR.PATCH-dev.N`.
 
 ## Unreleased
 
+- Open the sidecar video window automatically for imported videos and persist its open state in saved video projects.
 - Add unsigned DMG packaging for release tags.
 - Support stable, beta, and development tag builds in GitHub CI.
 

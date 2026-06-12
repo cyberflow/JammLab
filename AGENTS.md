@@ -37,6 +37,14 @@ The project is an offline-first MVP. Keep the app local-only: no server, no paid
 - If work is already happening on a suitable non-`main` branch for the same logical task, continue there instead of creating another branch.
 - Final reports for file-changing tasks should include the current branch, changed files, verification performed, and a proposed English Conventional Commit message.
 
+## Changelog
+
+- Update `CHANGELOG.md` for user-facing features, bug fixes, behavior changes, persistence/project-format changes, release/packaging changes, and notable UX changes.
+- Add changelog entries under `## Unreleased` unless explicitly preparing a tagged release section.
+- Keep entries concise and user-facing, matching the existing flat bullet style.
+- Changelog updates may be a separate commit, but must stay in the same logical task branch.
+- Internal-only refactors, tests, and agent/documentation-only changes do not need changelog entries unless they affect app users or release notes.
+
 ## Branch naming
 
 Use descriptive kebab-case branch names:

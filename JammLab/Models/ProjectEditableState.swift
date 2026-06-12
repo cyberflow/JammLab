@@ -32,4 +32,5 @@ struct ProjectPersistedEditableState: Equatable {
     var isClickEnabled: Bool
     var clickVolume: Float
     var isSnapEnabled: Bool
+    var isVideoWindowOpen: Bool
 }

@@ -63,7 +63,7 @@ final class StemWorkflowLogicTests: XCTestCase {
         XCTAssertFalse(mix.item(for: .drums).isSoloed)
     }
 
-    func testProjectVersionSixPersistsProjectEditablePlaybackStateMediaKindAndArtifactRootBookmark() throws {
+    func testProjectVersionSevenPersistsProjectEditablePlaybackStateMediaKindArtifactRootBookmarkAndVideoWindowState() throws {
         let artifactRootBookmarkData = Data("artifact-root-bookmark".utf8)
         let metadata = StemProjectState(
             cacheKey: "cache-123",
@@ -96,12 +96,13 @@ final class StemWorkflowLogicTests: XCTestCase {
             clickVolume: 0.42,
             isSnapEnabled: true,
             playbackMode: .stems,
-            stemState: metadata
+            stemState: metadata,
+            isVideoWindowOpen: true
         )
 
         let decoded = try JSONDecoder().decode(JammLabProject.self, from: JSONEncoder().encode(project))
 
-        XCTAssertEqual(decoded.formatVersion, 6)
+        XCTAssertEqual(decoded.formatVersion, 7)
         XCTAssertEqual(decoded.artifactRootBookmarkData, artifactRootBookmarkData)
         XCTAssertEqual(decoded.mediaKind, .video)
         XCTAssertEqual(decoded.isLoopEnabled, true)
@@ -111,6 +112,7 @@ final class StemWorkflowLogicTests: XCTestCase {
         XCTAssertEqual(decoded.clickVolume, 0.42)
         XCTAssertEqual(decoded.isSnapEnabled, true)
         XCTAssertEqual(decoded.playbackMode, .stems)
+        XCTAssertEqual(decoded.isVideoWindowOpen, true)
         XCTAssertEqual(decoded.stemState?.cacheKey, "cache-123")
         XCTAssertEqual(decoded.stemState?.playbackMode, .stems)
         XCTAssertEqual(try XCTUnwrap(decoded.stemState?.mixState.effectiveVolume(for: .vocals)), 0, accuracy: 0.0001)
@@ -156,6 +158,7 @@ final class StemWorkflowLogicTests: XCTestCase {
         XCTAssertNil(decoded.isSnapEnabled)
         XCTAssertNil(decoded.playbackMode)
         XCTAssertNil(decoded.mediaKind)
+        XCTAssertNil(decoded.isVideoWindowOpen)
     }
 
     func testMediaImporterClassifiesSupportedFormats() {

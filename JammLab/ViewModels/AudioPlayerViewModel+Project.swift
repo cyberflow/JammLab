@@ -82,7 +82,9 @@ extension AudioPlayerViewModel {
 
     func newProject() {
         playbackEngine.unload()
-        videoFollower.unload()
+        performWithoutVideoWindowDirtyTracking {
+            videoFollower.unload()
+        }
         cancelBackgroundWork()
         clearUndoHistory()
 
@@ -135,7 +137,9 @@ extension AudioPlayerViewModel {
         }
 
         importedFile = file
-        videoFollower.load(videoURL: file.videoURL)
+        performWithoutVideoWindowDirtyTracking {
+            videoFollower.load(videoURL: file.videoURL)
+        }
         currentProjectURL = nil
         duration = file.duration
         currentTime = 0
@@ -153,6 +157,7 @@ extension AudioPlayerViewModel {
         clearUndoHistory()
 
         _ = restoreCachedStems(for: file.url)
+        restoreVideoWindowOpenState(file.mediaKind == .video)
         markProjectClean()
 
         buildPeakform(file: file)
@@ -203,7 +208,9 @@ extension AudioPlayerViewModel {
             try configurePlayer(with: file)
 
             importedFile = file
-            videoFollower.load(videoURL: file.videoURL)
+            performWithoutVideoWindowDirtyTracking {
+                videoFollower.load(videoURL: file.videoURL)
+            }
             currentProjectURL = url
             didAdoptProject = true
             duration = resolvedProjectDuration
@@ -222,6 +229,7 @@ extension AudioPlayerViewModel {
             playbackState = .stopped
             restoreStemState(project.stemState, audioURL: file.url, projectURL: url)
             restorePlaybackMode(restoredPlaybackMode, preservedTime: currentTime)
+            restoreVideoWindowOpenState(file.mediaKind == .video && project.isVideoWindowOpen == true)
             isImporting = false
             clearUndoHistory()
             markProjectClean()
@@ -296,7 +304,8 @@ extension AudioPlayerViewModel {
                     clickVolume: clickVolume,
                     isSnapEnabled: isSnapEnabled,
                     playbackMode: playbackMode,
-                    stemState: makeStemProjectState()
+                    stemState: makeStemProjectState(),
+                    isVideoWindowOpen: isVideoWindowOpen
                 ))
                 try projectService.save(project, to: url)
             } catch {

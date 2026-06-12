@@ -203,6 +203,9 @@ final class MockPlaybackEngine: AudioPlaybackControlling {
 final class MockVideoFollower: VideoFollowerControlling {
     var loadedVideoURL: URL?
     var didUnload = false
+    var closeWindowCount = 0
+    var isWindowOpen = false
+    var onWindowOpenChanged: ((Bool) -> Void)?
     var playRate: Float?
     var didPause = false
     var didStop = false
@@ -219,14 +222,22 @@ final class MockVideoFollower: VideoFollowerControlling {
     func unload() {
         didUnload = true
         loadedVideoURL = nil
+        closeWindow()
+    }
+
+    func closeWindow() {
+        closeWindowCount += 1
+        setWindowOpen(false)
     }
 
     func showWindow(at time: TimeInterval, isPlaying: Bool, rate: Float) {
         showWindowEvents.append((time, isPlaying, rate))
+        setWindowOpen(true)
     }
 
     func toggleWindow(at time: TimeInterval, isPlaying: Bool, rate: Float) {
         toggleWindowEvents.append((time, isPlaying, rate))
+        setWindowOpen(!isWindowOpen)
     }
 
     func play(rate: Float) {
@@ -251,6 +262,13 @@ final class MockVideoFollower: VideoFollowerControlling {
 
     func sync(to audioTime: TimeInterval, isPlaying: Bool, rate: Float) {
         syncEvents.append((audioTime, isPlaying, rate))
+    }
+
+    private func setWindowOpen(_ isOpen: Bool) {
+        guard isWindowOpen != isOpen else { return }
+
+        isWindowOpen = isOpen
+        onWindowOpenChanged?(isOpen)
     }
 }
 

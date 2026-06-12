@@ -5,8 +5,12 @@ import Foundation
 
 @MainActor
 protocol VideoFollowerControlling: AnyObject {
+    var isWindowOpen: Bool { get }
+    var onWindowOpenChanged: ((Bool) -> Void)? { get set }
+
     func load(videoURL: URL?)
     func unload()
+    func closeWindow()
     func showWindow(at time: TimeInterval, isPlaying: Bool, rate: Float)
     func toggleWindow(at time: TimeInterval, isPlaying: Bool, rate: Float)
     func play(rate: Float)
@@ -24,6 +28,11 @@ final class VideoFollowerController: NSObject, VideoFollowerControlling, NSWindo
     private var playerView: AVPlayerView?
     private var currentVideoURL: URL?
     private let driftTolerance: TimeInterval
+    var onWindowOpenChanged: ((Bool) -> Void)?
+
+    var isWindowOpen: Bool {
+        window != nil
+    }
 
     init(driftTolerance: TimeInterval = 0.2) {
         self.driftTolerance = driftTolerance
@@ -48,9 +57,11 @@ final class VideoFollowerController: NSObject, VideoFollowerControlling, NSWindo
         player.pause()
         player.replaceCurrentItem(with: nil)
         currentVideoURL = nil
+        closeWindow()
+    }
+
+    func closeWindow() {
         window?.close()
-        window = nil
-        playerView = nil
     }
 
     func play(rate: Float) {
@@ -98,8 +109,11 @@ final class VideoFollowerController: NSObject, VideoFollowerControlling, NSWindo
 
     func windowWillClose(_ notification: Notification) {
         player.pause()
+        guard window != nil else { return }
+
         window = nil
         playerView = nil
+        onWindowOpenChanged?(false)
     }
 
     func showWindow(at time: TimeInterval, isPlaying: Bool, rate: Float) {
@@ -125,6 +139,8 @@ final class VideoFollowerController: NSObject, VideoFollowerControlling, NSWindo
     }
 
     private func showWindow() {
+        let wasOpen = window != nil
+
         if window == nil {
             let view = AVPlayerView(frame: NSRect(x: 0, y: 0, width: 720, height: 405))
             view.player = player
@@ -145,6 +161,10 @@ final class VideoFollowerController: NSObject, VideoFollowerControlling, NSWindo
         }
 
         window?.makeKeyAndOrderFront(nil)
+
+        if !wasOpen {
+            onWindowOpenChanged?(true)
+        }
     }
 
     private func normalizedRate(_ rate: Float) -> Float {

@@ -43,6 +43,7 @@ struct ProjectDocumentSnapshot {
     let isSnapEnabled: Bool
     let playbackMode: PlaybackMode
     let stemState: StemProjectState?
+    let isVideoWindowOpen: Bool
 }
 
 struct ProjectPersistenceCoordinator {
@@ -215,7 +216,8 @@ struct ProjectPersistenceCoordinator {
             clickVolume: snapshot.clickVolume,
             isSnapEnabled: snapshot.isSnapEnabled,
             playbackMode: snapshot.playbackMode,
-            stemState: snapshot.stemState
+            stemState: snapshot.stemState,
+            isVideoWindowOpen: snapshot.importedFile.mediaKind == .video ? snapshot.isVideoWindowOpen : nil
         )
     }
 

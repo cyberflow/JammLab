@@ -39,7 +39,8 @@ extension AudioPlayerViewModel {
             playbackMode: playbackMode,
             isClickEnabled: isClickEnabled,
             clickVolume: clampedVolume(clickVolume),
-            isSnapEnabled: isSnapEnabled
+            isSnapEnabled: isSnapEnabled,
+            isVideoWindowOpen: importedFile?.mediaKind == .video && isVideoWindowOpen
         )
     }
 

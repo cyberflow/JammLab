@@ -52,6 +52,7 @@ final class AudioPlayerViewModel: ObservableObject {
     @Published var isLooping = false
     @Published var isClickEnabled = false
     @Published var isSnapEnabled = false
+    @Published var isVideoWindowOpen = false
     @Published var mainTrackVolume: Float = AppSliderDefaults.mainTrackVolume
     @Published var clickVolume: Float = AudioPlayerViewModel.restoredClickVolume()
     @Published var undoStateRevision = 0
@@ -89,6 +90,7 @@ final class AudioPlayerViewModel: ObservableObject {
     var hasProjectSecurityScopedAccess = false
     var settingsCancellables: Set<AnyCancellable> = []
     var isRestoringUndoState = false
+    var isRestoringVideoWindowState = false
     var lastSavedProjectState: ProjectPersistedEditableState?
 
     private static func restoredClickVolume() -> Float {
@@ -174,6 +176,9 @@ final class AudioPlayerViewModel: ObservableObject {
         self.playbackEngine.setClickSettings(beatGridSettings)
         self.playbackEngine.setClickSoundSettings(appSettingsStore.clickSoundSettings)
         applyAudioOutputDeviceSetting(appSettingsStore.audioDeviceSettings.outputDeviceUID)
+        self.videoFollower.onWindowOpenChanged = { [weak self] isOpen in
+            self?.handleVideoWindowOpenChanged(isOpen)
+        }
 
         appSettingsStore.$clickSoundSettings
             .dropFirst()
