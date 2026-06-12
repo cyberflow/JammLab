@@ -452,7 +452,7 @@ final class StemSeparationService {
             .compactMap { $0 as? URL }) ?? []
 
         let stems = StemType.allCases.compactMap { type -> StemFile? in
-            guard let url = files.first(where: { $0.lastPathComponent.lowercased() == type.demucsFilename }) else {
+            guard let url = files.first(where: { $0.lastPathComponent.lowercased() == type.canonicalStemFilename }) else {
                 return nil
             }
             return StemFile(type: type, url: url, displayName: type.title)
