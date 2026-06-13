@@ -3,6 +3,104 @@ import AVFoundation
 import Combine
 import Foundation
 
+enum AudioInputPermissionStatus: Equatable {
+    case authorized
+    case notDetermined
+    case denied
+}
+
+protocol AudioInputPermissionProviding {
+    var authorizationStatus: AudioInputPermissionStatus { get }
+    func requestAccess() async -> Bool
+}
+
+struct SystemAudioInputPermissionProvider: AudioInputPermissionProviding {
+    var authorizationStatus: AudioInputPermissionStatus {
+        switch AVCaptureDevice.authorizationStatus(for: .audio) {
+        case .authorized:
+            return .authorized
+        case .notDetermined:
+            return .notDetermined
+        case .denied, .restricted:
+            return .denied
+        @unknown default:
+            return .denied
+        }
+    }
+
+    func requestAccess() async -> Bool {
+        await withCheckedContinuation { continuation in
+            AVCaptureDevice.requestAccess(for: .audio) { isGranted in
+                continuation.resume(returning: isGranted)
+            }
+        }
+    }
+}
+
+protocol TunerInputEngineControlling: AnyObject {
+    func start(
+        deviceID: AudioDeviceID,
+        bufferSize: AVAudioFrameCount,
+        onAudioBuffer: @escaping (AVAudioPCMBuffer, Double) -> Void
+    ) throws
+    func stop()
+}
+
+final class SystemTunerInputEngine: TunerInputEngineControlling {
+    private var engine: AVAudioEngine?
+
+    func start(
+        deviceID: AudioDeviceID,
+        bufferSize: AVAudioFrameCount,
+        onAudioBuffer: @escaping (AVAudioPCMBuffer, Double) -> Void
+    ) throws {
+        stop()
+
+        let engine = AVAudioEngine()
+        let inputNode = engine.inputNode
+        try applyInputDevice(deviceID, to: inputNode)
+
+        let format = inputNode.outputFormat(forBus: 0)
+        guard format.sampleRate > 0, format.channelCount > 0 else {
+            throw TunerInputServiceError.inputFormatUnavailable
+        }
+
+        inputNode.installTap(onBus: 0, bufferSize: bufferSize, format: format) { buffer, _ in
+            onAudioBuffer(buffer, format.sampleRate)
+        }
+
+        engine.prepare()
+        try engine.start()
+        self.engine = engine
+    }
+
+    func stop() {
+        guard let engine else { return }
+        engine.inputNode.removeTap(onBus: 0)
+        engine.stop()
+        self.engine = nil
+    }
+
+    private func applyInputDevice(_ deviceID: AudioDeviceID, to inputNode: AVAudioInputNode) throws {
+        guard let audioUnit = inputNode.audioUnit else {
+            throw TunerInputServiceError.inputFormatUnavailable
+        }
+
+        var mutableDeviceID = deviceID
+        let status = AudioUnitSetProperty(
+            audioUnit,
+            kAudioOutputUnitProperty_CurrentDevice,
+            kAudioUnitScope_Global,
+            0,
+            &mutableDeviceID,
+            UInt32(MemoryLayout<AudioDeviceID>.size)
+        )
+        guard status == noErr else {
+            throw TunerInputServiceError.inputDeviceSwitchFailed(status)
+        }
+    }
+}
+
 enum TunerInputServiceError: LocalizedError {
     case microphonePermissionDenied
     case inputFormatUnavailable
@@ -29,12 +127,13 @@ final class TunerInputService: ObservableObject {
     private static let inputBufferSize: AVAudioFrameCount = 16_384
 
     private let appSettingsStore: AppSettingsStore
-    private let audioDeviceService: AudioDeviceService
+    private let audioDeviceResolver: TunerInputDeviceResolver
+    private let inputPermissionProvider: AudioInputPermissionProviding
+    private let inputEngine: TunerInputEngineControlling
     private let detector: PitchDetector
     private let analysisQueue = DispatchQueue(label: "com.cyberflow.JammLab.tuner.pitch", qos: .userInitiated)
     private let analysisLock = NSLock()
     private var settingsCancellable: AnyCancellable?
-    private var engine: AVAudioEngine?
     private var analysisPending = false
     private var isRunning = false
     private var isStarting = false
@@ -42,11 +141,15 @@ final class TunerInputService: ObservableObject {
 
     init(
         appSettingsStore: AppSettingsStore,
-        audioDeviceService: AudioDeviceService = AudioDeviceService(),
+        audioDeviceProvider: AudioDeviceProviding = AudioDeviceService(),
+        inputPermissionProvider: AudioInputPermissionProviding = SystemAudioInputPermissionProvider(),
+        inputEngine: TunerInputEngineControlling = SystemTunerInputEngine(),
         detector: PitchDetector = PitchDetector()
     ) {
         self.appSettingsStore = appSettingsStore
-        self.audioDeviceService = audioDeviceService
+        self.audioDeviceResolver = TunerInputDeviceResolver(audioDeviceProvider: audioDeviceProvider)
+        self.inputPermissionProvider = inputPermissionProvider
+        self.inputEngine = inputEngine
         self.detector = detector
         observeInputDeviceChanges()
     }
@@ -84,6 +187,8 @@ final class TunerInputService: ObservableObject {
 
     private func observeInputDeviceChanges() {
         settingsCancellable = appSettingsStore.$audioDeviceSettings
+            .map(\.inputDeviceUID)
+            .removeDuplicates()
             .dropFirst()
             .receive(on: DispatchQueue.main)
             .sink { [weak self] _ in
@@ -101,30 +206,19 @@ final class TunerInputService: ObservableObject {
     private func configureAndStartEngine() throws {
         stopEngine()
 
-        let selectedDevice = try resolvedInputDevice()
+        let selectedDevice = try audioDeviceResolver.resolveInputDevice(
+            selectedUID: appSettingsStore.audioDeviceSettings.inputDeviceUID
+        )
         inputDeviceName = selectedDevice.name
 
-        let engine = AVAudioEngine()
-        let inputNode = engine.inputNode
-        try applyInputDevice(selectedDevice.id, to: inputNode)
-
-        let format = inputNode.outputFormat(forBus: 0)
-        guard format.sampleRate > 0, format.channelCount > 0 else {
-            throw TunerInputServiceError.inputFormatUnavailable
-        }
-
         let detector = detector
-        inputNode.installTap(onBus: 0, bufferSize: Self.inputBufferSize, format: format) { [weak self] buffer, _ in
+        try inputEngine.start(deviceID: selectedDevice.id, bufferSize: Self.inputBufferSize) { [weak self] buffer, sampleRate in
             guard let samples = AudioSampleConverter.monoFloatSamples(from: buffer), !samples.isEmpty else {
                 return
             }
-            self?.scheduleAnalysis(samples: samples, sampleRate: format.sampleRate, detector: detector)
+            self?.scheduleAnalysis(samples: samples, sampleRate: sampleRate, detector: detector)
         }
 
-        engine.prepare()
-        try engine.start()
-
-        self.engine = engine
         isRunning = true
         isStarting = false
         errorMessage = nil
@@ -176,60 +270,18 @@ final class TunerInputService: ObservableObject {
         errorMessage = error.localizedDescription
     }
 
-    @MainActor
-    private func resolvedInputDevice() throws -> (id: AudioDeviceID, name: String) {
-        let devices = (try? audioDeviceService.inputDevices()) ?? []
-        if let uid = appSettingsStore.audioDeviceSettings.inputDeviceUID {
-            let deviceID = try audioDeviceService.deviceID(forUID: uid, kind: .input)
-            let name = devices.first(where: { $0.uid == uid })?.name ?? uid
-            return (deviceID, name)
-        }
-
-        let defaultID = try audioDeviceService.defaultDeviceID(kind: .input)
-        let defaultName = devices.first(where: \.isDefault)?.name ?? "System Default"
-        return (defaultID, defaultName)
-    }
-
-    private func applyInputDevice(_ deviceID: AudioDeviceID, to inputNode: AVAudioInputNode) throws {
-        guard let audioUnit = inputNode.audioUnit else {
-            throw TunerInputServiceError.inputFormatUnavailable
-        }
-
-        var mutableDeviceID = deviceID
-        let status = AudioUnitSetProperty(
-            audioUnit,
-            kAudioOutputUnitProperty_CurrentDevice,
-            kAudioUnitScope_Global,
-            0,
-            &mutableDeviceID,
-            UInt32(MemoryLayout<AudioDeviceID>.size)
-        )
-        guard status == noErr else {
-            throw TunerInputServiceError.inputDeviceSwitchFailed(status)
-        }
-    }
-
     private func requestInputPermissionIfNeeded() async -> Bool {
-        switch AVCaptureDevice.authorizationStatus(for: .audio) {
+        switch inputPermissionProvider.authorizationStatus {
         case .authorized:
             return true
         case .notDetermined:
-            return await withCheckedContinuation { continuation in
-                AVCaptureDevice.requestAccess(for: .audio) { isGranted in
-                    continuation.resume(returning: isGranted)
-                }
-            }
-        case .denied, .restricted:
-            return false
-        @unknown default:
+            return await inputPermissionProvider.requestAccess()
+        case .denied:
             return false
         }
     }
 
     private func stopEngine() {
-        guard let engine else { return }
-        engine.inputNode.removeTap(onBus: 0)
-        engine.stop()
-        self.engine = nil
+        inputEngine.stop()
     }
 }

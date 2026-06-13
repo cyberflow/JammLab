@@ -17,6 +17,13 @@ struct AudioDeviceInfo: Codable, Equatable, Identifiable {
     let isDefault: Bool
 }
 
+protocol AudioDeviceProviding {
+    func inputDevices() throws -> [AudioDeviceInfo]
+    func outputDevices() throws -> [AudioDeviceInfo]
+    func deviceID(forUID uid: String, kind: AudioDeviceKind) throws -> AudioDeviceID
+    func defaultDeviceID(kind: AudioDeviceKind) throws -> AudioDeviceID
+}
+
 enum AudioDeviceServiceError: LocalizedError {
     case deviceListUnavailable
     case deviceNotFound(String)
@@ -37,7 +44,7 @@ enum AudioDeviceServiceError: LocalizedError {
     }
 }
 
-final class AudioDeviceService {
+final class AudioDeviceService: AudioDeviceProviding {
     func inputDevices() throws -> [AudioDeviceInfo] {
         try devices(kind: .input)
     }
@@ -177,6 +184,29 @@ final class AudioDeviceService {
         let status = AudioObjectGetPropertyData(deviceID, &address, 0, nil, &size, &value)
         guard status == noErr, let value else { return nil }
         return value.takeUnretainedValue() as String
+    }
+}
+
+struct TunerInputDeviceSelection: Equatable {
+    let id: AudioDeviceID
+    let name: String
+}
+
+struct TunerInputDeviceResolver {
+    let audioDeviceProvider: AudioDeviceProviding
+
+    func resolveInputDevice(selectedUID: String?) throws -> TunerInputDeviceSelection {
+        let devices = (try? audioDeviceProvider.inputDevices()) ?? []
+
+        if let uid = selectedUID {
+            let deviceID = try audioDeviceProvider.deviceID(forUID: uid, kind: .input)
+            let name = devices.first(where: { $0.uid == uid })?.name ?? uid
+            return TunerInputDeviceSelection(id: deviceID, name: name)
+        }
+
+        let defaultID = try audioDeviceProvider.defaultDeviceID(kind: .input)
+        let defaultName = devices.first(where: \.isDefault)?.name ?? "System Default"
+        return TunerInputDeviceSelection(id: defaultID, name: defaultName)
     }
 }
 

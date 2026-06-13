@@ -387,9 +387,10 @@ private struct AudioSettingsContentView: View {
 
     @State private var inputDevices: [AudioDeviceInfo] = []
     @State private var outputDevices: [AudioDeviceInfo] = []
+    @State private var inputPermissionStatus = SystemAudioInputPermissionProvider().authorizationStatus
     @State private var errorText: String?
 
-    private let deviceService = AudioDeviceService()
+    private let deviceLoader = AudioSettingsDeviceLoader()
 
     @Environment(\.appColors) private var appColors
 
@@ -423,7 +424,7 @@ private struct AudioSettingsContentView: View {
                 .help(ControlHelpText.resetAudioDevices)
             }
 
-            Text("Input device is saved for future recording and monitoring. Output changes apply to playback immediately.")
+            Text(inputPermissionText)
                 .font(.caption)
                 .foregroundStyle(appColors.secondaryText)
 
@@ -488,13 +489,62 @@ private struct AudioSettingsContentView: View {
         device.isDefault ? "\(device.name) (Default)" : device.name
     }
 
-    private func refreshDevices() {
-        do {
-            inputDevices = try deviceService.inputDevices()
-            outputDevices = try deviceService.outputDevices()
-            errorText = nil
-        } catch {
-            errorText = error.localizedDescription
+    private var inputPermissionText: String {
+        switch inputPermissionStatus {
+        case .authorized:
+            return "Input device is used by the tuner. Output changes apply to playback immediately."
+        case .notDetermined:
+            return "Input devices will be listed after opening the tuner. Output changes apply to playback immediately."
+        case .denied:
+            return "Audio input access is disabled. Output changes apply to playback immediately."
         }
+    }
+
+    private func refreshDevices() {
+        let result = deviceLoader.refreshDevices()
+        inputDevices = result.inputDevices
+        outputDevices = result.outputDevices
+        inputPermissionStatus = result.inputPermissionStatus
+        errorText = result.errorText
+    }
+}
+
+struct AudioSettingsDeviceRefreshResult: Equatable {
+    let inputDevices: [AudioDeviceInfo]
+    let outputDevices: [AudioDeviceInfo]
+    let inputPermissionStatus: AudioInputPermissionStatus
+    let errorText: String?
+}
+
+struct AudioSettingsDeviceLoader {
+    var deviceProvider: AudioDeviceProviding = AudioDeviceService()
+    var inputPermissionProvider: AudioInputPermissionProviding = SystemAudioInputPermissionProvider()
+
+    func refreshDevices() -> AudioSettingsDeviceRefreshResult {
+        var inputDevices: [AudioDeviceInfo] = []
+        var outputDevices: [AudioDeviceInfo] = []
+        var errors: [String] = []
+
+        do {
+            outputDevices = try deviceProvider.outputDevices()
+        } catch {
+            errors.append(error.localizedDescription)
+        }
+
+        let inputPermissionStatus = inputPermissionProvider.authorizationStatus
+        if inputPermissionStatus == .authorized {
+            do {
+                inputDevices = try deviceProvider.inputDevices()
+            } catch {
+                errors.append(error.localizedDescription)
+            }
+        }
+
+        return AudioSettingsDeviceRefreshResult(
+            inputDevices: inputDevices,
+            outputDevices: outputDevices,
+            inputPermissionStatus: inputPermissionStatus,
+            errorText: errors.isEmpty ? nil : errors.joined(separator: "\n")
+        )
     }
 }
