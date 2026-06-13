@@ -35,6 +35,8 @@
 		9F8B01042C10000100112233 /* TimelineTracks.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9F8B00042C10000100112233 /* TimelineTracks.swift */; };
 		9F8B01052C10000100112233 /* TimelineInteractionHelpers.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9F8B00052C10000100112233 /* TimelineInteractionHelpers.swift */; };
 		9F8B01062C10000100112233 /* TestSupport.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9F8B00072C10000100112233 /* TestSupport.swift */; };
+		9FCD01012D50000100112233 /* PerformanceBenchmarkTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9FCD00012D50000100112233 /* PerformanceBenchmarkTests.swift */; };
+		9FCD01022D50000100112233 /* TestSupport.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9F8B00072C10000100112233 /* TestSupport.swift */; };
 		9F8C01012C20000100112233 /* AppTheme.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9F8C00012C20000100112233 /* AppTheme.swift */; };
 		9F8C01022C20000100112233 /* AppPanel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9F8C00022C20000100112233 /* AppPanel.swift */; };
 		9F8C01032C20000100112233 /* AppControls.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9F8C00032C20000100112233 /* AppControls.swift */; };
@@ -110,6 +112,13 @@
 			remoteGlobalIDString = 9F8A04012C00000100112233;
 			remoteInfo = JammLab;
 		};
+		9FCD08012D50000100112233 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 9F8A05012C00000100112233 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 9F8A04012C00000100112233;
+			remoteInfo = JammLab;
+		};
 		9F9203012C80000100112233 /* PBXContainerItemProxy */ = {
 			isa = PBXContainerItemProxy;
 			containerPortal = 9F8A05012C00000100112233 /* Project object */;
@@ -165,6 +174,8 @@
 		9F8B00052C10000100112233 /* TimelineInteractionHelpers.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TimelineInteractionHelpers.swift; sourceTree = "<group>"; };
 		9F8B00062C10000100112233 /* JammLabTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = JammLabTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		9F8B00072C10000100112233 /* TestSupport.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TestSupport.swift; sourceTree = "<group>"; };
+		9FCD00012D50000100112233 /* PerformanceBenchmarkTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PerformanceBenchmarkTests.swift; sourceTree = "<group>"; };
+		9FCD00022D50000100112233 /* JammLabPerformanceTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = JammLabPerformanceTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		9F8C00012C20000100112233 /* AppTheme.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppTheme.swift; sourceTree = "<group>"; };
 		9F8C00022C20000100112233 /* AppPanel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppPanel.swift; sourceTree = "<group>"; };
 		9F8C00032C20000100112233 /* AppControls.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppControls.swift; sourceTree = "<group>"; };
@@ -247,6 +258,13 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		9FCD02012D50000100112233 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		9F8E02012C40000100112233 /* Frameworks */ = {
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
@@ -263,6 +281,7 @@
 				9F8A03022C00000100112233 /* JammLab */,
 				9F8E03012C40000100112233 /* JammLabStemHelper */,
 				9F8B03012C10000100112233 /* JammLabTests */,
+				9FCD03012D50000100112233 /* JammLabPerformanceTests */,
 				9FC100002D10000100112233 /* Configurations */,
 				9F8A03082C00000100112233 /* Products */,
 			);
@@ -384,6 +403,7 @@
 				9F8A000D2C00000100112233 /* JammLab.app */,
 				9F8E00022C40000100112233 /* JammLabStemHelper */,
 				9F8B00062C10000100112233 /* JammLabTests.xctest */,
+				9FCD00022D50000100112233 /* JammLabPerformanceTests.xctest */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -402,6 +422,14 @@
 				9F8B00072C10000100112233 /* TestSupport.swift */,
 			);
 			path = JammLabTests;
+			sourceTree = "<group>";
+		};
+		9FCD03012D50000100112233 /* JammLabPerformanceTests */ = {
+			isa = PBXGroup;
+			children = (
+				9FCD00012D50000100112233 /* PerformanceBenchmarkTests.swift */,
+			);
+			path = JammLabPerformanceTests;
 			sourceTree = "<group>";
 		};
 		9F8C03012C20000100112233 /* DesignSystem */ = {
@@ -496,6 +524,24 @@
 			productReference = 9F8B00062C10000100112233 /* JammLabTests.xctest */;
 			productType = "com.apple.product-type.bundle.unit-test";
 		};
+		9FCD04012D50000100112233 /* JammLabPerformanceTests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 9FCD07012D50000100112233 /* Build configuration list for PBXNativeTarget "JammLabPerformanceTests" */;
+			buildPhases = (
+				9FCD02032D50000100112233 /* Sources */,
+				9FCD02012D50000100112233 /* Frameworks */,
+				9FCD02022D50000100112233 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				9FCD08022D50000100112233 /* PBXTargetDependency */,
+			);
+			name = JammLabPerformanceTests;
+			productName = JammLabPerformanceTests;
+			productReference = 9FCD00022D50000100112233 /* JammLabPerformanceTests.xctest */;
+			productType = "com.apple.product-type.bundle.unit-test";
+		};
 		9F8E04012C40000100112233 /* JammLabStemHelper */ = {
 			isa = PBXNativeTarget;
 			buildConfigurationList = 9F8E07012C40000100112233 /* Build configuration list for PBXNativeTarget "JammLabStemHelper" */;
@@ -529,6 +575,10 @@
 						CreatedOnToolsVersion = 26.5;
 						TestTargetID = 9F8A04012C00000100112233;
 					};
+					9FCD04012D50000100112233 = {
+						CreatedOnToolsVersion = 26.5;
+						TestTargetID = 9F8A04012C00000100112233;
+					};
 					9F8E04012C40000100112233 = {
 						CreatedOnToolsVersion = 26.5;
 					};
@@ -550,6 +600,7 @@
 				9F8A04012C00000100112233 /* JammLab */,
 				9F8E04012C40000100112233 /* JammLabStemHelper */,
 				9F8B04012C10000100112233 /* JammLabTests */,
+				9FCD04012D50000100112233 /* JammLabPerformanceTests */,
 			);
 		};
 /* End PBXProject section */
@@ -564,6 +615,13 @@
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 		9F8B02022C10000100112233 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		9FCD02022D50000100112233 /* Resources */ = {
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
@@ -696,6 +754,15 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		9FCD02032D50000100112233 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				9FCD01012D50000100112233 /* PerformanceBenchmarkTests.swift in Sources */,
+				9FCD01022D50000100112233 /* TestSupport.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		9F8E02022C40000100112233 /* Sources */ = {
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
@@ -715,6 +782,11 @@
 			isa = PBXTargetDependency;
 			target = 9F8A04012C00000100112233 /* JammLab */;
 			targetProxy = 9F8B08012C10000100112233 /* PBXContainerItemProxy */;
+		};
+		9FCD08022D50000100112233 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 9F8A04012C00000100112233 /* JammLab */;
+			targetProxy = 9FCD08012D50000100112233 /* PBXContainerItemProxy */;
 		};
 		9F9203022C80000100112233 /* PBXTargetDependency */ = {
 			isa = PBXTargetDependency;
@@ -969,6 +1041,52 @@
 			};
 			name = Release;
 		};
+		9FCD06012D50000100112233 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			baseConfigurationReference = 9FC100022D10000100112233 /* Debug.xcconfig */;
+			buildSettings = {
+				ALWAYS_EMBED_SWIFT_STANDARD_LIBRARIES = YES;
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				"CODE_SIGN_IDENTITY[sdk=macosx*]" = "Apple Development";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = L7X42BE58F;
+				GENERATE_INFOPLIST_FILE = YES;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+					"@loader_path/../Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.cyberflow.JammLabPerformanceTests;
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/JammLab.app/Contents/MacOS/JammLab";
+			};
+			name = Debug;
+		};
+		9FCD06022D50000100112233 /* Release */ = {
+			isa = XCBuildConfiguration;
+			baseConfigurationReference = 9FC100032D10000100112233 /* Release.xcconfig */;
+			buildSettings = {
+				ALWAYS_EMBED_SWIFT_STANDARD_LIBRARIES = YES;
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				"CODE_SIGN_IDENTITY[sdk=macosx*]" = "Apple Development";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = L7X42BE58F;
+				GENERATE_INFOPLIST_FILE = YES;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+					"@loader_path/../Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.cyberflow.JammLabPerformanceTests;
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/JammLab.app/Contents/MacOS/JammLab";
+			};
+			name = Release;
+		};
 		9F8E06012C40000100112233 /* Debug */ = {
 			isa = XCBuildConfiguration;
 			baseConfigurationReference = 9FC100022D10000100112233 /* Debug.xcconfig */;
@@ -1033,6 +1151,15 @@
 			buildConfigurations = (
 				9F8B06012C10000100112233 /* Debug */,
 				9F8B06022C10000100112233 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		9FCD07012D50000100112233 /* Build configuration list for PBXNativeTarget "JammLabPerformanceTests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				9FCD06012D50000100112233 /* Debug */,
+				9FCD06022D50000100112233 /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
