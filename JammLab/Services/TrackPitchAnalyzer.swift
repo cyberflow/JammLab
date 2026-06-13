@@ -30,11 +30,15 @@ struct TrackPitchAnalyzer {
 
             var frames: [PitchFrame] = []
             frames.reserveCapacity(max(1, audio.samples.count / hopSize))
+            var workspace = PitchDetectionWorkspace()
 
             for start in stride(from: 0, through: audio.samples.count - windowSize, by: hopSize) {
                 let end = start + windowSize
-                let samples = Array(audio.samples[start..<end])
-                let result = detector.detect(samples: samples, sampleRate: audio.sampleRate)
+                let result = detector.detect(
+                    samples: audio.samples[start..<end],
+                    sampleRate: audio.sampleRate,
+                    workspace: &workspace
+                )
 
                 frames.append(PitchFrame(
                     time: Double(start) / audio.sampleRate,
