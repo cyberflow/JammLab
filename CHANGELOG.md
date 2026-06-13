@@ -8,6 +8,7 @@ development artifact builds use `vMAJOR.MINOR.PATCH-dev.N`.
 
 ## Unreleased
 
+- Limit microphone permission requests to the tuner and honor the selected audio input device.
 - Improve pitch analysis performance by reducing per-window allocation during track analysis.
 - Add a live chromatic tuner window that uses the selected audio input device, keeps its UI minimal, and supports low bass notes down to A0.
 - Open the sidecar video window automatically for imported videos and persist its open state in saved video projects.
