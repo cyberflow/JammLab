@@ -10,6 +10,7 @@ struct ContentView: View {
     @State var editingMarkerTitle = ""
     @State var notesFilter: NotesFilter = .notes
     @Environment(\.appColors) var appColors
+    @Environment(\.openWindow) private var openWindow
     @Environment(\.undoManager) private var undoManager
 
     var body: some View {
@@ -105,6 +106,7 @@ struct ContentView: View {
             onClickToggle: { viewModel.toggleClick() },
             onClickVolumeChanged: { viewModel.setClickVolume($0) },
             onPopoverDismiss: { clearKeyboardFocus() },
+            onOpenTuner: { openWindow(id: "tuner") },
             onSnapToggle: { viewModel.toggleSnap() },
             onPlaybackModeChanged: { viewModel.setPlaybackMode($0) },
             onSeparateStems: { viewModel.separateStems() },

@@ -10,37 +10,25 @@
 		9F8A01012C00000100112233 /* JammLabApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9F8A00012C00000100112233 /* JammLabApp.swift */; };
 		9F8A01022C00000100112233 /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9F8A00022C00000100112233 /* ContentView.swift */; };
 		9F8A01032C00000100112233 /* AudioPlayerViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9F8A00032C00000100112233 /* AudioPlayerViewModel.swift */; };
-		9FB200012D30000100112233 /* AudioPlayerViewModel+Project.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9FB201012D30000100112233 /* AudioPlayerViewModel+Project.swift */; };
-		9FB200022D30000100112233 /* AudioPlayerViewModel+Playback.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9FB201022D30000100112233 /* AudioPlayerViewModel+Playback.swift */; };
-		9FB200032D30000100112233 /* AudioPlayerViewModel+Stems.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9FB201032D30000100112233 /* AudioPlayerViewModel+Stems.swift */; };
-		9FB200042D30000100112233 /* AudioPlayerViewModel+Timeline.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9FB201042D30000100112233 /* AudioPlayerViewModel+Timeline.swift */; };
-		9FB200052D30000100112233 /* AudioPlayerViewModel+Notes.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9FB201052D30000100112233 /* AudioPlayerViewModel+Notes.swift */; };
-		9FB200062D30000100112233 /* AudioPlayerViewModel+Video.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9FB201062D30000100112233 /* AudioPlayerViewModel+Video.swift */; };
-		9FB200072D30000100112233 /* AudioPlayerViewModel+UndoDirty.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9FB201072D30000100112233 /* AudioPlayerViewModel+UndoDirty.swift */; };
 		9F8A01042C00000100112233 /* AudioFileImporter.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9F8A00042C00000100112233 /* AudioFileImporter.swift */; };
 		9F8A01052C00000100112233 /* AudioAnalyzer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9F8A00052C00000100112233 /* AudioAnalyzer.swift */; };
-		9FB001012D06000100112233 /* AudioDeviceService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9FB001002D06000100112233 /* AudioDeviceService.swift */; };
 		9F8A01062C00000100112233 /* AnalysisResult.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9F8A00062C00000100112233 /* AnalysisResult.swift */; };
 		9F8A01072C00000100112233 /* LoopRegion.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9F8A00072C00000100112233 /* LoopRegion.swift */; };
 		9F8A01082C00000100112233 /* WaveformTimelineView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9F8A00082C00000100112233 /* WaveformTimelineView.swift */; };
 		9F8A01092C00000100112233 /* TimeFormatter.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9F8A00092C00000100112233 /* TimeFormatter.swift */; };
 		9F8A010A2C00000100112233 /* ImportedAudioFile.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9F8A000A2C00000100112233 /* ImportedAudioFile.swift */; };
 		9F8A010B2C00000100112233 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 9F8A000B2C00000100112233 /* Assets.xcassets */; };
-		9FB204012D32000100112233 /* CachedPeakformProvider.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9FB204002D32000100112233 /* CachedPeakformProvider.swift */; };
-		9FB204032D32000100112233 /* PeakformGenerator.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9FB204022D32000100112233 /* PeakformGenerator.swift */; };
-		9FB204052D32000100112233 /* PeakformBinaryCache.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9FB204042D32000100112233 /* PeakformBinaryCache.swift */; };
 		9F8A010C2C00000100112233 /* WaveformProvider.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9F8A000E2C00000100112233 /* WaveformProvider.swift */; };
 		9F8A010D2C00000100112233 /* AppHotkey.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9F8A000F2C00000100112233 /* AppHotkey.swift */; };
 		9F8A010E2C00000100112233 /* HotkeysHelpView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9F8A00102C00000100112233 /* HotkeysHelpView.swift */; };
 		9F8A01102C00000100112233 /* TimecodedNote.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9F8A00122C00000100112233 /* TimecodedNote.swift */; };
 		9F8A01112C00000100112233 /* JammLabProject.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9F8A00132C00000100112233 /* JammLabProject.swift */; };
 		9F8A01122C00000100112233 /* ProjectDocumentService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9F8A00142C00000100112233 /* ProjectDocumentService.swift */; };
-		9FB202012D31000100112233 /* ProjectPersistenceCoordinator.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9FB202002D31000100112233 /* ProjectPersistenceCoordinator.swift */; };
 		9F8A01132C00000100112233 /* RecentProjectsStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9F8A00152C00000100112233 /* RecentProjectsStore.swift */; };
-		9F8A01192C00000100112233 /* ProjectArtifactStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9F8A00192C00000100112233 /* ProjectArtifactStore.swift */; };
 		9F8A01142C00000100112233 /* BeatGridSettings.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9F8A00162C00000100112233 /* BeatGridSettings.swift */; };
 		9F8A01152C00000100112233 /* BeatGridCalculator.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9F8A00172C00000100112233 /* BeatGridCalculator.swift */; };
 		9F8A01162C00000100112233 /* MetronomeClickScheduler.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9F8A00182C00000100112233 /* MetronomeClickScheduler.swift */; };
+		9F8A01192C00000100112233 /* ProjectArtifactStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9F8A00192C00000100112233 /* ProjectArtifactStore.swift */; };
 		9F8B01012C10000100112233 /* TimelineViewport.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9F8B00012C10000100112233 /* TimelineViewport.swift */; };
 		9F8B01022C10000100112233 /* ProjectStateNormalizer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9F8B00022C10000100112233 /* ProjectStateNormalizer.swift */; };
 		9F8B01032C10000100112233 /* PeakformTimelineView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9F8B00032C10000100112233 /* PeakformTimelineView.swift */; };
@@ -50,8 +38,6 @@
 		9F8C01012C20000100112233 /* AppTheme.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9F8C00012C20000100112233 /* AppTheme.swift */; };
 		9F8C01022C20000100112233 /* AppPanel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9F8C00022C20000100112233 /* AppPanel.swift */; };
 		9F8C01032C20000100112233 /* AppControls.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9F8C00032C20000100112233 /* AppControls.swift */; };
-		9FB205012D33000100112233 /* AppKitControlHelpers.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9FB205002D33000100112233 /* AppKitControlHelpers.swift */; };
-		9FD001012D20000100112233 /* ControlHelpText.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9FD001002D20000100112233 /* ControlHelpText.swift */; };
 		9F8C01052C20000100112233 /* NoteRowView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9F8C00052C20000100112233 /* NoteRowView.swift */; };
 		9F8C01062C20000100112233 /* MainWorkspacePanels.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9F8C00062C20000100112233 /* MainWorkspacePanels.swift */; };
 		9F8C01072C20000100112233 /* TransportBarView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9F8C00072C20000100112233 /* TransportBarView.swift */; };
@@ -95,6 +81,25 @@
 		9FAE01022D01000100112233 /* VideoFollowerController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9FAE00022D01000100112233 /* VideoFollowerController.swift */; };
 		9FAF01012D02000100112233 /* JammLabAppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9FAF00012D02000100112233 /* JammLabAppDelegate.swift */; };
 		9FAF01022D02000100112233 /* WindowCloseGuard.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9FAF00022D02000100112233 /* WindowCloseGuard.swift */; };
+		9FB001012D06000100112233 /* AudioDeviceService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9FB001002D06000100112233 /* AudioDeviceService.swift */; };
+		9FB200012D30000100112233 /* AudioPlayerViewModel+Project.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9FB201012D30000100112233 /* AudioPlayerViewModel+Project.swift */; };
+		9FB200022D30000100112233 /* AudioPlayerViewModel+Playback.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9FB201022D30000100112233 /* AudioPlayerViewModel+Playback.swift */; };
+		9FB200032D30000100112233 /* AudioPlayerViewModel+Stems.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9FB201032D30000100112233 /* AudioPlayerViewModel+Stems.swift */; };
+		9FB200042D30000100112233 /* AudioPlayerViewModel+Timeline.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9FB201042D30000100112233 /* AudioPlayerViewModel+Timeline.swift */; };
+		9FB200052D30000100112233 /* AudioPlayerViewModel+Notes.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9FB201052D30000100112233 /* AudioPlayerViewModel+Notes.swift */; };
+		9FB200062D30000100112233 /* AudioPlayerViewModel+Video.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9FB201062D30000100112233 /* AudioPlayerViewModel+Video.swift */; };
+		9FB200072D30000100112233 /* AudioPlayerViewModel+UndoDirty.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9FB201072D30000100112233 /* AudioPlayerViewModel+UndoDirty.swift */; };
+		9FB202012D31000100112233 /* ProjectPersistenceCoordinator.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9FB202002D31000100112233 /* ProjectPersistenceCoordinator.swift */; };
+		9FB204012D32000100112233 /* CachedPeakformProvider.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9FB204002D32000100112233 /* CachedPeakformProvider.swift */; };
+		9FB204032D32000100112233 /* PeakformGenerator.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9FB204022D32000100112233 /* PeakformGenerator.swift */; };
+		9FB204052D32000100112233 /* PeakformBinaryCache.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9FB204042D32000100112233 /* PeakformBinaryCache.swift */; };
+		9FB205012D33000100112233 /* AppKitControlHelpers.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9FB205002D33000100112233 /* AppKitControlHelpers.swift */; };
+		9FBA01012D40000100112233 /* PitchDetection.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9FBA00012D40000100112233 /* PitchDetection.swift */; };
+		9FBA01022D40000100112233 /* TrackPitchAnalyzer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9FBA00022D40000100112233 /* TrackPitchAnalyzer.swift */; };
+		9FBA01032D40000100112233 /* TunerInputService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9FBA00032D40000100112233 /* TunerInputService.swift */; };
+		9FBA01042D40000100112233 /* TunerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9FBA00042D40000100112233 /* TunerView.swift */; };
+		9FBA01052D40000100112233 /* PitchDetectionTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9FBA00052D40000100112233 /* PitchDetectionTests.swift */; };
+		9FD001012D20000100112233 /* ControlHelpText.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9FD001002D20000100112233 /* ControlHelpText.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -132,16 +137,8 @@
 		9F8A00012C00000100112233 /* JammLabApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = JammLabApp.swift; sourceTree = "<group>"; };
 		9F8A00022C00000100112233 /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
 		9F8A00032C00000100112233 /* AudioPlayerViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AudioPlayerViewModel.swift; sourceTree = "<group>"; };
-		9FB201012D30000100112233 /* AudioPlayerViewModel+Project.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "AudioPlayerViewModel+Project.swift"; sourceTree = "<group>"; };
-		9FB201022D30000100112233 /* AudioPlayerViewModel+Playback.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "AudioPlayerViewModel+Playback.swift"; sourceTree = "<group>"; };
-		9FB201032D30000100112233 /* AudioPlayerViewModel+Stems.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "AudioPlayerViewModel+Stems.swift"; sourceTree = "<group>"; };
-		9FB201042D30000100112233 /* AudioPlayerViewModel+Timeline.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "AudioPlayerViewModel+Timeline.swift"; sourceTree = "<group>"; };
-		9FB201052D30000100112233 /* AudioPlayerViewModel+Notes.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "AudioPlayerViewModel+Notes.swift"; sourceTree = "<group>"; };
-		9FB201062D30000100112233 /* AudioPlayerViewModel+Video.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "AudioPlayerViewModel+Video.swift"; sourceTree = "<group>"; };
-		9FB201072D30000100112233 /* AudioPlayerViewModel+UndoDirty.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "AudioPlayerViewModel+UndoDirty.swift"; sourceTree = "<group>"; };
 		9F8A00042C00000100112233 /* AudioFileImporter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AudioFileImporter.swift; sourceTree = "<group>"; };
 		9F8A00052C00000100112233 /* AudioAnalyzer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AudioAnalyzer.swift; sourceTree = "<group>"; };
-		9FB001002D06000100112233 /* AudioDeviceService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AudioDeviceService.swift; sourceTree = "<group>"; };
 		9F8A00062C00000100112233 /* AnalysisResult.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AnalysisResult.swift; sourceTree = "<group>"; };
 		9F8A00072C00000100112233 /* LoopRegion.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LoopRegion.swift; sourceTree = "<group>"; };
 		9F8A00082C00000100112233 /* WaveformTimelineView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WaveformTimelineView.swift; sourceTree = "<group>"; };
@@ -150,9 +147,6 @@
 		9F8A000B2C00000100112233 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		9F8A000C2C00000100112233 /* JammLab.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = JammLab.entitlements; sourceTree = "<group>"; };
 		9F8A000D2C00000100112233 /* JammLab.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = JammLab.app; sourceTree = BUILT_PRODUCTS_DIR; };
-		9FB204002D32000100112233 /* CachedPeakformProvider.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CachedPeakformProvider.swift; sourceTree = "<group>"; };
-		9FB204022D32000100112233 /* PeakformGenerator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PeakformGenerator.swift; sourceTree = "<group>"; };
-		9FB204042D32000100112233 /* PeakformBinaryCache.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PeakformBinaryCache.swift; sourceTree = "<group>"; };
 		9F8A000E2C00000100112233 /* WaveformProvider.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WaveformProvider.swift; sourceTree = "<group>"; };
 		9F8A000F2C00000100112233 /* AppHotkey.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppHotkey.swift; sourceTree = "<group>"; };
 		9F8A00102C00000100112233 /* HotkeysHelpView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HotkeysHelpView.swift; sourceTree = "<group>"; };
@@ -160,11 +154,10 @@
 		9F8A00132C00000100112233 /* JammLabProject.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = JammLabProject.swift; sourceTree = "<group>"; };
 		9F8A00142C00000100112233 /* ProjectDocumentService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProjectDocumentService.swift; sourceTree = "<group>"; };
 		9F8A00152C00000100112233 /* RecentProjectsStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RecentProjectsStore.swift; sourceTree = "<group>"; };
-		9F8A00192C00000100112233 /* ProjectArtifactStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProjectArtifactStore.swift; sourceTree = "<group>"; };
 		9F8A00162C00000100112233 /* BeatGridSettings.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BeatGridSettings.swift; sourceTree = "<group>"; };
-		9FB202002D31000100112233 /* ProjectPersistenceCoordinator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProjectPersistenceCoordinator.swift; sourceTree = "<group>"; };
 		9F8A00172C00000100112233 /* BeatGridCalculator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BeatGridCalculator.swift; sourceTree = "<group>"; };
 		9F8A00182C00000100112233 /* MetronomeClickScheduler.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MetronomeClickScheduler.swift; sourceTree = "<group>"; };
+		9F8A00192C00000100112233 /* ProjectArtifactStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProjectArtifactStore.swift; sourceTree = "<group>"; };
 		9F8B00012C10000100112233 /* TimelineViewport.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TimelineViewport.swift; sourceTree = "<group>"; };
 		9F8B00022C10000100112233 /* ProjectStateNormalizer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProjectStateNormalizer.swift; sourceTree = "<group>"; };
 		9F8B00032C10000100112233 /* PeakformTimelineView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PeakformTimelineView.swift; sourceTree = "<group>"; };
@@ -172,12 +165,9 @@
 		9F8B00052C10000100112233 /* TimelineInteractionHelpers.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TimelineInteractionHelpers.swift; sourceTree = "<group>"; };
 		9F8B00062C10000100112233 /* JammLabTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = JammLabTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		9F8B00072C10000100112233 /* TestSupport.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TestSupport.swift; sourceTree = "<group>"; };
-		9F8B00082C10000100112233 /* AGENT.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = AGENT.md; sourceTree = "<group>"; };
 		9F8C00012C20000100112233 /* AppTheme.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppTheme.swift; sourceTree = "<group>"; };
 		9F8C00022C20000100112233 /* AppPanel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppPanel.swift; sourceTree = "<group>"; };
 		9F8C00032C20000100112233 /* AppControls.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppControls.swift; sourceTree = "<group>"; };
-		9FB205002D33000100112233 /* AppKitControlHelpers.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppKitControlHelpers.swift; sourceTree = "<group>"; };
-		9FD001002D20000100112233 /* ControlHelpText.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ControlHelpText.swift; sourceTree = "<group>"; };
 		9F8C00052C20000100112233 /* NoteRowView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NoteRowView.swift; sourceTree = "<group>"; };
 		9F8C00062C20000100112233 /* MainWorkspacePanels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MainWorkspacePanels.swift; sourceTree = "<group>"; };
 		9F8C00072C20000100112233 /* TransportBarView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TransportBarView.swift; sourceTree = "<group>"; };
@@ -215,12 +205,31 @@
 		9FAE00022D01000100112233 /* VideoFollowerController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VideoFollowerController.swift; sourceTree = "<group>"; };
 		9FAF00012D02000100112233 /* JammLabAppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = JammLabAppDelegate.swift; sourceTree = "<group>"; };
 		9FAF00022D02000100112233 /* WindowCloseGuard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WindowCloseGuard.swift; sourceTree = "<group>"; };
+		9FB001002D06000100112233 /* AudioDeviceService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AudioDeviceService.swift; sourceTree = "<group>"; };
+		9FB201012D30000100112233 /* AudioPlayerViewModel+Project.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "AudioPlayerViewModel+Project.swift"; sourceTree = "<group>"; };
+		9FB201022D30000100112233 /* AudioPlayerViewModel+Playback.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "AudioPlayerViewModel+Playback.swift"; sourceTree = "<group>"; };
+		9FB201032D30000100112233 /* AudioPlayerViewModel+Stems.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "AudioPlayerViewModel+Stems.swift"; sourceTree = "<group>"; };
+		9FB201042D30000100112233 /* AudioPlayerViewModel+Timeline.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "AudioPlayerViewModel+Timeline.swift"; sourceTree = "<group>"; };
+		9FB201052D30000100112233 /* AudioPlayerViewModel+Notes.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "AudioPlayerViewModel+Notes.swift"; sourceTree = "<group>"; };
+		9FB201062D30000100112233 /* AudioPlayerViewModel+Video.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "AudioPlayerViewModel+Video.swift"; sourceTree = "<group>"; };
+		9FB201072D30000100112233 /* AudioPlayerViewModel+UndoDirty.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "AudioPlayerViewModel+UndoDirty.swift"; sourceTree = "<group>"; };
+		9FB202002D31000100112233 /* ProjectPersistenceCoordinator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProjectPersistenceCoordinator.swift; sourceTree = "<group>"; };
+		9FB204002D32000100112233 /* CachedPeakformProvider.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CachedPeakformProvider.swift; sourceTree = "<group>"; };
+		9FB204022D32000100112233 /* PeakformGenerator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PeakformGenerator.swift; sourceTree = "<group>"; };
+		9FB204042D32000100112233 /* PeakformBinaryCache.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PeakformBinaryCache.swift; sourceTree = "<group>"; };
+		9FB205002D33000100112233 /* AppKitControlHelpers.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppKitControlHelpers.swift; sourceTree = "<group>"; };
+		9FBA00012D40000100112233 /* PitchDetection.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PitchDetection.swift; sourceTree = "<group>"; };
+		9FBA00022D40000100112233 /* TrackPitchAnalyzer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TrackPitchAnalyzer.swift; sourceTree = "<group>"; };
+		9FBA00032D40000100112233 /* TunerInputService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TunerInputService.swift; sourceTree = "<group>"; };
+		9FBA00042D40000100112233 /* TunerView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TunerView.swift; sourceTree = "<group>"; };
+		9FBA00052D40000100112233 /* PitchDetectionTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PitchDetectionTests.swift; sourceTree = "<group>"; };
 		9FC100012D10000100112233 /* Base.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = Base.xcconfig; sourceTree = "<group>"; };
 		9FC100022D10000100112233 /* Debug.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = Debug.xcconfig; sourceTree = "<group>"; };
 		9FC100032D10000100112233 /* Release.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = Release.xcconfig; sourceTree = "<group>"; };
 		9FC100042D10000100112233 /* CI.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = CI.xcconfig; sourceTree = "<group>"; };
 		9FC100052D10000100112233 /* Signing-Local.xcconfig.example */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = "Signing-Local.xcconfig.example"; sourceTree = "<group>"; };
 		9FC100062D10000100112233 /* README.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = README.md; sourceTree = "<group>"; };
+		9FD001002D20000100112233 /* ControlHelpText.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ControlHelpText.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -255,22 +264,8 @@
 				9F8E03012C40000100112233 /* JammLabStemHelper */,
 				9F8B03012C10000100112233 /* JammLabTests */,
 				9FC100002D10000100112233 /* Configurations */,
-				9F8B00082C10000100112233 /* AGENT.md */,
 				9F8A03082C00000100112233 /* Products */,
 			);
-			sourceTree = "<group>";
-		};
-		9FC100002D10000100112233 /* Configurations */ = {
-			isa = PBXGroup;
-			children = (
-				9FC100012D10000100112233 /* Base.xcconfig */,
-				9FC100022D10000100112233 /* Debug.xcconfig */,
-				9FC100032D10000100112233 /* Release.xcconfig */,
-				9FC100042D10000100112233 /* CI.xcconfig */,
-				9FC100052D10000100112233 /* Signing-Local.xcconfig.example */,
-				9FC100062D10000100112233 /* README.md */,
-			);
-			path = Configurations;
 			sourceTree = "<group>";
 		};
 		9F8A03022C00000100112233 /* JammLab */ = {
@@ -299,6 +294,7 @@
 				9F8A00162C00000100112233 /* BeatGridSettings.swift */,
 				9F8A000A2C00000100112233 /* ImportedAudioFile.swift */,
 				9F8A00072C00000100112233 /* LoopRegion.swift */,
+				9FBA00012D40000100112233 /* PitchDetection.swift */,
 				9F8A00132C00000100112233 /* JammLabProject.swift */,
 				9F8B00022C10000100112233 /* ProjectStateNormalizer.swift */,
 				9FAC00012CF0000100112233 /* ProjectEditableState.swift */,
@@ -331,6 +327,8 @@
 				9F9200012C80000100112233 /* StemHelperProcessController.swift */,
 				9F8D00022C30000100112233 /* StemSeparationService.swift */,
 				9F9100012C70000100112233 /* TempoGridCalculator.swift */,
+				9FBA00022D40000100112233 /* TrackPitchAnalyzer.swift */,
+				9FBA00032D40000100112233 /* TunerInputService.swift */,
 				9FAE00012D01000100112233 /* VideoAudioExtractionService.swift */,
 				9FAE00022D01000100112233 /* VideoFollowerController.swift */,
 				9F8A000E2C00000100112233 /* WaveformProvider.swift */,
@@ -364,6 +362,7 @@
 				9F9100022C70000100112233 /* TempoGridRulerView.swift */,
 				9F8B00052C10000100112233 /* TimelineInteractionHelpers.swift */,
 				9F8B00042C10000100112233 /* TimelineTracks.swift */,
+				9FBA00042D40000100112233 /* TunerView.swift */,
 				9F8A00082C00000100112233 /* WaveformTimelineView.swift */,
 			);
 			path = Views;
@@ -394,6 +393,7 @@
 			children = (
 				9FAB00012CE0000100112233 /* AudioTimingLogicTests.swift */,
 				9FAB00022CE0000100112233 /* PeakformLogicTests.swift */,
+				9FBA00052D40000100112233 /* PitchDetectionTests.swift */,
 				9FAB00032CE0000100112233 /* TimelineProjectLogicTests.swift */,
 				9FAB00042CE0000100112233 /* ViewModelLifecycleTests.swift */,
 				9FAB00052CE0000100112233 /* StemWorkflowLogicTests.swift */,
@@ -440,6 +440,19 @@
 				9F8E00032C40000100112233 /* main.swift */,
 			);
 			path = JammLabStemHelper;
+			sourceTree = "<group>";
+		};
+		9FC100002D10000100112233 /* Configurations */ = {
+			isa = PBXGroup;
+			children = (
+				9FC100012D10000100112233 /* Base.xcconfig */,
+				9FC100022D10000100112233 /* Debug.xcconfig */,
+				9FC100032D10000100112233 /* Release.xcconfig */,
+				9FC100042D10000100112233 /* CI.xcconfig */,
+				9FC100052D10000100112233 /* Signing-Local.xcconfig.example */,
+				9FC100062D10000100112233 /* README.md */,
+			);
+			path = Configurations;
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
@@ -617,6 +630,7 @@
 				9F9001032C60000100112233 /* InspectorSidebarView.swift in Sources */,
 				9F9801012CF0000100112233 /* RenameNoteDialog.swift in Sources */,
 				9F8A01072C00000100112233 /* LoopRegion.swift in Sources */,
+				9FBA01012D40000100112233 /* PitchDetection.swift in Sources */,
 				9F8A01012C00000100112233 /* JammLabApp.swift in Sources */,
 				9FAF01012D02000100112233 /* JammLabAppDelegate.swift in Sources */,
 				9F8A01112C00000100112233 /* JammLabProject.swift in Sources */,
@@ -647,8 +661,11 @@
 				9F8B01012C10000100112233 /* TimelineViewport.swift in Sources */,
 				9F9701012CD0000100112233 /* TimelineViewportControlBar.swift in Sources */,
 				9F8C01092C20000100112233 /* TopToolbarView.swift in Sources */,
+				9FBA01022D40000100112233 /* TrackPitchAnalyzer.swift in Sources */,
 				9F8C01072C20000100112233 /* TransportBarView.swift in Sources */,
 				9F9001012C60000100112233 /* TransportControlsView.swift in Sources */,
+				9FBA01032D40000100112233 /* TunerInputService.swift in Sources */,
+				9FBA01042D40000100112233 /* TunerView.swift in Sources */,
 				9FAE01012D01000100112233 /* VideoAudioExtractionService.swift in Sources */,
 				9FAE01022D01000100112233 /* VideoFollowerController.swift in Sources */,
 				9FB204012D32000100112233 /* CachedPeakformProvider.swift in Sources */,
@@ -667,6 +684,7 @@
 			files = (
 				9FAB01012CE0000100112233 /* AudioTimingLogicTests.swift in Sources */,
 				9FAB01022CE0000100112233 /* PeakformLogicTests.swift in Sources */,
+				9FBA01052D40000100112233 /* PitchDetectionTests.swift in Sources */,
 				9FAB01032CE0000100112233 /* TimelineProjectLogicTests.swift in Sources */,
 				9FAB01042CE0000100112233 /* ViewModelLifecycleTests.swift in Sources */,
 				9FAB01052CE0000100112233 /* StemWorkflowLogicTests.swift in Sources */,
@@ -826,7 +844,7 @@
 				ENABLE_INCOMING_NETWORK_CONNECTIONS = NO;
 				ENABLE_OUTGOING_NETWORK_CONNECTIONS = NO;
 				ENABLE_PREVIEWS = YES;
-				ENABLE_RESOURCE_ACCESS_AUDIO_INPUT = NO;
+				ENABLE_RESOURCE_ACCESS_AUDIO_INPUT = YES;
 				ENABLE_RESOURCE_ACCESS_BLUETOOTH = NO;
 				ENABLE_RESOURCE_ACCESS_CALENDARS = NO;
 				ENABLE_RESOURCE_ACCESS_CAMERA = NO;
@@ -840,6 +858,7 @@
 				INFOPLIST_KEY_CFBundleIconFile = AppIcon;
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.music";
 				INFOPLIST_KEY_NSHumanReadableCopyright = "© 2026 Cyberflow";
+				INFOPLIST_KEY_NSMicrophoneUsageDescription = "JammLab uses audio input only for the local tuner.";
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/../Frameworks",
@@ -873,7 +892,7 @@
 				ENABLE_HARDENED_RUNTIME = YES;
 				ENABLE_INCOMING_NETWORK_CONNECTIONS = NO;
 				ENABLE_OUTGOING_NETWORK_CONNECTIONS = NO;
-				ENABLE_RESOURCE_ACCESS_AUDIO_INPUT = NO;
+				ENABLE_RESOURCE_ACCESS_AUDIO_INPUT = YES;
 				ENABLE_RESOURCE_ACCESS_BLUETOOTH = NO;
 				ENABLE_RESOURCE_ACCESS_CALENDARS = NO;
 				ENABLE_RESOURCE_ACCESS_CAMERA = NO;
@@ -887,6 +906,7 @@
 				INFOPLIST_KEY_CFBundleIconFile = AppIcon;
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.music";
 				INFOPLIST_KEY_NSHumanReadableCopyright = "© 2026 Cyberflow";
+				INFOPLIST_KEY_NSMicrophoneUsageDescription = "JammLab uses audio input only for the local tuner.";
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/../Frameworks",
