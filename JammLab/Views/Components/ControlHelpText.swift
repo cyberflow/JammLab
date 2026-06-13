@@ -15,6 +15,7 @@ enum ControlHelpText {
     static let snap = "Snap playback cursor, loop and region edits to the nearest beat (Opt+S)"
     static let setBeatOne = "Set current playback position as Beat 1 (B). Right-click for reset and nudge."
     static let resetBeatGrid = "Reset beat grid"
+    static let openTuner = "Open tuner"
     static let separateStems = "Separate the loaded audio into stems"
     static let cancelStemSeparation = "Cancel stem separation"
     static let playbackMode = "Switch playback mode (Tab)"

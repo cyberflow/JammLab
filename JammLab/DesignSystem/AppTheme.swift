@@ -81,6 +81,8 @@ enum AppTheme {
         static let helpWidth: CGFloat = 520
         static let helpMinHeight: CGFloat = 300
         static let helpHeight: CGFloat = 420
+        static let tunerWidth: CGFloat = 360
+        static let tunerMinHeight: CGFloat = 320
     }
 
     enum Colors {
@@ -186,6 +188,14 @@ enum AppTheme {
         static let selectedRowBackground = Color.primary.opacity(0.10)
         static let sidebarBackground = Color.primary.opacity(0.035)
         static let dividerColor = Color.primary.opacity(0.12)
+    }
+
+    enum Tuner {
+        static let noteNameWidth: CGFloat = 150
+        static let octaveWidth: CGFloat = 36
+        static let meterHeight: CGFloat = 12
+        static let meterCenterHeight: CGFloat = 34
+        static let meterIndicatorHeight: CGFloat = 46
     }
 
     enum TransportControls {

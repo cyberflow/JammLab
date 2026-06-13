@@ -19,6 +19,7 @@ struct TopToolbarView: View {
     let onClickToggle: () -> Void
     let onClickVolumeChanged: (Float) -> Void
     let onPopoverDismiss: () -> Void
+    let onOpenTuner: () -> Void
     let onSnapToggle: () -> Void
     let onPlaybackModeChanged: (PlaybackMode) -> Void
     let onSeparateStems: () -> Void
@@ -136,6 +137,16 @@ struct TopToolbarView: View {
                 onVolumeChanged: onClickVolumeChanged,
                 onPopoverDismiss: onPopoverDismiss
             )
+
+            Button {
+                onOpenTuner()
+            } label: {
+                Label("Tuner", systemImage: "tuningfork")
+            }
+            .buttonStyle(.bordered)
+            .controlSize(.small)
+            .help(ControlHelpText.openTuner)
+            .accessibilityLabel("Open tuner")
 
             AppControlButton(
                 title: "Snap",

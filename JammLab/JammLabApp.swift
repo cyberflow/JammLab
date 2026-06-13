@@ -38,6 +38,12 @@ struct JammLabApp: App {
         }
         .windowResizability(.contentSize)
 
+        WindowGroup("Tuner", id: "tuner") {
+            TunerView(settingsStore: settingsStore)
+                .environment(\.appColors, AppThemeColors(palette: settingsStore.colorPalette))
+        }
+        .windowResizability(.contentSize)
+
         Settings {
             SettingsView(settingsStore: settingsStore)
                 .environment(\.appColors, AppThemeColors(palette: settingsStore.colorPalette))
@@ -128,6 +134,12 @@ struct JammLabCommands: Commands {
                 viewModel.toggleVideoWindow()
             }
             .disabled(!viewModel.canToggleVideoWindow)
+        }
+
+        CommandMenu("Tools") {
+            Button("Tuner") {
+                openWindow(id: "tuner")
+            }
         }
 
         CommandGroup(replacing: .help) {
