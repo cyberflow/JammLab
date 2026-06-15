@@ -109,7 +109,7 @@ struct ContentView: View {
             onOpenTuner: { openWindow(id: "tuner") },
             onSnapToggle: { viewModel.toggleSnap() },
             onPlaybackModeChanged: { viewModel.setPlaybackMode($0) },
-            onSeparateStems: { viewModel.separateStems() },
+            onSeparateStems: { viewModel.separateStems(method: $0) },
             onCancelStemSeparation: { viewModel.cancelStemSeparation() },
             canSetBeatOne: viewModel.canPlay && viewModel.tempoBPM != nil,
             canResetBeatGrid: viewModel.canPlay && viewModel.beatGridSettings.isManuallyAligned,

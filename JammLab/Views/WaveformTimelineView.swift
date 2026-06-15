@@ -39,6 +39,7 @@ struct TimelineViewState: Equatable {
     var mainTrackVolume: Float
     var playbackMode: PlaybackMode
     var mixState: StemMixState
+    var stemFiles: [StemFile]
     var stemPeakforms: [StemType: PeakformData]
     var isLoadingStemPeakforms: Bool
 }
@@ -99,6 +100,7 @@ struct WaveformTimelineView: View {
         StemTracksSection(
             playbackMode: state.playbackMode,
             mixState: state.mixState,
+            stemFiles: state.stemFiles,
             stemPeakforms: state.stemPeakforms,
             isLoadingStemPeakforms: state.isLoadingStemPeakforms,
             duration: state.duration,
@@ -291,6 +293,7 @@ struct WaveformTimelineView: View {
 private struct StemTracksSection: View {
     let playbackMode: PlaybackMode
     let mixState: StemMixState
+    let stemFiles: [StemFile]
     let stemPeakforms: [StemType: PeakformData]
     let isLoadingStemPeakforms: Bool
     let duration: TimeInterval
@@ -301,10 +304,14 @@ private struct StemTracksSection: View {
 
     var body: some View {
         VStack(spacing: AppTheme.Spacing.md) {
-            ForEach(StemType.allCases) { type in
+            ForEach(visibleStemTypes) { type in
                 row(type)
             }
         }
+    }
+
+    private var visibleStemTypes: [StemType] {
+        stemFiles.isEmpty ? StemSeparationMethod.defaultValue.stemTypes : stemFiles.map(\.type)
     }
 
     private func row(_ type: StemType) -> some View {

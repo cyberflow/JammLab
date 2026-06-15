@@ -33,6 +33,8 @@ struct StemJobRequest: Codable, Equatable {
     var cacheDirectoryPath: String
     var modelDirectoryPath: String
     var sourceFingerprint: StemSourceFingerprint
+    var separationMethodID: String? = nil
+    var expectedStemTypes: [StemType]? = nil
     var modelName: String
     var settingsVersion: Int
     var audioSeparatorPath: String?
@@ -81,7 +83,7 @@ struct StemHelperHeartbeat: Codable, Equatable {
 }
 
 enum StemJobFiles {
-    static let helperVersion = 3
+    static let helperVersion = 4
     static let jobsDirectoryName = "StemJobs"
     static let currentJobsDirectoryName = "v\(helperVersion)"
     static let cacheDirectoryName = "StemCache"

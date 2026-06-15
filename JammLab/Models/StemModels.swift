@@ -18,6 +18,7 @@ enum PlaybackMode: String, Codable, CaseIterable, Identifiable {
 
 enum StemType: String, Codable, CaseIterable, Identifiable {
     case vocals
+    case instrumental
     case drums
     case bass
     case other
@@ -28,6 +29,8 @@ enum StemType: String, Codable, CaseIterable, Identifiable {
         switch self {
         case .vocals:
             return "Vocals"
+        case .instrumental:
+            return "Instrumental"
         case .drums:
             return "Drums"
         case .bass:
@@ -46,7 +49,75 @@ enum StemType: String, Codable, CaseIterable, Identifiable {
         guard name.hasSuffix(".wav") || name.hasSuffix(".flac") || name.hasSuffix(".mp3") else {
             return false
         }
+        if self == .instrumental {
+            return name == canonicalStemFilename
+                || name.contains("instrumental")
+                || name.contains("instrument")
+                || name.contains("no_vocals")
+                || name.contains("no-vocals")
+        }
         return name == canonicalStemFilename || name.contains(rawValue)
+    }
+}
+
+struct StemSeparationMethod: Equatable, Identifiable {
+    let id: String
+    let title: String
+    let description: String
+    let modelName: String
+    let stemTypes: [StemType]
+
+    var stemCountSummary: String {
+        let stemCountLabel = stemTypes.count == 1 ? "1 stem" : "\(stemTypes.count) stems"
+        return "\(stemCountLabel): \(stemTypes.englishList)."
+    }
+
+    var optionDescription: String {
+        "\(stemCountSummary) \(description)"
+    }
+
+    static let vocalInstrumental = StemSeparationMethod(
+        id: "vocalInstrumental",
+        title: "Vocals + Instrumental",
+        description: "Separate the track into vocals and a combined instrumental stem.",
+        modelName: "UVR-MDX-NET-Inst_HQ_5.onnx",
+        stemTypes: [.vocals, .instrumental]
+    )
+
+    static let fourStem = StemSeparationMethod(
+        id: "fourStem",
+        title: "Vocals + Bass + Drums + Other",
+        description: "Separate the track into the current four-stem practice layout.",
+        modelName: "htdemucs.yaml",
+        stemTypes: [.vocals, .bass, .drums, .other]
+    )
+
+    static let allCases: [StemSeparationMethod] = [.vocalInstrumental, .fourStem]
+    static let defaultValue = fourStem
+
+    static func method(forID id: String?) -> StemSeparationMethod? {
+        guard let id else { return nil }
+        return allCases.first { $0.id == id }
+    }
+
+    static func method(forModelName modelName: String) -> StemSeparationMethod? {
+        allCases.first { $0.modelName == modelName }
+    }
+}
+
+private extension Array where Element == StemType {
+    var englishList: String {
+        let titles = map { $0.title.lowercased() }
+        switch titles.count {
+        case 0:
+            return ""
+        case 1:
+            return titles[0]
+        case 2:
+            return "\(titles[0]) and \(titles[1])"
+        default:
+            return "\(titles.dropLast().joined(separator: ", ")), and \(titles[titles.count - 1])"
+        }
     }
 }
 
@@ -144,16 +215,31 @@ struct StemCacheMetadata: Codable, Equatable {
     var cacheKey: String
     var sourceFingerprint: StemSourceFingerprint
     var backendIdentifier: String
+    var separationMethodID: String? = nil
     var modelName: String
     var settingsVersion: Int
     var createdAt: Date
     var stems: [StemFile]
+
+    var expectedStemTypes: [StemType] {
+        StemSeparationMethod.method(forID: separationMethodID)?.stemTypes
+            ?? StemSeparationMethod.method(forModelName: modelName)?.stemTypes
+            ?? StemSeparationMethod.defaultValue.stemTypes
+    }
+
+    func matches(method: StemSeparationMethod) -> Bool {
+        if let separationMethodID {
+            return separationMethodID == method.id && modelName == method.modelName
+        }
+        return method == .fourStem && modelName == method.modelName
+    }
 }
 
 struct StemProjectState: Codable, Equatable {
     var cacheKey: String?
     var sourceFingerprint: StemSourceFingerprint?
     var backendIdentifier: String?
+    var separationMethodID: String?
     var modelName: String?
     var settingsVersion: Int?
     var playbackMode: PlaybackMode
@@ -163,6 +249,7 @@ struct StemProjectState: Codable, Equatable {
         cacheKey: String? = nil,
         sourceFingerprint: StemSourceFingerprint? = nil,
         backendIdentifier: String? = nil,
+        separationMethodID: String? = nil,
         modelName: String? = nil,
         settingsVersion: Int? = nil,
         playbackMode: PlaybackMode = .original,
@@ -171,6 +258,7 @@ struct StemProjectState: Codable, Equatable {
         self.cacheKey = cacheKey
         self.sourceFingerprint = sourceFingerprint
         self.backendIdentifier = backendIdentifier
+        self.separationMethodID = separationMethodID
         self.modelName = modelName
         self.settingsVersion = settingsVersion
         self.playbackMode = playbackMode

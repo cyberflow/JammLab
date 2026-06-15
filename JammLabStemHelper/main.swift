@@ -86,11 +86,16 @@ private final class StemHelperRunner {
                 )
             }
 
-            let stems = try normalizeStems(from: workDirectory, cacheDirectory: URL(fileURLWithPath: request.cacheDirectoryPath))
+            let stems = try normalizeStems(
+                from: workDirectory,
+                cacheDirectory: URL(fileURLWithPath: request.cacheDirectoryPath),
+                expectedTypes: request.expectedStemTypes ?? StemSeparationMethod.defaultValue.stemTypes
+            )
             let metadata = StemCacheMetadata(
                 cacheKey: request.cacheKey,
                 sourceFingerprint: request.sourceFingerprint,
                 backendIdentifier: backend.displayName,
+                separationMethodID: request.separationMethodID,
                 modelName: request.modelName,
                 settingsVersion: request.settingsVersion,
                 createdAt: Date(),
@@ -217,12 +222,16 @@ private final class StemHelperRunner {
         return ProcessResult(exitCode: process.terminationStatus, output: output)
     }
 
-    private func normalizeStems(from outputDirectory: URL, cacheDirectory: URL) throws -> [StemFile] {
+    private func normalizeStems(
+        from outputDirectory: URL,
+        cacheDirectory: URL,
+        expectedTypes: [StemType] = StemSeparationMethod.defaultValue.stemTypes
+    ) throws -> [StemFile] {
         try fileManager.createDirectory(at: cacheDirectory, withIntermediateDirectories: true)
         let files = (fileManager.enumerator(at: outputDirectory, includingPropertiesForKeys: nil)?
             .compactMap { $0 as? URL }) ?? []
 
-        return try StemType.allCases.map { type in
+        return try expectedTypes.map { type in
             guard let sourceURL = files.first(where: { matches($0, type: type) }) else {
                 throw HelperError.incompleteOutput(type.rawValue)
             }

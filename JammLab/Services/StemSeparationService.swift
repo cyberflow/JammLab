@@ -66,7 +66,6 @@ struct StemJobInput: Equatable {
 }
 
 final class StemSeparationService {
-    static let modelName = "htdemucs.yaml"
     static let settingsVersion = 2
 
     private let fileManager: FileManager
@@ -96,14 +95,14 @@ final class StemSeparationService {
         )
     }
 
-    func cachedResult(for audioURL: URL) throws -> StemCacheMetadata? {
+    func cachedResult(for audioURL: URL, method: StemSeparationMethod = .defaultValue) throws -> StemCacheMetadata? {
         let fingerprint = try sourceFingerprint(for: audioURL)
-        let cacheKey = cacheKey(for: fingerprint)
-        if let metadata = try validatedMetadata(in: cacheDirectory(for: cacheKey), expectedFingerprint: fingerprint) {
+        let cacheKey = cacheKey(for: fingerprint, method: method)
+        if let metadata = try validatedMetadata(in: cacheDirectory(for: cacheKey), expectedFingerprint: fingerprint, method: method) {
             return metadata
         }
 
-        return try discoverCachedMetadata(matching: fingerprint)
+        return try discoverCachedMetadata(matching: fingerprint, method: method)
     }
 
     func cachedResult(cacheKey: String, expectedFingerprint: StemSourceFingerprint) throws -> StemCacheMetadata? {
@@ -130,13 +129,14 @@ final class StemSeparationService {
     func separate(
         audioURL: URL,
         originalDuration: TimeInterval,
+        method: StemSeparationMethod = .defaultValue,
         progress: @escaping @Sendable (StemSeparationProgress) -> Void
     ) async throws -> StemCacheMetadata {
         let fingerprint = try sourceFingerprint(for: audioURL)
-        let cacheKey = cacheKey(for: fingerprint)
+        let cacheKey = cacheKey(for: fingerprint, method: method)
         let cacheDirectory = cacheDirectory(for: cacheKey)
 
-        if let cached = try validatedMetadata(in: cacheDirectory, expectedFingerprint: fingerprint) {
+        if let cached = try validatedMetadata(in: cacheDirectory, expectedFingerprint: fingerprint, method: method) {
             progress(StemSeparationProgress(phase: .completed, progress: 1, status: "Using cached stems"))
             return cached
         }
@@ -163,6 +163,7 @@ final class StemSeparationService {
                 cacheDirectory: cacheDirectory,
                 jobDirectory: jobDirectory,
                 inputMode: initialInputMode,
+                method: method,
                 originalDuration: originalDuration,
                 progress: progress
             )
@@ -182,6 +183,7 @@ final class StemSeparationService {
                 cacheDirectory: cacheDirectory,
                 jobDirectory: retryJobDirectory,
                 inputMode: .staged,
+                method: method,
                 originalDuration: originalDuration,
                 progress: progress
             )
@@ -204,6 +206,7 @@ final class StemSeparationService {
         cacheDirectory: URL,
         jobDirectory: URL,
         inputMode: StemJobInputMode,
+        method: StemSeparationMethod,
         originalDuration: TimeInterval,
         progress: @escaping @Sendable (StemSeparationProgress) -> Void
     ) async throws -> StemCacheMetadata {
@@ -214,7 +217,8 @@ final class StemSeparationService {
             cacheKey: cacheKey,
             cacheDirectory: cacheDirectory,
             jobDirectory: jobDirectory,
-            inputMode: inputMode
+            inputMode: inputMode,
+            method: method
         )
 
         defer { activeJobDirectory = nil }
@@ -236,7 +240,8 @@ final class StemSeparationService {
         cacheKey: String,
         cacheDirectory: URL,
         jobDirectory: URL,
-        inputMode: StemJobInputMode
+        inputMode: StemJobInputMode,
+        method: StemSeparationMethod = .defaultValue
     ) throws -> URL? {
         try createJob(
             audioURL: audioURL,
@@ -244,7 +249,8 @@ final class StemSeparationService {
             cacheKey: cacheKey,
             cacheDirectory: cacheDirectory,
             jobDirectory: jobDirectory,
-            inputMode: inputMode
+            inputMode: inputMode,
+            method: method
         )
     }
 
@@ -254,7 +260,8 @@ final class StemSeparationService {
         cacheKey: String,
         cacheDirectory: URL,
         jobDirectory: URL,
-        inputMode: StemJobInputMode
+        inputMode: StemJobInputMode,
+        method: StemSeparationMethod
     ) throws -> URL? {
         try fileManager.createDirectory(at: jobDirectory, withIntermediateDirectories: true)
         try fileManager.createDirectory(at: cacheDirectory, withIntermediateDirectories: true)
@@ -268,7 +275,9 @@ final class StemSeparationService {
             cacheDirectoryPath: cacheDirectory.path,
             modelDirectoryPath: modelDirectory().path,
             sourceFingerprint: fingerprint,
-            modelName: Self.modelName,
+            separationMethodID: method.id,
+            expectedStemTypes: method.stemTypes,
+            modelName: method.modelName,
             settingsVersion: Self.settingsVersion,
             audioSeparatorPath: nil,
             audioSeparatorBookmarkData: nil,
@@ -396,7 +405,7 @@ final class StemSeparationService {
         return text.split(separator: "\n").suffix(12).joined(separator: "\n")
     }
 
-    private func discoverCachedMetadata(matching fingerprint: StemSourceFingerprint) throws -> StemCacheMetadata? {
+    private func discoverCachedMetadata(matching fingerprint: StemSourceFingerprint, method: StemSeparationMethod? = nil) throws -> StemCacheMetadata? {
         let rootDirectory = applicationSupportDirectory()
             .appendingPathComponent(StemJobFiles.cacheDirectoryName, isDirectory: true)
         let cacheDirectories = ((try? fileManager.contentsOfDirectory(
@@ -411,7 +420,8 @@ final class StemSeparationService {
             if let metadata = try validatedMetadata(
                 in: directory,
                 expectedFingerprint: fingerprint,
-                allowsPathMismatch: true
+                allowsPathMismatch: true,
+                method: method
             ) {
                 return metadata
             }
@@ -423,7 +433,8 @@ final class StemSeparationService {
     private func validatedMetadata(
         in cacheDirectory: URL,
         expectedFingerprint: StemSourceFingerprint,
-        allowsPathMismatch: Bool = false
+        allowsPathMismatch: Bool = false,
+        method: StemSeparationMethod? = nil
     ) throws -> StemCacheMetadata? {
         let metadataURL = cacheDirectory.appendingPathComponent("metadata.json")
         guard fileManager.fileExists(atPath: metadataURL.path) else { return nil }
@@ -435,30 +446,32 @@ final class StemSeparationService {
             || (allowsPathMismatch && metadata.sourceFingerprint.hasSameFileIdentity(as: expectedFingerprint))
 
         guard sourceMatches,
-              metadata.modelName == Self.modelName,
               metadata.settingsVersion == Self.settingsVersion
         else {
+            return nil
+        }
+        if let method, !metadata.matches(method: method) {
             return nil
         }
 
         metadata.cacheKey = cacheDirectory.lastPathComponent
         metadata.sourceFingerprint = expectedFingerprint
-        metadata.stems = try discoverStems(in: cacheDirectory)
+        metadata.stems = try discoverStems(in: cacheDirectory, expectedTypes: metadata.expectedStemTypes)
         return metadata
     }
 
-    private func discoverStems(in directory: URL) throws -> [StemFile] {
+    private func discoverStems(in directory: URL, expectedTypes: [StemType]) throws -> [StemFile] {
         let files = (fileManager.enumerator(at: directory, includingPropertiesForKeys: nil)?
             .compactMap { $0 as? URL }) ?? []
 
-        let stems = StemType.allCases.compactMap { type -> StemFile? in
+        let stems = expectedTypes.compactMap { type -> StemFile? in
             guard let url = files.first(where: { $0.lastPathComponent.lowercased() == type.canonicalStemFilename }) else {
                 return nil
             }
             return StemFile(type: type, url: url, displayName: type.title)
         }
 
-        let missingTypes = StemType.allCases.filter { type in
+        let missingTypes = expectedTypes.filter { type in
             !stems.contains(where: { $0.type == type })
         }
         guard missingTypes.isEmpty else {
@@ -482,12 +495,13 @@ final class StemSeparationService {
         }
     }
 
-    private func cacheKey(for fingerprint: StemSourceFingerprint) -> String {
+    private func cacheKey(for fingerprint: StemSourceFingerprint, method: StemSeparationMethod) -> String {
         let rawValue = [
             fingerprint.path,
             String(fingerprint.fileSize),
             String(fingerprint.modificationTime),
-            Self.modelName,
+            method.id,
+            method.modelName,
             String(Self.settingsVersion)
         ].joined(separator: "|")
 
