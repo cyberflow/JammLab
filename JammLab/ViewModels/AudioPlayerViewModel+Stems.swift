@@ -5,7 +5,7 @@ extension AudioPlayerViewModel {
         !stemFiles.isEmpty
     }
 
-    func separateStems() {
+    func separateStems(method: StemSeparationMethod = .defaultValue) {
         guard let importedFile else {
             stemSeparationState = StemSeparationViewState(
                 phase: .failed(StemSeparationError.missingAudioFile.localizedDescription),
@@ -25,7 +25,8 @@ extension AudioPlayerViewModel {
             do {
                 let metadata = try await stemSeparationService.separate(
                     audioURL: importedFile.url,
-                    originalDuration: importedFile.duration
+                    originalDuration: importedFile.duration,
+                    method: method
                 ) { [weak self] progress in
                     Task { @MainActor in
                         self?.stemSeparationState = StemSeparationViewState(
@@ -71,7 +72,10 @@ extension AudioPlayerViewModel {
     }
 
     func retryStemSeparation() {
-        separateStems()
+        let method = StemSeparationMethod.method(forID: stemCacheMetadata?.separationMethodID)
+            ?? StemSeparationMethod.method(forModelName: stemCacheMetadata?.modelName ?? "")
+            ?? .defaultValue
+        separateStems(method: method)
     }
 
     func setPlaybackMode(_ mode: PlaybackMode) {
@@ -323,6 +327,7 @@ extension AudioPlayerViewModel {
             cacheKey: stemCacheMetadata.cacheKey,
             sourceFingerprint: stemCacheMetadata.sourceFingerprint,
             backendIdentifier: stemCacheMetadata.backendIdentifier,
+            separationMethodID: stemCacheMetadata.separationMethodID,
             modelName: stemCacheMetadata.modelName,
             settingsVersion: stemCacheMetadata.settingsVersion,
             playbackMode: playbackMode,

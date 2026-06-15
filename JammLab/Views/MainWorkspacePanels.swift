@@ -107,6 +107,7 @@ extension ContentView {
             mainTrackVolume: viewModel.mainTrackVolume,
             playbackMode: viewModel.playbackMode,
             mixState: viewModel.stemMixState,
+            stemFiles: viewModel.stemFiles,
             stemPeakforms: viewModel.stemPeakforms,
             isLoadingStemPeakforms: viewModel.isBuildingStemPeakforms
         )

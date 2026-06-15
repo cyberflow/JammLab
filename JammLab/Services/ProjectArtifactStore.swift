@@ -82,6 +82,13 @@ struct ProjectArtifactStore {
             }
             return StemFile(type: stem.type, url: destination, displayName: stem.displayName)
         }
+        let activeTypes = Set(localMetadata.stems.map(\.type))
+        for type in StemType.allCases where !activeTypes.contains(type) {
+            let staleURL = directory.appendingPathComponent(type.canonicalStemFilename, isDirectory: false)
+            if fileManager.fileExists(atPath: staleURL.path) {
+                try fileManager.removeItem(at: staleURL)
+            }
+        }
 
         let encoder = JSONEncoder()
         encoder.outputFormatting = [.prettyPrinted, .sortedKeys]
@@ -109,8 +116,8 @@ struct ProjectArtifactStore {
             guard matchesExpected || matchesFallback else { return nil }
         }
 
-        let stems = try discoverStems(in: directory)
-        guard stems.count == StemType.allCases.count else { return nil }
+        let stems = try discoverStems(in: directory, expectedTypes: metadata.expectedStemTypes)
+        guard stems.count == metadata.expectedStemTypes.count else { return nil }
         metadata.stems = stems
         return metadata
     }
@@ -154,11 +161,11 @@ struct ProjectArtifactStore {
             .appendingPathComponent("\(type.rawValue).peakform", isDirectory: false)
     }
 
-    private func discoverStems(in directory: URL) throws -> [StemFile] {
+    private func discoverStems(in directory: URL, expectedTypes: [StemType]) throws -> [StemFile] {
         let files = (fileManager.enumerator(at: directory, includingPropertiesForKeys: nil)?
             .compactMap { $0 as? URL }) ?? []
 
-        return StemType.allCases.compactMap { type in
+        return expectedTypes.compactMap { type in
             guard let url = files.first(where: { $0.lastPathComponent.lowercased() == type.canonicalStemFilename }) else {
                 return nil
             }

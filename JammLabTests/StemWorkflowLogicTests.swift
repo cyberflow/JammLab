@@ -128,6 +128,16 @@ final class StemWorkflowLogicTests: XCTestCase {
         XCTAssertFalse(original.hasSameFileIdentity(as: editedFile))
     }
 
+    func testStemSeparationMethodsExposeModelsAndStemOrder() {
+        XCTAssertEqual(StemSeparationMethod.allCases.map(\.id), ["vocalInstrumental", "fourStem"])
+        XCTAssertEqual(StemSeparationMethod.vocalInstrumental.modelName, "UVR-MDX-NET-Inst_HQ_5.onnx")
+        XCTAssertEqual(StemSeparationMethod.vocalInstrumental.stemTypes, [.vocals, .instrumental])
+        XCTAssertEqual(StemSeparationMethod.vocalInstrumental.stemCountSummary, "2 stems: vocals and instrumental.")
+        XCTAssertEqual(StemSeparationMethod.fourStem.modelName, "htdemucs.yaml")
+        XCTAssertEqual(StemSeparationMethod.fourStem.stemTypes, [.vocals, .bass, .drums, .other])
+        XCTAssertEqual(StemSeparationMethod.fourStem.stemCountSummary, "4 stems: vocals, bass, drums, and other.")
+    }
+
     func testLegacyProjectWithoutStemStateStillDecodes() throws {
         let json = """
         {
@@ -203,7 +213,9 @@ final class StemWorkflowLogicTests: XCTestCase {
             cacheDirectoryPath: "/tmp/cache",
             modelDirectoryPath: "/tmp/models",
             sourceFingerprint: StemSourceFingerprint(path: "/tmp/song.mp3", fileSize: 10, modificationTime: 20),
-            modelName: "htdemucs.yaml",
+            separationMethodID: StemSeparationMethod.vocalInstrumental.id,
+            expectedStemTypes: StemSeparationMethod.vocalInstrumental.stemTypes,
+            modelName: StemSeparationMethod.vocalInstrumental.modelName,
             settingsVersion: 2,
             audioSeparatorPath: nil,
             audioSeparatorBookmarkData: nil,
@@ -223,6 +235,7 @@ final class StemWorkflowLogicTests: XCTestCase {
             cacheKey: request.cacheKey,
             sourceFingerprint: request.sourceFingerprint,
             backendIdentifier: "audio-separator",
+            separationMethodID: request.separationMethodID,
             modelName: request.modelName,
             settingsVersion: request.settingsVersion,
             createdAt: Date(timeIntervalSince1970: 102),
@@ -260,17 +273,19 @@ final class StemWorkflowLogicTests: XCTestCase {
         XCTAssertNil(request.audioSeparatorPath)
         XCTAssertNil(request.audioSeparatorBookmarkData)
         XCTAssertNil(request.computeMode)
+        XCTAssertNil(request.separationMethodID)
+        XCTAssertNil(request.expectedStemTypes)
     }
 
     func testStemJobFilesUseVersionedCurrentJobsDirectory() {
         let appSupport = URL(fileURLWithPath: "/tmp/JammLab", isDirectory: true)
         let jobsDirectory = StemJobFiles.currentJobsDirectory(in: appSupport)
 
-        XCTAssertEqual(StemJobFiles.helperVersion, 3)
-        XCTAssertEqual(jobsDirectory.path, "/tmp/JammLab/\(StemJobFiles.jobsDirectoryName)/v3")
+        XCTAssertEqual(StemJobFiles.helperVersion, 4)
+        XCTAssertEqual(jobsDirectory.path, "/tmp/JammLab/\(StemJobFiles.jobsDirectoryName)/v4")
         XCTAssertEqual(
             jobsDirectory.appendingPathComponent(StemJobFiles.heartbeatFilename).path,
-            "/tmp/JammLab/\(StemJobFiles.jobsDirectoryName)/v3/\(StemJobFiles.heartbeatFilename)"
+            "/tmp/JammLab/\(StemJobFiles.jobsDirectoryName)/v4/\(StemJobFiles.heartbeatFilename)"
         )
     }
 
@@ -341,6 +356,8 @@ final class StemWorkflowLogicTests: XCTestCase {
 
     func testAudioSeparatorOutputFilenameMatching() {
         XCTAssertTrue(StemType.vocals.matchesOutputFilename("song_(Vocals)_htdemucs.wav"))
+        XCTAssertTrue(StemType.instrumental.matchesOutputFilename("song_(Instrumental)_UVR-MDX-NET-Inst_HQ_5.wav"))
+        XCTAssertTrue(StemType.instrumental.matchesOutputFilename("song_no_vocals.wav"))
         XCTAssertTrue(StemType.drums.matchesOutputFilename("track_drums.flac"))
         XCTAssertTrue(StemType.bass.matchesOutputFilename("bass.wav"))
         XCTAssertFalse(StemType.other.matchesOutputFilename("song_vocals.txt"))
@@ -349,6 +366,7 @@ final class StemWorkflowLogicTests: XCTestCase {
 
     func testStemTypesExposeCanonicalStemFilenames() {
         XCTAssertEqual(StemType.vocals.canonicalStemFilename, "vocals.wav")
+        XCTAssertEqual(StemType.instrumental.canonicalStemFilename, "instrumental.wav")
         XCTAssertEqual(StemType.drums.canonicalStemFilename, "drums.wav")
         XCTAssertEqual(StemType.bass.canonicalStemFilename, "bass.wav")
         XCTAssertEqual(StemType.other.canonicalStemFilename, "other.wav")
@@ -461,10 +479,11 @@ final class StemWorkflowLogicTests: XCTestCase {
             cacheKey: "cache-key",
             sourceFingerprint: sourceFingerprint,
             backendIdentifier: "JammLabSeparatorHelper/test",
-            modelName: "htdemucs.yaml",
+            separationMethodID: StemSeparationMethod.fourStem.id,
+            modelName: StemSeparationMethod.fourStem.modelName,
             settingsVersion: 2,
             createdAt: Date(timeIntervalSince1970: 100),
-            stems: try StemType.allCases.map { type in
+            stems: try StemSeparationMethod.fourStem.stemTypes.map { type in
                 let url = try temporaryFile(in: sourceDirectory, name: "\(type.rawValue)-source.wav", contents: type.rawValue)
                 return StemFile(type: type, url: url, displayName: type.title)
             }
@@ -481,12 +500,47 @@ final class StemWorkflowLogicTests: XCTestCase {
         XCTAssertEqual(localMetadata.cacheKey, metadata.cacheKey)
         XCTAssertEqual(restored.cacheKey, metadata.cacheKey)
         XCTAssertEqual(restored.sourceFingerprint, sourceFingerprint)
-        XCTAssertEqual(Set(restored.stems.map(\.type)), Set(StemType.allCases))
+        XCTAssertEqual(restored.separationMethodID, StemSeparationMethod.fourStem.id)
+        XCTAssertEqual(Set(restored.stems.map(\.type)), Set(StemSeparationMethod.fourStem.stemTypes))
         for stem in restored.stems {
             XCTAssertEqual(stem.url.deletingLastPathComponent(), store.stemsDirectory(for: projectURL))
             XCTAssertEqual(stem.url.lastPathComponent, stem.type.canonicalStemFilename)
             XCTAssertEqual(try String(contentsOf: stem.url, encoding: .utf8), stem.type.rawValue)
         }
+    }
+
+    func testProjectArtifactStoreRoundTripsVocalInstrumentalStemMetadataAndFiles() throws {
+        let directory = temporaryDirectory()
+        let sourceDirectory = directory.appendingPathComponent("source", isDirectory: true)
+        try FileManager.default.createDirectory(at: sourceDirectory, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: directory) }
+
+        let sourceFingerprint = StemSourceFingerprint(path: "/tmp/song.mp3", fileSize: 42, modificationTime: 123)
+        let metadata = StemCacheMetadata(
+            cacheKey: "cache-key-2",
+            sourceFingerprint: sourceFingerprint,
+            backendIdentifier: "JammLabSeparatorHelper/test",
+            separationMethodID: StemSeparationMethod.vocalInstrumental.id,
+            modelName: StemSeparationMethod.vocalInstrumental.modelName,
+            settingsVersion: 2,
+            createdAt: Date(timeIntervalSince1970: 100),
+            stems: try StemSeparationMethod.vocalInstrumental.stemTypes.map { type in
+                let url = try temporaryFile(in: sourceDirectory, name: "\(type.rawValue)-source.wav", contents: type.rawValue)
+                return StemFile(type: type, url: url, displayName: type.title)
+            }
+        )
+        let projectURL = directory.appendingPathComponent("Song.jammlab")
+        let store = ProjectArtifactStore()
+
+        _ = try store.writeStemMetadata(metadata, projectURL: projectURL)
+        let restored = try XCTUnwrap(store.readStemMetadata(
+            projectURL: projectURL,
+            expectedFingerprint: sourceFingerprint
+        ))
+
+        XCTAssertEqual(restored.separationMethodID, StemSeparationMethod.vocalInstrumental.id)
+        XCTAssertEqual(restored.stems.map(\.type), [.vocals, .instrumental])
+        XCTAssertEqual(restored.stems.map(\.displayName), ["Vocals", "Instrumental"])
     }
 
     func testProjectArtifactStorePersistsVideoAudioBesideProject() throws {
@@ -562,7 +616,7 @@ final class StemWorkflowLogicTests: XCTestCase {
             sampleRate: 44_100,
             levels: [PeakformLevel(samplesPerPeak: 512, peaks: [PeakPoint(min: -0.5, max: 0.5, rms: 0.2)])]
         )
-        let stems = try StemType.allCases.map { type in
+        let stems = try StemSeparationMethod.fourStem.stemTypes.map { type in
             StemFile(
                 type: type,
                 url: try temporaryFile(in: stemSourceDirectory, name: "\(type.rawValue).wav", contents: type.rawValue),
@@ -573,7 +627,8 @@ final class StemWorkflowLogicTests: XCTestCase {
             cacheKey: "cache-key",
             sourceFingerprint: StemSourceFingerprint(path: audioURL.path, fileSize: 5, modificationTime: 10),
             backendIdentifier: "JammLabSeparatorHelper/test",
-            modelName: "htdemucs.yaml",
+            separationMethodID: StemSeparationMethod.fourStem.id,
+            modelName: StemSeparationMethod.fourStem.modelName,
             settingsVersion: 2,
             createdAt: Date(timeIntervalSince1970: 100),
             stems: stems
@@ -594,7 +649,7 @@ final class StemWorkflowLogicTests: XCTestCase {
         XCTAssertEqual(result.peakformURLsToRemove, [audioURL] + stems.map(\.url))
         XCTAssertEqual(result.stemMetadata?.cacheKey, metadata.cacheKey)
         XCTAssertEqual(result.stemCacheKeyToRemove, metadata.cacheKey)
-        XCTAssertEqual(result.stemMetadata?.stems.map { $0.url.deletingLastPathComponent() }, Array(repeating: store.stemsDirectory(for: projectURL), count: StemType.allCases.count))
+        XCTAssertEqual(result.stemMetadata?.stems.map { $0.url.deletingLastPathComponent() }, Array(repeating: store.stemsDirectory(for: projectURL), count: StemSeparationMethod.fourStem.stemTypes.count))
     }
 
     func testProjectPersistenceCoordinatorOpenMediaPrefersProjectLocalVideoAudio() async throws {

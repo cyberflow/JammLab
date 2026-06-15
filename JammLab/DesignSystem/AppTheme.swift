@@ -245,13 +245,14 @@ enum AppTheme {
         static let tempoTrackHeight: CGFloat = 38
         static let waveformTrackHeight: CGFloat = 110
         static let stemTrackHeight: CGFloat = 48
+        static let maximumVisibleStemRows = 4
         static let trackSpacing: CGFloat = 6
         static var upperTrackStackHeight: CGFloat {
             regionTrackHeight + markerTrackHeight + tempoTrackHeight + waveformTrackHeight
         }
         static var stemTracksHeight: CGFloat {
-            CGFloat(StemType.allCases.count) * stemTrackHeight
-                + CGFloat(max(0, StemType.allCases.count - 1)) * AppTheme.Spacing.md
+            CGFloat(maximumVisibleStemRows) * stemTrackHeight
+                + CGFloat(max(0, maximumVisibleStemRows - 1)) * AppTheme.Spacing.md
         }
         static var tracksMinimumHeight: CGFloat {
             upperTrackStackHeight + trackSpacing + stemTracksHeight

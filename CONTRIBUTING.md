@@ -68,7 +68,8 @@ Useful paths and settings:
 - Model cache: `build/JammLabSeparatorHelper/model-cache`.
 - PyInstaller output: `build/JammLabSeparatorHelper/dist/JammLabSeparatorHelper`.
 - Python executable override: `PYTHON_BIN=/path/to/python3`.
-- Prefetched model list override: `SEPARATOR_MODELS="htdemucs.yaml other.yaml"`.
+- Default prefetched models: `htdemucs.yaml` and `UVR-MDX-NET-Inst_HQ_5.onnx`.
+- Prefetched model list override: `SEPARATOR_MODELS="htdemucs.yaml UVR-MDX-NET-Inst_HQ_5.onnx other.yaml"`.
 
 The `JammLab` target copies
 `build/JammLabSeparatorHelper/dist/JammLabSeparatorHelper` into
