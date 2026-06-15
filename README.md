@@ -28,50 +28,19 @@ not require a server, paid API, cloud upload, or user-installed
   live next to the `.jammlab` project file.
 - Undo/redo for project edits and modified-project save prompts.
 
-## Development Environment
+## Development
 
-JammLab is a native macOS SwiftUI application.
+JammLab is a native macOS SwiftUI application. See
+[CONTRIBUTING.md](CONTRIBUTING.md) for local setup, verification commands, and
+bundled separator helper build instructions.
 
-- macOS deployment target: `14.0`.
-- Verified local toolchain: Xcode `26.5` (`17F42`).
-- Main project: `JammLab.xcodeproj`.
-- Main scheme: `JammLab`.
-- Build configurations are backed by `Configurations/*.xcconfig`.
-- Python separator helper is packaged with PyInstaller one-dir.
-
-Before building the app target, build the bundled separator helper:
-
-```sh
-scripts/build_separator_helper.sh
-```
-
-The `JammLab` target copies the resulting artifact from
+Before a normal app build, create the bundled separator artifact with
+`scripts/build_separator_helper.sh`. The `JammLab` target copies it from
 `build/JammLabSeparatorHelper/dist/JammLabSeparatorHelper` into
-`JammLab.app/Contents/Resources/JammLabSeparatorHelper`. If the artifact is
-missing, Xcode fails with an explicit build error.
+`JammLab.app/Contents/Resources/JammLabSeparatorHelper`. Test workflows that do
+not need the packaged helper may set `SKIP_BUNDLED_SEPARATOR_HELPER=1`.
 
-Run the app locally:
-
-```sh
-open JammLab.xcodeproj
-```
-
-Then select the `JammLab` scheme, choose `My Mac`, and press `Cmd+R`.
-
-Run the main verification commands:
-
-```sh
-xcodebuild test -project JammLab.xcodeproj -scheme JammLab -destination 'platform=macOS' -derivedDataPath build
-python3 -m unittest JammLabSeparatorHelper/test_runner.py
-```
-
-For a CI-style release build smoke test with ad-hoc signing:
-
-```sh
-xcodebuild build -project JammLab.xcodeproj -scheme JammLab -configuration Release -destination 'platform=macOS' -derivedDataPath build-ci -xcconfig Configurations/CI.xcconfig
-```
-
-GitHub CI uses three modes:
+GitHub CI uses these modes:
 
 - feature branches and pull requests to `main`: Python helper tests and Swift tests;
 - `main` pushes: tests plus unsigned Debug/Release build smoke;
