@@ -114,18 +114,122 @@ final class ViewModelLifecycleTests: XCTestCase {
     }
 
     @MainActor
-    func testViewModelPlayDoesNotSeekToLoopStart() {
+    func testViewModelPlayStartsFromPlaybackMarkerNotLoopStart() {
         let engine = MockPlaybackEngine()
         engine.isLoaded = true
         engine.currentTime = 12
         let viewModel = AudioPlayerViewModel(playbackEngine: engine)
+        viewModel.duration = 20
+        viewModel.setPlaybackMarkerExactly(to: 4)
 
         viewModel.setLooping(true)
         viewModel.play()
 
         XCTAssertTrue(engine.isPlaying)
-        XCTAssertEqual(engine.currentTime, 12, accuracy: 0.0001)
-        XCTAssertEqual(engine.seekCount, 0)
+        XCTAssertEqual(engine.currentTime, 4, accuracy: 0.0001)
+        XCTAssertEqual(viewModel.currentTime, 4, accuracy: 0.0001)
+        XCTAssertEqual(engine.seekCount, 2)
+    }
+
+    @MainActor
+    func testViewModelStopReturnsToPlaybackMarker() throws {
+        let engine = MockPlaybackEngine()
+        engine.isLoaded = true
+        engine.currentTime = 12
+        let videoFollower = MockVideoFollower()
+        let viewModel = AudioPlayerViewModel(playbackEngine: engine, videoFollower: videoFollower)
+        viewModel.duration = 20
+        viewModel.setPlaybackMarkerExactly(to: 3)
+
+        viewModel.play()
+        engine.currentTime = 12
+        viewModel.stop()
+
+        XCTAssertFalse(engine.isPlaying)
+        XCTAssertEqual(engine.currentTime, 3, accuracy: 0.0001)
+        XCTAssertEqual(viewModel.currentTime, 3, accuracy: 0.0001)
+        XCTAssertEqual(try XCTUnwrap(videoFollower.seekTimes.last), 3, accuracy: 0.0001)
+    }
+
+    @MainActor
+    func testViewModelPauseMovesPlaybackMarkerToPausedPosition() {
+        let engine = MockPlaybackEngine()
+        engine.isLoaded = true
+        engine.currentTime = 12
+        let viewModel = AudioPlayerViewModel(playbackEngine: engine)
+        viewModel.duration = 20
+        viewModel.setPlaybackMarkerExactly(to: 3)
+        engine.currentTime = 12
+
+        viewModel.pause()
+
+        XCTAssertFalse(engine.isPlaying)
+        XCTAssertEqual(viewModel.playbackMarkerTime, 12, accuracy: 0.0001)
+        XCTAssertEqual(viewModel.currentTime, 12, accuracy: 0.0001)
+    }
+
+    @MainActor
+    func testLocatingPlaybackMarkerAppliesSnapAndMarksProjectModified() throws {
+        let audioURL = try temporaryAudioFile(duration: 4)
+        defer { try? FileManager.default.removeItem(at: audioURL) }
+        let engine = MockPlaybackEngine()
+        let viewModel = AudioPlayerViewModel(
+            analyzer: MockAnalyzer(),
+            peakformProvider: MockPeakformProvider(),
+            playbackEngine: engine
+        )
+        let media = ImportedAudioFile(url: audioURL, displayName: "marker.wav", duration: 4)
+        try viewModel.loadImportedAudio(media)
+        viewModel.isSnapEnabled = true
+        viewModel.beatGridSettings = BeatGridSettings(bpm: 120, firstBeatTime: 0, timeSignature: .fourFour)
+        viewModel.markProjectClean()
+
+        viewModel.locatePlaybackMarker(to: 0.74)
+
+        XCTAssertEqual(viewModel.playbackMarkerTime, 0.5, accuracy: 0.0001)
+        XCTAssertEqual(engine.currentTime, 0.5, accuracy: 0.0001)
+        XCTAssertTrue(viewModel.isProjectModified)
+    }
+
+    @MainActor
+    func testPlaybackClockMovementDoesNotMarkProjectModified() throws {
+        let audioURL = try temporaryAudioFile(duration: 4)
+        defer { try? FileManager.default.removeItem(at: audioURL) }
+        let engine = MockPlaybackEngine()
+        let viewModel = AudioPlayerViewModel(
+            analyzer: MockAnalyzer(),
+            peakformProvider: MockPeakformProvider(),
+            playbackEngine: engine
+        )
+        let media = ImportedAudioFile(url: audioURL, displayName: "clock.wav", duration: 4)
+        try viewModel.loadImportedAudio(media)
+        viewModel.markProjectClean()
+
+        engine.currentTime = 1.25
+        viewModel.refreshPlaybackPosition()
+
+        XCTAssertEqual(viewModel.currentTime, 1.25, accuracy: 0.0001)
+        XCTAssertFalse(viewModel.isProjectModified)
+    }
+
+    @MainActor
+    func testPlaybackAutoStopAtEndReturnsToPlaybackMarker() {
+        let engine = MockPlaybackEngine()
+        engine.isLoaded = true
+        engine.isPlaying = false
+        engine.currentTime = 4
+        let videoFollower = MockVideoFollower()
+        let viewModel = AudioPlayerViewModel(playbackEngine: engine, videoFollower: videoFollower)
+        viewModel.duration = 4
+        viewModel.setPlaybackMarkerExactly(to: 1)
+        engine.currentTime = 4
+        viewModel.playbackState = .playing
+
+        viewModel.refreshPlaybackPosition()
+
+        XCTAssertEqual(viewModel.playbackState, .stopped)
+        XCTAssertEqual(viewModel.currentTime, 1, accuracy: 0.0001)
+        XCTAssertEqual(engine.currentTime, 1, accuracy: 0.0001)
     }
 
     @MainActor
@@ -162,6 +266,7 @@ final class ViewModelLifecycleTests: XCTestCase {
         engine.isLoaded = true
         let videoFollower = MockVideoFollower()
         let viewModel = AudioPlayerViewModel(playbackEngine: engine, videoFollower: videoFollower)
+        viewModel.duration = 20
 
         viewModel.setPlaybackRate(0.5)
         viewModel.play()
@@ -171,7 +276,7 @@ final class ViewModelLifecycleTests: XCTestCase {
 
         XCTAssertEqual(try XCTUnwrap(videoFollower.playbackRate), 0.5, accuracy: 0.0001)
         XCTAssertEqual(try XCTUnwrap(videoFollower.playRate), 0.5, accuracy: 0.0001)
-        XCTAssertEqual(try XCTUnwrap(videoFollower.seekTimes.last), 0, accuracy: 0.0001)
+        XCTAssertEqual(try XCTUnwrap(videoFollower.seekTimes.last), 10, accuracy: 0.0001)
         XCTAssertTrue(videoFollower.didPause)
         XCTAssertTrue(videoFollower.didStop)
     }
@@ -443,6 +548,88 @@ final class ViewModelLifecycleTests: XCTestCase {
     }
 
     @MainActor
+    func testProjectOpenRestoresAndClampsPlaybackMarkerTime() async throws {
+        let audioURL = try temporaryAudioFile(duration: 2)
+        let projectURL = temporaryDirectory().appendingPathComponent("playback-marker-open.jammlab")
+        try FileManager.default.createDirectory(at: projectURL.deletingLastPathComponent(), withIntermediateDirectories: true)
+        defer {
+            try? FileManager.default.removeItem(at: audioURL)
+            try? FileManager.default.removeItem(at: projectURL.deletingLastPathComponent())
+        }
+
+        let projectService = ProjectDocumentService()
+        let project = JammLabProject(
+            audioBookmarkData: try projectService.bookmarkData(for: audioURL),
+            audioDisplayName: audioURL.lastPathComponent,
+            audioDuration: 2,
+            notes: [],
+            loopStart: 0,
+            loopEnd: 2,
+            playbackRate: AppSliderDefaults.playbackRate,
+            pitchShiftSemitones: AppSliderDefaults.pitchShiftSemitones,
+            tempoBPM: AppDefaults.defaultTempoBPM,
+            beatGridSettings: BeatGridSettings(bpm: AppDefaults.defaultTempoBPM),
+            playbackMarkerTime: 99
+        )
+        try projectService.save(project, to: projectURL)
+        let entry = RecentProjectEntry(
+            displayName: "playback-marker-open",
+            bookmarkData: try projectService.bookmarkData(for: projectURL)
+        )
+        let engine = MockPlaybackEngine()
+        let videoFollower = MockVideoFollower()
+        let viewModel = AudioPlayerViewModel(
+            playbackEngine: engine,
+            videoFollower: videoFollower,
+            projectService: projectService,
+            recentProjectsStore: RecentProjectsStore(defaults: try temporaryUserDefaults())
+        )
+
+        await viewModel.openRecentProject(entry)
+
+        XCTAssertEqual(viewModel.playbackMarkerTime, 2, accuracy: 0.0001)
+        XCTAssertEqual(viewModel.currentTime, 2, accuracy: 0.0001)
+        XCTAssertEqual(engine.currentTime, 2, accuracy: 0.0001)
+        XCTAssertEqual(try XCTUnwrap(videoFollower.seekTimes.last), 2, accuracy: 0.0001)
+        XCTAssertFalse(viewModel.isProjectModified)
+    }
+
+    @MainActor
+    func testSaveProjectPersistsPlaybackMarkerTime() async throws {
+        let audioURL = try temporaryAudioFile(duration: 2)
+        let projectURL = temporaryDirectory().appendingPathComponent("playback-marker-save.jammlab")
+        try FileManager.default.createDirectory(at: projectURL.deletingLastPathComponent(), withIntermediateDirectories: true)
+        defer {
+            try? FileManager.default.removeItem(at: audioURL)
+            try? FileManager.default.removeItem(at: projectURL.deletingLastPathComponent())
+        }
+
+        let projectService = ProjectDocumentService()
+        let engine = MockPlaybackEngine()
+        let viewModel = AudioPlayerViewModel(
+            analyzer: MockAnalyzer(),
+            peakformProvider: MockPeakformProvider(),
+            playbackEngine: engine,
+            projectService: projectService,
+            recentProjectsStore: RecentProjectsStore(defaults: try temporaryUserDefaults()),
+            isSandboxed: { false }
+        )
+        let media = ImportedAudioFile(url: audioURL, displayName: "marker.wav", duration: 2)
+        try viewModel.loadImportedAudio(media)
+
+        viewModel.locatePlaybackMarker(to: 1.25)
+
+        XCTAssertTrue(viewModel.isProjectModified)
+
+        let didSave = await viewModel.saveProject(to: projectURL)
+
+        XCTAssertTrue(didSave)
+        XCTAssertFalse(viewModel.isProjectModified)
+        let savedProject = try projectService.load(from: projectURL)
+        XCTAssertEqual(try XCTUnwrap(savedProject.playbackMarkerTime), 1.25, accuracy: 0.0001)
+    }
+
+    @MainActor
     func testLegacyProjectOpenDefaultsLoopClickAndSnapToOff() async throws {
         let audioURL = try temporaryAudioFile()
         let projectURL = temporaryDirectory().appendingPathComponent("legacy-toggles.jammlab")
@@ -483,8 +670,11 @@ final class ViewModelLifecycleTests: XCTestCase {
         XCTAssertFalse(viewModel.isLooping)
         XCTAssertFalse(viewModel.isClickEnabled)
         XCTAssertFalse(viewModel.isSnapEnabled)
+        XCTAssertEqual(viewModel.playbackMarkerTime, 0, accuracy: 0.0001)
+        XCTAssertEqual(viewModel.currentTime, 0, accuracy: 0.0001)
         XCTAssertFalse(engine.loopEnabled)
         XCTAssertFalse(engine.clickEnabled)
+        XCTAssertFalse(viewModel.isProjectModified)
     }
 
     @MainActor

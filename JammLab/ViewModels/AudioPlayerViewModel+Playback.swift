@@ -23,6 +23,7 @@ extension AudioPlayerViewModel {
         guard canPlay else { return }
 
         do {
+            seekExactly(to: playbackMarkerTime)
             try activePlaybackEngine.play()
             videoFollower.play(rate: playbackRate)
             playbackState = .playing
@@ -35,26 +36,33 @@ extension AudioPlayerViewModel {
         guard canPlay else { return }
         activePlaybackEngine.pause()
         videoFollower.pause()
-        currentTime = activePlaybackEngine.currentTime
+        let targetTime = ProjectStateNormalizer.normalizedTimelineTime(activePlaybackEngine.currentTime, duration: duration)
+        playbackMarkerTime = targetTime
+        currentTime = targetTime
         playbackState = .paused
+        refreshProjectModifiedState()
     }
 
     func stop() {
         guard canPlay else { return }
         activePlaybackEngine.stop()
         videoFollower.stop()
-        currentTime = 0
+        seekExactly(to: playbackMarkerTime)
         playbackState = .stopped
     }
 
-    func togglePlayPause() {
+    func togglePlayStop() {
         guard canPlay else { return }
 
         if playbackState == .playing {
-            pause()
+            stop()
         } else {
             play()
         }
+    }
+
+    func togglePlayPause() {
+        togglePlayStop()
     }
 
     func seek(to time: TimeInterval) {
@@ -65,8 +73,19 @@ extension AudioPlayerViewModel {
         currentTime = targetTime
     }
 
+    func locatePlaybackMarker(to time: TimeInterval) {
+        guard canPlay else { return }
+        let targetTime = snappedTimelineTime(time)
+        playbackMarkerTime = targetTime
+        activePlaybackEngine.seek(to: targetTime)
+        videoFollower.seek(to: targetTime)
+        currentTime = targetTime
+        refreshProjectModifiedState()
+    }
+
     func seekToStart() {
-        seekExactly(to: 0)
+        setPlaybackMarkerExactly(to: 0)
+        refreshProjectModifiedState()
     }
 
     func seekToEnd() {
@@ -77,7 +96,8 @@ extension AudioPlayerViewModel {
             playbackState = .paused
         }
 
-        seekExactly(to: duration)
+        setPlaybackMarkerExactly(to: duration)
+        refreshProjectModifiedState()
     }
 
     func setLooping(_ isEnabled: Bool) {
@@ -241,9 +261,9 @@ extension AudioPlayerViewModel {
 
         if playbackState == .playing, (!activePlaybackEngine.isPlaying || currentTime >= duration), currentTime >= duration - 0.02 {
             playbackState = .stopped
-            currentTime = 0
             activePlaybackEngine.stop()
             videoFollower.stop()
+            seekExactly(to: playbackMarkerTime)
         }
     }
 
@@ -258,6 +278,16 @@ extension AudioPlayerViewModel {
         activePlaybackEngine.seek(to: targetTime)
         videoFollower.seek(to: targetTime)
         currentTime = targetTime
+    }
+
+    func setPlaybackMarkerExactly(to time: TimeInterval, shouldSeek: Bool = true) {
+        let targetTime = ProjectStateNormalizer.normalizedTimelineTime(time, duration: duration)
+        playbackMarkerTime = targetTime
+        if shouldSeek, canPlay {
+            activePlaybackEngine.seek(to: targetTime)
+            videoFollower.seek(to: targetTime)
+            currentTime = targetTime
+        }
     }
 
     var activePlaybackEngine: AudioPlaybackControlling {

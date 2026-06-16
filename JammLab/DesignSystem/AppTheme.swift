@@ -282,6 +282,8 @@ enum AppTheme {
         static let weakBeatHeightMultiplier: CGFloat = 0.5
         static let rulerMinimumLabelSpacing: CGFloat = 86
         static let rulerLabelWidth: CGFloat = 72
+        static let playbackMarkerHandleWidth: CGFloat = 11
+        static let playbackMarkerHandleHeight: CGFloat = 8
         static let viewportControlBarHeight: CGFloat = 24
         static let viewportScrollerHeight: CGFloat = 14
         static let viewportScrollerThumbMinWidth: CGFloat = 24

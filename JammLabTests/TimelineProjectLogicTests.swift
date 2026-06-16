@@ -339,6 +339,26 @@ final class TimelineProjectLogicTests: XCTestCase {
         XCTAssertEqual(AppHotkey.togglePlaybackMode.key, "Tab")
     }
 
+    func testAppHotkeyRecognizesSpaceForPlayStop() throws {
+        let event = try XCTUnwrap(NSEvent.keyEvent(
+            with: .keyDown,
+            location: .zero,
+            modifierFlags: [],
+            timestamp: 0,
+            windowNumber: 0,
+            context: nil,
+            characters: " ",
+            charactersIgnoringModifiers: " ",
+            isARepeat: false,
+            keyCode: 49
+        ))
+
+        XCTAssertEqual(AppHotkey(event: event), .playPause)
+        XCTAssertEqual(AppHotkey.playPause.key, "Space")
+        XCTAssertEqual(AppHotkey.playPause.title, "Play / Stop")
+        XCTAssertEqual(AppHotkey.playPause.detail, "Start playback from the position marker or stop and return to it.")
+    }
+
     func testAppHotkeyRecognizesOptionVForVideoWindowToggle() throws {
         let event = try XCTUnwrap(NSEvent.keyEvent(
             with: .keyDown,

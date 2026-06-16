@@ -189,6 +189,7 @@ struct TempoTrackView: View {
     let duration: TimeInterval
     let loopStart: TimeInterval
     let loopEnd: TimeInterval
+    let playbackMarkerTime: TimeInterval
     let configuration: BeatGridConfiguration
     let onSaveLoopRegion: () -> Void
     let onLoopStartChanged: (TimeInterval) -> Void
@@ -211,7 +212,12 @@ struct TempoTrackView: View {
                 loopRegionOverlay(width: proxy.size.width, height: proxy.size.height)
                     .allowsHitTesting(false)
 
-                TempoGridRulerView(settings: configuration.settings, tempoMap: configuration.tempoMap, viewport: viewport)
+                TempoGridRulerView(
+                    settings: configuration.settings,
+                    tempoMap: configuration.tempoMap,
+                    viewport: viewport,
+                    playbackMarkerTime: playbackMarkerTime
+                )
                 .clipShape(RoundedRectangle(cornerRadius: AppTheme.Radius.small))
                 .allowsHitTesting(false)
 

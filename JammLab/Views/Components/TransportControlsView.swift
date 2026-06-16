@@ -5,8 +5,8 @@ struct TransportControlsView: View {
     let isLooping: Bool
     let onGoToStart: () -> Void
     let onGoToEnd: () -> Void
-    let onPlayPause: () -> Void
-    let onStop: () -> Void
+    let onPlayStop: () -> Void
+    let onPause: () -> Void
     let onLoopChanged: (Bool) -> Void
     @Environment(\.appColors) private var appColors
 
@@ -17,13 +17,14 @@ struct TransportControlsView: View {
                 TransportButton(type: .goToEnd, action: onGoToEnd)
             }
 
-            TransportButton(type: .playPause(isPlaying: playbackState == .playing), action: onPlayPause)
+            TransportButton(type: .playStop(isPlaying: playbackState == .playing), action: onPlayStop)
+
+            TransportButton(type: .pause, action: onPause)
+                .disabled(playbackState != .playing)
 
             TransportButton(type: .loop(isActive: isLooping)) {
                 onLoopChanged(!isLooping)
             }
-
-            TransportButton(type: .stop, action: onStop)
         }
         .padding(AppTheme.TransportControls.groupPadding)
         .background {
@@ -174,9 +175,9 @@ struct TransportButtonStyle: ButtonStyle {
 enum TransportControlType {
     case goToStart
     case goToEnd
-    case playPause(isPlaying: Bool)
+    case playStop(isPlaying: Bool)
+    case pause
     case loop(isActive: Bool)
-    case stop
 
     var systemImage: String {
         switch self {
@@ -184,12 +185,12 @@ enum TransportControlType {
             return "backward.end.fill"
         case .goToEnd:
             return "forward.end.fill"
-        case .playPause(let isPlaying):
-            return isPlaying ? "pause.fill" : "play.fill"
+        case .playStop(let isPlaying):
+            return isPlaying ? "stop.fill" : "play.fill"
+        case .pause:
+            return "pause.fill"
         case .loop:
             return "repeat"
-        case .stop:
-            return "stop.fill"
         }
     }
 
@@ -199,12 +200,12 @@ enum TransportControlType {
             return "Go to start"
         case .goToEnd:
             return "Go to end"
-        case .playPause(let isPlaying):
-            return isPlaying ? "Pause" : "Play"
+        case .playStop(let isPlaying):
+            return isPlaying ? "Stop" : "Play"
+        case .pause:
+            return "Pause"
         case .loop:
             return "Loop"
-        case .stop:
-            return "Stop"
         }
     }
 
@@ -223,12 +224,12 @@ enum TransportControlType {
             return ControlHelpText.goToStart
         case .goToEnd:
             return ControlHelpText.goToEnd
-        case .playPause(let isPlaying):
-            return isPlaying ? ControlHelpText.pause : ControlHelpText.play
+        case .playStop(let isPlaying):
+            return isPlaying ? ControlHelpText.stop : ControlHelpText.play
+        case .pause:
+            return ControlHelpText.pause
         case .loop(let isActive):
             return isActive ? ControlHelpText.deactivateLoop : ControlHelpText.activateLoop
-        case .stop:
-            return ControlHelpText.stop
         }
     }
 
@@ -251,9 +252,9 @@ enum TransportControlType {
 
     var isRound: Bool {
         switch self {
-        case .playPause, .loop:
+        case .playStop, .loop:
             return true
-        case .goToStart, .goToEnd, .stop:
+        case .goToStart, .goToEnd, .pause:
             return false
         }
     }
@@ -265,12 +266,12 @@ enum TransportControlType {
                 width: AppTheme.TransportControls.skipButtonWidth,
                 height: AppTheme.TransportControls.skipButtonHeight
             )
-        case .playPause, .loop:
+        case .playStop, .loop:
             return CGSize(
                 width: AppTheme.TransportControls.roundButtonSize,
                 height: AppTheme.TransportControls.roundButtonSize
             )
-        case .stop:
+        case .pause:
             return CGSize(
                 width: AppTheme.TransportControls.stopButtonSize,
                 height: AppTheme.TransportControls.stopButtonSize
@@ -280,11 +281,11 @@ enum TransportControlType {
 
     var cornerRadius: CGFloat {
         switch self {
-        case .playPause, .loop:
+        case .playStop, .loop:
             return AppTheme.TransportControls.roundButtonSize / 2
         case .goToStart, .goToEnd:
             return AppTheme.TransportControls.skipButtonRadius
-        case .stop:
+        case .pause:
             return AppTheme.TransportControls.stopButtonRadius
         }
     }
@@ -305,9 +306,9 @@ enum TransportControlType {
                 bottomRight: AppTheme.TransportControls.skipButtonRadius,
                 bottomLeft: 0
             )
-        case .stop:
+        case .pause:
             return TransportButtonCorners(radius: AppTheme.TransportControls.stopButtonRadius)
-        case .playPause, .loop:
+        case .playStop, .loop:
             return TransportButtonCorners(radius: cornerRadius)
         }
     }
@@ -320,9 +321,9 @@ enum TransportControlType {
             return TransportButtonCorners(topLeft: insetRadius, topRight: 0, bottomRight: 0, bottomLeft: insetRadius)
         case .goToEnd:
             return TransportButtonCorners(topLeft: 0, topRight: insetRadius, bottomRight: insetRadius, bottomLeft: 0)
-        case .stop:
+        case .pause:
             return TransportButtonCorners(radius: insetRadius)
-        case .playPause, .loop:
+        case .playStop, .loop:
             return TransportButtonCorners(radius: insetRadius)
         }
     }
@@ -417,8 +418,8 @@ struct TransportButtonShape: Shape {
             isLooping: false,
             onGoToStart: {},
             onGoToEnd: {},
-            onPlayPause: {},
-            onStop: {},
+            onPlayStop: {},
+            onPause: {},
             onLoopChanged: { _ in }
         )
 
@@ -427,8 +428,8 @@ struct TransportButtonShape: Shape {
             isLooping: false,
             onGoToStart: {},
             onGoToEnd: {},
-            onPlayPause: {},
-            onStop: {},
+            onPlayStop: {},
+            onPause: {},
             onLoopChanged: { _ in }
         )
 
@@ -437,8 +438,8 @@ struct TransportButtonShape: Shape {
             isLooping: true,
             onGoToStart: {},
             onGoToEnd: {},
-            onPlayPause: {},
-            onStop: {},
+            onPlayStop: {},
+            onPause: {},
             onLoopChanged: { _ in }
         )
 
@@ -447,8 +448,8 @@ struct TransportButtonShape: Shape {
             isLooping: false,
             onGoToStart: {},
             onGoToEnd: {},
-            onPlayPause: {},
-            onStop: {},
+            onPlayStop: {},
+            onPause: {},
             onLoopChanged: { _ in }
         )
         .disabled(true)
@@ -463,8 +464,8 @@ struct TransportButtonShape: Shape {
         isLooping: true,
         onGoToStart: {},
         onGoToEnd: {},
-        onPlayPause: {},
-        onStop: {},
+        onPlayStop: {},
+        onPause: {},
         onLoopChanged: { _ in }
     )
     .padding(12)

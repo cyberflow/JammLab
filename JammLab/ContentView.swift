@@ -187,7 +187,7 @@ struct ContentView: View {
             // together with this dispatch switch.
             switch hotkey {
             case .playPause:
-                viewModel.togglePlayPause()
+                viewModel.togglePlayStop()
             case .toggleLoop:
                 viewModel.toggleLooping()
             case .setLoopStart:

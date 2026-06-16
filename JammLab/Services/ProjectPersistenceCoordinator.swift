@@ -42,6 +42,7 @@ struct ProjectDocumentSnapshot {
     let clickVolume: Float
     let isSnapEnabled: Bool
     let playbackMode: PlaybackMode
+    let playbackMarkerTime: TimeInterval
     let stemState: StemProjectState?
     let isVideoWindowOpen: Bool
 }
@@ -216,6 +217,7 @@ struct ProjectPersistenceCoordinator {
             clickVolume: snapshot.clickVolume,
             isSnapEnabled: snapshot.isSnapEnabled,
             playbackMode: snapshot.playbackMode,
+            playbackMarkerTime: ProjectStateNormalizer.normalizedTimelineTime(snapshot.playbackMarkerTime, duration: snapshot.duration),
             stemState: snapshot.stemState,
             isVideoWindowOpen: snapshot.importedFile.mediaKind == .video ? snapshot.isVideoWindowOpen : nil
         )

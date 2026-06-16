@@ -40,6 +40,7 @@ extension AudioPlayerViewModel {
             isClickEnabled: isClickEnabled,
             clickVolume: clampedVolume(clickVolume),
             isSnapEnabled: isSnapEnabled,
+            playbackMarkerTime: ProjectStateNormalizer.normalizedTimelineTime(playbackMarkerTime, duration: duration),
             isVideoWindowOpen: importedFile?.mediaKind == .video && isVideoWindowOpen
         )
     }
