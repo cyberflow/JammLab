@@ -37,6 +37,26 @@ struct MetronomeClickScheduler {
             )
         }
     }
+
+    func events(
+        tempoMap: TempoMap,
+        segmentStartTime: TimeInterval,
+        segmentEndTime: TimeInterval
+    ) -> [MetronomeClickEvent] {
+        guard segmentEndTime > segmentStartTime else { return [] }
+
+        return calculator.markers(
+            tempoMap: tempoMap,
+            visibleStartTime: segmentStartTime,
+            visibleEndTime: segmentEndTime
+        )
+        .map { marker in
+            MetronomeClickEvent(
+                sourceTime: marker.time,
+                kind: marker.isBarStart ? .accent : .regular
+            )
+        }
+    }
 }
 
 struct MetronomeClickTimingMapper {

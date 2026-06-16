@@ -21,6 +21,7 @@ protocol AudioPlaybackControlling: AnyObject {
     func setClickEnabled(_ isEnabled: Bool)
     func setClickVolume(_ volume: Float)
     func setClickSettings(_ settings: BeatGridSettings)
+    func setTempoMap(_ tempoMap: TempoMap)
     func setClickSoundSettings(_ settings: ClickSoundSettings)
     func setAudioOutputDevice(uid: String?) throws
     func resetClickSchedule()
@@ -37,6 +38,7 @@ extension AudioPlaybackControlling {
     func setClickEnabled(_ isEnabled: Bool) {}
     func setClickVolume(_ volume: Float) {}
     func setClickSettings(_ settings: BeatGridSettings) {}
+    func setTempoMap(_ tempoMap: TempoMap) {}
     func setClickSoundSettings(_ settings: ClickSoundSettings) {}
     func setAudioOutputDevice(uid: String?) throws {}
     func resetClickSchedule() {}

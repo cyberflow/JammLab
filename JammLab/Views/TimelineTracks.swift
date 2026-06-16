@@ -125,14 +125,27 @@ struct MarkerTrackView: View {
     }
 
     private func markerHead(_ marker: TimecodedNote, width: CGFloat) -> some View {
-        RoundedRectangle(cornerRadius: AppTheme.Radius.marker)
-            .fill(marker.resolvedSwiftUIColor)
-            .frame(width: AppTheme.IconSize.markerCapWidth, height: AppTheme.IconSize.markerCapHeight)
-            .overlay(
-                RoundedRectangle(cornerRadius: AppTheme.Radius.marker)
-                    .stroke(AppTheme.Timeline.markerCapStroke, lineWidth: AppTheme.Stroke.thin)
-            )
-            .frame(width: AppTheme.Timeline.markerHitWidth, height: AppTheme.Timeline.markerTrackHeight)
+        HStack(spacing: AppTheme.Spacing.xs) {
+            RoundedRectangle(cornerRadius: AppTheme.Radius.marker)
+                .fill(marker.resolvedSwiftUIColor)
+                .frame(width: AppTheme.IconSize.markerCapWidth, height: AppTheme.IconSize.markerCapHeight)
+                .overlay(
+                    RoundedRectangle(cornerRadius: AppTheme.Radius.marker)
+                        .stroke(AppTheme.Timeline.markerCapStroke, lineWidth: AppTheme.Stroke.thin)
+                )
+
+            if marker.isTempoTimeSignatureMarker {
+                Text(marker.title)
+                    .font(AppTheme.Typography.timelineLabel.weight(.semibold))
+                    .foregroundStyle(marker.resolvedSwiftUIColor)
+                    .lineLimit(1)
+                    .padding(.horizontal, AppTheme.Spacing.xs)
+                    .padding(.vertical, AppTheme.Spacing.xxxs)
+                    .background(AppTheme.Timeline.markerTrackBackground.opacity(0.82))
+                    .clipShape(RoundedRectangle(cornerRadius: AppTheme.Radius.small))
+            }
+        }
+            .frame(width: marker.isTempoTimeSignatureMarker ? 150 : AppTheme.Timeline.markerHitWidth, height: AppTheme.Timeline.markerTrackHeight, alignment: .leading)
             .contentShape(Rectangle())
             .opacity(viewport.contains(marker.time) ? 1 : 0)
             .allowsHitTesting(viewport.contains(marker.time))
@@ -198,7 +211,7 @@ struct TempoTrackView: View {
                 loopRegionOverlay(width: proxy.size.width, height: proxy.size.height)
                     .allowsHitTesting(false)
 
-                TempoGridRulerView(settings: configuration.settings, viewport: viewport)
+                TempoGridRulerView(settings: configuration.settings, tempoMap: configuration.tempoMap, viewport: viewport)
                 .clipShape(RoundedRectangle(cornerRadius: AppTheme.Radius.small))
                 .allowsHitTesting(false)
 

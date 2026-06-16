@@ -9,10 +9,12 @@ struct TimelineSection: Identifiable, Equatable {
 
 struct BeatGridConfiguration: Equatable {
     var settings: BeatGridSettings
+    var tempoMap: TempoMap
     var visibleRange: ClosedRange<TimeInterval>?
 
-    init(settings: BeatGridSettings, visibleRange: ClosedRange<TimeInterval>? = nil) {
+    init(settings: BeatGridSettings, tempoMap: TempoMap? = nil, visibleRange: ClosedRange<TimeInterval>? = nil) {
         self.settings = settings
+        self.tempoMap = tempoMap ?? TempoMap(baseSettings: settings, markers: [], duration: visibleRange?.upperBound ?? 0)
         self.visibleRange = visibleRange
     }
 
@@ -47,6 +49,7 @@ struct TimelineViewState: Equatable {
 struct TimelineViewActions {
     var seek: (TimeInterval) -> Void
     var addNote: (TimeInterval) -> Void
+    var addTempoTimeSignatureMarker: (TimeInterval) -> Void
     var editNote: (TimecodedNote) -> Void
     var deleteNote: (TimecodedNote.ID) -> Void
     var noteColorChanged: (TimecodedNote.ID, MarkerColor) -> Void
@@ -247,7 +250,7 @@ struct WaveformTimelineView: View {
                     notes: state.notes,
                     selectedRegionID: state.selectedRegionID,
                     sections: state.sections,
-                    beatGridSettings: state.beatGrid.settings,
+                    tempoMap: state.beatGrid.tempoMap,
                     visibleStartTime: visibleRange.lowerBound,
                     visibleEndTime: visibleRange.upperBound,
                     isLoading: state.isLoadingPeakform,

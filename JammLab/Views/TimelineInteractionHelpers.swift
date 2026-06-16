@@ -5,6 +5,8 @@ extension WaveformTimelineView {
     func rightClickNoteTarget(width: CGFloat) -> some View {
         RightClickCaptureView { point in
             actions.addNote(viewport.time(forX: point.x, width: width))
+        } onAddTempoTimeSignatureMarker: { point in
+            actions.addTempoTimeSignatureMarker(viewport.time(forX: point.x, width: width))
         }
     }
 
@@ -112,16 +114,27 @@ extension View {
 }
 
 struct RightClickCaptureView: NSViewRepresentable {
-    let onRightClick: (CGPoint) -> Void
+    let onAddMarker: (CGPoint) -> Void
+    let onAddTempoTimeSignatureMarker: ((CGPoint) -> Void)?
+
+    init(
+        _ onAddMarker: @escaping (CGPoint) -> Void,
+        onAddTempoTimeSignatureMarker: ((CGPoint) -> Void)? = nil
+    ) {
+        self.onAddMarker = onAddMarker
+        self.onAddTempoTimeSignatureMarker = onAddTempoTimeSignatureMarker
+    }
 
     func makeNSView(context: Context) -> RightClickCaptureNSView {
         let view = RightClickCaptureNSView()
-        view.onRightClick = onRightClick
+        view.onAddMarker = onAddMarker
+        view.onAddTempoTimeSignatureMarker = onAddTempoTimeSignatureMarker
         return view
     }
 
     func updateNSView(_ nsView: RightClickCaptureNSView, context: Context) {
-        nsView.onRightClick = onRightClick
+        nsView.onAddMarker = onAddMarker
+        nsView.onAddTempoTimeSignatureMarker = onAddTempoTimeSignatureMarker
     }
 }
 
@@ -391,14 +404,33 @@ private final class NoteContextMenuActionItem: NSMenuItem {
 }
 
 final class RightClickCaptureNSView: NSView {
-    var onRightClick: ((CGPoint) -> Void)?
+    var onAddMarker: ((CGPoint) -> Void)?
+    var onAddTempoTimeSignatureMarker: ((CGPoint) -> Void)?
 
     override func hitTest(_ point: NSPoint) -> NSView? {
         NSApp.currentEvent?.type == .rightMouseDown ? self : nil
     }
 
     override func rightMouseDown(with event: NSEvent) {
-        onRightClick?(convert(event.locationInWindow, from: nil))
+        let point = convert(event.locationInWindow, from: nil)
+        guard onAddTempoTimeSignatureMarker != nil else {
+            onAddMarker?(point)
+            return
+        }
+
+        let menu = NSMenu()
+        addItem(title: "Add Marker", to: menu) { [weak self] in
+            self?.onAddMarker?(point)
+        }
+        addItem(title: "Add Tempo / Time Signature Marker", to: menu) { [weak self] in
+            self?.onAddTempoTimeSignatureMarker?(point)
+        }
+        NSMenu.popUpContextMenu(menu, with: event, for: self)
+    }
+
+    private func addItem(title: String, to menu: NSMenu, action: @escaping () -> Void) {
+        let item = NoteContextMenuActionItem(title: title, action: action)
+        menu.addItem(item)
     }
 }
 

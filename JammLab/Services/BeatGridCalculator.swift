@@ -74,4 +74,23 @@ struct BeatGridCalculator {
         let beatTime = settings.firstBeatTime + Double(beatIndex) * beatDuration
         return max(0, min(beatTime, duration))
     }
+
+    func markers(
+        tempoMap: TempoMap,
+        visibleStartTime: TimeInterval,
+        visibleEndTime: TimeInterval
+    ) -> [BeatGridMarker] {
+        tempoMap.segments.enumerated().flatMap { index, segment in
+            let start = max(visibleStartTime, segment.startTime)
+            let segmentEnd = index == tempoMap.segments.count - 1 ? segment.endTime : segment.endTime.nextDown
+            let end = min(visibleEndTime, segmentEnd)
+            guard end >= start else { return [BeatGridMarker]() }
+            return markers(settings: segment.settings, visibleStartTime: start, visibleEndTime: end)
+        }
+        .sorted { $0.time < $1.time }
+    }
+
+    func nearestBeatTime(to time: TimeInterval, tempoMap: TempoMap) -> TimeInterval? {
+        tempoMap.nearestBeatTime(to: time)
+    }
 }

@@ -8,6 +8,12 @@ struct ContentView: View {
     @State var isEditingMarker = false
     @State var editingMarkerID: TimecodedNote.ID?
     @State var editingMarkerTitle = ""
+    @State var isEditingTempoTimeSignatureMarker = false
+    @State var editingTempoTimeSignatureMarkerID: TimecodedNote.ID?
+    @State var editingTempoTimeSignatureMarkerTime: TimeInterval = 0
+    @State var editingTempoTimeSignatureBPM: Double = AppDefaults.defaultTempoBPM
+    @State var editingTempoTimeSignatureBeatsPerBar: Double = Double(TimeSignature.fourFour.beatsPerBar)
+    @State var editingTempoTimeSignatureSetsNewFirstBeat = false
     @State var notesFilter: NotesFilter = .notes
     @Environment(\.appColors) var appColors
     @Environment(\.openWindow) private var openWindow
@@ -54,6 +60,15 @@ struct ContentView: View {
                 onSave: saveMarkerEditing
             )
         }
+        .sheet(isPresented: $isEditingTempoTimeSignatureMarker) {
+            TempoTimeSignatureMarkerDialog(
+                bpm: $editingTempoTimeSignatureBPM,
+                beatsPerBar: $editingTempoTimeSignatureBeatsPerBar,
+                setsNewFirstBeat: $editingTempoTimeSignatureSetsNewFirstBeat,
+                onCancel: cancelTempoTimeSignatureMarkerEditing,
+                onSet: saveTempoTimeSignatureMarkerEditing
+            )
+        }
         .sheet(isPresented: errorAlertBinding) {
             ErrorDialogView(message: viewModel.errorMessage ?? "") {
                 viewModel.clearError()
@@ -84,6 +99,35 @@ struct ContentView: View {
         }
 
         cancelMarkerEditing()
+    }
+
+    private func cancelTempoTimeSignatureMarkerEditing() {
+        isEditingTempoTimeSignatureMarker = false
+        editingTempoTimeSignatureMarkerID = nil
+        editingTempoTimeSignatureMarkerTime = 0
+        editingTempoTimeSignatureBPM = AppDefaults.defaultTempoBPM
+        editingTempoTimeSignatureBeatsPerBar = Double(TimeSignature.fourFour.beatsPerBar)
+        editingTempoTimeSignatureSetsNewFirstBeat = false
+    }
+
+    private func saveTempoTimeSignatureMarkerEditing() {
+        if let editingTempoTimeSignatureMarkerID {
+            viewModel.updateTempoTimeSignatureMarker(
+                id: editingTempoTimeSignatureMarkerID,
+                bpm: editingTempoTimeSignatureBPM,
+                beatsPerBar: Int(editingTempoTimeSignatureBeatsPerBar.rounded()),
+                setsNewFirstBeat: editingTempoTimeSignatureSetsNewFirstBeat
+            )
+        } else {
+            viewModel.addTempoTimeSignatureMarker(
+                at: editingTempoTimeSignatureMarkerTime,
+                bpm: editingTempoTimeSignatureBPM,
+                beatsPerBar: Int(editingTempoTimeSignatureBeatsPerBar.rounded()),
+                setsNewFirstBeat: editingTempoTimeSignatureSetsNewFirstBeat
+            )
+        }
+
+        cancelTempoTimeSignatureMarkerEditing()
     }
 
     private var topToolbar: some View {
@@ -152,6 +196,8 @@ struct ContentView: View {
                 viewModel.setLoopEndAtCurrentTime()
             case .addNote:
                 viewModel.addNoteAtCurrentTime()
+            case .addTempoTimeSignatureMarker:
+                beginAddingTempoTimeSignatureMarker(at: viewModel.currentTime)
             case .setBeatOne:
                 viewModel.setCurrentTimeAsBeatOne()
             case .toggleClick:

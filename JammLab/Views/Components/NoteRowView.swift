@@ -8,7 +8,7 @@ struct NoteRowView: View {
 
     var body: some View {
         HStack(spacing: AppTheme.Spacing.lg) {
-            Image(systemName: note.isRegion ? "rectangle.dashed" : "bookmark.fill")
+            Image(systemName: iconName)
                 .foregroundStyle(note.resolvedSwiftUIColor)
 
             VStack(alignment: .leading, spacing: AppTheme.Spacing.xxxs) {
@@ -29,5 +29,15 @@ struct NoteRowView: View {
                 .stroke(isSelected ? note.resolvedSwiftUIColor.opacity(AppTheme.Timeline.selectedNoteStrokeOpacity) : Color.clear, lineWidth: AppTheme.Stroke.thin)
         )
         .clipShape(RoundedRectangle(cornerRadius: AppTheme.Radius.panel))
+    }
+
+    private var iconName: String {
+        if note.isRegion {
+            return "rectangle.dashed"
+        }
+        if note.isTempoTimeSignatureMarker {
+            return "metronome"
+        }
+        return "bookmark.fill"
     }
 }

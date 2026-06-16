@@ -362,4 +362,23 @@ final class TimelineProjectLogicTests: XCTestCase {
         )
     }
 
+    func testAppHotkeyRecognizesShiftCForTempoTimeSignatureMarker() throws {
+        let event = try XCTUnwrap(NSEvent.keyEvent(
+            with: .keyDown,
+            location: .zero,
+            modifierFlags: [.shift],
+            timestamp: 0,
+            windowNumber: 0,
+            context: nil,
+            characters: "C",
+            charactersIgnoringModifiers: "c",
+            isARepeat: false,
+            keyCode: 8
+        ))
+
+        XCTAssertEqual(AppHotkey(event: event), .addTempoTimeSignatureMarker)
+        XCTAssertEqual(AppHotkey.addTempoTimeSignatureMarker.key, "Shift+C")
+        XCTAssertEqual(AppHotkey.addTempoTimeSignatureMarker.title, "Add Tempo / Time Signature Marker")
+    }
+
 }

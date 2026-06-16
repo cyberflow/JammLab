@@ -36,8 +36,23 @@ struct TempoGridCalculator {
         width: CGFloat,
         minimumLabelSpacing: CGFloat
     ) -> TempoGridResult {
+        grid(
+            tempoMap: TempoMap(baseSettings: settings, markers: [], duration: viewport.duration),
+            viewport: viewport,
+            width: width,
+            minimumLabelSpacing: minimumLabelSpacing
+        )
+    }
+
+    func grid(
+        tempoMap: TempoMap,
+        viewport: TimelineViewport,
+        width: CGFloat,
+        minimumLabelSpacing: CGFloat
+    ) -> TempoGridResult {
+        let activeSettings = tempoMap.settings(at: viewport.clampedRange.lowerBound)
         guard
-            let secondsPerBeat = settings.beatDuration,
+            let secondsPerBeat = activeSettings.beatDuration,
             secondsPerBeat > 0,
             viewport.visibleDuration > 0,
             width > 0
@@ -45,33 +60,18 @@ struct TempoGridCalculator {
             return TempoGridResult(markers: [], barStep: Self.barStepCandidates.last ?? 32, secondsPerBeat: 0, secondsPerBar: 0)
         }
 
-        let beatsPerBar = max(1, settings.timeSignature.beatsPerBar)
+        let beatsPerBar = max(1, activeSettings.timeSignature.beatsPerBar)
         let secondsPerBar = secondsPerBeat * Double(beatsPerBar)
-        let pixelsPerSecond = width / CGFloat(viewport.visibleDuration)
-        let pixelsPerBeat = pixelsPerSecond * CGFloat(secondsPerBeat)
-        let pixelsPerBar = pixelsPerBeat * CGFloat(beatsPerBar)
-        let barStep = Self.barStep(for: pixelsPerBar, minimumLabelSpacing: minimumLabelSpacing)
-        let visibleRange = viewport.clampedRange
-
-        var markers = barMarkers(
-            settings: settings,
-            viewport: viewport,
-            width: width,
-            secondsPerBar: secondsPerBar,
-            barStep: barStep
-        )
-
-        if pixelsPerBeat > Self.beatLineMinimumSpacing {
-            markers.append(contentsOf: beatMarkers(
-                settings: settings,
+        let markers = tempoMap.segments.enumerated().flatMap { index, segment in
+            segmentMarkers(
+                segment: segment,
+                isLastSegment: index == tempoMap.segments.count - 1,
                 viewport: viewport,
                 width: width,
-                visibleStartTime: visibleRange.lowerBound,
-                visibleEndTime: visibleRange.upperBound
-            ))
+                minimumLabelSpacing: minimumLabelSpacing
+            )
         }
-
-        markers.sort {
+        .sorted {
             if $0.time == $1.time {
                 return priority($0.kind) < priority($1.kind)
             }
@@ -81,10 +81,60 @@ struct TempoGridCalculator {
 
         return TempoGridResult(
             markers: markers,
-            barStep: barStep,
+            barStep: Self.barStep(for: CGFloat(secondsPerBar) * width / CGFloat(max(viewport.visibleDuration, 0.0001)), minimumLabelSpacing: minimumLabelSpacing),
             secondsPerBeat: secondsPerBeat,
             secondsPerBar: secondsPerBar
         )
+    }
+
+    private func segmentMarkers(
+        segment: TempoMapSegment,
+        isLastSegment: Bool,
+        viewport: TimelineViewport,
+        width: CGFloat,
+        minimumLabelSpacing: CGFloat
+    ) -> [TempoGridMarker] {
+        guard
+            let secondsPerBeat = segment.settings.beatDuration,
+            secondsPerBeat > 0,
+            segment.endTime > segment.startTime
+        else {
+            return []
+        }
+
+        let beatsPerBar = max(1, segment.settings.timeSignature.beatsPerBar)
+        let secondsPerBar = secondsPerBeat * Double(beatsPerBar)
+        let pixelsPerSecond = width / CGFloat(viewport.visibleDuration)
+        let pixelsPerBeat = pixelsPerSecond * CGFloat(secondsPerBeat)
+        let pixelsPerBar = pixelsPerBeat * CGFloat(beatsPerBar)
+        let barStep = Self.barStep(for: pixelsPerBar, minimumLabelSpacing: minimumLabelSpacing)
+        let visibleRange = viewport.clampedRange
+        let visibleStart = max(visibleRange.lowerBound, segment.startTime)
+        let segmentEnd = isLastSegment ? segment.endTime : segment.endTime.nextDown
+        let visibleEnd = min(visibleRange.upperBound, segmentEnd)
+        guard visibleEnd >= visibleStart else { return [] }
+
+        var markers = barMarkers(
+            segment: segment,
+            viewport: viewport,
+            width: width,
+            secondsPerBar: secondsPerBar,
+            barStep: barStep,
+            visibleStartTime: visibleStart,
+            visibleEndTime: visibleEnd
+        )
+
+        if pixelsPerBeat > Self.beatLineMinimumSpacing {
+            markers.append(contentsOf: beatMarkers(
+                settings: segment.settings,
+                viewport: viewport,
+                width: width,
+                visibleStartTime: visibleStart,
+                visibleEndTime: visibleEnd
+            ))
+        }
+
+        return markers
     }
 
     static func barStep(for pixelsPerBar: CGFloat, minimumLabelSpacing: CGFloat) -> Int {
@@ -104,25 +154,26 @@ struct TempoGridCalculator {
     }
 
     private func barMarkers(
-        settings: BeatGridSettings,
+        segment: TempoMapSegment,
         viewport: TimelineViewport,
         width: CGFloat,
         secondsPerBar: TimeInterval,
-        barStep: Int
+        barStep: Int,
+        visibleStartTime: TimeInterval,
+        visibleEndTime: TimeInterval
     ) -> [TempoGridMarker] {
         guard secondsPerBar > 0 else { return [] }
 
-        let range = viewport.clampedRange
-        let firstBeatTime = settings.firstBeatTime
-        let firstVisibleBarOrdinal = Int(floor((range.lowerBound - firstBeatTime) / secondsPerBar)) - 1
-        let lastVisibleBarOrdinal = Int(ceil((range.upperBound - firstBeatTime) / secondsPerBar)) + 1
+        let firstBeatTime = segment.settings.firstBeatTime
+        let firstVisibleBarOrdinal = Int(floor((visibleStartTime - firstBeatTime) / secondsPerBar)) - 1
+        let lastVisibleBarOrdinal = Int(ceil((visibleEndTime - firstBeatTime) / secondsPerBar)) + 1
 
         return (firstVisibleBarOrdinal...lastVisibleBarOrdinal).compactMap { barOrdinal in
             let time = firstBeatTime + Double(barOrdinal) * secondsPerBar
-            guard time >= range.lowerBound, time <= range.upperBound else { return nil }
+            guard time >= visibleStartTime, time <= visibleEndTime else { return nil }
 
             let shouldLabel = barOrdinal % barStep == 0
-            let musicalBarNumber = barNumber(for: barOrdinal)
+            let musicalBarNumber = TempoMap.displayedBarNumber(for: barOrdinal, firstBarNumber: segment.firstBarNumber)
             return TempoGridMarker(
                 time: time,
                 xPosition: viewport.xPosition(for: time, width: width),
@@ -154,10 +205,6 @@ struct TempoGridCalculator {
                     timeLabel: nil
                 )
             }
-    }
-
-    private func barNumber(for barOrdinal: Int) -> Int {
-        barOrdinal >= 0 ? barOrdinal + 1 : barOrdinal
     }
 
     private func priority(_ kind: TempoGridMarkerKind) -> Int {

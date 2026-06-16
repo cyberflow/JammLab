@@ -8,6 +8,7 @@ development artifact builds use `vMAJOR.MINOR.PATCH-dev.N`.
 
 ## Unreleased
 
+- Add tempo/time signature markers that update the timeline beat grid and metronome from their marker position.
 - Add a stem separation method picker with a two-stem vocals/instrumental option.
 - Limit microphone permission requests to the tuner and honor the selected audio input device.
 - Improve pitch analysis performance by reducing per-window allocation during track analysis.

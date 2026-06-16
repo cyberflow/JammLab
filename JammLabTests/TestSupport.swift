@@ -112,6 +112,7 @@ final class MockPlaybackEngine: AudioPlaybackControlling {
     var mainVolume: Float = AppSliderDefaults.mainTrackVolume
     var clickVolume: Float = AppSliderDefaults.clickVolume
     var clickSettings = BeatGridSettings()
+    var tempoMap: TempoMap?
     var clickSoundSettings = JammLab.ClickSoundSettings.defaultValue
     var audioOutputDeviceUID: String?
     var audioOutputDeviceUIDs: [String?] = []
@@ -185,6 +186,10 @@ final class MockPlaybackEngine: AudioPlaybackControlling {
 
     func setClickSettings(_ settings: BeatGridSettings) {
         clickSettings = settings
+    }
+
+    func setTempoMap(_ tempoMap: TempoMap) {
+        self.tempoMap = tempoMap
     }
 
     func setClickSoundSettings(_ settings: JammLab.ClickSoundSettings) {

@@ -162,6 +162,7 @@ struct ClickDelayLine {
 
 private final class ClickRenderState {
     private var settings = BeatGridSettings()
+    private var tempoSegments: [TempoMapSegment] = []
     private var soundSettings = ClickSoundSettings.defaultValue
     private var isEnabled = false
     private var volume: Float = 0.65
@@ -188,6 +189,7 @@ private final class ClickRenderState {
         self.sourceSampleRate = sourceSampleRate
         self.audioSampleRate = audioSampleRate
         sourceFrame = min(sourceFrame, self.durationFrames)
+        rebuildSingleSegmentTempoMap()
         updateDelayFrames()
         recalculateNextBeat()
     }
@@ -198,6 +200,13 @@ private final class ClickRenderState {
 
     func setSettings(_ settings: BeatGridSettings) {
         self.settings = settings
+        rebuildSingleSegmentTempoMap()
+        recalculateNextBeat()
+    }
+
+    func setTempoMap(_ tempoMap: TempoMap) {
+        tempoSegments = tempoMap.segments
+        settings = tempoMap.settings(at: max(0, min(durationSeconds, sourceFrame / max(sourceSampleRate, 1))))
         recalculateNextBeat()
     }
 
@@ -295,8 +304,9 @@ private final class ClickRenderState {
         guard let beatFrame = nextBeatFrame else { return }
 
         if sourceFrame + 0.5 >= beatFrame {
-            let beatIndex = beatIndex(for: beatFrame)
-            let isAccent = beatIndex % max(1, settings.timeSignature.beatsPerBar) == 0
+            let beatSettings = settings(forFrame: beatFrame)
+            let beatIndex = beatIndex(for: beatFrame, settings: beatSettings)
+            let isAccent = beatIndex % max(1, beatSettings.timeSignature.beatsPerBar) == 0
             activeFrequency = isAccent ? soundSettings.accentFrequencyHz : soundSettings.regularFrequencyHz
             activeGain = isAccent ? 0.95 : 0.62
             activeClickFrame = 0
@@ -337,7 +347,34 @@ private final class ClickRenderState {
     }
 
     private func nextBeatFrame(after frame: Double) -> Double? {
-        guard isEnabled, let bpm = settings.bpm, bpm > 0, sourceSampleRate > 0 else { return nil }
+        guard isEnabled, sourceSampleRate > 0 else { return nil }
+
+        let segments = tempoSegments.isEmpty ? singleSegmentTempoMap() : tempoSegments
+        for segment in segments {
+            let segmentStartFrame = segment.startTime * sourceSampleRate
+            let segmentEndFrame = min(segment.endTime * sourceSampleRate, durationFrames)
+            guard segmentEndFrame > frame - 0.5 else { continue }
+            guard let candidate = nextBeatFrame(
+                after: max(frame, segmentStartFrame),
+                settings: segment.settings,
+                segmentStartFrame: segmentStartFrame,
+                segmentEndFrame: segmentEndFrame
+            ) else {
+                continue
+            }
+            return candidate
+        }
+
+        return nil
+    }
+
+    private func nextBeatFrame(
+        after frame: Double,
+        settings: BeatGridSettings,
+        segmentStartFrame: Double,
+        segmentEndFrame: Double
+    ) -> Double? {
+        guard let bpm = settings.bpm, bpm > 0, sourceSampleRate > 0 else { return nil }
 
         let framesPerBeat = sourceSampleRate * 60 / bpm
         guard framesPerBeat > 0 else { return nil }
@@ -345,7 +382,7 @@ private final class ClickRenderState {
         let firstBeatFrame = settings.firstBeatTime * sourceSampleRate
         var beatIndex = Int(ceil((frame - firstBeatFrame) / framesPerBeat - 0.000_001))
         var candidate = firstBeatFrame + Double(beatIndex) * framesPerBeat
-        while candidate < 0 {
+        while candidate < max(0, segmentStartFrame) - 0.5 {
             beatIndex += 1
             candidate = firstBeatFrame + Double(beatIndex) * framesPerBeat
         }
@@ -353,16 +390,37 @@ private final class ClickRenderState {
             beatIndex += 1
             candidate = firstBeatFrame + Double(beatIndex) * framesPerBeat
         }
-        guard candidate < durationFrames else { return nil }
+        guard candidate < min(segmentEndFrame, durationFrames) else { return nil }
         return candidate
     }
 
-    private func beatIndex(for frame: Double) -> Int {
+    private func beatIndex(for frame: Double, settings: BeatGridSettings) -> Int {
         guard let bpm = settings.bpm, bpm > 0 else { return 0 }
         let framesPerBeat = sourceSampleRate * 60 / bpm
         guard framesPerBeat > 0 else { return 0 }
         let firstBeatFrame = settings.firstBeatTime * sourceSampleRate
         return Int(round((frame - firstBeatFrame) / framesPerBeat))
+    }
+
+    private func settings(forFrame frame: Double) -> BeatGridSettings {
+        let time = max(0, min(durationSeconds, frame / max(sourceSampleRate, 1)))
+        return (tempoSegments.isEmpty ? singleSegmentTempoMap() : tempoSegments)
+            .last(where: { $0.startTime <= time && time < $0.endTime })?
+            .settings
+            ?? settings
+    }
+
+    private var durationSeconds: TimeInterval {
+        guard sourceSampleRate > 0 else { return 0 }
+        return durationFrames / sourceSampleRate
+    }
+
+    private func rebuildSingleSegmentTempoMap() {
+        tempoSegments = singleSegmentTempoMap()
+    }
+
+    private func singleSegmentTempoMap() -> [TempoMapSegment] {
+        [TempoMapSegment(startTime: 0, endTime: durationSeconds, settings: settings)]
     }
 
     private func updateDelayFrames() {
@@ -394,6 +452,7 @@ final class MultiTrackAudioPlayer: AudioPlaybackControlling {
     private var pitchShiftSemitones: Float = 0
     private var mainVolume: Float = 1
     private var clickSettings = BeatGridSettings()
+    private var clickTempoMap: TempoMap?
     private var isClickEnabled = false
     private var clickVolume: Float = 0.65
     private var clickSoundSettings = ClickSoundSettings.defaultValue
@@ -522,6 +581,14 @@ final class MultiTrackAudioPlayer: AudioPlaybackControlling {
     func setClickSettings(_ settings: BeatGridSettings) {
         clickSettings = settings
         clickState.setSettings(settings)
+        if let clickTempoMap {
+            clickState.setTempoMap(clickTempoMap)
+        }
+    }
+
+    func setTempoMap(_ tempoMap: TempoMap) {
+        clickTempoMap = tempoMap
+        clickState.setTempoMap(tempoMap)
     }
 
     func setClickSoundSettings(_ settings: ClickSoundSettings) {
@@ -592,6 +659,9 @@ final class MultiTrackAudioPlayer: AudioPlaybackControlling {
         clickState.setPlaybackRate(playbackRate)
         clickState.setVolume(clickVolume)
         clickState.setSettings(clickSettings)
+        if let clickTempoMap {
+            clickState.setTempoMap(clickTempoMap)
+        }
         clickState.setSoundSettings(clickSoundSettings)
         clickState.setEnabled(isClickEnabled)
 
