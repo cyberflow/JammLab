@@ -31,6 +31,7 @@ struct TimelineViewState: Equatable {
     var peakformData: PeakformData?
     var duration: TimeInterval
     var currentTime: TimeInterval
+    var playbackMarkerTime: TimeInterval
     var loopStart: TimeInterval
     var loopEnd: TimeInterval
     var notes: [TimecodedNote]
@@ -47,7 +48,7 @@ struct TimelineViewState: Equatable {
 }
 
 struct TimelineViewActions {
-    var seek: (TimeInterval) -> Void
+    var locatePlaybackMarker: (TimeInterval) -> Void
     var addNote: (TimeInterval) -> Void
     var addTempoTimeSignatureMarker: (TimeInterval) -> Void
     var editNote: (TimecodedNote) -> Void
@@ -151,6 +152,7 @@ struct WaveformTimelineView: View {
                     duration: timelineDuration,
                     loopStart: state.loopStart,
                     loopEnd: state.loopEnd,
+                    playbackMarkerTime: state.playbackMarkerTime,
                     configuration: state.beatGrid,
                     onSaveLoopRegion: actions.saveLoopRegion,
                     onLoopStartChanged: actions.loopStartChanged,
@@ -245,6 +247,7 @@ struct WaveformTimelineView: View {
                     peakformData: state.peakformData,
                     duration: timelineDuration,
                     currentTime: state.currentTime,
+                    playbackMarkerTime: state.playbackMarkerTime,
                     loopStart: state.loopStart,
                     loopEnd: state.loopEnd,
                     notes: state.notes,

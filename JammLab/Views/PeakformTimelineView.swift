@@ -4,6 +4,7 @@ struct PeakformTimelineView: View {
     let peakformData: PeakformData?
     let duration: TimeInterval
     let currentTime: TimeInterval
+    let playbackMarkerTime: TimeInterval
     let loopStart: TimeInterval
     let loopEnd: TimeInterval
     let notes: [TimecodedNote]
@@ -168,6 +169,9 @@ struct PeakformTimelineView: View {
     private func drawPlaybackOverlays(in context: inout GraphicsContext, size: CGSize) {
         drawVerticalLine(time: loopStart, color: AppTheme.Timeline.loopIndicatorColor, lineWidth: AppTheme.Stroke.thick, in: &context, size: size)
         drawVerticalLine(time: loopEnd, color: AppTheme.Timeline.loopIndicatorColor, lineWidth: AppTheme.Stroke.thick, in: &context, size: size)
+        if abs(playbackMarkerTime - currentTime) > 0.0001 {
+            drawVerticalLine(time: playbackMarkerTime, color: appColors.accent, lineWidth: AppTheme.Stroke.medium, in: &context, size: size)
+        }
         drawVerticalLine(time: currentTime, color: AppTheme.Colors.playhead, lineWidth: AppTheme.Stroke.thick, in: &context, size: size)
     }
 

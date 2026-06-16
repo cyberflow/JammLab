@@ -20,11 +20,12 @@ struct JammLabProject: Codable {
     var clickVolume: Float?
     var isSnapEnabled: Bool?
     var playbackMode: PlaybackMode?
+    var playbackMarkerTime: TimeInterval?
     var stemState: StemProjectState?
     var isVideoWindowOpen: Bool?
 
     init(
-        formatVersion: Int = 7,
+        formatVersion: Int = 8,
         audioBookmarkData: Data,
         artifactRootBookmarkData: Data? = nil,
         audioDisplayName: String,
@@ -43,6 +44,7 @@ struct JammLabProject: Codable {
         clickVolume: Float? = nil,
         isSnapEnabled: Bool? = nil,
         playbackMode: PlaybackMode? = nil,
+        playbackMarkerTime: TimeInterval? = nil,
         stemState: StemProjectState? = nil,
         isVideoWindowOpen: Bool? = nil
     ) {
@@ -65,6 +67,7 @@ struct JammLabProject: Codable {
         self.clickVolume = clickVolume
         self.isSnapEnabled = isSnapEnabled
         self.playbackMode = playbackMode
+        self.playbackMarkerTime = playbackMarkerTime
         self.stemState = stemState
         self.isVideoWindowOpen = isVideoWindowOpen
     }

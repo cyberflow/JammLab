@@ -1,9 +1,9 @@
 enum ControlHelpText {
     static let goToStart = "Go to start"
     static let goToEnd = "Go to end"
-    static let play = "Play"
-    static let pause = "Pause"
-    static let stop = "Stop"
+    static let play = "Play from position marker"
+    static let pause = "Pause and move position marker here"
+    static let stop = "Stop and return to position marker"
     static let activateLoop = "Activate loop section"
     static let deactivateLoop = "Deactivate loop section"
 

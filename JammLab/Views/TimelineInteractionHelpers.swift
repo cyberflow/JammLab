@@ -31,11 +31,11 @@ extension WaveformTimelineView {
         DragGesture(minimumDistance: 0)
             .onChanged { value in
                 guard state.duration > 0 else { return }
-                actions.seek(viewport.time(forX: value.location.x, width: width))
+                actions.locatePlaybackMarker(viewport.time(forX: value.location.x, width: width))
             }
             .onEnded { value in
                 guard state.duration > 0 else { return }
-                actions.seek(viewport.time(forX: value.location.x, width: width))
+                actions.locatePlaybackMarker(viewport.time(forX: value.location.x, width: width))
             }
     }
 }

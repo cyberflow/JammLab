@@ -97,6 +97,7 @@ extension ContentView {
             peakformData: viewModel.peakformData,
             duration: viewModel.duration,
             currentTime: viewModel.currentTime,
+            playbackMarkerTime: viewModel.playbackMarkerTime,
             loopStart: viewModel.loopRegion.start,
             loopEnd: viewModel.loopRegion.end,
             notes: viewModel.notes,
@@ -115,7 +116,7 @@ extension ContentView {
 
     var timelineViewActions: TimelineViewActions {
         TimelineViewActions(
-            seek: { viewModel.seek(to: $0) },
+            locatePlaybackMarker: { viewModel.locatePlaybackMarker(to: $0) },
             addNote: { viewModel.addNote(at: $0) },
             addTempoTimeSignatureMarker: { beginAddingTempoTimeSignatureMarker(at: $0) },
             editNote: { beginEditingMarker($0) },
@@ -188,8 +189,8 @@ extension ContentView {
             pitchShiftSemitones: viewModel.pitchShiftSemitones,
             onGoToStart: { viewModel.seekToStart() },
             onGoToEnd: { viewModel.seekToEnd() },
-            onPlayPause: { viewModel.togglePlayPause() },
-            onStop: { viewModel.stop() },
+            onPlayStop: { viewModel.togglePlayStop() },
+            onPause: { viewModel.pause() },
             onLoopChanged: { viewModel.setLooping($0) },
             onPlaybackRateChanged: { viewModel.setPlaybackRate($0) },
             onPitchShiftChanged: { viewModel.setPitchShift(semitones: $0) }

@@ -20,6 +20,11 @@ struct ProjectStateNormalizer {
         return min(12, max(-12, semitones))
     }
 
+    static func normalizedTimelineTime(_ time: TimeInterval?, duration: TimeInterval) -> TimeInterval {
+        guard let time else { return 0 }
+        return max(0, min(finiteTime(time), normalizedDuration(duration)))
+    }
+
     static func normalizedBeatGridSettings(
         projectSettings: BeatGridSettings?,
         legacyTempoBPM: Double?,

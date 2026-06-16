@@ -10,8 +10,8 @@ struct TransportBarView: View {
     let pitchShiftSemitones: Float
     let onGoToStart: () -> Void
     let onGoToEnd: () -> Void
-    let onPlayPause: () -> Void
-    let onStop: () -> Void
+    let onPlayStop: () -> Void
+    let onPause: () -> Void
     let onLoopChanged: (Bool) -> Void
     let onPlaybackRateChanged: (Float) -> Void
     let onPitchShiftChanged: (Float) -> Void
@@ -26,8 +26,8 @@ struct TransportBarView: View {
                         isLooping: isLooping,
                         onGoToStart: onGoToStart,
                         onGoToEnd: onGoToEnd,
-                        onPlayPause: onPlayPause,
-                        onStop: onStop,
+                        onPlayStop: onPlayStop,
+                        onPause: onPause,
                         onLoopChanged: onLoopChanged
                     )
 

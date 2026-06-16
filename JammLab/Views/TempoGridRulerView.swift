@@ -4,11 +4,18 @@ struct TempoGridRulerView: View {
     let settings: BeatGridSettings
     let tempoMap: TempoMap
     let viewport: TimelineViewport
+    let playbackMarkerTime: TimeInterval?
 
-    init(settings: BeatGridSettings, tempoMap: TempoMap? = nil, viewport: TimelineViewport) {
+    init(
+        settings: BeatGridSettings,
+        tempoMap: TempoMap? = nil,
+        viewport: TimelineViewport,
+        playbackMarkerTime: TimeInterval? = nil
+    ) {
         self.settings = settings
         self.tempoMap = tempoMap ?? TempoMap(baseSettings: settings, markers: [], duration: viewport.duration)
         self.viewport = viewport
+        self.playbackMarkerTime = playbackMarkerTime
     }
 
     private let calculator = TempoGridCalculator()
@@ -32,7 +39,27 @@ struct TempoGridRulerView: View {
                 ForEach(result.markers.filter { $0.kind == .majorLabeled }) { marker in
                     markerLabel(marker, width: size.width)
                 }
+
+                playbackMarkerHandle(width: size.width)
             }
+        }
+    }
+
+    @ViewBuilder
+    private func playbackMarkerHandle(width: CGFloat) -> some View {
+        if let playbackMarkerTime, viewport.contains(playbackMarkerTime) {
+            PlaybackMarkerTriangle()
+                .fill(appColors.accent)
+                .frame(
+                    width: AppTheme.Timeline.playbackMarkerHandleWidth,
+                    height: AppTheme.Timeline.playbackMarkerHandleHeight
+                )
+                .position(
+                    x: viewport.xPosition(for: playbackMarkerTime, width: width),
+                    y: AppTheme.Timeline.playbackMarkerHandleHeight / 2
+                )
+                .allowsHitTesting(false)
+                .accessibilityHidden(true)
         }
     }
 
@@ -95,6 +122,17 @@ struct TempoGridRulerView: View {
                 AppTheme.Stroke.thin
             )
         }
+    }
+}
+
+private struct PlaybackMarkerTriangle: Shape {
+    func path(in rect: CGRect) -> Path {
+        var path = Path()
+        path.move(to: CGPoint(x: rect.midX, y: rect.maxY))
+        path.addLine(to: CGPoint(x: rect.minX, y: rect.minY))
+        path.addLine(to: CGPoint(x: rect.maxX, y: rect.minY))
+        path.closeSubpath()
+        return path
     }
 }
 

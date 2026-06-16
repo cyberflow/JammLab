@@ -96,13 +96,14 @@ final class StemWorkflowLogicTests: XCTestCase {
             clickVolume: 0.42,
             isSnapEnabled: true,
             playbackMode: .stems,
+            playbackMarkerTime: 12.5,
             stemState: metadata,
             isVideoWindowOpen: true
         )
 
         let decoded = try JSONDecoder().decode(JammLabProject.self, from: JSONEncoder().encode(project))
 
-        XCTAssertEqual(decoded.formatVersion, 7)
+        XCTAssertEqual(decoded.formatVersion, 8)
         XCTAssertEqual(decoded.artifactRootBookmarkData, artifactRootBookmarkData)
         XCTAssertEqual(decoded.mediaKind, .video)
         XCTAssertEqual(decoded.isLoopEnabled, true)
@@ -110,6 +111,7 @@ final class StemWorkflowLogicTests: XCTestCase {
         XCTAssertEqual(decoded.beatGridSettings?.timeSignature, TimeSignature(beatsPerBar: 7, beatUnit: 4))
         XCTAssertEqual(decoded.isClickEnabled, true)
         XCTAssertEqual(decoded.clickVolume, 0.42)
+        XCTAssertEqual(decoded.playbackMarkerTime, 12.5)
         XCTAssertEqual(decoded.isSnapEnabled, true)
         XCTAssertEqual(decoded.playbackMode, .stems)
         XCTAssertEqual(decoded.isVideoWindowOpen, true)

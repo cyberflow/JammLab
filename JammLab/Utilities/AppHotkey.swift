@@ -91,7 +91,7 @@ enum AppHotkey: CaseIterable, Hashable {
     var title: String {
         switch self {
         case .playPause:
-            return "Play / Pause"
+            return "Play / Stop"
         case .toggleLoop:
             return "Loop On / Off"
         case .setLoopStart:
@@ -118,7 +118,7 @@ enum AppHotkey: CaseIterable, Hashable {
     var detail: String {
         switch self {
         case .playPause:
-            return "Start playback or pause at the current position."
+            return "Start playback from the position marker or stop and return to it."
         case .toggleLoop:
             return "Enable or disable looping for the selected region."
         case .setLoopStart:

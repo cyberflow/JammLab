@@ -93,6 +93,7 @@ extension AudioPlayerViewModel {
         peakformData = nil
         playbackState = .idle
         currentTime = 0
+        playbackMarkerTime = 0
         duration = 0
         playbackRate = AppSliderDefaults.playbackRate
         pitchShiftSemitones = AppSliderDefaults.pitchShiftSemitones
@@ -143,6 +144,7 @@ extension AudioPlayerViewModel {
         currentProjectURL = nil
         duration = file.duration
         currentTime = 0
+        playbackMarkerTime = 0
         tempoBPM = AppDefaults.defaultTempoBPM
         beatGridSettings = BeatGridSettings(bpm: AppDefaults.defaultTempoBPM).clamped(to: file.duration)
         shouldAcceptAnalyzedTempo = true
@@ -214,7 +216,12 @@ extension AudioPlayerViewModel {
             currentProjectURL = url
             didAdoptProject = true
             duration = resolvedProjectDuration
-            currentTime = 0
+            let restoredPlaybackMarkerTime = ProjectStateNormalizer.normalizedTimelineTime(
+                project.playbackMarkerTime,
+                duration: resolvedProjectDuration
+            )
+            playbackMarkerTime = restoredPlaybackMarkerTime
+            currentTime = restoredPlaybackMarkerTime
             notes = ProjectStateNormalizer.normalizedNotes(project.notes, duration: resolvedProjectDuration)
             selectedRegionID = nil
             activeLoopRegionID = nil
@@ -229,6 +236,7 @@ extension AudioPlayerViewModel {
             playbackState = .stopped
             restoreStemState(project.stemState, audioURL: file.url, projectURL: url)
             restorePlaybackMode(restoredPlaybackMode, preservedTime: currentTime)
+            setPlaybackMarkerExactly(to: restoredPlaybackMarkerTime)
             restoreVideoWindowOpenState(file.mediaKind == .video && project.isVideoWindowOpen == true)
             isImporting = false
             clearUndoHistory()
@@ -304,6 +312,7 @@ extension AudioPlayerViewModel {
                     clickVolume: clickVolume,
                     isSnapEnabled: isSnapEnabled,
                     playbackMode: playbackMode,
+                    playbackMarkerTime: playbackMarkerTime,
                     stemState: makeStemProjectState(),
                     isVideoWindowOpen: isVideoWindowOpen
                 ))
