@@ -147,6 +147,123 @@ final class AudioTimingLogicTests: XCTestCase {
         XCTAssertEqual(events.map(\.kind), [.accent, .regular, .regular, .accent])
     }
 
+    func testTempoTimeSignatureMarkerPayloadRoundTripsThroughMetadata() throws {
+        let payload = TempoTimeSignatureMarkerPayload(
+            bpm: 123.44,
+            beatsPerBar: 9,
+            beatUnit: 8,
+            setsNewFirstBeat: true
+        )
+        let decoded = try XCTUnwrap(TempoTimeSignatureMarkerPayload(metadata: payload.metadata))
+
+        XCTAssertEqual(try XCTUnwrap(decoded.bpm), 123.4, accuracy: 0.0001)
+        XCTAssertEqual(decoded.beatsPerBar, 7)
+        XCTAssertEqual(decoded.beatUnit, 4)
+        XCTAssertTrue(decoded.setsNewFirstBeat)
+        XCTAssertEqual(decoded.metadata[TempoTimeSignatureMarkerPayload.typeKey], TempoTimeSignatureMarkerPayload.typeValue)
+        XCTAssertEqual(decoded.metadata[TempoTimeSignatureMarkerPayload.setsNewFirstBeatKey], "true")
+        XCTAssertEqual(decoded.title, "123.4 BPM · 7/4")
+        XCTAssertNil(TempoTimeSignatureMarkerPayload(metadata: [TempoTimeSignatureMarkerPayload.typeKey: TempoTimeSignatureMarkerPayload.typeValue]))
+    }
+
+    func testTempoTimeSignatureMarkerPayloadDefaultsNewFirstBeatToFalse() throws {
+        let payload = try XCTUnwrap(TempoTimeSignatureMarkerPayload(metadata: [
+            TempoTimeSignatureMarkerPayload.typeKey: TempoTimeSignatureMarkerPayload.typeValue,
+            TempoTimeSignatureMarkerPayload.bpmKey: "120.0"
+        ]))
+
+        XCTAssertFalse(payload.setsNewFirstBeat)
+    }
+
+    func testTempoTimeSignatureMarkerPayloadAllowsNewFirstBeatOnlyMarker() throws {
+        let payload = TempoTimeSignatureMarkerPayload(setsNewFirstBeat: true)
+        let decoded = try XCTUnwrap(TempoTimeSignatureMarkerPayload(metadata: payload.metadata))
+
+        XCTAssertNil(decoded.bpm)
+        XCTAssertNil(decoded.beatsPerBar)
+        XCTAssertTrue(decoded.setsNewFirstBeat)
+        XCTAssertEqual(decoded.title, "New First Beat")
+    }
+
+    func testTempoMapContinuesBarNumberingByDefaultAndInheritsUnchangedValues() {
+        let baseSettings = BeatGridSettings(bpm: 120, timeSignature: .fourFour)
+        let tempoMarker = TimecodedNote(
+            time: 2,
+            title: "3/4",
+            metadata: TempoTimeSignatureMarkerPayload(beatsPerBar: 3).metadata
+        )
+
+        let tempoMap = TempoMap(baseSettings: baseSettings, markers: [tempoMarker], duration: 8)
+
+        XCTAssertEqual(tempoMap.segments.count, 2)
+        XCTAssertEqual(tempoMap.segments[0].startTime, 0, accuracy: 0.0001)
+        XCTAssertEqual(tempoMap.segments[0].endTime, 2, accuracy: 0.0001)
+        XCTAssertEqual(tempoMap.segments[0].settings.timeSignature, .fourFour)
+        XCTAssertEqual(tempoMap.segments[1].startTime, 2, accuracy: 0.0001)
+        XCTAssertEqual(try XCTUnwrap(tempoMap.segments[1].settings.bpm), 120, accuracy: 0.0001)
+        XCTAssertEqual(tempoMap.segments[1].settings.firstBeatTime, 2, accuracy: 0.0001)
+        XCTAssertEqual(tempoMap.segments[1].firstBarNumber, 2)
+        XCTAssertEqual(tempoMap.segments[1].settings.timeSignature, TimeSignature(beatsPerBar: 3, beatUnit: 4))
+    }
+
+    func testTempoMapRestartsBarNumberingWhenMarkerSetsNewFirstBeat() {
+        let baseSettings = BeatGridSettings(bpm: 120, timeSignature: .fourFour)
+        let tempoMarker = TimecodedNote(
+            time: 2,
+            title: "3/4",
+            metadata: TempoTimeSignatureMarkerPayload(beatsPerBar: 3, setsNewFirstBeat: true).metadata
+        )
+
+        let tempoMap = TempoMap(baseSettings: baseSettings, markers: [tempoMarker], duration: 8)
+
+        XCTAssertEqual(tempoMap.segments[1].settings.firstBeatTime, 2, accuracy: 0.0001)
+        XCTAssertEqual(tempoMap.segments[1].firstBarNumber, 1)
+        XCTAssertEqual(tempoMap.segments[1].settings.timeSignature, TimeSignature(beatsPerBar: 3, beatUnit: 4))
+    }
+
+    func testBeatGridCalculatorUsesTempoMapSegmentsWithoutBoundaryDuplicates() throws {
+        let baseSettings = BeatGridSettings(bpm: 120, timeSignature: .fourFour)
+        let tempoMarker = TimecodedNote(
+            time: 2,
+            title: "60 BPM · 3/4",
+            metadata: TempoTimeSignatureMarkerPayload(bpm: 60, beatsPerBar: 3).metadata
+        )
+        let tempoMap = TempoMap(baseSettings: baseSettings, markers: [tempoMarker], duration: 6)
+
+        let markers = BeatGridCalculator().markers(tempoMap: tempoMap, visibleStartTime: 0, visibleEndTime: 6)
+
+        XCTAssertEqual(markers.map(\.time), [0, 0.5, 1.0, 1.5, 2.0, 3.0, 4.0, 5.0, 6.0])
+        XCTAssertEqual(markers.filter { $0.time == 2.0 }.count, 1)
+        XCTAssertTrue(try XCTUnwrap(markers.first { $0.time == 2.0 }).isBarStart)
+    }
+
+    func testTempoMapSnappingUsesPostMarkerTempoAfterMarker() throws {
+        let baseSettings = BeatGridSettings(bpm: 120, timeSignature: .fourFour)
+        let tempoMarker = TimecodedNote(
+            time: 2,
+            title: "60 BPM",
+            metadata: TempoTimeSignatureMarkerPayload(bpm: 60).metadata
+        )
+        let tempoMap = TempoMap(baseSettings: baseSettings, markers: [tempoMarker], duration: 6)
+
+        XCTAssertEqual(try XCTUnwrap(BeatGridCalculator().nearestBeatTime(to: 2.6, tempoMap: tempoMap)), 3.0, accuracy: 0.0001)
+    }
+
+    func testMetronomeClickSchedulerSwitchesTempoMapAtMarker() {
+        let baseSettings = BeatGridSettings(bpm: 120, timeSignature: .fourFour)
+        let tempoMarker = TimecodedNote(
+            time: 2,
+            title: "60 BPM · 3/4",
+            metadata: TempoTimeSignatureMarkerPayload(bpm: 60, beatsPerBar: 3).metadata
+        )
+        let tempoMap = TempoMap(baseSettings: baseSettings, markers: [tempoMarker], duration: 6)
+
+        let events = MetronomeClickScheduler().events(tempoMap: tempoMap, segmentStartTime: 0, segmentEndTime: 5.1)
+
+        XCTAssertEqual(events.map(\.sourceTime), [0, 0.5, 1.0, 1.5, 2.0, 3.0, 4.0, 5.0])
+        XCTAssertEqual(events.map(\.kind), [.accent, .regular, .regular, .regular, .accent, .regular, .regular, .accent])
+    }
+
     func testMetronomeClickSchedulerStartsAfterSeekSegment() {
         let settings = BeatGridSettings(
             bpm: 120,
@@ -209,6 +326,48 @@ final class AudioTimingLogicTests: XCTestCase {
         XCTAssertEqual(labeledMarkers.map(\.barBeatLabel), ["-1.1", "1.1", "2.1", "3.1", "4.1"])
         XCTAssertEqual(labeledMarkers.map(\.timeLabel), ["0:00.00", "0:02.00", "0:04.00", "0:06.00", "0:08.00"])
         XCTAssertEqual(try XCTUnwrap(labeledMarkers.first?.xPosition), 0, accuracy: 0.0001)
+    }
+
+    func testTempoGridCalculatorContinuesLabelsAtTempoMarkerByDefault() {
+        let baseSettings = BeatGridSettings(bpm: 120, timeSignature: .fourFour)
+        let tempoMarker = TimecodedNote(
+            time: 2,
+            title: "60 BPM · 3/4",
+            metadata: TempoTimeSignatureMarkerPayload(bpm: 60, beatsPerBar: 3).metadata
+        )
+        let tempoMap = TempoMap(baseSettings: baseSettings, markers: [tempoMarker], duration: 6)
+
+        let result = TempoGridCalculator().grid(
+            tempoMap: tempoMap,
+            viewport: TimelineViewport(duration: 6, visibleRange: 0...6),
+            width: 600,
+            minimumLabelSpacing: 20
+        )
+        let labeledMarkers = result.markers.filter { $0.kind == .majorLabeled }
+
+        XCTAssertEqual(labeledMarkers.map(\.time), [0, 2, 5])
+        XCTAssertEqual(labeledMarkers.map(\.barBeatLabel), ["1.1", "2.1", "3.1"])
+    }
+
+    func testTempoGridCalculatorRestartsLabelsWhenMarkerSetsNewFirstBeat() {
+        let baseSettings = BeatGridSettings(bpm: 120, timeSignature: .fourFour)
+        let tempoMarker = TimecodedNote(
+            time: 2,
+            title: "60 BPM · 3/4",
+            metadata: TempoTimeSignatureMarkerPayload(bpm: 60, beatsPerBar: 3, setsNewFirstBeat: true).metadata
+        )
+        let tempoMap = TempoMap(baseSettings: baseSettings, markers: [tempoMarker], duration: 6)
+
+        let result = TempoGridCalculator().grid(
+            tempoMap: tempoMap,
+            viewport: TimelineViewport(duration: 6, visibleRange: 0...6),
+            width: 600,
+            minimumLabelSpacing: 20
+        )
+        let labeledMarkers = result.markers.filter { $0.kind == .majorLabeled }
+
+        XCTAssertEqual(labeledMarkers.map(\.time), [0, 2, 5])
+        XCTAssertEqual(labeledMarkers.map(\.barBeatLabel), ["1.1", "1.1", "2.1"])
     }
 
     func testTempoGridCalculatorChoosesBarStepFromLabelSpacing() {

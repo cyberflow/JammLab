@@ -117,6 +117,7 @@ extension ContentView {
         TimelineViewActions(
             seek: { viewModel.seek(to: $0) },
             addNote: { viewModel.addNote(at: $0) },
+            addTempoTimeSignatureMarker: { beginAddingTempoTimeSignatureMarker(at: $0) },
             editNote: { beginEditingMarker($0) },
             deleteNote: { viewModel.deleteNote(id: $0) },
             noteColorChanged: { viewModel.updateNoteColor(id: $0, color: $1) },
@@ -210,14 +211,44 @@ extension ContentView {
     }
 
     func beginEditingMarker(_ note: TimecodedNote) {
+        if note.isTempoTimeSignatureMarker {
+            beginEditingTempoTimeSignatureMarker(note)
+            return
+        }
+
         editingMarkerID = note.id
         editingMarkerTitle = note.title
         isEditingMarker = true
     }
 
+    func beginAddingTempoTimeSignatureMarker(at time: TimeInterval) {
+        guard viewModel.duration > 0 else { return }
+
+        let clampedTime = max(0, min(time, viewModel.duration))
+        let settings = viewModel.effectiveBeatGridSettings(at: clampedTime)
+        editingTempoTimeSignatureMarkerID = nil
+        editingTempoTimeSignatureMarkerTime = clampedTime
+        editingTempoTimeSignatureBPM = settings.bpm ?? AppDefaults.defaultTempoBPM
+        editingTempoTimeSignatureBeatsPerBar = Double(settings.timeSignature.beatsPerBar)
+        editingTempoTimeSignatureSetsNewFirstBeat = false
+        isEditingTempoTimeSignatureMarker = true
+    }
+
+    func beginEditingTempoTimeSignatureMarker(_ note: TimecodedNote) {
+        let settings = viewModel.effectiveBeatGridSettings(at: note.time, excluding: note.id)
+        let payload = note.tempoTimeSignaturePayload
+        editingTempoTimeSignatureMarkerID = note.id
+        editingTempoTimeSignatureMarkerTime = note.time
+        editingTempoTimeSignatureBPM = payload?.bpm ?? settings.bpm ?? AppDefaults.defaultTempoBPM
+        editingTempoTimeSignatureBeatsPerBar = Double(payload?.beatsPerBar ?? settings.timeSignature.beatsPerBar)
+        editingTempoTimeSignatureSetsNewFirstBeat = payload?.setsNewFirstBeat ?? false
+        isEditingTempoTimeSignatureMarker = true
+    }
+
     var beatGrid: BeatGridConfiguration {
         BeatGridConfiguration(
             settings: viewModel.beatGridSettings,
+            tempoMap: viewModel.tempoMap,
             visibleRange: viewModel.timelineVisibleRange
         )
     }

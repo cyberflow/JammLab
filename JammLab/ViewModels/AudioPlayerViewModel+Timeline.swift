@@ -14,13 +14,22 @@ extension AudioPlayerViewModel {
         beatGridSettings.isManuallyAligned ? "Manual" : "Auto"
     }
 
+    var tempoMap: TempoMap {
+        TempoMap(baseSettings: beatGridSettings, markers: notes, duration: duration)
+    }
+
+    func applyTempoMapToPlaybackEngine() {
+        playbackEngine.setClickSettings(beatGridSettings)
+        playbackEngine.setTempoMap(tempoMap)
+    }
+
     func setTempoBPM(_ bpm: Double) {
         performUndoableEdit("Change Tempo") {
             tempoBPM = ProjectStateNormalizer.normalizedTempo(bpm)
             beatGridSettings.bpm = tempoBPM
             beatGridSettings.lastChangedAt = Date()
             shouldAcceptAnalyzedTempo = false
-            playbackEngine.setClickSettings(beatGridSettings)
+            applyTempoMapToPlaybackEngine()
         }
     }
 
@@ -29,7 +38,7 @@ extension AudioPlayerViewModel {
             beatGridSettings.timeSignature = TimeSignature(beatsPerBar: beatsPerBar, beatUnit: beatUnit)
             beatGridSettings.lastChangedAt = Date()
             shouldAcceptAnalyzedTempo = false
-            playbackEngine.setClickSettings(beatGridSettings)
+            applyTempoMapToPlaybackEngine()
         }
     }
 
@@ -105,7 +114,7 @@ extension AudioPlayerViewModel {
         beatGridSettings.firstBeatTime = max(0, min(time, duration))
         beatGridSettings.alignmentSource = source
         beatGridSettings.lastChangedAt = Date()
-        playbackEngine.setClickSettings(beatGridSettings)
+        applyTempoMapToPlaybackEngine()
     }
 
     func loopRegionContains(_ time: TimeInterval) -> Bool {
@@ -119,8 +128,7 @@ extension AudioPlayerViewModel {
             isSnapEnabled,
             let snappedTime = BeatGridCalculator().nearestBeatTime(
                 to: clampedTime,
-                settings: beatGridSettings,
-                duration: duration
+                tempoMap: tempoMap
             )
         else {
             return clampedTime

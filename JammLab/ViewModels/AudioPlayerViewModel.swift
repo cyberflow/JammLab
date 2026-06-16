@@ -174,6 +174,7 @@ final class AudioPlayerViewModel: ObservableObject {
         self.playbackEngine.setClickVolume(clickVolume)
         self.playbackEngine.setMainVolume(mainTrackVolume)
         self.playbackEngine.setClickSettings(beatGridSettings)
+        self.playbackEngine.setTempoMap(TempoMap(baseSettings: beatGridSettings, markers: [], duration: 0))
         self.playbackEngine.setClickSoundSettings(appSettingsStore.clickSoundSettings)
         applyAudioOutputDeviceSetting(appSettingsStore.audioDeviceSettings.outputDeviceUID)
         self.videoFollower.onWindowOpenChanged = { [weak self] isOpen in

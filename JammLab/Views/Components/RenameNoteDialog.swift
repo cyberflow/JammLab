@@ -40,6 +40,97 @@ struct RenameNoteDialog: View {
     }
 }
 
+struct TempoTimeSignatureMarkerDialog: View {
+    @Binding var bpm: Double
+    @Binding var beatsPerBar: Double
+    @Binding var setsNewFirstBeat: Bool
+    let onCancel: () -> Void
+    let onSet: () -> Void
+
+    @Environment(\.appColors) private var appColors
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: AppTheme.Spacing.panelPadding) {
+            Text("Tempo / Time Signature Marker")
+                .font(AppTheme.Typography.sectionTitle)
+                .foregroundStyle(appColors.primaryText)
+
+            VStack(alignment: .leading, spacing: AppTheme.Spacing.lg) {
+                fieldLabel("Tempo")
+                AbletonNumberField(
+                    value: $bpm,
+                    minValue: 0.1,
+                    maxValue: 999.9,
+                    defaultValue: AppDefaults.defaultTempoBPM,
+                    step: 0.1,
+                    precision: 1,
+                    accessibilityLabel: "Tempo"
+                )
+                .frame(width: 120, height: AppTheme.ControlSize.abletonNumberFieldHeight)
+
+                fieldLabel("Time Signature")
+                HStack(spacing: AppTheme.Spacing.xxs) {
+                    AbletonNumberField(
+                        value: $beatsPerBar,
+                        minValue: Double(TimeSignature.minimumBeatsPerBar),
+                        maxValue: Double(TimeSignature.maximumBeatsPerBar),
+                        defaultValue: Double(TimeSignature.fourFour.beatsPerBar),
+                        step: 1,
+                        precision: 0,
+                        accessibilityLabel: "Time Signature Beats Per Bar"
+                    )
+                    .frame(
+                        width: AppTheme.ControlSize.toolbarTimeSignatureNumberFieldWidth,
+                        height: AppTheme.ControlSize.abletonNumberFieldHeight
+                    )
+
+                    Text("/")
+                        .font(AppTheme.Typography.captionMonospaced)
+                        .foregroundStyle(appColors.secondaryText)
+
+                    Text("\(TimeSignature.supportedBeatUnit)")
+                        .font(AppTheme.Typography.captionMonospaced)
+                        .foregroundStyle(appColors.primaryText)
+                        .frame(
+                            width: AppTheme.ControlSize.toolbarTimeSignatureNumberFieldWidth,
+                            height: AppTheme.ControlSize.abletonNumberFieldHeight
+                        )
+                        .background(appColors.controlBackground)
+                        .clipShape(RoundedRectangle(cornerRadius: AppTheme.Radius.small))
+                        .accessibilityLabel("Time Signature Beat Unit")
+                        .accessibilityValue("\(TimeSignature.supportedBeatUnit)")
+                }
+
+                Toggle("Set as new first beat", isOn: $setsNewFirstBeat)
+                    .font(AppTheme.Typography.noteTitle)
+                    .foregroundStyle(appColors.primaryText)
+                    .toggleStyle(.checkbox)
+                    .help("Restart bar numbering from this marker.")
+                    .accessibilityLabel("Set as new first beat")
+            }
+
+            HStack {
+                Spacer()
+
+                Button("Cancel", action: onCancel)
+                    .keyboardShortcut(.cancelAction)
+
+                Button("Set", action: onSet)
+                    .keyboardShortcut(.defaultAction)
+            }
+        }
+        .padding(AppTheme.Spacing.panelPadding)
+        .frame(width: 360)
+        .background(appColors.panelBackground)
+    }
+
+    private func fieldLabel(_ title: String) -> some View {
+        Text(title)
+            .font(AppTheme.Typography.noteTitle)
+            .foregroundStyle(appColors.secondaryText)
+    }
+}
+
 private struct SelectAllTextField: NSViewRepresentable {
     @Binding var text: String
     let placeholder: String

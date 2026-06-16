@@ -115,7 +115,7 @@ extension AudioPlayerViewModel {
         mainTrackVolume = AppSliderDefaults.mainTrackVolume
         clickVolume = AppSliderDefaults.clickVolume
         errorMessage = nil
-        playbackEngine.setClickSettings(beatGridSettings)
+        applyTempoMapToPlaybackEngine()
         playbackEngine.setClickVolume(clickVolume)
         playbackEngine.setClickEnabled(false)
         endSecurityScopedAccess()
@@ -403,7 +403,7 @@ extension AudioPlayerViewModel {
                     beatGridSettings.firstBeatTime = 0
                     beatGridSettings.alignmentSource = .automatic
                     beatGridSettings.lastChangedAt = Date()
-                    playbackEngine.setClickSettings(beatGridSettings)
+                    applyTempoMapToPlaybackEngine()
                     playbackEngine.setClickEnabled(isClickEnabled && beatGridSettings.bpm != nil)
                     if !isProjectModified {
                         markProjectClean()

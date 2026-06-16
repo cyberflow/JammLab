@@ -118,7 +118,7 @@ extension AudioPlayerViewModel {
     func setClickEnabled(_ isEnabled: Bool) {
         performUndoableEdit("Toggle Click") {
             isClickEnabled = isEnabled && canPlay && beatGridSettings.bpm != nil
-            playbackEngine.setClickSettings(beatGridSettings)
+            applyTempoMapToPlaybackEngine()
             playbackEngine.setClickEnabled(isClickEnabled)
         }
     }
@@ -218,6 +218,7 @@ extension AudioPlayerViewModel {
         playbackEngine.setMainVolume(mainTrackVolume)
         playbackEngine.setClickVolume(clickVolume)
         playbackEngine.setClickSettings(beatGridSettings)
+        playbackEngine.setTempoMap(tempoMap)
         playbackEngine.setClickSoundSettings(appSettingsStore.clickSoundSettings)
         playbackEngine.setClickEnabled(isClickEnabled && beatGridSettings.bpm != nil)
         applyAudioOutputDeviceSetting(appSettingsStore.audioDeviceSettings.outputDeviceUID)

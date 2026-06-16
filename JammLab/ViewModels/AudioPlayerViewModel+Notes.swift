@@ -17,6 +17,19 @@ extension AudioPlayerViewModel {
         addNote(at: currentTime)
     }
 
+    func addTempoTimeSignatureMarkerAtCurrentTime(
+        bpm: Double,
+        beatsPerBar: Int,
+        setsNewFirstBeat: Bool = false
+    ) {
+        addTempoTimeSignatureMarker(
+            at: currentTime,
+            bpm: bpm,
+            beatsPerBar: beatsPerBar,
+            setsNewFirstBeat: setsNewFirstBeat
+        )
+    }
+
     func addNote(at time: TimeInterval) {
         performUndoableEdit("Add Marker") {
             guard duration > 0 else { return }
@@ -28,6 +41,33 @@ extension AudioPlayerViewModel {
             )
             notes.append(note)
             notes.sort { $0.time < $1.time }
+        }
+    }
+
+    func addTempoTimeSignatureMarker(
+        at time: TimeInterval,
+        bpm: Double,
+        beatsPerBar: Int,
+        setsNewFirstBeat: Bool = false
+    ) {
+        performUndoableEdit("Add Tempo / Time Signature Marker") {
+            guard duration > 0 else { return }
+
+            let clampedTime = snappedTimelineTime(time)
+            guard let payload = tempoMarkerPayload(
+                at: clampedTime,
+                bpm: bpm,
+                beatsPerBar: beatsPerBar,
+                setsNewFirstBeat: setsNewFirstBeat
+            ) else { return }
+            let note = TimecodedNote(
+                time: clampedTime,
+                title: payload.title,
+                metadata: payload.metadata
+            )
+            notes.append(note)
+            notes.sort { $0.time < $1.time }
+            applyTempoMapToPlaybackEngine()
         }
     }
 
@@ -120,10 +160,40 @@ extension AudioPlayerViewModel {
     func updateNoteTitle(id: TimecodedNote.ID, title: String) {
         performUndoableEdit("Rename Marker") {
             guard let index = notes.firstIndex(where: { $0.id == id }) else { return }
+            guard !notes[index].isTempoTimeSignatureMarker else { return }
 
             let trimmedTitle = title.trimmingCharacters(in: .whitespacesAndNewlines)
             let fallbackTitle = notes[index].isRegion ? "Region" : "Marker"
             notes[index].title = trimmedTitle.isEmpty ? fallbackTitle : trimmedTitle
+        }
+    }
+
+    func updateTempoTimeSignatureMarker(
+        id: TimecodedNote.ID,
+        bpm: Double,
+        beatsPerBar: Int,
+        setsNewFirstBeat: Bool = false
+    ) {
+        performUndoableEdit("Edit Tempo / Time Signature Marker") {
+            guard let index = notes.firstIndex(where: { $0.id == id && $0.isTempoTimeSignatureMarker }) else { return }
+
+            let time = notes[index].time
+            guard let payload = tempoMarkerPayload(
+                at: time,
+                bpm: bpm,
+                beatsPerBar: beatsPerBar,
+                setsNewFirstBeat: setsNewFirstBeat,
+                excluding: id
+            ) else {
+                notes.remove(at: index)
+                applyTempoMapToPlaybackEngine()
+                return
+            }
+
+            notes[index].metadata = payload.metadata
+            notes[index].title = payload.title
+            notes.sort { $0.time < $1.time }
+            applyTempoMapToPlaybackEngine()
         }
     }
 
@@ -152,6 +222,9 @@ extension AudioPlayerViewModel {
 
             notes[index].time = snappedTimelineTime(time)
             notes.sort { $0.time < $1.time }
+            if notes.contains(where: { $0.id == id && $0.isTempoTimeSignatureMarker }) {
+                applyTempoMapToPlaybackEngine()
+            }
         }
     }
 
@@ -167,7 +240,39 @@ extension AudioPlayerViewModel {
                 activeLoopRegionID = nil
                 applyLoopConfiguration()
             }
+
+            applyTempoMapToPlaybackEngine()
         }
+    }
+
+    func effectiveBeatGridSettings(at time: TimeInterval, excluding noteID: TimecodedNote.ID? = nil) -> BeatGridSettings {
+        let sourceNotes = notes.filter { note in
+            guard let noteID else { return true }
+            return note.id != noteID
+        }
+        let lookupTime = max(0, time - 0.000_001)
+        return TempoMap(baseSettings: beatGridSettings, markers: sourceNotes, duration: duration)
+            .settings(at: lookupTime)
+    }
+
+    private func tempoMarkerPayload(
+        at time: TimeInterval,
+        bpm: Double,
+        beatsPerBar: Int,
+        setsNewFirstBeat: Bool,
+        excluding noteID: TimecodedNote.ID? = nil
+    ) -> TempoTimeSignatureMarkerPayload? {
+        let effectiveSettings = effectiveBeatGridSettings(at: time, excluding: noteID)
+        let normalizedBPM = ProjectStateNormalizer.normalizedTempo(bpm)
+        let normalizedBeatsPerBar = TimeSignature.normalizedBeatsPerBar(beatsPerBar)
+        let bpmChanged = normalizedBPM != nil && abs((normalizedBPM ?? 0) - (effectiveSettings.bpm ?? 0)) > 0.0001
+        let signatureChanged = normalizedBeatsPerBar != effectiveSettings.timeSignature.beatsPerBar
+        let payload = TempoTimeSignatureMarkerPayload(
+            bpm: bpmChanged ? normalizedBPM : nil,
+            beatsPerBar: signatureChanged ? normalizedBeatsPerBar : nil,
+            setsNewFirstBeat: setsNewFirstBeat
+        )
+        return payload.hasChanges ? payload : nil
     }
 
     func updateLoopStart(_ start: TimeInterval) {

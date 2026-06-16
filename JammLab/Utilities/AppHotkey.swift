@@ -7,6 +7,7 @@ enum AppHotkey: CaseIterable, Hashable {
     case setLoopStart
     case setLoopEnd
     case addNote
+    case addTempoTimeSignatureMarker
     case setBeatOne
     case toggleClick
     case toggleSnap
@@ -26,6 +27,8 @@ enum AppHotkey: CaseIterable, Hashable {
             self = .toggleSnap
         case (9, [.option]):
             self = .toggleVideoWindow
+        case (8, [.shift]):
+            self = .addTempoTimeSignatureMarker
         default:
             guard relevantModifiers.isEmpty else {
                 return nil
@@ -70,6 +73,8 @@ enum AppHotkey: CaseIterable, Hashable {
             return "]"
         case .addNote:
             return "M"
+        case .addTempoTimeSignatureMarker:
+            return "Shift+C"
         case .setBeatOne:
             return "B"
         case .toggleClick:
@@ -95,6 +100,8 @@ enum AppHotkey: CaseIterable, Hashable {
             return "Set Loop End"
         case .addNote:
             return "Add Marker"
+        case .addTempoTimeSignatureMarker:
+            return "Add Tempo / Time Signature Marker"
         case .setBeatOne:
             return "Set Beat 1"
         case .toggleClick:
@@ -120,6 +127,8 @@ enum AppHotkey: CaseIterable, Hashable {
             return "Move loop end to the current playback position."
         case .addNote:
             return "Add a timecoded note at the current playback position."
+        case .addTempoTimeSignatureMarker:
+            return "Add a tempo or time signature change marker at the current playback position."
         case .setBeatOne:
             return "Set the current playback position as the first strong beat."
         case .toggleClick:

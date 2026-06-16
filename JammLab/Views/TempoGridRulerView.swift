@@ -2,7 +2,14 @@ import SwiftUI
 
 struct TempoGridRulerView: View {
     let settings: BeatGridSettings
+    let tempoMap: TempoMap
     let viewport: TimelineViewport
+
+    init(settings: BeatGridSettings, tempoMap: TempoMap? = nil, viewport: TimelineViewport) {
+        self.settings = settings
+        self.tempoMap = tempoMap ?? TempoMap(baseSettings: settings, markers: [], duration: viewport.duration)
+        self.viewport = viewport
+    }
 
     private let calculator = TempoGridCalculator()
     @Environment(\.appColors) private var appColors
@@ -11,7 +18,7 @@ struct TempoGridRulerView: View {
         GeometryReader { proxy in
             let size = proxy.size
             let result = calculator.grid(
-                settings: settings,
+                tempoMap: tempoMap,
                 viewport: viewport,
                 width: size.width,
                 minimumLabelSpacing: AppTheme.Timeline.rulerMinimumLabelSpacing

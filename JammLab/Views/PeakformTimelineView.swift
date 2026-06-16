@@ -9,7 +9,7 @@ struct PeakformTimelineView: View {
     let notes: [TimecodedNote]
     let selectedRegionID: TimecodedNote.ID?
     let sections: [TimelineSection]
-    let beatGridSettings: BeatGridSettings
+    let tempoMap: TempoMap
     let visibleStartTime: TimeInterval
     let visibleEndTime: TimeInterval
     let isLoading: Bool
@@ -81,11 +81,12 @@ struct PeakformTimelineView: View {
     }
 
     private func drawPreRollArea(in context: inout GraphicsContext, size: CGSize) {
-        guard beatGridSettings.firstBeatTime > viewport.clampedRange.lowerBound else { return }
+        let firstBeatTime = tempoMap.segments.first?.settings.firstBeatTime ?? 0
+        guard firstBeatTime > viewport.clampedRange.lowerBound else { return }
 
         if let rect = rect(
             for: viewport.clampedRange.lowerBound,
-            end: min(beatGridSettings.firstBeatTime, viewport.clampedRange.upperBound),
+            end: min(firstBeatTime, viewport.clampedRange.upperBound),
             size: size
         ) {
             context.fill(Path(rect), with: .color(appColors.secondaryText.opacity(AppTheme.Timeline.preRollOpacity)))
@@ -124,7 +125,7 @@ struct PeakformTimelineView: View {
 
     private func drawBeatGrid(in context: inout GraphicsContext, size: CGSize) {
         let result = TempoGridCalculator().grid(
-            settings: beatGridSettings,
+            tempoMap: tempoMap,
             viewport: viewport,
             width: size.width,
             minimumLabelSpacing: AppTheme.Timeline.rulerMinimumLabelSpacing
