@@ -11,7 +11,7 @@ enum NotesFilter: String, CaseIterable, Identifiable {
     var title: String {
         switch self {
         case .notes:
-            return "Notes"
+            return "All"
         case .markers:
             return "Markers"
         case .regions:
