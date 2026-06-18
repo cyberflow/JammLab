@@ -1,3 +1,4 @@
+import AVFoundation
 import XCTest
 @testable import JammLab
 
@@ -17,6 +18,19 @@ extension XCTestCase {
     func temporaryFile(in directory: URL, name: String, contents: String) throws -> URL {
         let url = directory.appendingPathComponent(name)
         try contents.data(using: .utf8)?.write(to: url)
+        return url
+    }
+
+    func temporaryAudioFile(duration: TimeInterval = 0.5, namePrefix: String = "audio") throws -> URL {
+        let directory = temporaryDirectory()
+        try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
+        let url = directory.appendingPathComponent("\(namePrefix)-\(UUID().uuidString).caf")
+        let format = try XCTUnwrap(AVAudioFormat(standardFormatWithSampleRate: 44_100, channels: 1))
+        let file = try AVAudioFile(forWriting: url, settings: format.settings)
+        let frameCount = AVAudioFrameCount((duration * format.sampleRate).rounded())
+        let buffer = try XCTUnwrap(AVAudioPCMBuffer(pcmFormat: format, frameCapacity: frameCount))
+        buffer.frameLength = frameCount
+        try file.write(from: buffer)
         return url
     }
 

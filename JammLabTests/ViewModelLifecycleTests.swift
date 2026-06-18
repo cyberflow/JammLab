@@ -1,4 +1,3 @@
-import AVFoundation
 import XCTest
 @testable import JammLab
 
@@ -1300,18 +1299,6 @@ final class ViewModelLifecycleTests: XCTestCase {
             projectService: projectService,
             artifactStore: artifactStore
         )
-    }
-
-    private func temporaryAudioFile(duration: TimeInterval = 0.5) throws -> URL {
-        let url = FileManager.default.temporaryDirectory
-            .appendingPathComponent("jammlab-video-window-\(UUID().uuidString).caf")
-        let format = AVAudioFormat(standardFormatWithSampleRate: 44_100, channels: 1)!
-        let file = try AVAudioFile(forWriting: url, settings: format.settings)
-        let frameCount = AVAudioFrameCount((duration * format.sampleRate).rounded())
-        let buffer = AVAudioPCMBuffer(pcmFormat: format, frameCapacity: frameCount)!
-        buffer.frameLength = frameCount
-        try file.write(from: buffer)
-        return url
     }
 
     @MainActor

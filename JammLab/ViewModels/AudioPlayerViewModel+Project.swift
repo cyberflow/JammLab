@@ -88,6 +88,16 @@ extension AudioPlayerViewModel {
         cancelBackgroundWork()
         clearUndoHistory()
 
+        resetForNewProject()
+        applyTempoMapToPlaybackEngine()
+        playbackEngine.setClickVolume(clickVolume)
+        playbackEngine.setClickEnabled(false)
+        endSecurityScopedAccess()
+        endProjectSecurityScopedAccess()
+        markProjectClean()
+    }
+
+    private func resetForNewProject() {
         importedFile = nil
         analysisResult = nil
         peakformData = nil
@@ -116,12 +126,6 @@ extension AudioPlayerViewModel {
         mainTrackVolume = AppSliderDefaults.mainTrackVolume
         clickVolume = AppSliderDefaults.clickVolume
         errorMessage = nil
-        applyTempoMapToPlaybackEngine()
-        playbackEngine.setClickVolume(clickVolume)
-        playbackEngine.setClickEnabled(false)
-        endSecurityScopedAccess()
-        endProjectSecurityScopedAccess()
-        markProjectClean()
     }
 
     func loadImportedAudio(_ file: ImportedAudioFile) throws {
@@ -141,6 +145,18 @@ extension AudioPlayerViewModel {
         performWithoutVideoWindowDirtyTracking {
             videoFollower.load(videoURL: file.videoURL)
         }
+        resetForImportedFile(file)
+        clearUndoHistory()
+
+        _ = restoreCachedStems(for: file.url)
+        restoreVideoWindowOpenState(file.mediaKind == .video)
+        markProjectClean()
+
+        buildPeakform(file: file)
+        analyze(file: file)
+    }
+
+    private func resetForImportedFile(_ file: ImportedAudioFile) {
         currentProjectURL = nil
         duration = file.duration
         currentTime = 0
@@ -156,14 +172,6 @@ extension AudioPlayerViewModel {
         playbackState = .stopped
         resetStemState()
         isImporting = false
-        clearUndoHistory()
-
-        _ = restoreCachedStems(for: file.url)
-        restoreVideoWindowOpenState(file.mediaKind == .video)
-        markProjectClean()
-
-        buildPeakform(file: file)
-        analyze(file: file)
     }
 
     func openProject(at url: URL) async {

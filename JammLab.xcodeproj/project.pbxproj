@@ -34,6 +34,12 @@
 		9F8B01032C10000100112233 /* PeakformTimelineView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9F8B00032C10000100112233 /* PeakformTimelineView.swift */; };
 		9F8B01042C10000100112233 /* TimelineTracks.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9F8B00042C10000100112233 /* TimelineTracks.swift */; };
 		9F8B01052C10000100112233 /* TimelineInteractionHelpers.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9F8B00052C10000100112233 /* TimelineInteractionHelpers.swift */; };
+		9FDD01012D60000100112233 /* TimelineContextMenus.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9FDD00012D60000100112233 /* TimelineContextMenus.swift */; };
+		9FDD01022D60000100112233 /* TimelineScrollCaptureView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9FDD00022D60000100112233 /* TimelineScrollCaptureView.swift */; };
+		9FDD01032D60000100112233 /* RegionInteractionOverlay.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9FDD00032D60000100112233 /* RegionInteractionOverlay.swift */; };
+		9FDD01042D60000100112233 /* NoteColorPresentation.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9FDD00042D60000100112233 /* NoteColorPresentation.swift */; };
+		9FDD01052D60000100112233 /* SettingsSections.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9FDD00052D60000100112233 /* SettingsSections.swift */; };
+		9FDD01062D60000100112233 /* SettingsContentViews.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9FDD00062D60000100112233 /* SettingsContentViews.swift */; };
 		9F8B01062C10000100112233 /* TestSupport.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9F8B00072C10000100112233 /* TestSupport.swift */; };
 		9FCD01012D50000100112233 /* PerformanceBenchmarkTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9FCD00012D50000100112233 /* PerformanceBenchmarkTests.swift */; };
 		9FCD01022D50000100112233 /* TestSupport.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9F8B00072C10000100112233 /* TestSupport.swift */; };
@@ -172,6 +178,12 @@
 		9F8B00032C10000100112233 /* PeakformTimelineView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PeakformTimelineView.swift; sourceTree = "<group>"; };
 		9F8B00042C10000100112233 /* TimelineTracks.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TimelineTracks.swift; sourceTree = "<group>"; };
 		9F8B00052C10000100112233 /* TimelineInteractionHelpers.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TimelineInteractionHelpers.swift; sourceTree = "<group>"; };
+		9FDD00012D60000100112233 /* TimelineContextMenus.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TimelineContextMenus.swift; sourceTree = "<group>"; };
+		9FDD00022D60000100112233 /* TimelineScrollCaptureView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TimelineScrollCaptureView.swift; sourceTree = "<group>"; };
+		9FDD00032D60000100112233 /* RegionInteractionOverlay.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RegionInteractionOverlay.swift; sourceTree = "<group>"; };
+		9FDD00042D60000100112233 /* NoteColorPresentation.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NoteColorPresentation.swift; sourceTree = "<group>"; };
+		9FDD00052D60000100112233 /* SettingsSections.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsSections.swift; sourceTree = "<group>"; };
+		9FDD00062D60000100112233 /* SettingsContentViews.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsContentViews.swift; sourceTree = "<group>"; };
 		9F8B00062C10000100112233 /* JammLabTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = JammLabTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		9F8B00072C10000100112233 /* TestSupport.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TestSupport.swift; sourceTree = "<group>"; };
 		9FCD00012D50000100112233 /* PerformanceBenchmarkTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PerformanceBenchmarkTests.swift; sourceTree = "<group>"; };
@@ -376,10 +388,16 @@
 				9F8C03022C20000100112233 /* Components */,
 				9F8A00102C00000100112233 /* HotkeysHelpView.swift */,
 				9F8C00062C20000100112233 /* MainWorkspacePanels.swift */,
+				9FDD00042D60000100112233 /* NoteColorPresentation.swift */,
 				9F8B00032C10000100112233 /* PeakformTimelineView.swift */,
+				9FDD00032D60000100112233 /* RegionInteractionOverlay.swift */,
+				9FDD00062D60000100112233 /* SettingsContentViews.swift */,
+				9FDD00052D60000100112233 /* SettingsSections.swift */,
 				9F9400022CA0000100112233 /* SettingsView.swift */,
 				9F9100022C70000100112233 /* TempoGridRulerView.swift */,
+				9FDD00012D60000100112233 /* TimelineContextMenus.swift */,
 				9F8B00052C10000100112233 /* TimelineInteractionHelpers.swift */,
+				9FDD00022D60000100112233 /* TimelineScrollCaptureView.swift */,
 				9F8B00042C10000100112233 /* TimelineTracks.swift */,
 				9FBA00042D40000100112233 /* TunerView.swift */,
 				9F8A00082C00000100112233 /* WaveformTimelineView.swift */,
@@ -711,10 +729,14 @@
 				9F8D01022C30000100112233 /* StemSeparationService.swift in Sources */,
 				9F9101012C70000100112233 /* TempoGridCalculator.swift in Sources */,
 				9F9101022C70000100112233 /* TempoGridRulerView.swift in Sources */,
+				9FDD01062D60000100112233 /* SettingsContentViews.swift in Sources */,
+				9FDD01052D60000100112233 /* SettingsSections.swift in Sources */,
 				9F9401032CA0000100112233 /* SettingsView.swift in Sources */,
 				9F8A01092C00000100112233 /* TimeFormatter.swift in Sources */,
 				9F8A01102C00000100112233 /* TimecodedNote.swift in Sources */,
+				9FDD01012D60000100112233 /* TimelineContextMenus.swift in Sources */,
 				9F8B01052C10000100112233 /* TimelineInteractionHelpers.swift in Sources */,
+				9FDD01022D60000100112233 /* TimelineScrollCaptureView.swift in Sources */,
 				9F8B01042C10000100112233 /* TimelineTracks.swift in Sources */,
 				9F8B01012C10000100112233 /* TimelineViewport.swift in Sources */,
 				9F9701012CD0000100112233 /* TimelineViewportControlBar.swift in Sources */,
@@ -726,6 +748,8 @@
 				9FBA01042D40000100112233 /* TunerView.swift in Sources */,
 				9FAE01012D01000100112233 /* VideoAudioExtractionService.swift in Sources */,
 				9FAE01022D01000100112233 /* VideoFollowerController.swift in Sources */,
+				9FDD01032D60000100112233 /* RegionInteractionOverlay.swift in Sources */,
+				9FDD01042D60000100112233 /* NoteColorPresentation.swift in Sources */,
 				9FB204012D32000100112233 /* CachedPeakformProvider.swift in Sources */,
 				9FB204052D32000100112233 /* PeakformBinaryCache.swift in Sources */,
 				9FB204032D32000100112233 /* PeakformGenerator.swift in Sources */,

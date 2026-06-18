@@ -406,10 +406,8 @@ final class StemSeparationService {
     }
 
     private func discoverCachedMetadata(matching fingerprint: StemSourceFingerprint, method: StemSeparationMethod? = nil) throws -> StemCacheMetadata? {
-        let rootDirectory = applicationSupportDirectory()
-            .appendingPathComponent(StemJobFiles.cacheDirectoryName, isDirectory: true)
         let cacheDirectories = ((try? fileManager.contentsOfDirectory(
-            at: rootDirectory,
+            at: cacheRootDirectory(),
             includingPropertiesForKeys: [.isDirectoryKey]
         )) ?? [])
             .filter { url in
@@ -436,7 +434,7 @@ final class StemSeparationService {
         allowsPathMismatch: Bool = false,
         method: StemSeparationMethod? = nil
     ) throws -> StemCacheMetadata? {
-        let metadataURL = cacheDirectory.appendingPathComponent("metadata.json")
+        let metadataURL = metadataURL(in: cacheDirectory)
         guard fileManager.fileExists(atPath: metadataURL.path) else { return nil }
 
         let data = try Data(contentsOf: metadataURL)
@@ -523,9 +521,17 @@ final class StemSeparationService {
     }
 
     private func cacheDirectory(for cacheKey: String) -> URL {
+        cacheRootDirectory()
+            .appendingPathComponent(cacheKey, isDirectory: true)
+    }
+
+    private func cacheRootDirectory() -> URL {
         applicationSupportDirectory()
             .appendingPathComponent(StemJobFiles.cacheDirectoryName, isDirectory: true)
-            .appendingPathComponent(cacheKey, isDirectory: true)
+    }
+
+    private func metadataURL(in cacheDirectory: URL) -> URL {
+        cacheDirectory.appendingPathComponent("metadata.json")
     }
 
     private func jobsDirectory() -> URL {

@@ -18,10 +18,6 @@ struct BeatGridConfiguration: Equatable {
         self.visibleRange = visibleRange
     }
 
-    var meterText: String {
-        settings.timeSignature.displayText
-    }
-
     func viewport(duration: TimeInterval) -> TimelineViewport {
         TimelineViewport(duration: duration, visibleRange: visibleRange ?? 0...duration)
     }
