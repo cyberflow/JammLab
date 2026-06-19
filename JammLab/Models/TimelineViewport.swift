@@ -100,7 +100,32 @@ struct TimelineViewport: Equatable {
         return TimelineViewport(duration: duration, visibleRange: lower...(lower + length))
     }
 
+    func shouldFollowPlaybackTime(_ time: TimeInterval) -> Bool {
+        guard duration > 0, visibleDuration > 0, visibleDuration < duration else { return false }
+
+        let range = clampedRange
+        let followThreshold = range.lowerBound + visibleDuration * Self.playbackFollowRightEdgeRatio
+        return time < range.lowerBound || time >= followThreshold - Self.playbackFollowComparisonTolerance
+    }
+
+    func positionedWithTimeNearLeadingEdge(_ time: TimeInterval) -> TimelineViewport {
+        guard duration > 0 else { return TimelineViewport(duration: 0) }
+
+        let length = min(visibleDuration, duration)
+        guard length > 0 else { return TimelineViewport(duration: duration) }
+        guard length < duration else { return TimelineViewport(duration: duration) }
+
+        let clampedTime = max(0, min(time, duration))
+        let leadingInset = length * Self.playbackFollowLeadingInsetRatio
+        let lower = max(0, min(clampedTime - leadingInset, duration - length))
+        return TimelineViewport(duration: duration, visibleRange: lower...(lower + length))
+    }
+
     private func boundedWindowLength(_ requestedLength: TimeInterval) -> TimeInterval {
         max(minimumWindowLength, min(requestedLength, duration))
     }
+
+    private static let playbackFollowLeadingInsetRatio: TimeInterval = 0.08
+    private static let playbackFollowRightEdgeRatio: TimeInterval = 0.92
+    private static let playbackFollowComparisonTolerance: TimeInterval = 0.000001
 }

@@ -8,6 +8,7 @@ development artifact builds use `vMAJOR.MINOR.PATCH-dev.N`.
 
 ## Unreleased
 
+- Keep the playback playhead visible while playing a zoomed timeline and return the view to the saved position marker when playback stops.
 - Add a DAW-style playback position marker with a visible time-track handle that is saved in projects and separates Play, Stop, and Pause behavior.
 - Add tempo/time signature markers that update the timeline beat grid and metronome from their marker position.
 - Add a stem separation method picker with a two-stem vocals/instrumental option.
