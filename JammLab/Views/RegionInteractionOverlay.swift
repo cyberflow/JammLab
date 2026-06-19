@@ -8,7 +8,7 @@ struct RegionInteractionOverlay: View {
     let isSelected: Bool
     let allowsBodyDrag: Bool
     let onSelect: (TimecodedNote.ID) -> Void
-    let onActivate: (TimecodedNote.ID) -> Void
+    let onLocateStart: (TimecodedNote.ID) -> Void
     let onFocus: (TimecodedNote.ID) -> Void
     let onEdit: (TimecodedNote) -> Void
     let onDelete: (TimecodedNote.ID) -> Void
@@ -98,7 +98,7 @@ struct RegionInteractionOverlay: View {
     private var doubleClickGesture: some Gesture {
         TapGesture(count: 2)
             .onEnded {
-                onActivate(note.id)
+                onLocateStart(note.id)
             }
     }
 

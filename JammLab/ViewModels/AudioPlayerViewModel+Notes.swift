@@ -130,6 +130,14 @@ extension AudioPlayerViewModel {
         }
     }
 
+    func locateRegionStart(id: TimecodedNote.ID) {
+        guard let note = notes.first(where: { $0.id == id && $0.isRegion }) else { return }
+
+        selectedRegionID = id
+        setPlaybackMarkerExactly(to: note.time)
+        refreshProjectModifiedState()
+    }
+
     func focusRegion(id: TimecodedNote.ID) {
         guard notes.contains(where: { $0.id == id && $0.isRegion }) else { return }
         selectedRegionID = id
@@ -149,7 +157,6 @@ extension AudioPlayerViewModel {
             notes.sort { $0.time < $1.time }
 
             // Region editing is intentionally independent from the current loop range.
-            // Double-click a region on the region track when it should become the active loop again.
             if activeLoopRegionID == id {
                 activeLoopRegionID = nil
                 applyLoopConfiguration()

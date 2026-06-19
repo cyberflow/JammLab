@@ -54,7 +54,7 @@ struct TimelineViewActions {
     var markerTimeChanged: (TimecodedNote.ID, TimeInterval) -> Void
     var saveLoopRegion: () -> Void
     var selectRegion: (TimecodedNote.ID) -> Void
-    var activateRegion: (TimecodedNote.ID) -> Void
+    var locateRegionStart: (TimecodedNote.ID) -> Void
     var focusRegion: (TimecodedNote.ID) -> Void
     var regionRangeChanged: (TimecodedNote.ID, TimeInterval, TimeInterval) -> Void
     var loopStartChanged: (TimeInterval) -> Void
@@ -120,7 +120,7 @@ struct WaveformTimelineView: View {
                     selectedRegionID: state.selectedRegionID,
                     configuration: state.beatGrid,
                     onSelectRegion: actions.selectRegion,
-                    onActivateRegion: actions.activateRegion,
+                    onLocateRegionStart: actions.locateRegionStart,
                     onFocusRegion: actions.focusRegion,
                     onEditRegion: actions.editNote,
                     onDeleteRegion: actions.deleteNote,

@@ -1221,6 +1221,38 @@ final class ViewModelLifecycleTests: XCTestCase {
     }
 
     @MainActor
+    func testLocateRegionStartSelectsRegionAndMovesPlaybackMarkerWithoutActivatingLoop() throws {
+        let audioURL = try temporaryAudioFile(duration: 6)
+        defer { try? FileManager.default.removeItem(at: audioURL) }
+        let engine = MockPlaybackEngine()
+        let viewModel = AudioPlayerViewModel(
+            analyzer: MockAnalyzer(),
+            peakformProvider: MockPeakformProvider(),
+            playbackEngine: engine
+        )
+        let media = ImportedAudioFile(url: audioURL, displayName: "region.wav", duration: 6)
+        try viewModel.loadImportedAudio(media)
+        viewModel.isSnapEnabled = true
+        viewModel.beatGridSettings = BeatGridSettings(bpm: 120, firstBeatTime: 0, timeSignature: .fourFour)
+        let region = TimecodedNote(kind: .region, time: 2.3, duration: 1.4, title: "Region")
+        viewModel.notes = [region]
+        viewModel.loopRegion = LoopRegion(start: 0, end: 6)
+        viewModel.activeLoopRegionID = nil
+        viewModel.markProjectClean()
+
+        viewModel.locateRegionStart(id: region.id)
+
+        XCTAssertEqual(viewModel.selectedRegionID, region.id)
+        XCTAssertNil(viewModel.activeLoopRegionID)
+        XCTAssertEqual(viewModel.loopRegion.start, 0, accuracy: 0.0001)
+        XCTAssertEqual(viewModel.loopRegion.end, 6, accuracy: 0.0001)
+        XCTAssertEqual(viewModel.playbackMarkerTime, 2.3, accuracy: 0.0001)
+        XCTAssertEqual(viewModel.currentTime, 2.3, accuracy: 0.0001)
+        XCTAssertEqual(engine.currentTime, 2.3, accuracy: 0.0001)
+        XCTAssertTrue(viewModel.isProjectModified)
+    }
+
+    @MainActor
     func testSaveProjectForClosePersistsAndClearsModifiedState() async throws {
         let audioURL = try temporaryAudioFile()
         let projectURL = temporaryDirectory().appendingPathComponent("save-close.jammlab")
