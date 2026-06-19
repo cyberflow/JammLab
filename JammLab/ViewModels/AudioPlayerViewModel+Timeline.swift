@@ -68,19 +68,21 @@ extension AudioPlayerViewModel {
     }
 
     func zoomInTimeline() {
-        timelineVisibleRange = timelineViewport
+        let range = timelineViewport
             .zoomed(to: currentTimelineWindowLength * 0.5, centeredAt: preferredZoomCenter)
             .clampedRange
+        setUserTimelineVisibleRange(range)
     }
 
     func zoomOutTimeline() {
-        timelineVisibleRange = timelineViewport
+        let range = timelineViewport
             .zoomed(to: currentTimelineWindowLength * 2, centeredAt: preferredZoomCenter)
             .clampedRange
+        setUserTimelineVisibleRange(range)
     }
 
     func setTimelineVisibleRange(_ range: ClosedRange<TimeInterval>) {
-        timelineVisibleRange = TimelineViewport(duration: duration, visibleRange: range).clampedRange
+        setUserTimelineVisibleRange(TimelineViewport(duration: duration, visibleRange: range).clampedRange)
     }
 
     func panTimelineLeft() {
@@ -96,9 +98,10 @@ extension AudioPlayerViewModel {
 
         if abs(deltaY) > 0.01 {
             let zoomFactor = min(1.18, max(0.84, exp(-deltaY * 0.012)))
-            timelineVisibleRange = timelineViewport
+            let range = timelineViewport
                 .zoomed(to: currentTimelineWindowLength * zoomFactor, anchoredAt: anchorTime ?? preferredZoomCenter)
                 .clampedRange
+            setUserTimelineVisibleRange(range)
         }
 
         if abs(deltaX) > 0.01 {
@@ -166,10 +169,17 @@ extension AudioPlayerViewModel {
     }
 
     func panTimeline(by delta: TimeInterval) {
-        timelineVisibleRange = timelineViewport.panned(by: delta).clampedRange
+        setUserTimelineVisibleRange(timelineViewport.panned(by: delta).clampedRange)
     }
 
     var timelineViewport: TimelineViewport {
         TimelineViewport(duration: duration, visibleRange: timelineVisibleRange)
+    }
+
+    func setUserTimelineVisibleRange(_ range: ClosedRange<TimeInterval>) {
+        let normalizedRange = ProjectStateNormalizer.normalizedTimelineVisibleRange(range, duration: duration)
+        timelineVisibleRange = normalizedRange
+        userTimelineVisibleRange = normalizedRange
+        refreshProjectModifiedState()
     }
 }

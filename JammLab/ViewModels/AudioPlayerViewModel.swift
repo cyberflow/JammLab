@@ -92,6 +92,7 @@ final class AudioPlayerViewModel: ObservableObject {
     var settingsCancellables: Set<AnyCancellable> = []
     var isRestoringUndoState = false
     var isRestoringVideoWindowState = false
+    var userTimelineVisibleRange: ClosedRange<TimeInterval> = 0...0
     var lastSavedProjectState: ProjectPersistedEditableState?
 
     private static func restoredClickVolume() -> Float {

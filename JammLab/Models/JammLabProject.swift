@@ -1,5 +1,19 @@
 import Foundation
 
+struct ProjectTimelineVisibleRange: Codable, Equatable {
+    var start: TimeInterval
+    var end: TimeInterval
+
+    init(start: TimeInterval, end: TimeInterval) {
+        self.start = start
+        self.end = end
+    }
+
+    init(_ range: ClosedRange<TimeInterval>) {
+        self.init(start: range.lowerBound, end: range.upperBound)
+    }
+}
+
 struct JammLabProject: Codable {
     var formatVersion: Int
     var audioBookmarkData: Data
@@ -21,6 +35,7 @@ struct JammLabProject: Codable {
     var isSnapEnabled: Bool?
     var playbackMode: PlaybackMode?
     var playbackMarkerTime: TimeInterval?
+    var timelineVisibleRange: ProjectTimelineVisibleRange?
     var stemState: StemProjectState?
     var isVideoWindowOpen: Bool?
 
@@ -45,6 +60,7 @@ struct JammLabProject: Codable {
         isSnapEnabled: Bool? = nil,
         playbackMode: PlaybackMode? = nil,
         playbackMarkerTime: TimeInterval? = nil,
+        timelineVisibleRange: ProjectTimelineVisibleRange? = nil,
         stemState: StemProjectState? = nil,
         isVideoWindowOpen: Bool? = nil
     ) {
@@ -68,6 +84,7 @@ struct JammLabProject: Codable {
         self.isSnapEnabled = isSnapEnabled
         self.playbackMode = playbackMode
         self.playbackMarkerTime = playbackMarkerTime
+        self.timelineVisibleRange = timelineVisibleRange
         self.stemState = stemState
         self.isVideoWindowOpen = isVideoWindowOpen
     }

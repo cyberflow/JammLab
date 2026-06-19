@@ -25,6 +25,39 @@ struct ProjectStateNormalizer {
         return max(0, min(finiteTime(time), normalizedDuration(duration)))
     }
 
+    static func normalizedTimelineVisibleRange(
+        _ range: ProjectTimelineVisibleRange?,
+        duration: TimeInterval
+    ) -> ClosedRange<TimeInterval> {
+        let duration = normalizedDuration(duration)
+        guard duration > 0 else { return 0...0 }
+        guard
+            let range,
+            range.start.isFinite,
+            range.end.isFinite,
+            range.start >= 0,
+            range.end <= duration,
+            range.end > range.start
+        else {
+            return 0...duration
+        }
+
+        return range.start...range.end
+    }
+
+    static func normalizedTimelineVisibleRange(
+        _ range: ClosedRange<TimeInterval>,
+        duration: TimeInterval
+    ) -> ClosedRange<TimeInterval> {
+        let duration = normalizedDuration(duration)
+        guard duration > 0 else { return 0...0 }
+        guard range.lowerBound.isFinite, range.upperBound.isFinite else { return 0...duration }
+
+        let normalizedRange = TimelineViewport(duration: duration, visibleRange: range).clampedRange
+        guard normalizedRange.upperBound > normalizedRange.lowerBound else { return 0...duration }
+        return normalizedRange
+    }
+
     static func normalizedBeatGridSettings(
         projectSettings: BeatGridSettings?,
         legacyTempoBPM: Double?,
