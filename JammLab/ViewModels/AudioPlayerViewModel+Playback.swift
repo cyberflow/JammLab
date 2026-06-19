@@ -48,6 +48,7 @@ extension AudioPlayerViewModel {
         activePlaybackEngine.stop()
         videoFollower.stop()
         seekExactly(to: playbackMarkerTime)
+        showPlaybackMarkerInTimeline()
         playbackState = .stopped
     }
 
@@ -264,6 +265,14 @@ extension AudioPlayerViewModel {
             activePlaybackEngine.stop()
             videoFollower.stop()
             seekExactly(to: playbackMarkerTime)
+            showPlaybackMarkerInTimeline()
+            return
+        }
+
+        if playbackState == .playing, timelineViewport.shouldFollowPlaybackTime(currentTime) {
+            timelineVisibleRange = timelineViewport
+                .positionedWithTimeNearLeadingEdge(currentTime)
+                .clampedRange
         }
     }
 
@@ -288,6 +297,12 @@ extension AudioPlayerViewModel {
             videoFollower.seek(to: targetTime)
             currentTime = targetTime
         }
+    }
+
+    func showPlaybackMarkerInTimeline() {
+        timelineVisibleRange = timelineViewport
+            .positionedWithTimeNearLeadingEdge(playbackMarkerTime)
+            .clampedRange
     }
 
     var activePlaybackEngine: AudioPlaybackControlling {

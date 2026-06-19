@@ -29,6 +29,48 @@ final class TimelineProjectLogicTests: XCTestCase {
         XCTAssertEqual(pannedToEnd.clampedRange.upperBound, 100, accuracy: 0.0001)
     }
 
+    func testTimelineViewportPositionsTimeNearLeadingEdgePreservingZoom() {
+        let viewport = TimelineViewport(duration: 100, visibleRange: 20...40)
+
+        let followed = viewport.positionedWithTimeNearLeadingEdge(30)
+
+        XCTAssertEqual(followed.visibleDuration, 20, accuracy: 0.0001)
+        XCTAssertEqual(followed.clampedRange.lowerBound, 28.4, accuracy: 0.0001)
+        XCTAssertEqual(followed.clampedRange.upperBound, 48.4, accuracy: 0.0001)
+        XCTAssertEqual(followed.xPosition(for: 30, width: 100), 8, accuracy: 0.0001)
+    }
+
+    func testTimelineViewportFollowPositionClampsAtTrackEdges() {
+        let viewport = TimelineViewport(duration: 100, visibleRange: 20...40)
+
+        let start = viewport.positionedWithTimeNearLeadingEdge(1)
+        let end = viewport.positionedWithTimeNearLeadingEdge(98)
+
+        XCTAssertEqual(start.clampedRange.lowerBound, 0, accuracy: 0.0001)
+        XCTAssertEqual(start.clampedRange.upperBound, 20, accuracy: 0.0001)
+        XCTAssertEqual(end.clampedRange.lowerBound, 80, accuracy: 0.0001)
+        XCTAssertEqual(end.clampedRange.upperBound, 100, accuracy: 0.0001)
+    }
+
+    func testTimelineViewportFollowIsNoOpForFullRange() {
+        let viewport = TimelineViewport(duration: 100, visibleRange: 0...100)
+
+        let followed = viewport.positionedWithTimeNearLeadingEdge(90)
+
+        XCTAssertEqual(followed.clampedRange.lowerBound, 0, accuracy: 0.0001)
+        XCTAssertEqual(followed.clampedRange.upperBound, 100, accuracy: 0.0001)
+        XCTAssertFalse(viewport.shouldFollowPlaybackTime(90))
+    }
+
+    func testTimelineViewportShouldFollowNearRightEdgeOnlyWhenZoomed() {
+        let viewport = TimelineViewport(duration: 100, visibleRange: 0...20)
+
+        XCTAssertFalse(viewport.shouldFollowPlaybackTime(18.39))
+        XCTAssertTrue(viewport.shouldFollowPlaybackTime(18.4))
+        XCTAssertTrue(viewport.shouldFollowPlaybackTime(21))
+        XCTAssertTrue(viewport.shouldFollowPlaybackTime(-1))
+    }
+
     func testTimelineViewportScrollerMetricsMapsVisibleRangeToThumb() {
         let metrics = TimelineViewportScrollerMetrics(
             duration: 100,
