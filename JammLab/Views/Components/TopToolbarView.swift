@@ -145,6 +145,8 @@ struct TopToolbarView: View {
             }
             .buttonStyle(.bordered)
             .controlSize(.small)
+            .focusable(false)
+            .focusEffectDisabled(true)
             .help(ControlHelpText.openTuner)
             .accessibilityLabel("Open tuner")
 

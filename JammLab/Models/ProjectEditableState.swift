@@ -33,5 +33,6 @@ struct ProjectPersistedEditableState: Equatable {
     var clickVolume: Float
     var isSnapEnabled: Bool
     var playbackMarkerTime: TimeInterval
+    var timelineVisibleRange: ClosedRange<TimeInterval>
     var isVideoWindowOpen: Bool
 }

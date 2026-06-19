@@ -115,6 +115,7 @@ extension AudioPlayerViewModel {
         activeLoopRegionID = nil
         loopRegion = .empty
         timelineVisibleRange = 0...0
+        userTimelineVisibleRange = 0...0
         currentProjectURL = nil
         isImporting = false
         isAnalyzing = false
@@ -169,6 +170,7 @@ extension AudioPlayerViewModel {
         activeLoopRegionID = nil
         loopRegion = LoopRegion(start: 0, end: file.duration).clamped(to: file.duration)
         timelineVisibleRange = 0...file.duration
+        userTimelineVisibleRange = timelineVisibleRange
         playbackState = .stopped
         resetStemState()
         isImporting = false
@@ -240,7 +242,12 @@ extension AudioPlayerViewModel {
             )
             isLooping = project.isLoopEnabled ?? false
             applyLoopConfiguration()
-            timelineVisibleRange = 0...resolvedProjectDuration
+            let restoredTimelineVisibleRange = ProjectStateNormalizer.normalizedTimelineVisibleRange(
+                project.timelineVisibleRange,
+                duration: resolvedProjectDuration
+            )
+            timelineVisibleRange = restoredTimelineVisibleRange
+            userTimelineVisibleRange = restoredTimelineVisibleRange
             playbackState = .stopped
             restoreStemState(project.stemState, audioURL: file.url, projectURL: url)
             restorePlaybackMode(restoredPlaybackMode, preservedTime: currentTime)
@@ -321,6 +328,7 @@ extension AudioPlayerViewModel {
                     isSnapEnabled: isSnapEnabled,
                     playbackMode: playbackMode,
                     playbackMarkerTime: playbackMarkerTime,
+                    timelineVisibleRange: userTimelineVisibleRange,
                     stemState: makeStemProjectState(),
                     isVideoWindowOpen: isVideoWindowOpen
                 ))

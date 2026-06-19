@@ -41,6 +41,7 @@ extension AudioPlayerViewModel {
             clickVolume: clampedVolume(clickVolume),
             isSnapEnabled: isSnapEnabled,
             playbackMarkerTime: ProjectStateNormalizer.normalizedTimelineTime(playbackMarkerTime, duration: duration),
+            timelineVisibleRange: ProjectStateNormalizer.normalizedTimelineVisibleRange(userTimelineVisibleRange, duration: duration),
             isVideoWindowOpen: importedFile?.mediaKind == .video && isVideoWindowOpen
         )
     }
