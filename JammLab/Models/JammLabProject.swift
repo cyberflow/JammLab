@@ -40,7 +40,7 @@ struct JammLabProject: Codable {
     var isVideoWindowOpen: Bool?
 
     init(
-        formatVersion: Int = 8,
+        formatVersion: Int = 9,
         audioBookmarkData: Data,
         artifactRootBookmarkData: Data? = nil,
         audioDisplayName: String,

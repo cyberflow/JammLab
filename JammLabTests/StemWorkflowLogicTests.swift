@@ -63,6 +63,47 @@ final class StemWorkflowLogicTests: XCTestCase {
         XCTAssertFalse(mix.item(for: .drums).isSoloed)
     }
 
+    func testStemMixStateDecodeNormalizesMissingNewStemTypes() throws {
+        let json = """
+        {
+          "items": [
+            {
+              "type": "vocals",
+              "volume": 0.25,
+              "isMuted": true,
+              "isSoloed": false,
+              "isAvailable": true
+            },
+            {
+              "type": "drums",
+              "volume": 0.5,
+              "isMuted": false,
+              "isSoloed": true,
+              "isAvailable": true
+            }
+          ]
+        }
+        """
+
+        var mix = try JSONDecoder().decode(StemMixState.self, from: Data(json.utf8))
+
+        XCTAssertEqual(mix.items.map(\.type), StemType.allCases)
+        XCTAssertEqual(mix.item(for: .vocals).volume, 0.25, accuracy: 0.0001)
+        XCTAssertTrue(mix.item(for: .vocals).isMuted)
+        XCTAssertTrue(mix.item(for: .drums).isSoloed)
+        XCTAssertEqual(mix.item(for: .guitar).volume, AppSliderDefaults.stemTrackVolume, accuracy: 0.0001)
+        XCTAssertFalse(mix.item(for: .piano).isAvailable)
+
+        let sixStemFiles = StemSeparationMethod.sixStem.stemTypes.map { type in
+            StemFile(type: type, url: URL(fileURLWithPath: "/tmp/\(type.canonicalStemFilename)"), displayName: type.title)
+        }
+        mix.setAvailability(from: sixStemFiles)
+
+        XCTAssertTrue(mix.item(for: .guitar).isAvailable)
+        XCTAssertTrue(mix.item(for: .piano).isAvailable)
+        XCTAssertFalse(mix.item(for: .instrumental).isAvailable)
+    }
+
     func testProjectVersionSevenPersistsProjectEditablePlaybackStateMediaKindArtifactRootBookmarkAndVideoWindowState() throws {
         let artifactRootBookmarkData = Data("artifact-root-bookmark".utf8)
         let metadata = StemProjectState(
@@ -103,7 +144,7 @@ final class StemWorkflowLogicTests: XCTestCase {
 
         let decoded = try JSONDecoder().decode(JammLabProject.self, from: JSONEncoder().encode(project))
 
-        XCTAssertEqual(decoded.formatVersion, 8)
+        XCTAssertEqual(decoded.formatVersion, 9)
         XCTAssertEqual(decoded.artifactRootBookmarkData, artifactRootBookmarkData)
         XCTAssertEqual(decoded.mediaKind, .video)
         XCTAssertEqual(decoded.isLoopEnabled, true)
@@ -131,13 +172,29 @@ final class StemWorkflowLogicTests: XCTestCase {
     }
 
     func testStemSeparationMethodsExposeModelsAndStemOrder() {
-        XCTAssertEqual(StemSeparationMethod.allCases.map(\.id), ["vocalInstrumental", "fourStem"])
+        XCTAssertEqual(StemSeparationMethod.allCases.map(\.id), ["vocalInstrumental", "fourStem", "sixStem"])
         XCTAssertEqual(StemSeparationMethod.vocalInstrumental.modelName, "UVR-MDX-NET-Inst_HQ_5.onnx")
         XCTAssertEqual(StemSeparationMethod.vocalInstrumental.stemTypes, [.vocals, .instrumental])
         XCTAssertEqual(StemSeparationMethod.vocalInstrumental.stemCountSummary, "2 stems: vocals and instrumental.")
         XCTAssertEqual(StemSeparationMethod.fourStem.modelName, "htdemucs.yaml")
         XCTAssertEqual(StemSeparationMethod.fourStem.stemTypes, [.vocals, .bass, .drums, .other])
         XCTAssertEqual(StemSeparationMethod.fourStem.stemCountSummary, "4 stems: vocals, bass, drums, and other.")
+        XCTAssertEqual(StemSeparationMethod.sixStem.modelName, "htdemucs_6s.yaml")
+        XCTAssertEqual(StemSeparationMethod.sixStem.stemTypes, [.vocals, .bass, .drums, .other, .guitar, .piano])
+        XCTAssertEqual(StemSeparationMethod.sixStem.stemCountSummary, "6 stems: vocals, bass, drums, other, guitar, and piano.")
+    }
+
+    func testTimelineStemTrackHeightExpandsForSixStemRows() {
+        let defaultHeight = AppTheme.Timeline.stemTracksHeight
+        let sixStemHeight = AppTheme.Timeline.stemTracksHeight(rowCount: StemSeparationMethod.sixStem.stemTypes.count)
+
+        XCTAssertEqual(AppTheme.Timeline.stemTracksHeight(rowCount: StemSeparationMethod.vocalInstrumental.stemTypes.count), defaultHeight)
+        XCTAssertEqual(AppTheme.Timeline.stemTracksHeight(rowCount: StemSeparationMethod.fourStem.stemTypes.count), defaultHeight)
+        XCTAssertGreaterThan(sixStemHeight, defaultHeight)
+        XCTAssertGreaterThan(
+            AppTheme.Timeline.tracksMinimumHeight(stemRowCount: StemSeparationMethod.sixStem.stemTypes.count),
+            AppTheme.Timeline.tracksMinimumHeight
+        )
     }
 
     func testLegacyProjectWithoutStemStateStillDecodes() throws {
@@ -283,11 +340,11 @@ final class StemWorkflowLogicTests: XCTestCase {
         let appSupport = URL(fileURLWithPath: "/tmp/JammLab", isDirectory: true)
         let jobsDirectory = StemJobFiles.currentJobsDirectory(in: appSupport)
 
-        XCTAssertEqual(StemJobFiles.helperVersion, 4)
-        XCTAssertEqual(jobsDirectory.path, "/tmp/JammLab/\(StemJobFiles.jobsDirectoryName)/v4")
+        XCTAssertEqual(StemJobFiles.helperVersion, 5)
+        XCTAssertEqual(jobsDirectory.path, "/tmp/JammLab/\(StemJobFiles.jobsDirectoryName)/v5")
         XCTAssertEqual(
             jobsDirectory.appendingPathComponent(StemJobFiles.heartbeatFilename).path,
-            "/tmp/JammLab/\(StemJobFiles.jobsDirectoryName)/v4/\(StemJobFiles.heartbeatFilename)"
+            "/tmp/JammLab/\(StemJobFiles.jobsDirectoryName)/v5/\(StemJobFiles.heartbeatFilename)"
         )
     }
 
@@ -362,6 +419,8 @@ final class StemWorkflowLogicTests: XCTestCase {
         XCTAssertTrue(StemType.instrumental.matchesOutputFilename("song_no_vocals.wav"))
         XCTAssertTrue(StemType.drums.matchesOutputFilename("track_drums.flac"))
         XCTAssertTrue(StemType.bass.matchesOutputFilename("bass.wav"))
+        XCTAssertTrue(StemType.guitar.matchesOutputFilename("song_(Guitar)_htdemucs_6s.wav"))
+        XCTAssertTrue(StemType.piano.matchesOutputFilename("song_piano.flac"))
         XCTAssertFalse(StemType.other.matchesOutputFilename("song_vocals.txt"))
         XCTAssertFalse(StemType.bass.matchesOutputFilename("drums.wav"))
     }
@@ -372,6 +431,8 @@ final class StemWorkflowLogicTests: XCTestCase {
         XCTAssertEqual(StemType.drums.canonicalStemFilename, "drums.wav")
         XCTAssertEqual(StemType.bass.canonicalStemFilename, "bass.wav")
         XCTAssertEqual(StemType.other.canonicalStemFilename, "other.wav")
+        XCTAssertEqual(StemType.guitar.canonicalStemFilename, "guitar.wav")
+        XCTAssertEqual(StemType.piano.canonicalStemFilename, "piano.wav")
     }
 
     func testHelperJobFailureDiagnosticsIncludesDetails() {
@@ -448,13 +509,17 @@ final class StemWorkflowLogicTests: XCTestCase {
             cacheKey: "cache-key",
             cacheDirectory: cacheDirectory,
             jobDirectory: jobDirectory,
-            inputMode: StemJobInputMode.staged
+            inputMode: StemJobInputMode.staged,
+            method: .sixStem
         )
         let requestData = try Data(contentsOf: jobDirectory.appendingPathComponent(StemJobFiles.requestFilename))
         let request = try JSONDecoder().decode(StemJobRequest.self, from: requestData)
 
         XCTAssertEqual(request.audioPath, jobDirectory.appendingPathComponent("input/song.mp3").path)
         XCTAssertEqual(request.sourceFingerprint, fingerprint)
+        XCTAssertEqual(request.separationMethodID, StemSeparationMethod.sixStem.id)
+        XCTAssertEqual(request.modelName, StemSeparationMethod.sixStem.modelName)
+        XCTAssertEqual(request.expectedStemTypes, StemSeparationMethod.sixStem.stemTypes)
     }
 
     func testStemInputPermissionFailureClassification() throws {
@@ -543,6 +608,45 @@ final class StemWorkflowLogicTests: XCTestCase {
         XCTAssertEqual(restored.separationMethodID, StemSeparationMethod.vocalInstrumental.id)
         XCTAssertEqual(restored.stems.map(\.type), [.vocals, .instrumental])
         XCTAssertEqual(restored.stems.map(\.displayName), ["Vocals", "Instrumental"])
+    }
+
+    func testProjectArtifactStoreRoundTripsSixStemMetadataAndFiles() throws {
+        let directory = temporaryDirectory()
+        let sourceDirectory = directory.appendingPathComponent("source", isDirectory: true)
+        try FileManager.default.createDirectory(at: sourceDirectory, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: directory) }
+
+        let sourceFingerprint = StemSourceFingerprint(path: "/tmp/song.mp3", fileSize: 42, modificationTime: 123)
+        let metadata = StemCacheMetadata(
+            cacheKey: "cache-key-6",
+            sourceFingerprint: sourceFingerprint,
+            backendIdentifier: "JammLabSeparatorHelper/test",
+            separationMethodID: StemSeparationMethod.sixStem.id,
+            modelName: StemSeparationMethod.sixStem.modelName,
+            settingsVersion: 2,
+            createdAt: Date(timeIntervalSince1970: 100),
+            stems: try StemSeparationMethod.sixStem.stemTypes.map { type in
+                let url = try temporaryFile(in: sourceDirectory, name: "\(type.rawValue)-source.wav", contents: type.rawValue)
+                return StemFile(type: type, url: url, displayName: type.title)
+            }
+        )
+        let projectURL = directory.appendingPathComponent("Song.jammlab")
+        let store = ProjectArtifactStore()
+
+        _ = try store.writeStemMetadata(metadata, projectURL: projectURL)
+        let restored = try XCTUnwrap(store.readStemMetadata(
+            projectURL: projectURL,
+            expectedFingerprint: sourceFingerprint
+        ))
+
+        XCTAssertEqual(restored.separationMethodID, StemSeparationMethod.sixStem.id)
+        XCTAssertEqual(restored.modelName, StemSeparationMethod.sixStem.modelName)
+        XCTAssertEqual(restored.stems.map(\.type), StemSeparationMethod.sixStem.stemTypes)
+        XCTAssertEqual(restored.stems.map(\.displayName), StemSeparationMethod.sixStem.stemTypes.map(\.title))
+        for stem in restored.stems {
+            XCTAssertEqual(stem.url.lastPathComponent, stem.type.canonicalStemFilename)
+            XCTAssertEqual(try String(contentsOf: stem.url, encoding: .utf8), stem.type.rawValue)
+        }
     }
 
     func testProjectArtifactStorePersistsVideoAudioBesideProject() throws {

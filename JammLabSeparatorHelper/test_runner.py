@@ -1,3 +1,5 @@
+import contextlib
+import io
 import logging
 import sys
 import tempfile
@@ -47,6 +49,41 @@ class RunnerTests(unittest.TestCase):
 
             self.assertEqual(copied, 0)
             self.assertEqual((model_dir / "htdemucs.yaml").read_text(encoding="utf-8"), "existing")
+
+    def test_missing_required_model_files_detects_demucs_weights(self):
+        with tempfile.TemporaryDirectory() as model_root:
+            model_dir = Path(model_root)
+            (model_dir / "htdemucs_6s.yaml").write_text("model", encoding="utf-8")
+
+            missing = runner.missing_required_model_files(model_dir, "htdemucs_6s.yaml")
+
+            self.assertEqual(missing, ["5c90dfd2-34c22ccb.th"])
+
+    def test_ensure_required_model_files_rejects_incomplete_cache(self):
+        with tempfile.TemporaryDirectory() as model_root:
+            model_dir = Path(model_root)
+            (model_dir / "htdemucs_6s.yaml").write_text("model", encoding="utf-8")
+
+            with self.assertRaises(SystemExit) as context:
+                runner.ensure_required_model_files(model_dir, "htdemucs_6s.yaml")
+
+            self.assertIn("htdemucs_6s.yaml", str(context.exception))
+            self.assertIn("5c90dfd2-34c22ccb.th", str(context.exception))
+
+    def test_validate_model_cache_accepts_complete_cache(self):
+        with tempfile.TemporaryDirectory() as model_root:
+            model_dir = Path(model_root)
+            (model_dir / "htdemucs_6s.yaml").write_text("model", encoding="utf-8")
+            (model_dir / "5c90dfd2-34c22ccb.th").write_text("weights", encoding="utf-8")
+            args = runner.parse_args([
+                "--validate_model_cache",
+                "htdemucs_6s.yaml",
+                "--model_file_dir",
+                str(model_dir),
+            ])
+
+            with contextlib.redirect_stdout(io.StringIO()):
+                self.assertEqual(runner.validate_model_cache(args), 0)
 
     def test_configure_compute_device_accepts_cpu_and_auto(self):
         runner.configure_compute_device("cpu")

@@ -245,24 +245,37 @@ enum AppTheme {
         static let tempoTrackHeight: CGFloat = 38
         static let waveformTrackHeight: CGFloat = 110
         static let stemTrackHeight: CGFloat = 48
-        static let maximumVisibleStemRows = 4
+        static let defaultVisibleStemRows = 4
         static let trackSpacing: CGFloat = 6
         static var upperTrackStackHeight: CGFloat {
             regionTrackHeight + markerTrackHeight + tempoTrackHeight + waveformTrackHeight
         }
+        static func stemTracksHeight(rowCount: Int) -> CGFloat {
+            let visibleRows = max(defaultVisibleStemRows, rowCount)
+            return CGFloat(visibleRows) * stemTrackHeight
+                + CGFloat(max(0, visibleRows - 1)) * AppTheme.Spacing.md
+        }
         static var stemTracksHeight: CGFloat {
-            CGFloat(maximumVisibleStemRows) * stemTrackHeight
-                + CGFloat(max(0, maximumVisibleStemRows - 1)) * AppTheme.Spacing.md
+            stemTracksHeight(rowCount: defaultVisibleStemRows)
+        }
+        static func tracksMinimumHeight(stemRowCount: Int) -> CGFloat {
+            upperTrackStackHeight + trackSpacing + stemTracksHeight(rowCount: stemRowCount)
         }
         static var tracksMinimumHeight: CGFloat {
-            upperTrackStackHeight + trackSpacing + stemTracksHeight
+            tracksMinimumHeight(stemRowCount: defaultVisibleStemRows)
         }
         static let viewportFooterGap: CGFloat = AppTheme.Spacing.md
         static var trackControlsMinimumHeight: CGFloat {
             tracksMinimumHeight
         }
+        static func timelineBlockMinimumHeight(stemRowCount: Int) -> CGFloat {
+            tracksMinimumHeight(stemRowCount: stemRowCount) + viewportFooterGap + viewportControlBarHeight
+        }
         static var timelineBlockMinimumHeight: CGFloat {
-            tracksMinimumHeight + viewportFooterGap + viewportControlBarHeight
+            timelineBlockMinimumHeight(stemRowCount: defaultVisibleStemRows)
+        }
+        static func minimumContentHeight(stemRowCount: Int) -> CGFloat {
+            timelineBlockMinimumHeight(stemRowCount: stemRowCount)
         }
         static var minimumContentHeight: CGFloat {
             timelineBlockMinimumHeight

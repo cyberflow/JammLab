@@ -7,9 +7,10 @@ BUILD_DIR="$ROOT_DIR/build/JammLabSeparatorHelper"
 VENV_DIR="$BUILD_DIR/venv"
 DIST_DIR="$BUILD_DIR/dist"
 MODEL_CACHE_DIR="$BUILD_DIR/model-cache"
+MODEL_MANIFEST="$MODEL_CACHE_DIR/jammlab-models.txt"
 PYINSTALLER_CONFIG_DIR="$BUILD_DIR/pyinstaller-config"
 PYTHON_BIN="${PYTHON_BIN:-python3}"
-SEPARATOR_MODELS="${SEPARATOR_MODELS:-htdemucs.yaml UVR-MDX-NET-Inst_HQ_5.onnx}"
+SEPARATOR_MODELS="${SEPARATOR_MODELS:-htdemucs.yaml htdemucs_6s.yaml UVR-MDX-NET-Inst_HQ_5.onnx}"
 
 mkdir -p "$BUILD_DIR" "$PYINSTALLER_CONFIG_DIR"
 export PYINSTALLER_CONFIG_DIR
@@ -26,7 +27,11 @@ for model in $SEPARATOR_MODELS; do
   "$VENV_DIR/bin/python" "$HELPER_DIR/runner.py" \
     --prefetch_model "$model" \
     --model_file_dir "$MODEL_CACHE_DIR"
+  "$VENV_DIR/bin/python" "$HELPER_DIR/runner.py" \
+    --validate_model_cache "$model" \
+    --model_file_dir "$MODEL_CACHE_DIR"
 done
+printf "%s\n" $SEPARATOR_MODELS > "$MODEL_MANIFEST"
 
 rm -rf "$DIST_DIR" "$BUILD_DIR/work"
 (

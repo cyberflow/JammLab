@@ -29,7 +29,7 @@ extension ContentView {
         }
         .frame(
             maxWidth: .infinity,
-            minHeight: AppTheme.Workspace.bodyMinimumHeight,
+            minHeight: timelineColumnMinimumHeight,
             maxHeight: .infinity,
             alignment: .topLeading
         )
@@ -37,9 +37,9 @@ extension ContentView {
 
     var timelineColumn: some View {
         GeometryReader { proxy in
-            let columnHeight = max(proxy.size.height, AppTheme.Workspace.bodyMinimumHeight)
+            let columnHeight = max(proxy.size.height, timelineColumnMinimumHeight)
             let timelineHeight = max(
-                AppTheme.Timeline.minimumContentHeight,
+                timelineMinimumContentHeight,
                 columnHeight - AppTheme.Spacing.md - AppTheme.ControlSize.transportBarMinHeight
             )
 
@@ -53,7 +53,7 @@ extension ContentView {
         }
         .frame(
             maxWidth: .infinity,
-            minHeight: AppTheme.Workspace.bodyMinimumHeight,
+            minHeight: timelineColumnMinimumHeight,
             maxHeight: .infinity,
             alignment: .topLeading
         )
@@ -66,7 +66,7 @@ extension ContentView {
 
             VStack(spacing: AppTheme.Spacing.none) {
                 timelineSection
-                    .frame(height: AppTheme.Timeline.tracksMinimumHeight, alignment: .top)
+                    .frame(height: timelineTracksHeight, alignment: .top)
 
                 Spacer(minLength: AppTheme.Timeline.viewportFooterGap)
 
@@ -89,7 +89,25 @@ extension ContentView {
             actions: timelineViewActions,
             stemActions: stemTrackActions
         )
-        .frame(height: AppTheme.Timeline.tracksMinimumHeight, alignment: .top)
+        .frame(height: timelineTracksHeight, alignment: .top)
+    }
+
+    var timelineStemRowCount: Int {
+        viewModel.stemFiles.isEmpty ? StemSeparationMethod.defaultValue.stemTypes.count : viewModel.stemFiles.count
+    }
+
+    var timelineTracksHeight: CGFloat {
+        AppTheme.Timeline.tracksMinimumHeight(stemRowCount: timelineStemRowCount)
+    }
+
+    var timelineMinimumContentHeight: CGFloat {
+        AppTheme.Timeline.minimumContentHeight(stemRowCount: timelineStemRowCount)
+    }
+
+    var timelineColumnMinimumHeight: CGFloat {
+        timelineMinimumContentHeight
+            + AppTheme.Spacing.md
+            + AppTheme.ControlSize.transportBarMinHeight
     }
 
     var timelineViewState: TimelineViewState {

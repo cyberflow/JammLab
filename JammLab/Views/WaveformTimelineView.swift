@@ -81,7 +81,7 @@ struct WaveformTimelineView: View {
     var body: some View {
         tracksArea
             .frame(maxWidth: .infinity, alignment: .topLeading)
-            .frame(height: AppTheme.Timeline.tracksMinimumHeight, alignment: .topLeading)
+            .frame(height: tracksHeight, alignment: .topLeading)
     }
 
     private var tracksArea: some View {
@@ -92,7 +92,7 @@ struct WaveformTimelineView: View {
             }
 
             timelineScrollOverlay
-                .frame(height: AppTheme.Timeline.tracksMinimumHeight)
+                .frame(height: tracksHeight)
         }
     }
 
@@ -108,7 +108,19 @@ struct WaveformTimelineView: View {
             trackControlWidth: trackControlWidth,
             actions: stemActions
         )
-        .frame(height: AppTheme.Timeline.stemTracksHeight, alignment: .top)
+        .frame(height: stemTracksHeight, alignment: .top)
+    }
+
+    private var visibleStemRowCount: Int {
+        state.stemFiles.isEmpty ? StemSeparationMethod.defaultValue.stemTypes.count : state.stemFiles.count
+    }
+
+    private var stemTracksHeight: CGFloat {
+        AppTheme.Timeline.stemTracksHeight(rowCount: visibleStemRowCount)
+    }
+
+    private var tracksHeight: CGFloat {
+        AppTheme.Timeline.tracksMinimumHeight(stemRowCount: visibleStemRowCount)
     }
 
     private var upperTrackStack: some View {
