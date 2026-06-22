@@ -52,9 +52,9 @@ GitHub CI uses these modes:
 - development tags `vMAJOR.MINOR.PATCH-dev.N`: the same artifact build, uploaded
   only as workflow artifacts. Dev tags do not create GitHub Releases.
 
-Release versions are derived from Git tags. Tags such as `v0.1.0`,
-`v0.1.0-beta`, and `v0.1.0-dev.1` all build the app with
-`MARKETING_VERSION=0.1.0`; the standard macOS About panel reads that base app
+Release versions are derived from Git tags. Tags such as `v1.0.0`,
+`v1.0.0-beta`, and `v1.0.0-dev.1` all build the app with
+`MARKETING_VERSION=1.0.0`; the standard macOS About panel reads that base app
 version from the generated app `Info.plist`. The tag suffix is used only for the
 release channel and artifact names. GitHub release notes are generated
 automatically for stable and beta releases. Re-running a tag workflow replaces
