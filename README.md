@@ -1,5 +1,7 @@
 # JammLab
 
+[![Release](https://img.shields.io/github/v/release/cyberflow/JammLab.svg)](https://github.com/cyberflow/JammLab/releases/latest) [![Downloads](https://img.shields.io/github/downloads/cyberflow/JammLab/total.svg)](https://github.com/cyberflow/JammLab/releases)
+
 JammLab is a native macOS practice app for importing local audio or video,
 building a timeline, marking song sections, looping difficult parts, and
 separating stems locally.
