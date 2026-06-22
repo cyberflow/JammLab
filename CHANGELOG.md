@@ -8,7 +8,7 @@ development artifact builds use `vMAJOR.MINOR.PATCH-dev.N`.
 
 ## Unreleased
 
-- Nothing yet.
+- Added an optional six-stem separation method with guitar and piano tracks.
 
 ## 1.0.0
 

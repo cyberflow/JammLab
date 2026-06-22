@@ -83,7 +83,7 @@ struct StemHelperHeartbeat: Codable, Equatable {
 }
 
 enum StemJobFiles {
-    static let helperVersion = 4
+    static let helperVersion = 5
     static let jobsDirectoryName = "StemJobs"
     static let currentJobsDirectoryName = "v\(helperVersion)"
     static let cacheDirectoryName = "StemCache"

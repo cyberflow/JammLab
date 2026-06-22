@@ -25,6 +25,11 @@ HELPER_VERSION = "1"
 BUNDLED_MODEL_CACHE_DIR_NAME = "bundled-model-cache"
 RUNTIME_DIR_NAME = "JammLabSeparatorHelper"
 DEFAULT_COMPUTE_DEVICE = "cpu"
+REQUIRED_MODEL_CACHE_FILES = {
+    "htdemucs.yaml": ["htdemucs.yaml", "955717e8-8726e21a.th"],
+    "htdemucs_6s.yaml": ["htdemucs_6s.yaml", "5c90dfd2-34c22ccb.th"],
+    "UVR-MDX-NET-Inst_HQ_5.onnx": ["UVR-MDX-NET-Inst_HQ_5.onnx"],
+}
 
 
 def _package_version(name: str) -> str:
@@ -133,6 +138,24 @@ def copy_seed_model_cache(model_dir: Path, seed_dir: Path | None = None) -> int:
     return copied
 
 
+def missing_required_model_files(model_dir: Path, model_filename: str) -> list[str]:
+    required_files = REQUIRED_MODEL_CACHE_FILES.get(model_filename, [model_filename])
+    return [filename for filename in required_files if not (model_dir / filename).is_file()]
+
+
+def ensure_required_model_files(model_dir: Path, model_filename: str) -> None:
+    missing_files = missing_required_model_files(model_dir, model_filename)
+    if not missing_files:
+        return
+
+    missing = ", ".join(missing_files)
+    raise SystemExit(
+        "Bundled separator model cache is missing required files for "
+        f"{model_filename}: {missing}. Rebuild JammLabSeparatorHelper with "
+        "scripts/build_separator_helper.sh before building the app."
+    )
+
+
 def ffmpeg_version(ffmpeg_path: Path | None) -> str:
     if ffmpeg_path is None:
         return "not-bundled"
@@ -171,6 +194,7 @@ def parse_args(argv: list[str]) -> argparse.Namespace:
     )
     parser.add_argument("--env_info", action="store_true", help="Print bundled backend diagnostics and exit.")
     parser.add_argument("--prefetch_model", help="Download/cache a model into --model_file_dir and exit.")
+    parser.add_argument("--validate_model_cache", help="Validate that --model_file_dir contains required files for a model and exit.")
     parser.add_argument("audio_path", nargs="?", help="Audio file to separate.")
     parser.add_argument("-m", "--model_filename", "--model_name", dest="model_filename", default="htdemucs.yaml")
     parser.add_argument("--output_format", default="WAV")
@@ -213,6 +237,7 @@ def separate(args: argparse.Namespace) -> int:
     configure_bundled_ffmpeg()
     configure_compute_device(args.compute_device)
     copy_seed_model_cache(model_dir)
+    ensure_required_model_files(model_dir, args.model_filename)
 
     # Import lazily so --env_info stays fast and can report missing packages.
     from audio_separator.separator import Separator
@@ -258,11 +283,22 @@ def prefetch_model(args: argparse.Namespace) -> int:
     return 0
 
 
+def validate_model_cache(args: argparse.Namespace) -> int:
+    if not args.model_file_dir:
+        raise SystemExit("--model_file_dir is required")
+
+    ensure_required_model_files(Path(args.model_file_dir), args.validate_model_cache)
+    print(f"Validated {args.validate_model_cache} in {args.model_file_dir}")
+    return 0
+
+
 def main(argv: list[str] | None = None) -> int:
     os.environ.setdefault("PYTHONNOUSERSITE", "1")
     args = parse_args(list(sys.argv[1:] if argv is None else argv))
     if args.env_info:
         return print_env_info()
+    if args.validate_model_cache:
+        return validate_model_cache(args)
     if args.prefetch_model:
         return prefetch_model(args)
     return separate(args)

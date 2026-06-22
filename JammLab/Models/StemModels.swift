@@ -22,6 +22,8 @@ enum StemType: String, Codable, CaseIterable, Identifiable {
     case drums
     case bass
     case other
+    case guitar
+    case piano
 
     var id: String { rawValue }
 
@@ -37,6 +39,10 @@ enum StemType: String, Codable, CaseIterable, Identifiable {
             return "Bass"
         case .other:
             return "Other"
+        case .guitar:
+            return "Guitar"
+        case .piano:
+            return "Piano"
         }
     }
 
@@ -92,7 +98,15 @@ struct StemSeparationMethod: Equatable, Identifiable {
         stemTypes: [.vocals, .bass, .drums, .other]
     )
 
-    static let allCases: [StemSeparationMethod] = [.vocalInstrumental, .fourStem]
+    static let sixStem = StemSeparationMethod(
+        id: "sixStem",
+        title: "Vocals + Bass + Drums + Other + Guitar + Piano",
+        description: "Separate the track into six stems. This can take longer than the four-stem model.",
+        modelName: "htdemucs_6s.yaml",
+        stemTypes: [.vocals, .bass, .drums, .other, .guitar, .piano]
+    )
+
+    static let allCases: [StemSeparationMethod] = [.vocalInstrumental, .fourStem, .sixStem]
     static let defaultValue = fourStem
 
     static func method(forID id: String?) -> StemSeparationMethod? {
@@ -169,9 +183,22 @@ struct StemMixState: Codable, Equatable {
     var items: [StemMixItem]
 
     init(items: [StemMixItem] = StemType.allCases.map { StemMixItem(type: $0) }) {
-        self.items = StemType.allCases.map { type in
-            items.first(where: { $0.type == type }) ?? StemMixItem(type: type)
-        }
+        self.items = Self.normalizedItems(from: items)
+    }
+
+    private enum CodingKeys: String, CodingKey {
+        case items
+    }
+
+    init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        let decodedItems = try container.decodeIfPresent([StemMixItem].self, forKey: .items) ?? []
+        self.init(items: decodedItems)
+    }
+
+    func encode(to encoder: Encoder) throws {
+        var container = encoder.container(keyedBy: CodingKeys.self)
+        try container.encode(items, forKey: .items)
     }
 
     var hasSolo: Bool {
@@ -189,6 +216,7 @@ struct StemMixState: Codable, Equatable {
     }
 
     mutating func setAvailability(from stems: [StemFile]) {
+        items = Self.normalizedItems(from: items)
         let availableTypes = Set(stems.map(\.type))
         for index in items.indices {
             items[index].isAvailable = availableTypes.contains(items[index].type)
@@ -208,6 +236,12 @@ struct StemMixState: Codable, Equatable {
 
     func effectiveVolume(for type: StemType) -> Float {
         isAudible(type) ? item(for: type).volume : 0
+    }
+
+    private static func normalizedItems(from items: [StemMixItem]) -> [StemMixItem] {
+        StemType.allCases.map { type in
+            items.first(where: { $0.type == type }) ?? StemMixItem(type: type)
+        }
     }
 }
 
