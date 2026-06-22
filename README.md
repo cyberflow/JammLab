@@ -9,6 +9,8 @@ separation jobs, and video-audio extraction run on the user's Mac. JammLab does
 not require a server, paid API, cloud upload, or user-installed
 `audio-separator` runtime.
 
+![JammLab app window](JammLab.png)
+
 ## Features
 
 - Import local audio files: MP3 and WAV.
