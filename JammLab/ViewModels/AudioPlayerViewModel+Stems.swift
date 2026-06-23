@@ -39,7 +39,7 @@ extension AudioPlayerViewModel {
 
                 guard !Task.isCancelled else { throw StemSeparationError.cancelled }
                 let persistedMetadata = try persistStemArtifactsIfNeeded(metadata)
-                registerStemMetadata(persistedMetadata)
+                registerStemMetadata(persistedMetadata, activatePlayback: true)
                 refreshProjectModifiedState()
                 stemSeparationTask = nil
             } catch {
@@ -79,45 +79,8 @@ extension AudioPlayerViewModel {
     }
 
     func setPlaybackMode(_ mode: PlaybackMode) {
-        let targetMode: PlaybackMode = mode == .stems && !canUseStemsPlayback ? .original : mode
-
         performUndoableEdit("Change Playback Mode") {
-            guard targetMode != playbackMode else { return }
-
-            let wasPlaying = playbackState == .playing
-            let preservedTime = currentTime
-            activePlaybackEngine.pause()
-
-            do {
-                playbackMode = targetMode
-                if targetMode == .stems {
-                    try loadStemPlaybackEngine()
-                } else if let importedFile {
-                    try configurePlayer(with: importedFile)
-                    playbackEngine.seek(to: preservedTime)
-                }
-            } catch {
-                let switchError = error
-                playbackMode = .original
-                do {
-                    if let importedFile {
-                        try configurePlayer(with: importedFile)
-                        playbackEngine.seek(to: preservedTime)
-                    }
-                } catch let restoreError {
-                    errorMessage = "Playback mode switch failed: \(restoreError.localizedDescription)"
-                    return
-                }
-                errorMessage = "Playback mode switch failed: \(switchError.localizedDescription)"
-                return
-            }
-
-            activePlaybackEngine.seek(to: preservedTime)
-            currentTime = preservedTime
-
-            if wasPlaying {
-                play()
-            }
+            switchPlaybackMode(mode, preservedTime: currentTime, errorPrefix: "Playback mode switch failed")
         }
     }
 
@@ -162,7 +125,7 @@ extension AudioPlayerViewModel {
     }
 
 
-    func registerStemMetadata(_ metadata: StemCacheMetadata) {
+    func registerStemMetadata(_ metadata: StemCacheMetadata, activatePlayback: Bool = false) {
         stemCacheMetadata = metadata
         stemFiles = metadata.stems
         stemMixState.setAvailability(from: metadata.stems)
@@ -173,13 +136,13 @@ extension AudioPlayerViewModel {
             status: "Stems ready"
         )
 
-        if playbackMode == .stems {
-            do {
-                try loadStemPlaybackEngine()
-            } catch {
-                playbackMode = .original
-                errorMessage = "Stem playback failed: \(error.localizedDescription)"
-            }
+        if activatePlayback || playbackMode == .stems {
+            switchPlaybackMode(
+                .stems,
+                preservedTime: currentTime,
+                errorPrefix: "Stem playback failed",
+                reloadIfCurrentMode: true
+            )
         }
     }
 
@@ -294,21 +257,10 @@ extension AudioPlayerViewModel {
                 return
             }
 
-            stemFiles = metadata.stems
-            stemCacheMetadata = metadata
-            stemMixState.setAvailability(from: metadata.stems)
-            buildStemPeakforms(for: metadata.stems)
             if projectStemState.playbackMode == .stems {
                 playbackMode = .stems
             }
-            stemSeparationState = StemSeparationViewState(
-                phase: .completed,
-                progress: 1,
-                status: "Stems ready"
-            )
-            if playbackMode == .stems {
-                try loadStemPlaybackEngine()
-            }
+            registerStemMetadata(metadata)
         } catch {
             stemSeparationState = StemSeparationViewState(
                 phase: .failed(error.localizedDescription),

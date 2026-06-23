@@ -199,11 +199,21 @@ extension AudioPlayerViewModel {
     }
 
     func restorePlaybackMode(_ mode: PlaybackMode, preservedTime: TimeInterval) {
+        switchPlaybackMode(mode, preservedTime: preservedTime, errorPrefix: "Playback mode restore failed")
+    }
+
+    func switchPlaybackMode(
+        _ mode: PlaybackMode,
+        preservedTime: TimeInterval,
+        errorPrefix: String,
+        reloadIfCurrentMode: Bool = false
+    ) {
         let targetMode: PlaybackMode = mode == .stems && canUseStemsPlayback ? .stems : .original
-        guard targetMode != playbackMode else { return }
+        guard reloadIfCurrentMode || targetMode != playbackMode else { return }
 
         let wasPlaying = playbackState == .playing
         activePlaybackEngine.pause()
+        videoFollower.pause()
 
         do {
             playbackMode = targetMode
@@ -214,16 +224,39 @@ extension AudioPlayerViewModel {
             }
 
             if canPlay {
-                activePlaybackEngine.seek(to: preservedTime)
+                seekExactly(to: preservedTime)
+            } else {
+                currentTime = preservedTime
             }
-            currentTime = preservedTime
 
             if wasPlaying {
-                play()
+                do {
+                    try activePlaybackEngine.play()
+                    videoFollower.play(rate: playbackRate)
+                    playbackState = .playing
+                } catch {
+                    playbackState = .paused
+                    errorMessage = "Playback failed: \(error.localizedDescription)"
+                }
             }
         } catch {
+            let switchError = error
             playbackMode = .original
-            errorMessage = "Playback mode restore failed: \(error.localizedDescription)"
+            if wasPlaying {
+                playbackState = .paused
+            }
+            do {
+                if let importedFile {
+                    try configurePlayer(with: importedFile)
+                    if canPlay {
+                        seekExactly(to: preservedTime)
+                    }
+                }
+            } catch {
+                errorMessage = "\(errorPrefix): \(error.localizedDescription)"
+                return
+            }
+            errorMessage = "\(errorPrefix): \(switchError.localizedDescription)"
         }
     }
 
