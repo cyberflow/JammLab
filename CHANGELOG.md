@@ -9,6 +9,7 @@ development artifact builds use `vMAJOR.MINOR.PATCH-dev.N`.
 ## Unreleased
 
 - Added an optional six-stem separation method with guitar and piano tracks.
+- Automatically switch to stem playback after stem separation completes.
 
 ## 1.0.0
 
