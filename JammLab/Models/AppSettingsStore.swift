@@ -373,6 +373,14 @@ final class AppSettingsStore: ObservableObject {
         persistAudioDeviceSettings()
     }
 
+    func resetAudioInputDeviceToSystemDefault() {
+        updateAudioInputDeviceUID(nil)
+    }
+
+    func resetAudioOutputDeviceToSystemDefault() {
+        updateAudioOutputDeviceUID(nil)
+    }
+
     private func persistClickSoundSettings() {
         guard let data = try? JSONEncoder().encode(clickSoundSettings.clamped()) else { return }
         defaults.set(data, forKey: Self.clickSoundSettingsKey)

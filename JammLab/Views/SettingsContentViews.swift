@@ -88,7 +88,7 @@ private struct ThemeColorSettingRow: View {
     @Environment(\.appColors) private var appColors
 
     var body: some View {
-        HStack(spacing: AppTheme.Spacing.md) {
+        return HStack(spacing: AppTheme.Spacing.md) {
             Text(role.title)
                 .font(.subheadline.weight(.medium))
                 .foregroundStyle(appColors.primaryText)
@@ -215,11 +215,15 @@ struct AudioSettingsContentView: View {
         VStack(alignment: .leading, spacing: AppTheme.Spacing.lg) {
             VStack(alignment: .leading, spacing: AppTheme.Spacing.md) {
                 devicePicker(
-                    title: "Audio Input Device",
+                    title: "Audio Input Device (Tuner)",
                     selection: inputSelectionBinding,
                     devices: inputDevices,
                     selectedUID: settingsStore.audioDeviceSettings.inputDeviceUID
                 )
+
+                Text(inputPermissionText)
+                    .font(.caption)
+                    .foregroundStyle(appColors.secondaryText)
 
                 devicePicker(
                     title: "Audio Output Device",
@@ -235,15 +239,16 @@ struct AudioSettingsContentView: View {
                 }
                 .help(ControlHelpText.refreshAudioDevices)
 
-                Button("Reset to System Default") {
-                    settingsStore.resetAudioDevicesToSystemDefault()
+                Button("Reset Input to System Default") {
+                    settingsStore.resetAudioInputDeviceToSystemDefault()
                 }
-                .help(ControlHelpText.resetAudioDevices)
-            }
+                .help(ControlHelpText.resetAudioInputDevice)
 
-            Text(inputPermissionText)
-                .font(.caption)
-                .foregroundStyle(appColors.secondaryText)
+                Button("Reset Output to System Default") {
+                    settingsStore.resetAudioOutputDeviceToSystemDefault()
+                }
+                .help(ControlHelpText.resetAudioOutputDevice)
+            }
 
             if let errorText {
                 Text(errorText)
@@ -275,25 +280,29 @@ struct AudioSettingsContentView: View {
         devices: [AudioDeviceInfo],
         selectedUID: String?
     ) -> some View {
-        HStack(spacing: AppTheme.Spacing.md) {
+        let visibleSelection = Binding<String?>(
+            get: {
+                AudioSettingsDevicePickerSelection.visibleUID(
+                    selectedUID: selectedUID,
+                    devices: devices
+                )
+            },
+            set: { selection.wrappedValue = $0 }
+        )
+
+        return HStack(spacing: AppTheme.Spacing.md) {
             Text(title)
                 .font(.subheadline.weight(.medium))
                 .foregroundStyle(appColors.primaryText)
                 .frame(maxWidth: .infinity, alignment: .leading)
 
-            Picker(title, selection: selection) {
+            Picker(title, selection: visibleSelection) {
                 Text("System Default")
                     .tag(Optional<String>.none)
 
                 ForEach(devices) { device in
                     Text(deviceTitle(device))
                         .tag(Optional(device.uid))
-                }
-
-                if let selectedUID,
-                   !devices.contains(where: { $0.uid == selectedUID }) {
-                    Text("Unavailable: \(selectedUID)")
-                        .tag(Optional(selectedUID))
                 }
             }
             .labelsHidden()
@@ -309,20 +318,32 @@ struct AudioSettingsContentView: View {
     private var inputPermissionText: String {
         switch inputPermissionStatus {
         case .authorized:
-            return "Input device is used by the tuner. Output changes apply to playback immediately."
+            return "Used only by the tuner. Playback and imported tracks do not use audio input."
         case .notDetermined:
-            return "Input devices will be listed after opening the tuner. Output changes apply to playback immediately."
+            return "Open the tuner to allow audio input access. Playback and imported tracks do not use audio input."
         case .denied:
-            return "Audio input access is disabled. Output changes apply to playback immediately."
+            return "Audio input access is disabled. Allow JammLab in System Settings to use the tuner."
         }
     }
 
     private func refreshDevices() {
-        let result = deviceLoader.refreshDevices()
-        inputDevices = result.inputDevices
-        outputDevices = result.outputDevices
-        inputPermissionStatus = result.inputPermissionStatus
-        errorText = result.errorText
+        Task {
+            let result = await deviceLoader.refreshDevices()
+            inputDevices = result.inputDevices
+            outputDevices = result.outputDevices
+            inputPermissionStatus = result.inputPermissionStatus
+            errorText = result.errorText
+        }
+    }
+}
+
+enum AudioSettingsDevicePickerSelection {
+    static func visibleUID(selectedUID: String?, devices: [AudioDeviceInfo]) -> String? {
+        guard let selectedUID,
+              devices.contains(where: { $0.uid == selectedUID }) else {
+            return nil
+        }
+        return selectedUID
     }
 }
 
@@ -337,7 +358,7 @@ struct AudioSettingsDeviceLoader {
     var deviceProvider: AudioDeviceProviding = AudioDeviceService()
     var inputPermissionProvider: AudioInputPermissionProviding = SystemAudioInputPermissionProvider()
 
-    func refreshDevices() -> AudioSettingsDeviceRefreshResult {
+    func refreshDevices() async -> AudioSettingsDeviceRefreshResult {
         var inputDevices: [AudioDeviceInfo] = []
         var outputDevices: [AudioDeviceInfo] = []
         var errors: [String] = []

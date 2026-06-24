@@ -35,6 +35,8 @@ enum ControlHelpText {
     static let resetClickDefaults = "Restore the current built-in click sound: 1760/1120 Hz and 36/26 ms."
     static let refreshAudioDevices = "Refresh audio device list"
     static let resetAudioDevices = "Reset audio input and output to the system default devices"
+    static let resetAudioInputDevice = "Reset the tuner input to the system default input device"
+    static let resetAudioOutputDevice = "Reset playback output to the system default output device"
 
     static func muteTrack(_ title: String) -> String {
         "Mute \(title)"

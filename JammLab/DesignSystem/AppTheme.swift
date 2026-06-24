@@ -82,7 +82,7 @@ enum AppTheme {
         static let helpMinHeight: CGFloat = 300
         static let helpHeight: CGFloat = 420
         static let tunerWidth: CGFloat = 360
-        static let tunerMinHeight: CGFloat = 320
+        static let tunerMinHeight: CGFloat = 460
     }
 
     enum Colors {
@@ -193,6 +193,10 @@ enum AppTheme {
     enum Tuner {
         static let noteNameWidth: CGFloat = 150
         static let octaveWidth: CGFloat = 36
+        static let inputSignalMeterWidth: CGFloat = 14
+        static let inputSignalMeterHeight: CGFloat = 80
+        static let inputSignalMeterMinimumActiveHeight: CGFloat = 3
+        static let inputSignalMeterCornerRadius: CGFloat = 4
         static let meterHeight: CGFloat = 12
         static let meterCenterHeight: CGFloat = 34
         static let meterIndicatorHeight: CGFloat = 46

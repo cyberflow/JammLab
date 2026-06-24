@@ -33,6 +33,8 @@ struct PitchDetector {
     var absoluteThreshold: Double = 0.12
     var fallbackThreshold: Double = 0.35
 
+    static let tunerDefault = PitchDetector(silenceThreshold: 0.0035)
+
     private let noteNames = ["C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"]
 
     func detect(samples: [Float], sampleRate: Double) -> PitchDetectionResult? {

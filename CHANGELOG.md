@@ -10,6 +10,8 @@ development artifact builds use `vMAJOR.MINOR.PATCH-dev.N`.
 
 - Added an optional six-stem separation method with guitar and piano tracks.
 - Automatically switch to stem playback after stem separation completes.
+- Added a tuner input signal meter to show incoming audio even before pitch is detected.
+- Made the tuner detect quieter notes and keep the last detected note visible briefly.
 
 ## 1.0.0
 
