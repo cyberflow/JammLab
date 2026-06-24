@@ -2,10 +2,10 @@ import SwiftUI
 
 enum SettingsSection: String, CaseIterable, Identifiable {
     case general
-    case themeColors
-    case click
     case audio
+    case click
     case stemBackend
+    case themeColors
 
     var id: Self { self }
 
@@ -69,6 +69,7 @@ private struct SettingsSidebarRow: View {
                 .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
+        .focusEffectDisabled(true)
         .background(rowBackground)
         .clipShape(RoundedRectangle(cornerRadius: AppTheme.Radius.small, style: .continuous))
         .onHover { isHovered = $0 }

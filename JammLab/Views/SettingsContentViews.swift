@@ -239,15 +239,10 @@ struct AudioSettingsContentView: View {
                 }
                 .help(ControlHelpText.refreshAudioDevices)
 
-                Button("Reset Input to System Default") {
-                    settingsStore.resetAudioInputDeviceToSystemDefault()
+                Button("Reset Audio Devices to System Default") {
+                    settingsStore.resetAudioDevicesToSystemDefault()
                 }
-                .help(ControlHelpText.resetAudioInputDevice)
-
-                Button("Reset Output to System Default") {
-                    settingsStore.resetAudioOutputDeviceToSystemDefault()
-                }
-                .help(ControlHelpText.resetAudioOutputDevice)
+                .help(ControlHelpText.resetAudioDevices)
             }
 
             if let errorText {
@@ -290,7 +285,7 @@ struct AudioSettingsContentView: View {
             set: { selection.wrappedValue = $0 }
         )
 
-        return HStack(spacing: AppTheme.Spacing.md) {
+        return VStack(alignment: .leading, spacing: AppTheme.Spacing.sm) {
             Text(title)
                 .font(.subheadline.weight(.medium))
                 .foregroundStyle(appColors.primaryText)
@@ -306,7 +301,7 @@ struct AudioSettingsContentView: View {
                 }
             }
             .labelsHidden()
-            .frame(width: 260)
+            .frame(width: AppTheme.Settings.detailContentWidth, alignment: .leading)
             .help(title)
         }
     }
