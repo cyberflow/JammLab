@@ -54,7 +54,7 @@ The main screen is organized as:
 - global toolbar: `TopToolbarView`;
 - timeline/waveform area: `WaveformTimelineView`;
 - no-file import prompt: waveform placeholder inside `PeakformTimelineView`; keep the main workspace visible and disabled rather than replacing it with a separate empty-state screen;
-- stems/mixer lanes: `StemsMixerSection` inside `WaveformTimelineView`, sharing the timeline viewport;
+- stems/mixer lanes: `StemTracksSection` inside `WaveformTimelineView`, sharing the timeline viewport;
 - right sidebar: `InspectorSidebarView`;
 - bottom transport panel: `TransportBarView` and `TransportControlsView`.
 

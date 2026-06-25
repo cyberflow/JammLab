@@ -6,7 +6,11 @@ enum AppDefaults {
 }
 
 enum AppSliderDefaults {
+    static let minimumPlaybackRate: Float = 0.25
+    static let maximumPlaybackRate: Float = 1
     static let playbackRate: Float = 1
+    static let minimumPitchShiftSemitones: Float = -12
+    static let maximumPitchShiftSemitones: Float = 12
     static let pitchShiftSemitones: Float = 0
     static let mainTrackVolume: Float = 0.75
     static let stemTrackVolume: Float = 0.75

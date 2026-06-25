@@ -110,7 +110,7 @@ extension AudioPlayerViewModel {
 
     func setPlaybackRate(_ rate: Float) {
         performUndoableEdit("Change Speed") {
-            playbackRate = min(1, max(0.25, rate))
+            playbackRate = ProjectStateNormalizer.normalizedPlaybackRate(rate)
             playbackEngine.setPlaybackRate(playbackRate)
             videoFollower.setPlaybackRate(playbackRate)
         }
@@ -122,7 +122,7 @@ extension AudioPlayerViewModel {
 
     func setPitchShift(semitones: Float) {
         performUndoableEdit("Change Pitch") {
-            pitchShiftSemitones = min(12, max(-12, semitones))
+            pitchShiftSemitones = ProjectStateNormalizer.normalizedPitchShift(semitones)
             playbackEngine.setPitchShift(semitones: pitchShiftSemitones)
         }
     }
@@ -130,7 +130,6 @@ extension AudioPlayerViewModel {
     func resetPitchShiftToDefault() {
         setPitchShift(semitones: AppSliderDefaults.pitchShiftSemitones)
     }
-
 
     func toggleClick() {
         setClickEnabled(!isClickEnabled)

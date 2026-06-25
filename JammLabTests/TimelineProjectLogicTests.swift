@@ -363,6 +363,39 @@ final class TimelineProjectLogicTests: XCTestCase {
         XCTAssertEqual(loop.end, 12, accuracy: 0.0001)
     }
 
+    func testProjectStateNormalizerUsesSliderDefaultsForPlaybackControls() {
+        XCTAssertEqual(
+            ProjectStateNormalizer.normalizedPlaybackRate(0),
+            AppSliderDefaults.minimumPlaybackRate,
+            accuracy: 0.0001
+        )
+        XCTAssertEqual(
+            ProjectStateNormalizer.normalizedPlaybackRate(2),
+            AppSliderDefaults.maximumPlaybackRate,
+            accuracy: 0.0001
+        )
+        XCTAssertEqual(
+            ProjectStateNormalizer.normalizedPlaybackRate(.nan),
+            AppSliderDefaults.playbackRate,
+            accuracy: 0.0001
+        )
+        XCTAssertEqual(
+            ProjectStateNormalizer.normalizedPitchShift(-24),
+            AppSliderDefaults.minimumPitchShiftSemitones,
+            accuracy: 0.0001
+        )
+        XCTAssertEqual(
+            ProjectStateNormalizer.normalizedPitchShift(24),
+            AppSliderDefaults.maximumPitchShiftSemitones,
+            accuracy: 0.0001
+        )
+        XCTAssertEqual(
+            ProjectStateNormalizer.normalizedPitchShift(.nan),
+            AppSliderDefaults.pitchShiftSemitones,
+            accuracy: 0.0001
+        )
+    }
+
     func testAppHotkeyRecognizesTabForPlaybackModeToggle() throws {
         let event = try XCTUnwrap(NSEvent.keyEvent(
             with: .keyDown,

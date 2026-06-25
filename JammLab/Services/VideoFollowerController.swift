@@ -168,7 +168,7 @@ final class VideoFollowerController: NSObject, VideoFollowerControlling, NSWindo
     }
 
     private func normalizedRate(_ rate: Float) -> Float {
-        min(1, max(0.25, rate))
+        ProjectStateNormalizer.normalizedPlaybackRate(rate)
     }
 
     private func cmTime(for seconds: TimeInterval) -> CMTime {
