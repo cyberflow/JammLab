@@ -89,9 +89,9 @@ extension AudioPlayerViewModel {
         }
     }
 
-    func seek(to note: TimecodedNote) {
+    func activateInspectorItem(_ note: TimecodedNote) {
         if note.isRegion {
-            activateRegionAsLoop(id: note.id, shouldSeek: true)
+            activateRegionAsLoopAndMoveMarker(id: note.id)
             return
         }
 
@@ -113,8 +113,7 @@ extension AudioPlayerViewModel {
         }
     }
 
-    func activateRegionAsLoop(id: TimecodedNote.ID, shouldSeek: Bool = false) {
-        var seekTime: TimeInterval?
+    func activateRegionAsLoop(id: TimecodedNote.ID) {
         performUndoableEdit("Activate Region Loop") {
             guard let note = notes.first(where: { $0.id == id && $0.isRegion }) else { return }
 
@@ -122,12 +121,15 @@ extension AudioPlayerViewModel {
             activeLoopRegionID = id
             loopRegion = LoopRegion(start: note.time, end: note.regionEndTime).clamped(to: duration)
             applyLoopConfiguration()
-            seekTime = note.time
         }
+    }
 
-        if shouldSeek, let seekTime {
-            seek(to: seekTime)
-        }
+    func activateRegionAsLoopAndMoveMarker(id: TimecodedNote.ID) {
+        guard let note = notes.first(where: { $0.id == id && $0.isRegion }) else { return }
+
+        activateRegionAsLoop(id: id)
+        setPlaybackMarkerExactly(to: note.time, shouldSeek: playbackState != .playing)
+        refreshProjectModifiedState()
     }
 
     func locateRegionStart(id: TimecodedNote.ID) {
