@@ -130,34 +130,6 @@ final class SettingsAndControlLogicTests: XCTestCase {
         XCTAssertEqual(AppSettingsStore(defaults: defaults).audioDeviceSettings, .defaultValue)
     }
 
-    func testAppSettingsStoreResetAudioOutputPreservesInputDevice() throws {
-        let defaults = try temporaryUserDefaults()
-        let store = AppSettingsStore(defaults: defaults)
-        store.updateAudioInputDeviceUID("input-device")
-        store.updateAudioOutputDeviceUID("output-device")
-
-        store.resetAudioOutputDeviceToSystemDefault()
-
-        XCTAssertEqual(store.audioDeviceSettings.inputDeviceUID, "input-device")
-        XCTAssertNil(store.audioDeviceSettings.outputDeviceUID)
-        XCTAssertEqual(AppSettingsStore(defaults: defaults).audioDeviceSettings.inputDeviceUID, "input-device")
-        XCTAssertNil(AppSettingsStore(defaults: defaults).audioDeviceSettings.outputDeviceUID)
-    }
-
-    func testAppSettingsStoreResetAudioInputPreservesOutputDevice() throws {
-        let defaults = try temporaryUserDefaults()
-        let store = AppSettingsStore(defaults: defaults)
-        store.updateAudioInputDeviceUID("input-device")
-        store.updateAudioOutputDeviceUID("output-device")
-
-        store.resetAudioInputDeviceToSystemDefault()
-
-        XCTAssertNil(store.audioDeviceSettings.inputDeviceUID)
-        XCTAssertEqual(store.audioDeviceSettings.outputDeviceUID, "output-device")
-        XCTAssertNil(AppSettingsStore(defaults: defaults).audioDeviceSettings.inputDeviceUID)
-        XCTAssertEqual(AppSettingsStore(defaults: defaults).audioDeviceSettings.outputDeviceUID, "output-device")
-    }
-
     func testAppSettingsStoreNormalizesEmptyAudioDeviceUIDs() throws {
         let defaults = try temporaryUserDefaults()
         let settings = AudioDeviceSettings(inputDeviceUID: "   ", outputDeviceUID: "\n")

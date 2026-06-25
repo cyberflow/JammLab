@@ -120,7 +120,6 @@ extension ContentView {
             loopEnd: viewModel.loopRegion.end,
             notes: viewModel.notes,
             selectedRegionID: viewModel.selectedRegionID,
-            sections: timelineSections,
             beatGrid: beatGrid,
             isLoadingPeakform: viewModel.isBuildingWaveform,
             mainTrackVolume: viewModel.mainTrackVolume,
@@ -270,10 +269,6 @@ extension ContentView {
             tempoMap: viewModel.tempoMap,
             visibleRange: viewModel.timelineVisibleRange
         )
-    }
-
-    var timelineSections: [TimelineSection] {
-        []
     }
 
 }

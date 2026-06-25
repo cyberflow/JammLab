@@ -47,8 +47,8 @@ struct TransportBarView: View {
                                 get: { Double(pitchShiftSemitones) },
                                 set: { onPitchShiftChanged(Float($0)) }
                             ),
-                            minValue: -12,
-                            maxValue: 12,
+                            minValue: Double(AppSliderDefaults.minimumPitchShiftSemitones),
+                            maxValue: Double(AppSliderDefaults.maximumPitchShiftSemitones),
                             defaultValue: Double(AppSliderDefaults.pitchShiftSemitones),
                             step: 1,
                             sensitivity: 0.08,
@@ -64,8 +64,8 @@ struct TransportBarView: View {
                                 get: { Double(playbackRate) },
                                 set: { onPlaybackRateChanged(Float($0)) }
                             ),
-                            minValue: 0.25,
-                            maxValue: 1,
+                            minValue: Double(AppSliderDefaults.minimumPlaybackRate),
+                            maxValue: Double(AppSliderDefaults.maximumPlaybackRate),
                             defaultValue: Double(AppSliderDefaults.playbackRate),
                             step: 0.01,
                             precision: 0,

@@ -310,28 +310,11 @@ extension AudioPlayerViewModel {
             }
 
             do {
-                let project = try projectPersistenceCoordinator.makeProject(ProjectDocumentSnapshot(
+                let snapshot = projectDocumentSnapshot(
                     importedFile: self.importedFile ?? currentImportedFile,
-                    projectURL: url,
-                    duration: duration,
-                    notes: notes,
-                    loopRegion: loopRegion,
-                    loopMinimumLength: activeRangeMinimumLength,
-                    isLooping: isLooping,
-                    playbackRate: playbackRate,
-                    pitchShiftSemitones: pitchShiftSemitones,
-                    tempoBPM: tempoBPM,
-                    beatGridSettings: beatGridSettings,
-                    mainTrackVolume: mainTrackVolume,
-                    isClickEnabled: isClickEnabled,
-                    clickVolume: clickVolume,
-                    isSnapEnabled: isSnapEnabled,
-                    playbackMode: playbackMode,
-                    playbackMarkerTime: playbackMarkerTime,
-                    timelineVisibleRange: userTimelineVisibleRange,
-                    stemState: makeStemProjectState(),
-                    isVideoWindowOpen: isVideoWindowOpen
-                ))
+                    projectURL: url
+                )
+                let project = try projectPersistenceCoordinator.makeProject(snapshot)
                 try projectService.save(project, to: url)
             } catch {
                 importedFile = previousImportedFile
@@ -358,6 +341,31 @@ extension AudioPlayerViewModel {
         let baseName = (importedFile?.displayName as NSString?)?.deletingPathExtension ?? "JammLab Project"
 
         return "\(baseName).\(ProjectDocumentService.fileExtension)"
+    }
+
+    private func projectDocumentSnapshot(importedFile: ImportedAudioFile, projectURL: URL) -> ProjectDocumentSnapshot {
+        ProjectDocumentSnapshot(
+            importedFile: importedFile,
+            projectURL: projectURL,
+            duration: duration,
+            notes: notes,
+            loopRegion: loopRegion,
+            loopMinimumLength: activeRangeMinimumLength,
+            isLooping: isLooping,
+            playbackRate: playbackRate,
+            pitchShiftSemitones: pitchShiftSemitones,
+            tempoBPM: tempoBPM,
+            beatGridSettings: beatGridSettings,
+            mainTrackVolume: mainTrackVolume,
+            isClickEnabled: isClickEnabled,
+            clickVolume: clickVolume,
+            isSnapEnabled: isSnapEnabled,
+            playbackMode: playbackMode,
+            playbackMarkerTime: playbackMarkerTime,
+            timelineVisibleRange: userTimelineVisibleRange,
+            stemState: makeStemProjectState(),
+            isVideoWindowOpen: isVideoWindowOpen
+        )
     }
 
     func addRecentProject(url: URL) {

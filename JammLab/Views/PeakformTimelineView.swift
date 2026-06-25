@@ -9,7 +9,6 @@ struct PeakformTimelineView: View {
     let loopEnd: TimeInterval
     let notes: [TimecodedNote]
     let selectedRegionID: TimecodedNote.ID?
-    let sections: [TimelineSection]
     let tempoMap: TempoMap
     let visibleStartTime: TimeInterval
     let visibleEndTime: TimeInterval
@@ -21,7 +20,6 @@ struct PeakformTimelineView: View {
     var body: some View {
         ZStack {
             Canvas { context, size in
-                drawSections(in: &context, size: size)
                 drawPreRollArea(in: &context, size: size)
                 PeakformRenderer.draw(
                     peakformData: peakformData,
@@ -72,13 +70,6 @@ struct PeakformTimelineView: View {
 
     private var resolvedWaveformColor: Color {
         waveformColor ?? appColors.waveformColor
-    }
-
-    private func drawSections(in context: inout GraphicsContext, size: CGSize) {
-        for section in sections {
-            guard let rect = rect(for: section.start, end: section.end, size: size) else { continue }
-            context.fill(Path(rect), with: .color(section.color.opacity(AppTheme.Timeline.sectionOpacity)))
-        }
     }
 
     private func drawPreRollArea(in context: inout GraphicsContext, size: CGSize) {

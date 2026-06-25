@@ -11,13 +11,16 @@ struct ProjectStateNormalizer {
     }
 
     static func normalizedPlaybackRate(_ rate: Float) -> Float {
-        guard rate.isFinite else { return 1 }
-        return min(1, max(0.25, rate))
+        guard rate.isFinite else { return AppSliderDefaults.playbackRate }
+        return min(AppSliderDefaults.maximumPlaybackRate, max(AppSliderDefaults.minimumPlaybackRate, rate))
     }
 
     static func normalizedPitchShift(_ semitones: Float) -> Float {
-        guard semitones.isFinite else { return 0 }
-        return min(12, max(-12, semitones))
+        guard semitones.isFinite else { return AppSliderDefaults.pitchShiftSemitones }
+        return min(
+            AppSliderDefaults.maximumPitchShiftSemitones,
+            max(AppSliderDefaults.minimumPitchShiftSemitones, semitones)
+        )
     }
 
     static func normalizedTimelineTime(_ time: TimeInterval?, duration: TimeInterval) -> TimeInterval {

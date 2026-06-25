@@ -265,12 +265,8 @@ final class TunerInputService: ObservableObject {
     private let inputEngine: TunerInputEngineControlling
     private let detector: any PitchDetecting
     private let noteHoldDuration: TimeInterval
-    private let analysisQueue = DispatchQueue(label: "com.cyberflow.JammLab.tuner.pitch", qos: .userInitiated)
-    private let analysisLock = NSLock()
+    private let analysisScheduler = TunerAnalysisScheduler()
     private var settingsCancellable: AnyCancellable?
-    private var analysisInFlight = false
-    private var pendingAnalysis: TunerAnalysisWork?
-    private var activeAnalysisSessionID = 0
     private var lastDetectedAt: Date?
     private var noteHoldClearTask: Task<Void, Never>?
     private var isRunning = false
@@ -444,28 +440,13 @@ final class TunerInputService: ObservableObject {
         guard sampleRate > 0 else { return }
 
         let work = TunerAnalysisWork(samples: samples, sampleRate: sampleRate, sessionID: sessionID)
-        if enqueueAnalysis(work) {
+        if analysisScheduler.enqueue(work) {
             startAnalysis(work, detector: detector)
         }
     }
 
-    private func enqueueAnalysis(_ work: TunerAnalysisWork) -> Bool {
-        analysisLock.lock()
-        defer { analysisLock.unlock() }
-
-        guard work.sessionID == activeAnalysisSessionID else { return false }
-
-        if analysisInFlight {
-            pendingAnalysis = work
-            return false
-        }
-
-        analysisInFlight = true
-        return true
-    }
-
     private func startAnalysis(_ work: TunerAnalysisWork, detector: any PitchDetecting) {
-        analysisQueue.async { [weak self] in
+        analysisScheduler.async { [weak self] in
             let result = detector.detect(samples: work.samples, sampleRate: work.sampleRate)
             DispatchQueue.main.async {
                 self?.publish(result: result, sessionID: work.sessionID)
@@ -475,19 +456,7 @@ final class TunerInputService: ObservableObject {
     }
 
     private func completeAnalysis(_ work: TunerAnalysisWork, detector: any PitchDetecting) {
-        let nextWork: TunerAnalysisWork?
-
-        analysisLock.lock()
-        if work.sessionID == activeAnalysisSessionID {
-            nextWork = pendingAnalysis
-            pendingAnalysis = nil
-            analysisInFlight = nextWork != nil
-        } else {
-            nextWork = nil
-        }
-        analysisLock.unlock()
-
-        if let nextWork {
+        if let nextWork = analysisScheduler.complete(work) {
             startAnalysis(nextWork, detector: detector)
         }
     }
@@ -617,11 +586,7 @@ final class TunerInputService: ObservableObject {
     }
 
     private func resetAnalysisState(for sessionID: Int) {
-        analysisLock.lock()
-        activeAnalysisSessionID = sessionID
-        analysisInFlight = false
-        pendingAnalysis = nil
-        analysisLock.unlock()
+        analysisScheduler.reset(for: sessionID)
     }
 
     private func publishInputSignalLevel(_ level: Double, sessionID: Int) {
@@ -701,4 +666,51 @@ private struct TunerAnalysisWork {
     let samples: [Float]
     let sampleRate: Double
     let sessionID: Int
+}
+
+private final class TunerAnalysisScheduler {
+    private let queue = DispatchQueue(label: "com.cyberflow.JammLab.tuner.pitch", qos: .userInitiated)
+    private let lock = NSLock()
+    private var analysisInFlight = false
+    private var pendingAnalysis: TunerAnalysisWork?
+    private var activeSessionID = 0
+
+    func reset(for sessionID: Int) {
+        lock.lock()
+        activeSessionID = sessionID
+        analysisInFlight = false
+        pendingAnalysis = nil
+        lock.unlock()
+    }
+
+    func enqueue(_ work: TunerAnalysisWork) -> Bool {
+        lock.lock()
+        defer { lock.unlock() }
+
+        guard work.sessionID == activeSessionID else { return false }
+
+        if analysisInFlight {
+            pendingAnalysis = work
+            return false
+        }
+
+        analysisInFlight = true
+        return true
+    }
+
+    func async(_ work: @escaping () -> Void) {
+        queue.async(execute: work)
+    }
+
+    func complete(_ work: TunerAnalysisWork) -> TunerAnalysisWork? {
+        lock.lock()
+        defer { lock.unlock() }
+
+        guard work.sessionID == activeSessionID else { return nil }
+
+        let nextWork = pendingAnalysis
+        pendingAnalysis = nil
+        analysisInFlight = nextWork != nil
+        return nextWork
+    }
 }

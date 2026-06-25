@@ -1,12 +1,5 @@
 import SwiftUI
 
-struct TimelineSection: Identifiable, Equatable {
-    let id = UUID()
-    var start: TimeInterval
-    var end: TimeInterval
-    var color: Color
-}
-
 struct BeatGridConfiguration: Equatable {
     var settings: BeatGridSettings
     var tempoMap: TempoMap
@@ -32,7 +25,6 @@ struct TimelineViewState: Equatable {
     var loopEnd: TimeInterval
     var notes: [TimecodedNote]
     var selectedRegionID: TimecodedNote.ID?
-    var sections: [TimelineSection]
     var beatGrid: BeatGridConfiguration
     var isLoadingPeakform: Bool
     var mainTrackVolume: Float
@@ -260,7 +252,6 @@ struct WaveformTimelineView: View {
                     loopEnd: state.loopEnd,
                     notes: state.notes,
                     selectedRegionID: state.selectedRegionID,
-                    sections: state.sections,
                     tempoMap: state.beatGrid.tempoMap,
                     visibleStartTime: visibleRange.lowerBound,
                     visibleEndTime: visibleRange.upperBound,

@@ -185,8 +185,6 @@ enum AppTheme {
         static let rowHeight: CGFloat = 30
         static let detailPadding: CGFloat = 20
         static let detailContentWidth: CGFloat = 392
-        static let selectedRowBackground = Color.primary.opacity(0.10)
-        static let sidebarBackground = Color.primary.opacity(0.035)
         static let dividerColor = Color.primary.opacity(0.12)
     }
 
@@ -338,7 +336,6 @@ enum AppTheme {
         static let peakOpacity = 1.0
         static let emptyPeakOpacity = 0.25
         static let preRollOpacity = 0.08
-        static let sectionOpacity = 0.14
     }
 
     enum Animation {
