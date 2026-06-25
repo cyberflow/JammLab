@@ -7,7 +7,7 @@ struct RegionTrackView: View {
     let selectedRegionID: TimecodedNote.ID?
     let configuration: BeatGridConfiguration
     let onSelectRegion: (TimecodedNote.ID) -> Void
-    let onLocateRegionStart: (TimecodedNote.ID) -> Void
+    let onActivateRegionAsLoop: (TimecodedNote.ID) -> Void
     let onFocusRegion: (TimecodedNote.ID) -> Void
     let onEditRegion: (TimecodedNote) -> Void
     let onDeleteRegion: (TimecodedNote.ID) -> Void
@@ -75,7 +75,7 @@ struct RegionTrackView: View {
                     isSelected: selectedRegionID == region.id,
                     allowsBodyDrag: true,
                     onSelect: onSelectRegion,
-                    onLocateStart: onLocateRegionStart,
+                    onActivateRegionAsLoop: onActivateRegionAsLoop,
                     onFocus: onFocusRegion,
                     onEdit: onEditRegion,
                     onDelete: onDeleteRegion,

@@ -1322,6 +1322,77 @@ final class ViewModelLifecycleTests: XCTestCase {
     }
 
     @MainActor
+    func testActivateRegionAsLoopWithoutSeekingPreservesPlaybackPosition() throws {
+        let audioURL = try temporaryAudioFile(duration: 6)
+        defer { try? FileManager.default.removeItem(at: audioURL) }
+        let engine = MockPlaybackEngine()
+        let viewModel = AudioPlayerViewModel(
+            analyzer: MockAnalyzer(),
+            peakformProvider: MockPeakformProvider(),
+            playbackEngine: engine
+        )
+        let media = ImportedAudioFile(url: audioURL, displayName: "region.wav", duration: 6)
+        try viewModel.loadImportedAudio(media)
+        let region = TimecodedNote(kind: .region, time: 2.3, duration: 1.4, title: "Region")
+        viewModel.notes = [region]
+        viewModel.loopRegion = LoopRegion(start: 0, end: 6)
+        viewModel.activeLoopRegionID = nil
+        viewModel.setPlaybackMarkerExactly(to: 1.1)
+        let initialSeekCount = engine.seekCount
+        viewModel.markProjectClean()
+
+        viewModel.activateRegionAsLoop(id: region.id)
+
+        XCTAssertEqual(viewModel.selectedRegionID, region.id)
+        XCTAssertEqual(viewModel.activeLoopRegionID, region.id)
+        XCTAssertEqual(viewModel.loopRegion.start, 2.3, accuracy: 0.0001)
+        XCTAssertEqual(viewModel.loopRegion.end, 3.7, accuracy: 0.0001)
+        XCTAssertEqual(engine.loopRegion.start, 2.3, accuracy: 0.0001)
+        XCTAssertEqual(engine.loopRegion.end, 3.7, accuracy: 0.0001)
+        XCTAssertEqual(viewModel.playbackMarkerTime, 1.1, accuracy: 0.0001)
+        XCTAssertEqual(viewModel.currentTime, 1.1, accuracy: 0.0001)
+        XCTAssertEqual(engine.currentTime, 1.1, accuracy: 0.0001)
+        XCTAssertEqual(engine.seekCount, initialSeekCount)
+        XCTAssertTrue(viewModel.isProjectModified)
+    }
+
+    @MainActor
+    func testActivateInspectorItemUsesNoSeekForRegionsAndKeepsMarkerSeek() throws {
+        let audioURL = try temporaryAudioFile(duration: 6)
+        defer { try? FileManager.default.removeItem(at: audioURL) }
+        let engine = MockPlaybackEngine()
+        let viewModel = AudioPlayerViewModel(
+            analyzer: MockAnalyzer(),
+            peakformProvider: MockPeakformProvider(),
+            playbackEngine: engine
+        )
+        let media = ImportedAudioFile(url: audioURL, displayName: "inspector.wav", duration: 6)
+        try viewModel.loadImportedAudio(media)
+        let marker = TimecodedNote(time: 4.2, title: "Marker")
+        let region = TimecodedNote(kind: .region, time: 2.3, duration: 1.4, title: "Region")
+        viewModel.notes = [marker, region]
+        viewModel.setPlaybackMarkerExactly(to: 1.1)
+        let seekCountAfterInitialPosition = engine.seekCount
+
+        viewModel.activateInspectorItem(region)
+
+        XCTAssertEqual(viewModel.selectedRegionID, region.id)
+        XCTAssertEqual(viewModel.activeLoopRegionID, region.id)
+        XCTAssertEqual(viewModel.loopRegion.start, 2.3, accuracy: 0.0001)
+        XCTAssertEqual(viewModel.loopRegion.end, 3.7, accuracy: 0.0001)
+        XCTAssertEqual(viewModel.playbackMarkerTime, 1.1, accuracy: 0.0001)
+        XCTAssertEqual(viewModel.currentTime, 1.1, accuracy: 0.0001)
+        XCTAssertEqual(engine.currentTime, 1.1, accuracy: 0.0001)
+        XCTAssertEqual(engine.seekCount, seekCountAfterInitialPosition)
+
+        viewModel.activateInspectorItem(marker)
+
+        XCTAssertEqual(viewModel.currentTime, 4.2, accuracy: 0.0001)
+        XCTAssertEqual(engine.currentTime, 4.2, accuracy: 0.0001)
+        XCTAssertEqual(engine.seekCount, seekCountAfterInitialPosition + 1)
+    }
+
+    @MainActor
     func testSaveProjectForClosePersistsAndClearsModifiedState() async throws {
         let audioURL = try temporaryAudioFile()
         let projectURL = temporaryDirectory().appendingPathComponent("save-close.jammlab")

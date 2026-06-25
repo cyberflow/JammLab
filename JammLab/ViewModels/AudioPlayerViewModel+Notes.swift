@@ -89,9 +89,9 @@ extension AudioPlayerViewModel {
         }
     }
 
-    func seek(to note: TimecodedNote) {
+    func activateInspectorItem(_ note: TimecodedNote) {
         if note.isRegion {
-            activateRegionAsLoop(id: note.id, shouldSeek: true)
+            activateRegionAsLoop(id: note.id)
             return
         }
 
