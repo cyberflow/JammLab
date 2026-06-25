@@ -143,7 +143,7 @@ extension ContentView {
             markerTimeChanged: { viewModel.updateMarkerTime(id: $0, time: $1) },
             saveLoopRegion: { viewModel.saveCurrentLoopRegionAsRegion() },
             selectRegion: { viewModel.selectRegion(id: $0) },
-            activateRegionAsLoop: { viewModel.activateRegionAsLoop(id: $0) },
+            activateRegionAsLoop: { viewModel.activateRegionAsLoopAndMoveMarker(id: $0) },
             focusRegion: { viewModel.focusRegion(id: $0) },
             regionRangeChanged: { viewModel.updateRegionRange(id: $0, start: $1, end: $2) },
             loopStartChanged: { viewModel.updateLoopStart($0) },

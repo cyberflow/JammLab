@@ -13,7 +13,7 @@ development artifact builds use `vMAJOR.MINOR.PATCH-dev.N`.
 - Added a tuner input signal meter to show incoming audio even before pitch is detected.
 - Made the tuner detect quieter notes and keep the last detected note visible briefly.
 - Cleaned up Settings sidebar order and focus styling, aligned the Audio device pickers, and made the Audio reset button restore both input and output devices.
-- Made region activation from the inspector and timeline set the loop without moving the playback cursor.
+- Made region activation from the inspector and timeline set the loop and position marker without interrupting active playback.
 
 ## 1.0.0
 
