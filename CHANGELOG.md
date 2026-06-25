@@ -8,12 +8,30 @@ development artifact builds use `vMAJOR.MINOR.PATCH-dev.N`.
 
 ## Unreleased
 
+- Nothing yet.
+
+## 1.0.1
+
+### New Features
+
 - Added an optional six-stem separation method with guitar and piano tracks.
+
+### Improvements
+
 - Automatically switch to stem playback after stem separation completes.
-- Added a tuner input signal meter to show incoming audio even before pitch is detected.
+- Added a tuner input signal meter to show incoming audio before pitch is detected.
 - Made the tuner detect quieter notes and keep the last detected note visible briefly.
-- Cleaned up Settings sidebar order and focus styling, aligned the Audio device pickers, and made the Audio reset button restore both input and output devices.
+- Cleaned up Settings sidebar order and focus styling, aligned Audio device pickers, and made the Audio reset button restore both input and output devices.
+
+### Fixes
+
 - Made region activation from the inspector and timeline set the loop and position marker without interrupting active playback.
+
+### Validation
+
+- Python helper tests passed: `python3 -m unittest JammLabSeparatorHelper/test_runner.py` ran 10 tests with 0 failures.
+- Swift tests passed: `SKIP_BUNDLED_SEPARATOR_HELPER=1 xcodebuild test -project JammLab.xcodeproj -scheme JammLab -destination 'platform=macOS,arch=arm64' -derivedDataPath build CODE_SIGN_IDENTITY=- CODE_SIGN_STYLE=Manual DEVELOPMENT_TEAM= PROVISIONING_PROFILE_SPECIFIER= ONLY_ACTIVE_ARCH=YES ARCHS=arm64` ran 250 tests with 0 failures.
+- Release metadata check passed: `scripts/derive_release_metadata.sh v1.0.1` returned stable release metadata with app version `1.0.1`.
 
 ## 1.0.0
 
