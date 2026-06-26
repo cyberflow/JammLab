@@ -121,6 +121,7 @@ extension ContentView {
             notes: viewModel.notes,
             selectedRegionID: viewModel.selectedRegionID,
             beatGrid: beatGrid,
+            notationViewport: notationViewportState,
             isLoadingPeakform: viewModel.isBuildingWaveform,
             mainTrackVolume: viewModel.mainTrackVolume,
             playbackMode: viewModel.playbackMode,
@@ -128,6 +129,18 @@ extension ContentView {
             stemFiles: viewModel.stemFiles,
             stemPeakforms: viewModel.stemPeakforms,
             isLoadingStemPeakforms: viewModel.isBuildingStemPeakforms
+        )
+    }
+
+    var notationViewportState: NotationViewportState {
+        NotationViewportFactory().viewportState(
+            tempoMap: viewModel.tempoMap,
+            duration: viewModel.duration,
+            currentTime: viewModel.currentTime,
+            playbackMarkerTime: viewModel.playbackMarkerTime,
+            isPlaying: viewModel.playbackState == .playing,
+            keyName: viewModel.analysisResult?.keyName,
+            visibleMeasureCount: AppTheme.Timeline.notationVisibleMeasureCount
         )
     }
 
