@@ -24,7 +24,9 @@ struct TimelineViewState: Equatable {
     var loopStart: TimeInterval
     var loopEnd: TimeInterval
     var notes: [TimecodedNote]
+    var harmonyEvents: [HarmonyEvent]
     var selectedRegionID: TimecodedNote.ID?
+    var selectedHarmonyEventID: HarmonyEvent.ID?
     var beatGrid: BeatGridConfiguration
     var isLoadingPeakform: Bool
     var mainTrackVolume: Float
@@ -44,6 +46,12 @@ struct TimelineViewActions {
     var noteColorChanged: (TimecodedNote.ID, MarkerColor) -> Void
     var noteCustomColorChanged: (TimecodedNote.ID, String) -> Void
     var markerTimeChanged: (TimecodedNote.ID, TimeInterval) -> Void
+    var createHarmonyEvent: (TimeInterval) -> HarmonyEvent.ID?
+    var selectHarmonyEvent: (HarmonyEvent.ID?) -> Void
+    var updateHarmonyEventSymbol: (HarmonyEvent.ID, String) -> Bool
+    var commitHarmonyEventAndCreateNext: (HarmonyEvent.ID, String) -> HarmonyEvent.ID?
+    var harmonyEventTimeChanged: (HarmonyEvent.ID, TimeInterval) -> Void
+    var deleteHarmonyEvent: (HarmonyEvent.ID) -> Void
     var saveLoopRegion: () -> Void
     var selectRegion: (TimecodedNote.ID) -> Void
     var activateRegionAsLoop: (TimecodedNote.ID) -> Void
@@ -163,6 +171,9 @@ struct WaveformTimelineView: View {
 
             mainTrackRow
                 .frame(height: AppTheme.Timeline.waveformTrackHeight)
+
+            harmonyTrackRow
+                .frame(height: AppTheme.Timeline.harmonyTrackHeight)
         }
     }
 
@@ -199,6 +210,40 @@ struct WaveformTimelineView: View {
 
             audioTrack
         }
+    }
+
+    private var harmonyTrackRow: some View {
+        HStack(spacing: AppTheme.Spacing.md) {
+            harmonyTrackControls
+                .frame(width: trackControlWidth)
+
+            HarmonyTrackView(
+                duration: state.duration,
+                events: state.harmonyEvents,
+                selectedEventID: state.selectedHarmonyEventID,
+                configuration: state.beatGrid,
+                onCreateEvent: actions.createHarmonyEvent,
+                onSelectEvent: actions.selectHarmonyEvent,
+                onUpdateSymbol: actions.updateHarmonyEventSymbol,
+                onCommitAndCreateNext: actions.commitHarmonyEventAndCreateNext,
+                onMoveEvent: actions.harmonyEventTimeChanged,
+                onDeleteEvent: actions.deleteHarmonyEvent
+            )
+        }
+    }
+
+    private var harmonyTrackControls: some View {
+        VStack(alignment: .leading, spacing: AppTheme.Spacing.xs) {
+            Text("Chords")
+                .font(AppTheme.Typography.noteTitle)
+                .lineLimit(1)
+                .frame(maxWidth: .infinity, alignment: .leading)
+        }
+        .padding(.horizontal, AppTheme.Spacing.md)
+        .padding(.vertical, AppTheme.Spacing.sm)
+        .opacity(state.duration > 0 ? 1 : 0.55)
+        .help("Chord markers")
+        .accessibilityLabel("Chords Track")
     }
 
     private var mainTrackControls: some View {

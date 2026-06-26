@@ -101,6 +101,7 @@ enum AppColorRole: String, Codable, CaseIterable, Identifiable {
     case waveformColor
     case waveformDisabledBackground
     case waveformDisabledColor
+    case harmonyTrackBackground
     case timeTrackAccentBeatLine
     case timeTrackBeatLine
     case waveformAccentBeatLine
@@ -156,6 +157,8 @@ enum AppColorRole: String, Codable, CaseIterable, Identifiable {
             return "Waveform Disabled Background"
         case .waveformDisabledColor:
             return "Waveform Disabled Color"
+        case .harmonyTrackBackground:
+            return "Harmony Track Background"
         case .timeTrackAccentBeatLine:
             return "Time-Track Accent Beat Line"
         case .timeTrackBeatLine:
@@ -215,6 +218,8 @@ enum AppColorRole: String, Codable, CaseIterable, Identifiable {
             return "#5C5C5C"
         case .waveformDisabledColor:
             return "#2F2F2F"
+        case .harmonyTrackBackground:
+            return "#D8D0BE"
         case .timeTrackAccentBeatLine:
             return "#747474"
         case .timeTrackBeatLine:
@@ -233,6 +238,7 @@ enum AppColorRoleGroup: String, CaseIterable, Identifiable {
     case controls
     case accentStatus
     case waveform
+    case timeline
     case gridLines
 
     var id: String { rawValue }
@@ -249,6 +255,8 @@ enum AppColorRoleGroup: String, CaseIterable, Identifiable {
             return "Accent & Status"
         case .waveform:
             return "Waveform"
+        case .timeline:
+            return "Timeline"
         case .gridLines:
             return "Grid Lines"
         }
@@ -266,6 +274,8 @@ enum AppColorRoleGroup: String, CaseIterable, Identifiable {
             return [.accent, .accentHover, .accentPressed, .statusButtonFill, .statusButtonCriticalFill, .statusButtonAttentionFill]
         case .waveform:
             return [.waveformBackground, .waveformColor, .waveformDisabledBackground, .waveformDisabledColor]
+        case .timeline:
+            return [.harmonyTrackBackground]
         case .gridLines:
             return [.timeTrackAccentBeatLine, .timeTrackBeatLine, .waveformAccentBeatLine, .waveformBeatLine]
         }

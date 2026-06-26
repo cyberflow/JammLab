@@ -36,7 +36,9 @@ final class AudioPlayerViewModel: ObservableObject {
     @Published var tempoBPM: Double? = AppDefaults.defaultTempoBPM
     @Published var beatGridSettings = BeatGridSettings(bpm: AppDefaults.defaultTempoBPM)
     @Published var notes: [TimecodedNote] = []
+    @Published var harmonyEvents: [HarmonyEvent] = []
     @Published var selectedRegionID: TimecodedNote.ID?
+    @Published var selectedHarmonyEventID: HarmonyEvent.ID?
     @Published var activeLoopRegionID: TimecodedNote.ID?
     @Published var loopRegion: LoopRegion = .empty
     @Published var timelineVisibleRange: ClosedRange<TimeInterval> = 0...0

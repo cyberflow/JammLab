@@ -4,7 +4,9 @@ extension AudioPlayerViewModel {
     var editableState: ProjectEditableState {
         ProjectEditableState(
             notes: notes,
+            harmonyEvents: harmonyEvents,
             selectedRegionID: selectedRegionID,
+            selectedHarmonyEventID: selectedHarmonyEventID,
             activeLoopRegionID: activeLoopRegionID,
             loopRegion: loopRegion,
             isLooping: isLooping,
@@ -28,6 +30,7 @@ extension AudioPlayerViewModel {
 
         return ProjectPersistedEditableState(
             notes: ProjectStateNormalizer.normalizedNotes(notes, duration: duration),
+            harmonyEvents: ProjectStateNormalizer.normalizedHarmonyEvents(harmonyEvents, tempoMap: tempoMap),
             loopRegion: clampedLoop,
             isLooping: isLooping,
             tempoBPM: ProjectStateNormalizer.normalizedTempo(tempoBPM),
@@ -67,7 +70,9 @@ extension AudioPlayerViewModel {
         beatGridSettings.bpm = tempoBPM
         shouldAcceptAnalyzedTempo = false
         notes = ProjectStateNormalizer.normalizedNotes(state.notes, duration: duration)
+        harmonyEvents = ProjectStateNormalizer.normalizedHarmonyEvents(state.harmonyEvents, tempoMap: tempoMap)
         selectedRegionID = availableRegionID(state.selectedRegionID)
+        selectedHarmonyEventID = availableHarmonyEventID(state.selectedHarmonyEventID)
         activeLoopRegionID = availableRegionID(state.activeLoopRegionID)
         loopRegion = state.loopRegion.clamped(to: duration, minimumLength: activeRangeMinimumLength)
         stemMixState = state.stemMixState
@@ -138,6 +143,11 @@ extension AudioPlayerViewModel {
 
     func availableRegionID(_ id: TimecodedNote.ID?) -> TimecodedNote.ID? {
         guard let id, notes.contains(where: { $0.id == id && $0.isRegion }) else { return nil }
+        return id
+    }
+
+    func availableHarmonyEventID(_ id: HarmonyEvent.ID?) -> HarmonyEvent.ID? {
+        guard let id, harmonyEvents.contains(where: { $0.id == id }) else { return nil }
         return id
     }
 

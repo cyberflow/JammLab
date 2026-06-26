@@ -29,6 +29,13 @@
 		9F8A01152C00000100112233 /* BeatGridCalculator.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9F8A00172C00000100112233 /* BeatGridCalculator.swift */; };
 		9F8A01162C00000100112233 /* MetronomeClickScheduler.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9F8A00182C00000100112233 /* MetronomeClickScheduler.swift */; };
 		9F8A01192C00000100112233 /* ProjectArtifactStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9F8A00192C00000100112233 /* ProjectArtifactStore.swift */; };
+		9FE101012D70000100112233 /* HarmonyEvent.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9FE100012D70000100112233 /* HarmonyEvent.swift */; };
+		9FE101022D70000100112233 /* BeatCoordinateMapper.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9FE100022D70000100112233 /* BeatCoordinateMapper.swift */; };
+		9FE101032D70000100112233 /* AudioPlayerViewModel+Harmony.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9FE100032D70000100112233 /* AudioPlayerViewModel+Harmony.swift */; };
+		9FE101042D70000100112233 /* HarmonyTrackView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9FE100042D70000100112233 /* HarmonyTrackView.swift */; };
+		9FE101052D70000100112233 /* HarmonyTrackLogicTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9FE100052D70000100112233 /* HarmonyTrackLogicTests.swift */; };
+		9FE101062D70000100112233 /* HarmonyTrackLayout.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9FE100062D70000100112233 /* HarmonyTrackLayout.swift */; };
+		9FE101072D70000100112233 /* HarmonyTrackInputViews.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9FE100072D70000100112233 /* HarmonyTrackInputViews.swift */; };
 		9F8B01012C10000100112233 /* TimelineViewport.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9F8B00012C10000100112233 /* TimelineViewport.swift */; };
 		9F8B01022C10000100112233 /* ProjectStateNormalizer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9F8B00022C10000100112233 /* ProjectStateNormalizer.swift */; };
 		9F8B01032C10000100112233 /* PeakformTimelineView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9F8B00032C10000100112233 /* PeakformTimelineView.swift */; };
@@ -175,6 +182,13 @@
 		9F8A00172C00000100112233 /* BeatGridCalculator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BeatGridCalculator.swift; sourceTree = "<group>"; };
 		9F8A00182C00000100112233 /* MetronomeClickScheduler.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MetronomeClickScheduler.swift; sourceTree = "<group>"; };
 		9F8A00192C00000100112233 /* ProjectArtifactStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProjectArtifactStore.swift; sourceTree = "<group>"; };
+		9FE100012D70000100112233 /* HarmonyEvent.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HarmonyEvent.swift; sourceTree = "<group>"; };
+		9FE100022D70000100112233 /* BeatCoordinateMapper.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BeatCoordinateMapper.swift; sourceTree = "<group>"; };
+		9FE100032D70000100112233 /* AudioPlayerViewModel+Harmony.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "AudioPlayerViewModel+Harmony.swift"; sourceTree = "<group>"; };
+		9FE100042D70000100112233 /* HarmonyTrackView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HarmonyTrackView.swift; sourceTree = "<group>"; };
+		9FE100052D70000100112233 /* HarmonyTrackLogicTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HarmonyTrackLogicTests.swift; sourceTree = "<group>"; };
+		9FE100062D70000100112233 /* HarmonyTrackLayout.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HarmonyTrackLayout.swift; sourceTree = "<group>"; };
+		9FE100072D70000100112233 /* HarmonyTrackInputViews.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HarmonyTrackInputViews.swift; sourceTree = "<group>"; };
 		9F8B00012C10000100112233 /* TimelineViewport.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TimelineViewport.swift; sourceTree = "<group>"; };
 		9F8B00022C10000100112233 /* ProjectStateNormalizer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProjectStateNormalizer.swift; sourceTree = "<group>"; };
 		9F8B00032C10000100112233 /* PeakformTimelineView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PeakformTimelineView.swift; sourceTree = "<group>"; };
@@ -326,7 +340,9 @@
 				9F8A00062C00000100112233 /* AnalysisResult.swift */,
 				9F8F00012C50000100112233 /* AppDefaults.swift */,
 				9F9400012CA0000100112233 /* AppSettingsStore.swift */,
+				9FE100022D70000100112233 /* BeatCoordinateMapper.swift */,
 				9F8A00162C00000100112233 /* BeatGridSettings.swift */,
+				9FE100012D70000100112233 /* HarmonyEvent.swift */,
 				9F8A000A2C00000100112233 /* ImportedAudioFile.swift */,
 				9F8A00072C00000100112233 /* LoopRegion.swift */,
 				9FBA00012D40000100112233 /* PitchDetection.swift */,
@@ -378,6 +394,7 @@
 			children = (
 				9F8A00032C00000100112233 /* AudioPlayerViewModel.swift */,
 				9FB201012D30000100112233 /* AudioPlayerViewModel+Project.swift */,
+				9FE100032D70000100112233 /* AudioPlayerViewModel+Harmony.swift */,
 				9FB201022D30000100112233 /* AudioPlayerViewModel+Playback.swift */,
 				9FB201032D30000100112233 /* AudioPlayerViewModel+Stems.swift */,
 				9FB201042D30000100112233 /* AudioPlayerViewModel+Timeline.swift */,
@@ -392,6 +409,9 @@
 			isa = PBXGroup;
 			children = (
 				9F8C03022C20000100112233 /* Components */,
+				9FE100042D70000100112233 /* HarmonyTrackView.swift */,
+				9FE100072D70000100112233 /* HarmonyTrackInputViews.swift */,
+				9FE100062D70000100112233 /* HarmonyTrackLayout.swift */,
 				9F8A00102C00000100112233 /* HotkeysHelpView.swift */,
 				9F8C00062C20000100112233 /* MainWorkspacePanels.swift */,
 				9FDD00042D60000100112233 /* NoteColorPresentation.swift */,
@@ -436,6 +456,7 @@
 			isa = PBXGroup;
 			children = (
 				9FAB00012CE0000100112233 /* AudioTimingLogicTests.swift */,
+				9FE100052D70000100112233 /* HarmonyTrackLogicTests.swift */,
 				9FAB00022CE0000100112233 /* PeakformLogicTests.swift */,
 				9FBA00052D40000100112233 /* PitchDetectionTests.swift */,
 				9FAB00032CE0000100112233 /* TimelineProjectLogicTests.swift */,
@@ -700,14 +721,20 @@
 				9FB205012D33000100112233 /* AppKitControlHelpers.swift in Sources */,
 				9F9501012CB0000100112233 /* AbletonNumberField.swift in Sources */,
 				9FD001012D20000100112233 /* ControlHelpText.swift in Sources */,
+				9FE101032D70000100112233 /* AudioPlayerViewModel+Harmony.swift in Sources */,
 				9F9601012CC0000100112233 /* JammValueSlider.swift in Sources */,
 				9F8C01022C20000100112233 /* AppPanel.swift in Sources */,
 				9F8C01012C20000100112233 /* AppTheme.swift in Sources */,
 				9F8A01152C00000100112233 /* BeatGridCalculator.swift in Sources */,
 				9F8A01162C00000100112233 /* MetronomeClickScheduler.swift in Sources */,
 				9F8A01142C00000100112233 /* BeatGridSettings.swift in Sources */,
+				9FE101022D70000100112233 /* BeatCoordinateMapper.swift in Sources */,
 				9F8A01022C00000100112233 /* ContentView.swift in Sources */,
+				9FE101012D70000100112233 /* HarmonyEvent.swift in Sources */,
 				9F8A010E2C00000100112233 /* HotkeysHelpView.swift in Sources */,
+				9FE101042D70000100112233 /* HarmonyTrackView.swift in Sources */,
+				9FE101072D70000100112233 /* HarmonyTrackInputViews.swift in Sources */,
+				9FE101062D70000100112233 /* HarmonyTrackLayout.swift in Sources */,
 				9F8A010A2C00000100112233 /* ImportedAudioFile.swift in Sources */,
 				9F9001032C60000100112233 /* InspectorSidebarView.swift in Sources */,
 				9F9801012CF0000100112233 /* RenameNoteDialog.swift in Sources */,
@@ -773,6 +800,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				9FAB01012CE0000100112233 /* AudioTimingLogicTests.swift in Sources */,
+				9FE101052D70000100112233 /* HarmonyTrackLogicTests.swift in Sources */,
 				9FAB01022CE0000100112233 /* PeakformLogicTests.swift in Sources */,
 				9FBA01052D40000100112233 /* PitchDetectionTests.swift in Sources */,
 				9FAB01032CE0000100112233 /* TimelineProjectLogicTests.swift in Sources */,

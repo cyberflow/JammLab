@@ -37,6 +37,7 @@ struct AppThemeColors: Equatable {
     var waveformColor: Color { color(for: .waveformColor) }
     var waveformDisabledBackground: Color { color(for: .waveformDisabledBackground) }
     var waveformDisabledColor: Color { color(for: .waveformDisabledColor) }
+    var harmonyTrackBackground: Color { color(for: .harmonyTrackBackground) }
     var timeTrackAccentBeatLine: Color { color(for: .timeTrackAccentBeatLine) }
     var timeTrackBeatLine: Color { color(for: .timeTrackBeatLine) }
     var waveformAccentBeatLine: Color { color(for: .waveformAccentBeatLine) }
@@ -247,10 +248,11 @@ enum AppTheme {
         static let tempoTrackHeight: CGFloat = 38
         static let waveformTrackHeight: CGFloat = 110
         static let stemTrackHeight: CGFloat = 48
+        static let harmonyTrackHeight: CGFloat = stemTrackHeight
         static let defaultVisibleStemRows = 4
         static let trackSpacing: CGFloat = 6
         static var upperTrackStackHeight: CGFloat {
-            regionTrackHeight + markerTrackHeight + tempoTrackHeight + waveformTrackHeight
+            regionTrackHeight + markerTrackHeight + tempoTrackHeight + waveformTrackHeight + harmonyTrackHeight
         }
         static func stemTracksHeight(rowCount: Int) -> CGFloat {
             let visibleRows = max(defaultVisibleStemRows, rowCount)
@@ -289,6 +291,28 @@ enum AppTheme {
         static let loopHandleTriangleHeight: CGFloat = 5
         static let regionEdgeHitWidth: CGFloat = 8
         static let markerHitWidth: CGFloat = 16
+        static let chordSymbolFontSize: CGFloat = 18
+        static let chordSymbolLineHeight: CGFloat = 28
+        static let chordSymbolHorizontalInset: CGFloat = 5
+        static let chordSymbolHitHorizontalPadding: CGFloat = 8
+        static let chordSymbolHitVerticalPadding: CGFloat = 6
+        static var chordSymbolHitHeight: CGFloat {
+            chordSymbolLineHeight + chordSymbolHitVerticalPadding * 2
+        }
+        static let chordSymbolMinHitWidth: CGFloat = 34
+        static let chordSymbolMaxHitWidth: CGFloat = 156
+        static let chordSymbolUnderlineHeight: CGFloat = 2
+        static let chordSymbolCaretWidth: CGFloat = 2
+        static let chordSymbolCaretHeight: CGFloat = 24
+        static let chordSymbolCollisionGap: CGFloat = 6
+        static let chordTickWidth: CGFloat = 8
+        static let chordTickHeight: CGFloat = 8
+        static let chordTickTopInset: CGFloat = 1
+        static let chordTickHitWidth: CGFloat = 20
+        static let chordTickHitHeight: CGFloat = 26
+        static var chordSymbolVerticalInset: CGFloat {
+            max(0, (harmonyTrackHeight - chordSymbolHitHeight) / 2)
+        }
         static let regionMinPixelWidth: CGFloat = 10
         static let regionLabelMinWidth: CGFloat = 54
         static let minOverlayWidth: CGFloat = 2
@@ -310,6 +334,16 @@ enum AppTheme {
         static let loopIndicatorColor = Color.gray
         static let regionTrackBackground = Color(red: 51 / 255, green: 51 / 255, blue: 51 / 255)
         static let markerTrackBackground = Color(red: 60 / 255, green: 60 / 255, blue: 60 / 255)
+        static let chordSymbolText = Color.black.opacity(0.86)
+        static let chordSymbolSelected = Color.black.opacity(0.86)
+        static let chordSymbolHoverOpacity = 0.96
+        static let chordSymbolNormalOpacity = 0.86
+        static let chordSymbolUnderlineOpacity = 0.76
+        static let chordSymbolCaretOpacity = 0.82
+        static let chordTickColor = Color(red: 0 / 255, green: 175 / 255, blue: 203 / 255)
+        static let chordTickSelectedColor = Color(red: 0 / 255, green: 175 / 255, blue: 203 / 255)
+        static let chordTickNormalOpacity = 1.0
+        static let chordTickHoverOpacity = 1.0
         static let selectedRegionStroke = Color.white.opacity(0.9)
         static let unselectedRegionStroke = Color.black.opacity(0.32)
         static let regionLabelText = Color.black.opacity(0.82)
@@ -332,6 +366,9 @@ enum AppTheme {
         static let rulerTimeLabelOpacity = 0.72
         static let waveformBarOpacity = 0.38
         static let waveformBeatOpacity = 0.2
+        static let harmonyGridLabeledBarOpacity = 0.34
+        static let harmonyGridBarOpacity = 0.25
+        static let harmonyGridBeatOpacity = 0.15
         static let peakRMSOpacity = 0.18
         static let peakOpacity = 1.0
         static let emptyPeakOpacity = 0.25

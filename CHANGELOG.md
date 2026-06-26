@@ -8,7 +8,7 @@ development artifact builds use `vMAJOR.MINOR.PATCH-dev.N`.
 
 ## Unreleased
 
-- Nothing yet.
+- Added an MVP Chords track for manually marking chord symbols and N.C. events on the timeline, with project persistence, lead-sheet style rendering, collision-aware labels, compact turquoise anchors, matched time-track grid density, and a configurable track background color.
 
 ## 1.0.1
 

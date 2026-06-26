@@ -1819,7 +1819,9 @@ final class ViewModelLifecycleTests: XCTestCase {
         let beatGrid = BeatGridSettings(bpm: 140, firstBeatTime: 0.5, timeSignature: .fourFour)
         let state = ProjectEditableState(
             notes: notes,
+            harmonyEvents: [],
             selectedRegionID: regionID,
+            selectedHarmonyEventID: nil,
             activeLoopRegionID: regionID,
             loopRegion: LoopRegion(start: 2, end: 5),
             isLooping: true,
@@ -1885,7 +1887,9 @@ final class ViewModelLifecycleTests: XCTestCase {
         let markerB = TimecodedNote(time: 2, title: "B")
         let state = ProjectEditableState(
             notes: [markerA, markerB],
+            harmonyEvents: [],
             selectedRegionID: nil,
+            selectedHarmonyEventID: nil,
             activeLoopRegionID: nil,
             loopRegion: .empty,
             isLooping: false,
@@ -1918,7 +1922,9 @@ final class ViewModelLifecycleTests: XCTestCase {
         let marker = TimecodedNote(time: 2, title: "A", color: .markerBlue, customColorHex: "#123456")
         let state = ProjectEditableState(
             notes: [marker],
+            harmonyEvents: [],
             selectedRegionID: nil,
+            selectedHarmonyEventID: nil,
             activeLoopRegionID: nil,
             loopRegion: .empty,
             isLooping: false,

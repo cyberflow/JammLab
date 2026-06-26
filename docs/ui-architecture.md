@@ -11,7 +11,7 @@ The UI refactor keeps existing behavior intact and introduces a small design-sys
 Use `DesignSystem/AppTheme.swift` for shared visual values and inject runtime palette colors through `Environment(\.appColors)`:
 
 - `AppTheme.Colors`: non-user-editable semantic colors such as timeline warning/playhead colors.
-- `AppThemeColors`: user-editable app chrome, text, control, accent, status button, value slider, and waveform colors.
+- `AppThemeColors`: user-editable app chrome, text, control, accent, status button, value slider, waveform, and timeline colors.
 - `AppTheme.Spacing`: common spacing and padding scale.
 - `AppTheme.Radius`: shared corner radii.
 - `AppTheme.Typography`: common SwiftUI font choices.

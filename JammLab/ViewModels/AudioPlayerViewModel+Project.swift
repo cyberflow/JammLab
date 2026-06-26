@@ -111,7 +111,9 @@ extension AudioPlayerViewModel {
         beatGridSettings = BeatGridSettings(bpm: AppDefaults.defaultTempoBPM)
         shouldAcceptAnalyzedTempo = true
         notes = []
+        harmonyEvents = []
         selectedRegionID = nil
+        selectedHarmonyEventID = nil
         activeLoopRegionID = nil
         loopRegion = .empty
         timelineVisibleRange = 0...0
@@ -166,7 +168,9 @@ extension AudioPlayerViewModel {
         beatGridSettings = BeatGridSettings(bpm: AppDefaults.defaultTempoBPM).clamped(to: file.duration)
         shouldAcceptAnalyzedTempo = true
         notes = []
+        harmonyEvents = []
         selectedRegionID = nil
+        selectedHarmonyEventID = nil
         activeLoopRegionID = nil
         loopRegion = LoopRegion(start: 0, end: file.duration).clamped(to: file.duration)
         timelineVisibleRange = 0...file.duration
@@ -233,7 +237,9 @@ extension AudioPlayerViewModel {
             playbackMarkerTime = restoredPlaybackMarkerTime
             currentTime = restoredPlaybackMarkerTime
             notes = ProjectStateNormalizer.normalizedNotes(project.notes, duration: resolvedProjectDuration)
+            harmonyEvents = ProjectStateNormalizer.normalizedHarmonyEvents(project.harmonyEvents, tempoMap: tempoMap)
             selectedRegionID = nil
+            selectedHarmonyEventID = nil
             activeLoopRegionID = nil
             loopRegion = ProjectStateNormalizer.normalizedLoopRegion(
                 start: project.loopStart,
@@ -349,6 +355,7 @@ extension AudioPlayerViewModel {
             projectURL: projectURL,
             duration: duration,
             notes: notes,
+            harmonyEvents: harmonyEvents,
             loopRegion: loopRegion,
             loopMinimumLength: activeRangeMinimumLength,
             isLooping: isLooping,

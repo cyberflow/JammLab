@@ -90,6 +90,14 @@ struct ProjectStateNormalizer {
             .sorted { $0.time < $1.time }
     }
 
+    static func normalizedHarmonyEvents(
+        _ events: [HarmonyEvent],
+        tempoMap: TempoMap
+    ) -> [HarmonyEvent] {
+        let mapper = BeatCoordinateMapper(tempoMap: tempoMap)
+        return HarmonyEventNormalizer.normalizedEvents(events, maximumBeat: mapper.maximumBeat)
+    }
+
     static func normalizedNote(_ note: TimecodedNote, duration: TimeInterval) -> TimecodedNote {
         let title = normalizedTitle(note.title, fallback: note.isRegion ? "Region" : "Marker")
 

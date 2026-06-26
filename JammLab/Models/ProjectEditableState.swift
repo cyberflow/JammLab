@@ -2,7 +2,9 @@ import Foundation
 
 struct ProjectEditableState: Equatable {
     var notes: [TimecodedNote]
+    var harmonyEvents: [HarmonyEvent]
     var selectedRegionID: TimecodedNote.ID?
+    var selectedHarmonyEventID: HarmonyEvent.ID?
     var activeLoopRegionID: TimecodedNote.ID?
     var loopRegion: LoopRegion
     var isLooping: Bool
@@ -20,6 +22,7 @@ struct ProjectEditableState: Equatable {
 
 struct ProjectPersistedEditableState: Equatable {
     var notes: [TimecodedNote]
+    var harmonyEvents: [HarmonyEvent]
     var loopRegion: LoopRegion
     var isLooping: Bool
     var tempoBPM: Double?
