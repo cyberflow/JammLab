@@ -27,6 +27,21 @@ struct ScoreMeasure: Equatable, Identifiable {
     var startTime: TimeInterval
     var endTime: TimeInterval
     var attributes: MeasureAttributes
+    var harmonies: [HarmonySymbol]
+
+    init(
+        number: Int,
+        startTime: TimeInterval,
+        endTime: TimeInterval,
+        attributes: MeasureAttributes,
+        harmonies: [HarmonySymbol] = []
+    ) {
+        self.number = number
+        self.startTime = startTime
+        self.endTime = endTime
+        self.attributes = attributes
+        self.harmonies = harmonies
+    }
 
     var id: String {
         "\(number)-\(startTime)"
@@ -34,6 +49,65 @@ struct ScoreMeasure: Equatable, Identifiable {
 
     var duration: TimeInterval {
         max(0, endTime - startTime)
+    }
+}
+
+struct HarmonySymbol: Identifiable, Codable, Equatable {
+    var id: UUID
+    var time: TimeInterval
+    var measureNumber: Int
+    var offsetInQuarterNotes: Double
+    var rawText: String
+
+    init(
+        id: UUID = UUID(),
+        time: TimeInterval,
+        measureNumber: Int,
+        offsetInQuarterNotes: Double,
+        rawText: String
+    ) {
+        self.id = id
+        self.time = time
+        self.measureNumber = measureNumber
+        self.offsetInQuarterNotes = offsetInQuarterNotes
+        self.rawText = rawText
+    }
+}
+
+struct HarmonyEditorRequest: Equatable, Identifiable {
+    var id = UUID()
+    var time: TimeInterval
+}
+
+struct HarmonyPlacement: Equatable {
+    var time: TimeInterval
+    var measureNumber: Int
+    var offsetInQuarterNotes: Double
+}
+
+enum HarmonyNavigationDirection: Equatable {
+    case previous
+    case next
+}
+
+struct HarmonyInputResolution: Equatable {
+    static let allowedDenominators = [1, 2, 4, 8]
+    static let defaultDenominator = 4
+
+    var denominator: Int
+
+    init(denominator: Int = Self.defaultDenominator) {
+        self.denominator = Self.normalizedDenominator(denominator)
+    }
+
+    var stepInQuarterNotes: Double {
+        4.0 / Double(denominator)
+    }
+
+    static func normalizedDenominator(_ denominator: Int) -> Int {
+        allowedDenominators.min { lhs, rhs in
+            abs(lhs - denominator) < abs(rhs - denominator)
+        } ?? defaultDenominator
     }
 }
 

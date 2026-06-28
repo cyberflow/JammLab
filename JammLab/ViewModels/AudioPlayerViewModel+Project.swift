@@ -111,8 +111,12 @@ extension AudioPlayerViewModel {
         beatGridSettings = BeatGridSettings(bpm: AppDefaults.defaultTempoBPM)
         shouldAcceptAnalyzedTempo = true
         notes = []
+        harmonySymbols = []
         selectedRegionID = nil
+        selectedHarmonySymbolID = nil
+        pendingHarmonyEditorRequest = nil
         activeLoopRegionID = nil
+        harmonyInputResolutionDenominator = HarmonyInputResolution.defaultDenominator
         loopRegion = .empty
         timelineVisibleRange = 0...0
         userTimelineVisibleRange = 0...0
@@ -166,7 +170,11 @@ extension AudioPlayerViewModel {
         beatGridSettings = BeatGridSettings(bpm: AppDefaults.defaultTempoBPM).clamped(to: file.duration)
         shouldAcceptAnalyzedTempo = true
         notes = []
+        harmonySymbols = []
         selectedRegionID = nil
+        selectedHarmonySymbolID = nil
+        pendingHarmonyEditorRequest = nil
+        harmonyInputResolutionDenominator = HarmonyInputResolution.defaultDenominator
         activeLoopRegionID = nil
         loopRegion = LoopRegion(start: 0, end: file.duration).clamped(to: file.duration)
         timelineVisibleRange = 0...file.duration
@@ -233,7 +241,14 @@ extension AudioPlayerViewModel {
             playbackMarkerTime = restoredPlaybackMarkerTime
             currentTime = restoredPlaybackMarkerTime
             notes = ProjectStateNormalizer.normalizedNotes(project.notes, duration: resolvedProjectDuration)
+            harmonySymbols = ProjectStateNormalizer.normalizedHarmonySymbols(
+                project.harmonySymbols,
+                duration: resolvedProjectDuration
+            )
             selectedRegionID = nil
+            selectedHarmonySymbolID = nil
+            pendingHarmonyEditorRequest = nil
+            harmonyInputResolutionDenominator = HarmonyInputResolution.defaultDenominator
             activeLoopRegionID = nil
             loopRegion = ProjectStateNormalizer.normalizedLoopRegion(
                 start: project.loopStart,
@@ -349,6 +364,7 @@ extension AudioPlayerViewModel {
             projectURL: projectURL,
             duration: duration,
             notes: notes,
+            harmonySymbols: harmonySymbols,
             loopRegion: loopRegion,
             loopMinimumLength: activeRangeMinimumLength,
             isLooping: isLooping,

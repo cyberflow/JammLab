@@ -9,6 +9,7 @@ development artifact builds use `vMAJOR.MINOR.PATCH-dev.N`.
 ## Unreleased
 
 - Added a MusicXML-ready notation track MVP that shows synced treble-clef staff measures with key and time signatures.
+- Added notation-track harmony symbol editing with persisted raw chord text, snapped `A`-key insertion, Tab navigation, deletion, adaptive measure fitting, and layout fixes for attributes and delayed first beats.
 
 ## 1.0.1
 

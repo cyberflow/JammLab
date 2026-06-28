@@ -1,41 +1,91 @@
+import AppKit
 import SwiftUI
+
+struct NotationTrackActions {
+    var selectHarmony: (HarmonySymbol.ID?) -> Void
+    var saveHarmony: (HarmonySymbol) -> Void
+    var deleteHarmony: (HarmonySymbol.ID) -> Void
+    var adjacentHarmonyPlacement: (TimeInterval, HarmonyNavigationDirection) -> HarmonyPlacement?
+}
 
 struct NotationTrackView: View {
     let state: NotationViewportState
+    let selectedHarmonySymbolID: HarmonySymbol.ID?
+    let pendingEditorRequest: HarmonyEditorRequest?
+    let inputResolution: HarmonyInputResolution
+    let actions: NotationTrackActions
 
     @Environment(\.appColors) private var appColors
+    @FocusState private var isTrackFocused: Bool
+    @State private var editingDraft: HarmonyEditorDraft?
+
+    init(
+        state: NotationViewportState,
+        selectedHarmonySymbolID: HarmonySymbol.ID? = nil,
+        pendingEditorRequest: HarmonyEditorRequest? = nil,
+        inputResolution: HarmonyInputResolution = HarmonyInputResolution(),
+        actions: NotationTrackActions = .noop
+    ) {
+        self.state = state
+        self.selectedHarmonySymbolID = selectedHarmonySymbolID
+        self.pendingEditorRequest = pendingEditorRequest
+        self.inputResolution = inputResolution
+        self.actions = actions
+    }
 
     var body: some View {
         GeometryReader { proxy in
-            let contentWidth = max(
-                proxy.size.width,
-                CGFloat(renderedMeasureCount) * AppTheme.Timeline.notationMeasureMinWidth
-            )
             let attributeDisplays = visibleAttributeDisplays
+            let contentWidth = max(1, proxy.size.width)
 
-            ScrollView(.horizontal) {
-                ZStack(alignment: .topLeading) {
-                    notationCanvas(
-                        measureCount: renderedMeasureCount,
-                        attributeDisplays: attributeDisplays
-                    )
-                    measureNumberLabels(width: contentWidth)
-                    attributeLabels(
-                        width: contentWidth,
-                        height: proxy.size.height,
-                        attributeDisplays: attributeDisplays
-                    )
-                    playheadIndicator(
-                        width: contentWidth,
-                        height: proxy.size.height,
-                        attributeDisplays: attributeDisplays
-                    )
-                }
-                .frame(width: contentWidth, height: proxy.size.height)
-                .id(scrollResetIdentity)
+            ZStack(alignment: .topLeading) {
+                notationCanvas(
+                    measureCount: renderedMeasureCount,
+                    attributeDisplays: attributeDisplays
+                )
+                measureNumberLabels(width: contentWidth)
+                harmonySymbolsLayer(
+                    width: contentWidth,
+                    height: proxy.size.height,
+                    attributeDisplays: attributeDisplays
+                )
+                attributeLabels(
+                    width: contentWidth,
+                    height: proxy.size.height,
+                    attributeDisplays: attributeDisplays
+                )
+                playheadIndicator(
+                    width: contentWidth,
+                    height: proxy.size.height,
+                    attributeDisplays: attributeDisplays
+                )
+                harmonyEditorLayer(
+                    width: contentWidth,
+                    height: proxy.size.height,
+                    attributeDisplays: attributeDisplays
+                )
             }
-            .scrollIndicators(.visible)
+            .frame(width: contentWidth, height: proxy.size.height)
+            .id(scrollResetIdentity)
+            .contentShape(Rectangle())
+            .simultaneousGesture(
+                SpatialTapGesture(count: 2)
+                    .onEnded { value in
+                        beginEditingHarmony(at: value.location, width: contentWidth)
+                    }
+            )
+            .onTapGesture {
+                isTrackFocused = true
+            }
             .clipShape(RoundedRectangle(cornerRadius: AppTheme.Radius.small))
+            .focusable()
+            .focused($isTrackFocused)
+            .onDeleteCommand {
+                deleteSelectedHarmony()
+            }
+            .onChange(of: pendingEditorRequest?.id) { _, _ in
+                handlePendingEditorRequest()
+            }
             .accessibilityElement(children: .contain)
             .accessibilityLabel("Notation Track")
             .accessibilityValue(accessibilityValue)
@@ -52,6 +102,19 @@ struct NotationTrackView: View {
             return NotationAttributeDisplay.display(
                 for: state.visibleMeasures[index].attributes,
                 previousAttributes: previousAttributes
+            )
+        }
+    }
+
+    private func measureAttributeReserveWidths(
+        attributeDisplays: [NotationAttributeDisplay]
+    ) -> [CGFloat] {
+        (0..<renderedMeasureCount).map { index in
+            guard state.visibleMeasures.indices.contains(index) else { return 0 }
+
+            return NotationMeasureLayout.attributeReserveWidth(
+                for: state.visibleMeasures[index].attributes,
+                display: attributeDisplay(at: index, in: attributeDisplays)
             )
         }
     }
@@ -95,35 +158,11 @@ struct NotationTrackView: View {
         attributeDisplays: [NotationAttributeDisplay]
     ) -> [NotationMeasureCanvasGeometry] {
         let safeMeasureCount = max(1, measureCount)
-        let cellWidth = width / CGFloat(safeMeasureCount)
-
-        guard !state.visibleMeasures.isEmpty else {
-            return NotationMeasureLayout.fallbackCanvasGeometries(
-                measureCount: safeMeasureCount,
-                totalWidth: width
-            )
-        }
-
-        return (0..<safeMeasureCount).map { index in
-            guard state.visibleMeasures.indices.contains(index) else {
-                return NotationMeasureLayout.canvasGeometry(
-                    measureIndex: index,
-                    measureCount: safeMeasureCount,
-                    cellWidth: cellWidth,
-                    contentStartX: CGFloat(index) * cellWidth,
-                    totalWidth: width
-                )
-            }
-
-            return NotationMeasureLayout.canvasGeometry(
-                measureIndex: index,
-                measureCount: safeMeasureCount,
-                cellWidth: cellWidth,
-                attributes: state.visibleMeasures[index].attributes,
-                display: attributeDisplay(at: index, in: attributeDisplays),
-                totalWidth: width
-            )
-        }
+        return NotationMeasureLayout.canvasGeometries(
+            measureCount: safeMeasureCount,
+            totalWidth: width,
+            attributeReserveWidths: measureAttributeReserveWidths(attributeDisplays: attributeDisplays)
+        )
     }
 
     private func drawStaffLines(
@@ -181,17 +220,25 @@ struct NotationTrackView: View {
     }
 
     private func measureNumberLabels(width: CGFloat) -> some View {
-        let cellWidth = width / CGFloat(renderedMeasureCount)
+        let geometries = measureCanvasGeometries(
+            measureCount: renderedMeasureCount,
+            width: width,
+            attributeDisplays: visibleAttributeDisplays
+        )
 
         return ZStack(alignment: .topLeading) {
             ForEach(state.visibleMeasures.indices, id: \.self) { index in
+                let labelX = geometries.indices.contains(index)
+                    ? NotationMeasureLayout.measureNumberLabelX(geometry: geometries[index])
+                    : AppTheme.Spacing.xs
+
                 Text("\(state.visibleMeasures[index].number)")
                     .font(AppTheme.Typography.timelineLabel.weight(.medium))
                     .foregroundStyle(appColors.secondaryText)
                     .lineLimit(1)
-                    .frame(width: cellWidth - AppTheme.Spacing.md * 2, alignment: .leading)
+                    .frame(width: NotationMeasureLayout.measureNumberLabelWidth, alignment: .trailing)
                     .offset(
-                        x: CGFloat(index) * cellWidth + AppTheme.Spacing.md,
+                        x: labelX,
                         y: AppTheme.Spacing.xs
                     )
                     .accessibilityLabel("Measure \(state.visibleMeasures[index].number)")
@@ -204,17 +251,21 @@ struct NotationTrackView: View {
         height: CGFloat,
         attributeDisplays: [NotationAttributeDisplay]
     ) -> some View {
-        let cellWidth = width / CGFloat(renderedMeasureCount)
+        let geometries = measureCanvasGeometries(
+            measureCount: renderedMeasureCount,
+            width: width,
+            attributeDisplays: attributeDisplays
+        )
 
         return ZStack(alignment: .topLeading) {
             ForEach(state.visibleMeasures.indices, id: \.self) { index in
                 let display = attributeDisplay(at: index, in: attributeDisplays)
-                if !display.isEmpty {
+                if !display.isEmpty, geometries.indices.contains(index) {
                     let attributes = state.visibleMeasures[index].attributes
                     let attributeBlockWidth = NotationMeasureLayout.attributeBlockWidth(
                         for: attributes,
                         display: display,
-                        cellWidth: cellWidth
+                        cellWidth: geometries[index].contentEndX - geometries[index].contentStartX
                     )
 
                     measureAttributes(
@@ -223,11 +274,97 @@ struct NotationTrackView: View {
                         blockWidth: attributeBlockWidth
                     )
                     .offset(
-                        x: CGFloat(index) * cellWidth + AppTheme.Spacing.md,
+                        x: geometries[index].cellStartX + AppTheme.Spacing.md,
                         y: staffTop(in: height) - AppTheme.Spacing.xs
                     )
                 }
             }
+        }
+    }
+
+    private func harmonySymbolsLayer(
+        width: CGFloat,
+        height: CGFloat,
+        attributeDisplays: [NotationAttributeDisplay]
+    ) -> some View {
+        let geometries = measureCanvasGeometries(
+            measureCount: renderedMeasureCount,
+            width: width,
+            attributeDisplays: attributeDisplays
+        )
+        let staffTop = staffTop(in: height)
+        let harmonyY = NotationMeasureLayout.harmonyLabelY(staffTop: staffTop)
+
+        return ZStack(alignment: .topLeading) {
+            ForEach(harmonyLayoutItems(geometries: geometries), id: \.symbol.id) { item in
+                harmonySymbolView(item.symbol)
+                    .frame(width: AppTheme.Timeline.notationHarmonySymbolWidth, alignment: .leading)
+                    .offset(
+                        x: item.x,
+                        y: harmonyY
+                    )
+            }
+        }
+    }
+
+    private func harmonySymbolView(_ symbol: HarmonySymbol) -> some View {
+        let isSelected = symbol.id == selectedHarmonySymbolID
+
+        return Text(symbol.rawText)
+            .font(.system(size: 13, weight: .semibold))
+            .foregroundStyle(appColors.notationSymbolsAndLines)
+            .lineLimit(1)
+            .truncationMode(.tail)
+            .padding(.horizontal, AppTheme.Spacing.xs)
+            .padding(.vertical, 1)
+            .background(
+                RoundedRectangle(cornerRadius: AppTheme.Radius.small)
+                    .fill(isSelected ? appColors.accent.opacity(0.24) : Color.clear)
+            )
+            .contentShape(Rectangle())
+            .onTapGesture {
+                isTrackFocused = true
+                actions.selectHarmony(symbol.id)
+            }
+            .onTapGesture(count: 2) {
+                isTrackFocused = true
+                beginEditingHarmony(symbol)
+            }
+            .accessibilityLabel("Harmony \(symbol.rawText)")
+    }
+
+    @ViewBuilder
+    private func harmonyEditorLayer(
+        width: CGFloat,
+        height: CGFloat,
+        attributeDisplays: [NotationAttributeDisplay]
+    ) -> some View {
+        if let editingDraft,
+           let item = harmonyLayoutItem(
+            for: editingDraft.time,
+            width: width,
+            attributeDisplays: attributeDisplays
+           ) {
+            let staffTop = staffTop(in: height)
+            let harmonyY = NotationMeasureLayout.harmonyLabelY(staffTop: staffTop)
+
+            HarmonyInlineTextField(
+                text: Binding(
+                    get: { self.editingDraft?.text ?? "" },
+                    set: { self.editingDraft?.text = $0 }
+                ),
+                onCommit: { commitEditingDraft() },
+                onCancel: { cancelEditingDraft() },
+                onNavigate: { commitEditingDraft(navigation: $0) }
+            )
+            .frame(
+                width: AppTheme.Timeline.notationHarmonyEditorWidth,
+                height: AppTheme.ControlSize.abletonNumberFieldHeight
+            )
+            .offset(
+                x: item.x,
+                y: harmonyY
+            )
         }
     }
 
@@ -298,18 +435,24 @@ struct NotationTrackView: View {
         attributeDisplays: [NotationAttributeDisplay]
     ) -> some View {
         if let activeMeasureIndex {
+            let geometries = measureCanvasGeometries(
+                measureCount: renderedMeasureCount,
+                width: width,
+                attributeDisplays: attributeDisplays
+            )
             let measure = state.visibleMeasures[activeMeasureIndex]
             let progress = measure.duration > 0
                 ? max(0, min((state.anchorTime - measure.startTime) / measure.duration, 1))
                 : 0
-            let cellWidth = width / CGFloat(renderedMeasureCount)
-            let x = NotationMeasureLayout.playheadX(
-                measureIndex: activeMeasureIndex,
-                cellWidth: cellWidth,
-                progress: CGFloat(progress),
-                attributes: measure.attributes,
-                display: attributeDisplay(at: activeMeasureIndex, in: attributeDisplays)
-            )
+            let geometry = geometries.indices.contains(activeMeasureIndex)
+                ? geometries[activeMeasureIndex]
+                : nil
+            let x = geometry.map {
+                NotationMeasureLayout.playheadX(
+                    geometry: $0,
+                    progress: CGFloat(progress)
+                )
+            } ?? 0
             let staffTop = staffTop(in: height)
             let indicatorHeight = AppTheme.Timeline.notationStaffLineSpacing * 4
 
@@ -341,6 +484,223 @@ struct NotationTrackView: View {
 
     private func staffTop(in height: CGFloat) -> CGFloat {
         max(AppTheme.Spacing.xxl, (height - AppTheme.Timeline.notationStaffLineSpacing * 4) / 2 + AppTheme.Spacing.xs)
+    }
+
+    private func harmonyLayoutItems(
+        geometries: [NotationMeasureCanvasGeometry]
+    ) -> [HarmonyLayoutItem] {
+        state.visibleMeasures.indices.flatMap { index -> [HarmonyLayoutItem] in
+            guard geometries.indices.contains(index) else { return [] }
+            return state.visibleMeasures[index].harmonies.map { symbol in
+                HarmonyLayoutItem(
+                    symbol: symbol,
+                    x: NotationMeasureLayout.harmonyX(
+                        geometry: geometries[index],
+                        offsetInQuarterNotes: symbol.offsetInQuarterNotes,
+                        timeSignature: state.visibleMeasures[index].attributes.timeSignature
+                    )
+                )
+            }
+        }
+    }
+
+    private func harmonyLayoutItem(
+        for time: TimeInterval,
+        width: CGFloat,
+        attributeDisplays: [NotationAttributeDisplay]
+    ) -> HarmonyLayoutItem? {
+        guard let placement = harmonyPlacement(for: time) else { return nil }
+        let geometries = measureCanvasGeometries(
+            measureCount: renderedMeasureCount,
+            width: width,
+            attributeDisplays: attributeDisplays
+        )
+        guard geometries.indices.contains(placement.measureIndex) else { return nil }
+
+        return HarmonyLayoutItem(
+            symbol: HarmonySymbol(
+                time: placement.time,
+                measureNumber: placement.measureNumber,
+                offsetInQuarterNotes: placement.offsetInQuarterNotes,
+                rawText: editingDraft?.text ?? ""
+            ),
+            x: NotationMeasureLayout.harmonyX(
+                geometry: geometries[placement.measureIndex],
+                offsetInQuarterNotes: placement.offsetInQuarterNotes,
+                timeSignature: state.visibleMeasures[placement.measureIndex].attributes.timeSignature
+            )
+        )
+    }
+
+    private func beginEditingHarmony(at point: CGPoint, width: CGFloat) {
+        isTrackFocused = true
+        guard let placement = harmonyPlacement(for: point, width: width) else { return }
+
+        if let existing = harmonySymbol(at: placement.time) {
+            beginEditingHarmony(existing)
+            return
+        }
+
+        editingDraft = HarmonyEditorDraft(
+            id: UUID(),
+            time: placement.time,
+            measureNumber: placement.measureNumber,
+            offsetInQuarterNotes: placement.offsetInQuarterNotes,
+            text: "",
+            isNew: true
+        )
+        actions.selectHarmony(nil)
+    }
+
+    private func beginEditingHarmony(_ symbol: HarmonySymbol) {
+        editingDraft = HarmonyEditorDraft(
+            id: symbol.id,
+            time: symbol.time,
+            measureNumber: symbol.measureNumber,
+            offsetInQuarterNotes: symbol.offsetInQuarterNotes,
+            text: symbol.rawText,
+            isNew: false
+        )
+        actions.selectHarmony(symbol.id)
+    }
+
+    private func beginEditingHarmony(at placement: HarmonyPlacement) {
+        if let existing = harmonySymbol(at: placement.time) {
+            beginEditingHarmony(existing)
+            return
+        }
+
+        editingDraft = HarmonyEditorDraft(
+            id: UUID(),
+            time: placement.time,
+            measureNumber: placement.measureNumber,
+            offsetInQuarterNotes: placement.offsetInQuarterNotes,
+            text: "",
+            isNew: true
+        )
+        actions.selectHarmony(nil)
+    }
+
+    private func commitEditingDraft(navigation: HarmonyNavigationDirection? = nil) {
+        guard let draft = editingDraft else { return }
+        let trimmedText = draft.text.trimmingCharacters(in: .whitespacesAndNewlines)
+
+        if trimmedText.isEmpty {
+            if !draft.isNew {
+                actions.deleteHarmony(draft.id)
+            }
+        } else {
+            actions.saveHarmony(HarmonySymbol(
+                id: draft.id,
+                time: draft.time,
+                measureNumber: draft.measureNumber,
+                offsetInQuarterNotes: draft.offsetInQuarterNotes,
+                rawText: draft.text
+            ))
+        }
+
+        editingDraft = nil
+
+        if let navigation,
+           let nextPlacement = actions.adjacentHarmonyPlacement(draft.time, navigation) {
+            beginEditingHarmony(at: nextPlacement)
+        }
+    }
+
+    private func cancelEditingDraft() {
+        editingDraft = nil
+    }
+
+    private func deleteSelectedHarmony() {
+        guard let selectedHarmonySymbolID else { return }
+        editingDraft = nil
+        actions.deleteHarmony(selectedHarmonySymbolID)
+    }
+
+    private func handlePendingEditorRequest() {
+        guard let pendingEditorRequest,
+              let placement = harmonyPlacement(for: pendingEditorRequest.time)
+        else {
+            return
+        }
+
+        beginEditingHarmony(at: placement.harmonyPlacement)
+    }
+
+    private func harmonySymbol(at time: TimeInterval) -> HarmonySymbol? {
+        state.visibleMeasures
+            .flatMap(\.harmonies)
+            .first { abs($0.time - time) < 0.000_001 }
+    }
+
+    private func harmonyPlacement(for time: TimeInterval) -> NotationHarmonyPlacement? {
+        guard let measureIndex = state.visibleMeasures.indices.first(where: { index in
+            let measure = state.visibleMeasures[index]
+            return time >= measure.startTime - 0.000_001
+                && (
+                    time < measure.endTime - 0.000_001
+                        || abs(time - measure.startTime) < 0.000_001
+                )
+        }) else {
+            return nil
+        }
+
+        let measure = state.visibleMeasures[measureIndex]
+        let quarterLength = NotationMeasureLayout.quarterLength(for: measure.attributes.timeSignature)
+        let progress = measure.duration > 0
+            ? max(0, min((time - measure.startTime) / measure.duration, 1))
+            : 0
+        let snappedOffset = NotationMeasureLayout.snappedHarmonyOffset(
+            progress * quarterLength,
+            timeSignature: measure.attributes.timeSignature,
+            resolution: inputResolution
+        )
+        let resolvedTime = NotationMeasureLayout.time(
+            forHarmonyOffset: snappedOffset,
+            in: measure
+        )
+
+        return NotationHarmonyPlacement(
+            measureIndex: measureIndex,
+            time: resolvedTime,
+            measureNumber: measure.number,
+            offsetInQuarterNotes: snappedOffset
+        )
+    }
+
+    private func harmonyPlacement(for point: CGPoint, width: CGFloat) -> NotationHarmonyPlacement? {
+        guard renderedMeasureCount > 0, !state.visibleMeasures.isEmpty else { return nil }
+        let attributeDisplays = visibleAttributeDisplays
+        let geometries = measureCanvasGeometries(
+            measureCount: renderedMeasureCount,
+            width: width,
+            attributeDisplays: attributeDisplays
+        )
+        guard let geometryIndex = NotationMeasureLayout.measureIndex(
+            atX: point.x,
+            in: geometries
+        ) else { return nil }
+
+        let measureIndex = min(max(0, geometryIndex), state.visibleMeasures.count - 1)
+        let measure = state.visibleMeasures[measureIndex]
+        guard geometries.indices.contains(measureIndex) else { return nil }
+        let geometry = geometries[measureIndex]
+        let contentWidth = max(1, geometry.contentEndX - geometry.contentStartX)
+        let progress = max(0, min((point.x - geometry.contentStartX) / contentWidth, 1))
+        let rawOffset = progress * NotationMeasureLayout.quarterLength(for: measure.attributes.timeSignature)
+        let snappedOffset = NotationMeasureLayout.snappedHarmonyOffset(
+            rawOffset,
+            timeSignature: measure.attributes.timeSignature,
+            resolution: inputResolution
+        )
+        let resolvedTime = NotationMeasureLayout.time(forHarmonyOffset: snappedOffset, in: measure)
+
+        return NotationHarmonyPlacement(
+            measureIndex: measureIndex,
+            time: resolvedTime,
+            measureNumber: measure.number,
+            offsetInQuarterNotes: snappedOffset
+        )
     }
 
     private var accessibilityValue: String {
@@ -395,6 +755,35 @@ struct NotationAttributeDisplay: Equatable {
     }
 }
 
+private struct HarmonyEditorDraft: Equatable {
+    var id: HarmonySymbol.ID
+    var time: TimeInterval
+    var measureNumber: Int
+    var offsetInQuarterNotes: Double
+    var text: String
+    var isNew: Bool
+}
+
+private struct HarmonyLayoutItem: Equatable {
+    var symbol: HarmonySymbol
+    var x: CGFloat
+}
+
+private struct NotationHarmonyPlacement: Equatable {
+    var measureIndex: Int
+    var time: TimeInterval
+    var measureNumber: Int
+    var offsetInQuarterNotes: Double
+
+    var harmonyPlacement: HarmonyPlacement {
+        HarmonyPlacement(
+            time: time,
+            measureNumber: measureNumber,
+            offsetInQuarterNotes: offsetInQuarterNotes
+        )
+    }
+}
+
 struct NotationMeasureCanvasGeometry: Equatable {
     let measureIndex: Int
     let cellStartX: CGFloat
@@ -411,6 +800,14 @@ struct NotationMeasureCanvasGeometry: Equatable {
     var contentStartsAfterCellBoundary: Bool {
         contentStartX > cellStartX + 0.0001
     }
+
+    var leadingBarlineX: CGFloat? {
+        if measureIndex == 0 {
+            return staffStartX
+        }
+
+        return includesRawStartBarline ? cellStartX : nil
+    }
 }
 
 struct NotationBarlineGeometry: Equatable {
@@ -419,14 +816,113 @@ struct NotationBarlineGeometry: Equatable {
 }
 
 struct NotationMeasureLayout {
+    static var measureNumberLabelWidth: CGFloat {
+        AppTheme.Timeline.notationMeasureNumberLabelWidth
+    }
+
+    static func canvasWidth(
+        measureCount: Int,
+        availableWidth: CGFloat,
+        attributeReserveWidths: [CGFloat]
+    ) -> CGFloat {
+        let safeMeasureCount = max(1, measureCount)
+        let bodyWidth = baseMeasureBodyWidth(
+            measureCount: safeMeasureCount,
+            availableWidth: availableWidth
+        )
+        return bodyWidth * CGFloat(safeMeasureCount) + attributeReserveWidths.reduce(0, +)
+    }
+
+    static func minimumCanvasWidth(
+        measureCount: Int,
+        attributeReserveWidths: [CGFloat]
+    ) -> CGFloat {
+        AppTheme.Timeline.notationMeasureMinWidth * CGFloat(max(1, measureCount))
+            + attributeReserveWidths.reduce(0, +)
+    }
+
+    static func baseMeasureBodyWidth(measureCount: Int, availableWidth: CGFloat) -> CGFloat {
+        let safeMeasureCount = max(1, measureCount)
+        return max(
+            AppTheme.Timeline.notationMeasureMinWidth,
+            max(0, availableWidth) / CGFloat(safeMeasureCount)
+        )
+    }
+
+    static func measureBodyWidth(
+        measureCount: Int,
+        totalWidth: CGFloat,
+        attributeReserveWidths: [CGFloat]
+    ) -> CGFloat {
+        let safeMeasureCount = max(1, measureCount)
+        let remainingWidth = max(0, totalWidth - attributeReserveWidths.reduce(0, +))
+        return max(
+            AppTheme.Timeline.notationMeasureMinWidth,
+            remainingWidth / CGFloat(safeMeasureCount)
+        )
+    }
+
+    static func canvasGeometries(
+        measureCount: Int,
+        totalWidth: CGFloat,
+        attributeReserveWidths: [CGFloat]
+    ) -> [NotationMeasureCanvasGeometry] {
+        let safeMeasureCount = max(1, measureCount)
+        let bodyWidth = measureBodyWidth(
+            measureCount: safeMeasureCount,
+            totalWidth: totalWidth,
+            attributeReserveWidths: attributeReserveWidths
+        )
+        var cursorX: CGFloat = 0
+
+        return (0..<safeMeasureCount).map { index in
+            let cellStartX = cursorX
+            let reserveWidth = attributeReserveWidths.indices.contains(index)
+                ? max(0, attributeReserveWidths[index])
+                : 0
+            let contentStartX = cellStartX + reserveWidth
+            let cellEndX = contentStartX + bodyWidth
+            cursorX = cellEndX
+
+            return canvasGeometry(
+                measureIndex: index,
+                measureCount: safeMeasureCount,
+                cellStartX: cellStartX,
+                cellEndX: cellEndX,
+                contentStartX: contentStartX,
+                totalWidth: totalWidth
+            )
+        }
+    }
+
+    static func measureNumberLabelX(measureIndex: Int, cellWidth: CGFloat) -> CGFloat {
+        guard measureIndex > 0 else { return AppTheme.Spacing.xs }
+
+        let cellStartX = CGFloat(max(0, measureIndex)) * max(0, cellWidth)
+        return max(0, cellStartX - measureNumberLabelWidth - AppTheme.Spacing.xs)
+    }
+
+    static func measureNumberLabelX(geometry: NotationMeasureCanvasGeometry) -> CGFloat {
+        guard geometry.measureIndex > 0 else { return AppTheme.Spacing.xs }
+        return max(0, geometry.cellStartX - measureNumberLabelWidth - AppTheme.Spacing.xs)
+    }
+
+    static func harmonyLabelY(
+        staffTop: CGFloat,
+        elementHeight: CGFloat = AppTheme.ControlSize.abletonNumberFieldHeight,
+        gap: CGFloat = AppTheme.Spacing.xs
+    ) -> CGFloat {
+        max(AppTheme.Spacing.xs, staffTop - max(0, elementHeight) - max(0, gap))
+    }
+
     static func barlineGeometries(for geometries: [NotationMeasureCanvasGeometry]) -> [NotationBarlineGeometry] {
         guard let lastGeometry = geometries.last else { return [] }
 
         var barlines = geometries.compactMap { geometry -> NotationBarlineGeometry? in
-            guard geometry.includesRawStartBarline else { return nil }
+            guard let x = geometry.leadingBarlineX else { return nil }
 
             return NotationBarlineGeometry(
-                x: geometry.cellStartX,
+                x: x,
                 isOuterBoundary: geometry.measureIndex == 0
             )
         }
@@ -447,14 +943,21 @@ struct NotationMeasureLayout {
         let componentWidths = visibleComponentWidths(for: attributes, display: display)
         guard !componentWidths.isEmpty else { return 0 }
 
-        let desiredWidth = componentWidths.reduce(0, +)
+        return componentWidths.reduce(0, +)
             + spacingWidth(forVisibleComponentCount: componentWidths.count)
-        let maximumWidth = max(
-            0,
-            cellWidth - AppTheme.Timeline.notationMinimumMeasureContentWidth - AppTheme.Spacing.md
-        )
+    }
 
-        return min(desiredWidth, maximumWidth)
+    static func attributeReserveWidth(
+        for attributes: MeasureAttributes,
+        display: NotationAttributeDisplay
+    ) -> CGFloat {
+        let blockWidth = attributeBlockWidth(
+            for: attributes,
+            display: display,
+            cellWidth: AppTheme.Timeline.notationMeasureMinWidth
+        )
+        guard blockWidth > 0 else { return 0 }
+        return AppTheme.Spacing.md + blockWidth + AppTheme.Spacing.xs
     }
 
     static func keySignatureWidth(for attributes: MeasureAttributes) -> CGFloat {
@@ -481,18 +984,7 @@ struct NotationMeasureLayout {
         display: NotationAttributeDisplay
     ) -> CGFloat {
         let cellStartX = CGFloat(measureIndex) * cellWidth
-        guard !display.isEmpty else { return cellStartX }
-
-        let attributeWidth = attributeBlockWidth(
-            for: attributes,
-            display: display,
-            cellWidth: cellWidth
-        )
-        guard attributeWidth > 0 else { return cellStartX }
-
-        let desiredStartX = cellStartX + AppTheme.Spacing.md + attributeWidth + AppTheme.Spacing.xs
-        let maximumStartX = cellStartX + max(0, cellWidth - AppTheme.Timeline.notationMinimumMeasureContentWidth)
-        return min(desiredStartX, maximumStartX)
+        return cellStartX + attributeReserveWidth(for: attributes, display: display)
     }
 
     static func contentWidth(
@@ -501,14 +993,7 @@ struct NotationMeasureLayout {
         attributes: MeasureAttributes,
         display: NotationAttributeDisplay
     ) -> CGFloat {
-        let cellEndX = CGFloat(measureIndex + 1) * cellWidth
-        let startX = contentStartX(
-            measureIndex: measureIndex,
-            cellWidth: cellWidth,
-            attributes: attributes,
-            display: display
-        )
-        return max(AppTheme.Timeline.notationMinimumMeasureContentWidth, cellEndX - startX)
+        max(AppTheme.Timeline.notationMinimumMeasureContentWidth, cellWidth)
     }
 
     static func playheadX(
@@ -534,6 +1019,50 @@ struct NotationMeasureLayout {
         return startX + clampedProgress * width
     }
 
+    static func playheadX(
+        geometry: NotationMeasureCanvasGeometry,
+        progress: CGFloat
+    ) -> CGFloat {
+        let clampedProgress = max(0, min(progress, 1))
+        let width = max(0, geometry.contentEndX - geometry.contentStartX)
+        return geometry.contentStartX + clampedProgress * width
+    }
+
+    static func harmonyX(
+        geometry: NotationMeasureCanvasGeometry,
+        offsetInQuarterNotes: Double,
+        timeSignature: TimeSignature
+    ) -> CGFloat {
+        let quarterLength = quarterLength(for: timeSignature)
+        guard quarterLength > 0 else { return geometry.contentStartX }
+        let progress = max(0, min(offsetInQuarterNotes / quarterLength, 1))
+        let width = max(0, geometry.contentEndX - geometry.contentStartX)
+        return geometry.contentStartX + CGFloat(progress) * width
+    }
+
+    static func snappedHarmonyOffset(
+        _ offset: Double,
+        timeSignature: TimeSignature,
+        resolution: HarmonyInputResolution
+    ) -> Double {
+        let step = resolution.stepInQuarterNotes
+        guard step > 0 else { return 0 }
+        let maximumOffset = maximumHarmonyOffset(timeSignature: timeSignature, resolution: resolution)
+        let snapped = (offset / step).rounded() * step
+        return max(0, min(snapped, maximumOffset))
+    }
+
+    static func time(forHarmonyOffset offset: Double, in measure: ScoreMeasure) -> TimeInterval {
+        let quarterLength = quarterLength(for: measure.attributes.timeSignature)
+        guard measure.duration > 0, quarterLength > 0 else { return measure.startTime }
+        let progress = max(0, min(offset / quarterLength, 1))
+        return measure.startTime + progress * measure.duration
+    }
+
+    static func quarterLength(for timeSignature: TimeSignature) -> Double {
+        Double(timeSignature.beatsPerBar) * 4.0 / Double(max(1, timeSignature.beatUnit))
+    }
+
     static func canvasGeometry(
         measureIndex: Int,
         measureCount: Int,
@@ -542,16 +1071,18 @@ struct NotationMeasureLayout {
         display: NotationAttributeDisplay,
         totalWidth: CGFloat
     ) -> NotationMeasureCanvasGeometry {
-        canvasGeometry(
+        let cellStartX = CGFloat(measureIndex) * cellWidth
+        let contentStartX = cellStartX + attributeReserveWidth(
+            for: attributes,
+            display: display
+        )
+
+        return canvasGeometry(
             measureIndex: measureIndex,
             measureCount: measureCount,
-            cellWidth: cellWidth,
-            contentStartX: contentStartX(
-                measureIndex: measureIndex,
-                cellWidth: cellWidth,
-                attributes: attributes,
-                display: display
-            ),
+            cellStartX: cellStartX,
+            cellEndX: contentStartX + max(0, cellWidth),
+            contentStartX: contentStartX,
             totalWidth: totalWidth
         )
     }
@@ -563,15 +1094,37 @@ struct NotationMeasureLayout {
         contentStartX: CGFloat,
         totalWidth: CGFloat
     ) -> NotationMeasureCanvasGeometry {
-        let safeMeasureCount = max(1, measureCount)
         let cellStartX = CGFloat(measureIndex) * cellWidth
-        let cellEndX = CGFloat(measureIndex + 1) * cellWidth
-        let clampedContentStartX = min(max(cellStartX, contentStartX), cellEndX)
-        var staffStartX = cellStartX
-        var staffEndX = cellEndX
+        return canvasGeometry(
+            measureIndex: measureIndex,
+            measureCount: measureCount,
+            cellStartX: cellStartX,
+            cellEndX: max(cellStartX + cellWidth, contentStartX + cellWidth),
+            contentStartX: contentStartX,
+            totalWidth: totalWidth
+        )
+    }
+
+    static func canvasGeometry(
+        measureIndex: Int,
+        measureCount: Int,
+        cellStartX: CGFloat,
+        cellEndX: CGFloat,
+        contentStartX: CGFloat,
+        totalWidth: CGFloat
+    ) -> NotationMeasureCanvasGeometry {
+        let safeMeasureCount = max(1, measureCount)
+        let safeCellStartX = max(0, cellStartX)
+        let safeCellEndX = max(safeCellStartX, cellEndX)
+        let clampedContentStartX = min(max(safeCellStartX, contentStartX), safeCellEndX)
+        var staffStartX = safeCellStartX
+        var staffEndX = safeCellEndX
 
         if measureIndex == 0 {
-            staffStartX = max(staffStartX, min(cellEndX, AppTheme.Timeline.notationStaffHorizontalInset))
+            staffStartX = max(
+                safeCellStartX,
+                min(safeCellEndX, safeCellStartX + AppTheme.Timeline.notationStaffHorizontalInset)
+            )
         }
 
         if measureIndex == safeMeasureCount - 1 {
@@ -583,10 +1136,10 @@ struct NotationMeasureLayout {
 
         return NotationMeasureCanvasGeometry(
             measureIndex: measureIndex,
-            cellStartX: cellStartX,
-            cellEndX: cellEndX,
+            cellStartX: safeCellStartX,
+            cellEndX: safeCellEndX,
             contentStartX: clampedContentStartX,
-            contentEndX: cellEndX,
+            contentEndX: safeCellEndX,
             staffStartX: staffStartX,
             staffEndX: max(staffStartX, staffEndX)
         )
@@ -610,6 +1163,24 @@ struct NotationMeasureLayout {
         }
     }
 
+    static func measureIndex(
+        atX x: CGFloat,
+        in geometries: [NotationMeasureCanvasGeometry]
+    ) -> Int? {
+        guard !geometries.isEmpty else { return nil }
+        let clampedX = max(0, x)
+
+        if let index = geometries.firstIndex(where: { geometry in
+            let isLastGeometry = geometry.measureIndex == geometries.last?.measureIndex
+            return clampedX >= geometry.cellStartX
+                && (clampedX < geometry.cellEndX || (isLastGeometry && clampedX <= geometry.cellEndX))
+        }) {
+            return index
+        }
+
+        return clampedX < geometries[0].cellStartX ? 0 : geometries.indices.last
+    }
+
     private static func visibleComponentWidths(
         for attributes: MeasureAttributes,
         display: NotationAttributeDisplay
@@ -631,6 +1202,125 @@ struct NotationMeasureLayout {
 
         return widths
     }
+
+    private static func maximumHarmonyOffset(
+        timeSignature: TimeSignature,
+        resolution: HarmonyInputResolution
+    ) -> Double {
+        let length = quarterLength(for: timeSignature)
+        let step = resolution.stepInQuarterNotes
+        guard length > 0, step > 0 else { return 0 }
+        let slots = max(0, Int(floor((length - 0.000_001) / step)))
+        return Double(slots) * step
+    }
+}
+
+private struct HarmonyInlineTextField: NSViewRepresentable {
+    @Binding var text: String
+    let onCommit: () -> Void
+    let onCancel: () -> Void
+    let onNavigate: (HarmonyNavigationDirection) -> Void
+
+    func makeNSView(context: Context) -> HarmonyInlineNSTextField {
+        let textField = HarmonyInlineNSTextField(string: text)
+        textField.isBordered = true
+        textField.isBezeled = true
+        textField.bezelStyle = .roundedBezel
+        textField.focusRingType = .default
+        textField.delegate = context.coordinator
+        textField.font = .systemFont(ofSize: 13, weight: .semibold)
+        textField.onWindowAttached = { [weak coordinator = context.coordinator, weak textField] in
+            guard let textField else { return }
+            coordinator?.focusAndSelectIfNeeded(textField)
+        }
+        return textField
+    }
+
+    func updateNSView(_ nsView: HarmonyInlineNSTextField, context: Context) {
+        context.coordinator.parent = self
+        if nsView.stringValue != text {
+            nsView.stringValue = text
+        }
+        context.coordinator.focusAndSelectIfNeeded(nsView)
+    }
+
+    func makeCoordinator() -> Coordinator {
+        Coordinator(parent: self)
+    }
+
+    final class Coordinator: NSObject, NSTextFieldDelegate {
+        var parent: HarmonyInlineTextField
+        private var didAutoSelect = false
+
+        init(parent: HarmonyInlineTextField) {
+            self.parent = parent
+        }
+
+        func controlTextDidChange(_ notification: Notification) {
+            guard let textField = notification.object as? NSTextField else { return }
+            parent.text = textField.stringValue
+        }
+
+        func focusAndSelectIfNeeded(_ textField: NSTextField) {
+            guard !didAutoSelect else { return }
+
+            DispatchQueue.main.async { [weak self, weak textField] in
+                guard let self, let textField, !self.didAutoSelect else { return }
+                guard let window = textField.window else { return }
+
+                window.makeFirstResponder(textField)
+                textField.selectText(nil)
+                self.didAutoSelect = true
+            }
+        }
+
+        func control(
+            _ control: NSControl,
+            textView: NSTextView,
+            doCommandBy commandSelector: Selector
+        ) -> Bool {
+            switch commandSelector {
+            case #selector(NSResponder.insertNewline(_:)):
+                parent.text = textView.string
+                parent.onCommit()
+                return true
+            case #selector(NSResponder.cancelOperation(_:)):
+                parent.onCancel()
+                return true
+            case #selector(NSResponder.insertTab(_:)):
+                parent.text = textView.string
+                parent.onNavigate(.next)
+                return true
+            case #selector(NSResponder.insertBacktab(_:)):
+                parent.text = textView.string
+                parent.onNavigate(.previous)
+                return true
+            default:
+                return false
+            }
+        }
+    }
+}
+
+private final class HarmonyInlineNSTextField: NSTextField {
+    var onWindowAttached: (() -> Void)?
+
+    override func viewDidMoveToWindow() {
+        super.viewDidMoveToWindow()
+
+        if window != nil {
+            onWindowAttached?()
+        }
+    }
+}
+
+private extension NotationTrackActions {
+    static let noop = NotationTrackActions(
+        selectHarmony: { _ in },
+        saveHarmony: { _ in },
+        deleteHarmony: { _ in },
+        adjacentHarmonyPlacement: { _, _ in nil }
+    )
 }
 
 #Preview {
@@ -643,7 +1333,7 @@ struct NotationMeasureLayout {
         playbackMarkerTime: 40,
         isPlaying: true,
         keyName: "D major",
-        visibleMeasureCount: AppTheme.Timeline.notationVisibleMeasureCount
+        visibleMeasureCount: AppTheme.Timeline.notationMaximumVisibleMeasureCount
     )
 
     NotationTrackView(state: state)

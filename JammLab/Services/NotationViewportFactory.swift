@@ -8,7 +8,8 @@ struct NotationViewportFactory {
         playbackMarkerTime: TimeInterval,
         isPlaying: Bool,
         keyName: String?,
-        visibleMeasureCount: Int
+        visibleMeasureCount: Int,
+        harmonySymbols: [HarmonySymbol] = []
     ) -> NotationViewportState {
         let safeVisibleMeasureCount = max(1, visibleMeasureCount)
         let keySignature = KeySignature.normalized(from: keyName)
@@ -16,14 +17,14 @@ struct NotationViewportFactory {
             return .pending(visibleMeasureCount: safeVisibleMeasureCount, keySignature: keySignature)
         }
 
-        let anchorTime = Self.anchorTime(
+        let rawAnchorTime = Self.anchorTime(
             currentTime: currentTime,
             playbackMarkerTime: playbackMarkerTime,
             isPlaying: isPlaying,
             duration: duration
         )
 
-        guard let activeMeasure = measure(containing: anchorTime, tempoMap: tempoMap),
+        guard let activeMeasure = measure(containing: rawAnchorTime, tempoMap: tempoMap),
               let activeMeasureIndex = globalMeasureIndex(for: activeMeasure, tempoMap: tempoMap),
               let firstMeasure = measure(atGlobalIndex: pageStartIndex(
                 forActiveMeasureIndex: activeMeasureIndex,
@@ -36,7 +37,10 @@ struct NotationViewportFactory {
         var visibleMeasures: [ScoreMeasure] = []
         var cursor = firstMeasure
         for _ in 0..<safeVisibleMeasureCount {
-            visibleMeasures.append(cursor.withKeySignature(keySignature))
+            let keyedMeasure = cursor.withKeySignature(keySignature)
+            visibleMeasures.append(keyedMeasure.withHarmonies(
+                harmonies(for: keyedMeasure, from: harmonySymbols)
+            ))
             guard let next = nextMeasure(after: cursor, tempoMap: tempoMap) else { break }
             cursor = next
         }
@@ -53,7 +57,7 @@ struct NotationViewportFactory {
             firstVisibleMeasureNumber: firstVisibleMeasure.number,
             visibleMeasureCount: safeVisibleMeasureCount,
             visibleMeasures: visibleMeasures,
-            anchorTime: anchorTime,
+            anchorTime: Self.viewportAnchorTime(rawAnchorTime, in: activeMeasure),
             activeMeasureNumber: activeMeasure.number
         )
     }
@@ -71,12 +75,107 @@ struct NotationViewportFactory {
         return max(0, min(rawTime, upperBound))
     }
 
+    private static func viewportAnchorTime(_ anchorTime: TimeInterval, in measure: ScoreMeasure) -> TimeInterval {
+        guard measure.duration > 0 else { return anchorTime }
+        return max(measure.startTime, min(anchorTime, measure.endTime))
+    }
+
+    func harmonyPlacement(
+        for time: TimeInterval,
+        tempoMap: TempoMap,
+        duration: TimeInterval,
+        resolution: HarmonyInputResolution? = nil
+    ) -> HarmonyPlacement? {
+        let clampedTime = Self.anchorTime(
+            currentTime: time,
+            playbackMarkerTime: time,
+            isPlaying: true,
+            duration: duration
+        )
+        guard let measure = measure(containing: clampedTime, tempoMap: tempoMap) else { return nil }
+        let rawOffset = quarterOffset(for: clampedTime, in: measure)
+        let offset = resolution.map { snappedOffset(rawOffset, in: measure, resolution: $0) } ?? rawOffset
+        let resolvedTime = timeForQuarterOffset(offset, in: measure)
+
+        return HarmonyPlacement(
+            time: max(0, min(resolvedTime, max(0, duration.nextDown))),
+            measureNumber: measure.number,
+            offsetInQuarterNotes: offset
+        )
+    }
+
+    func adjacentHarmonyPlacement(
+        from time: TimeInterval,
+        direction: HarmonyNavigationDirection,
+        tempoMap: TempoMap,
+        duration: TimeInterval,
+        resolution: HarmonyInputResolution
+    ) -> HarmonyPlacement? {
+        let clampedTime = Self.anchorTime(
+            currentTime: time,
+            playbackMarkerTime: time,
+            isPlaying: true,
+            duration: duration
+        )
+        guard let measure = measure(containing: clampedTime, tempoMap: tempoMap) else { return nil }
+
+        let currentOffset = snappedOffset(
+            quarterOffset(for: clampedTime, in: measure),
+            in: measure,
+            resolution: resolution
+        )
+        let step = resolution.stepInQuarterNotes
+        let nextOffset: Double
+        switch direction {
+        case .previous:
+            nextOffset = currentOffset - step
+        case .next:
+            nextOffset = currentOffset + step
+        }
+
+        if nextOffset >= 0, nextOffset <= maximumHarmonyOffset(in: measure, resolution: resolution) {
+            let targetTime = timeForQuarterOffset(nextOffset, in: measure)
+            return harmonyPlacement(
+                for: targetTime,
+                tempoMap: tempoMap,
+                duration: duration,
+                resolution: resolution
+            )
+        }
+
+        let adjacentMeasure: ScoreMeasure?
+        switch direction {
+        case .previous:
+            adjacentMeasure = previousMeasure(before: measure, tempoMap: tempoMap)
+        case .next:
+            adjacentMeasure = nextMeasure(after: measure, tempoMap: tempoMap)
+        }
+
+        guard let adjacentMeasure else { return nil }
+        let targetOffset: Double
+        switch direction {
+        case .previous:
+            targetOffset = maximumHarmonyOffset(in: adjacentMeasure, resolution: resolution)
+        case .next:
+            targetOffset = 0
+        }
+
+        let targetTime = timeForQuarterOffset(targetOffset, in: adjacentMeasure)
+        return harmonyPlacement(
+            for: targetTime,
+            tempoMap: tempoMap,
+            duration: duration,
+            resolution: resolution
+        )
+    }
+
     private func measure(containing time: TimeInterval, tempoMap: TempoMap) -> ScoreMeasure? {
         guard let segmentIndex = segmentIndex(containing: time, tempoMap: tempoMap) else { return nil }
         let segment = tempoMap.segments[segmentIndex]
         guard let secondsPerBar = secondsPerBar(for: segment), secondsPerBar > 0 else { return nil }
 
-        let barOrdinal = Int(floor((time - segment.settings.firstBeatTime) / secondsPerBar))
+        let rawBarOrdinal = Int(floor((time - segment.settings.firstBeatTime) / secondsPerBar))
+        let barOrdinal = max(0, rawBarOrdinal)
         return measure(segmentIndex: segmentIndex, barOrdinal: barOrdinal, tempoMap: tempoMap)
     }
 
@@ -92,6 +191,14 @@ struct NotationViewportFactory {
         }
 
         return self.measure(segmentIndex: segmentIndex, barOrdinal: currentOrdinal + 1, tempoMap: tempoMap)
+    }
+
+    private func previousMeasure(before measure: ScoreMeasure, tempoMap: TempoMap) -> ScoreMeasure? {
+        guard let targetIndex = globalMeasureIndex(for: measure, tempoMap: tempoMap), targetIndex > 0 else {
+            return nil
+        }
+
+        return self.measure(atGlobalIndex: targetIndex - 1, tempoMap: tempoMap)
     }
 
     private func pageStartIndex(forActiveMeasureIndex activeMeasureIndex: Int, visibleMeasureCount: Int) -> Int {
@@ -187,7 +294,75 @@ struct NotationViewportFactory {
         return beatDuration * Double(max(1, segment.settings.timeSignature.beatsPerBar))
     }
 
+    private func harmonies(for measure: ScoreMeasure, from harmonySymbols: [HarmonySymbol]) -> [HarmonySymbol] {
+        harmonySymbols
+            .compactMap { symbol -> HarmonySymbol? in
+                guard symbol.time >= measure.startTime - Self.timelineTolerance,
+                      (
+                        symbol.time < measure.endTime - Self.timelineTolerance
+                            || abs(symbol.time - measure.startTime) < Self.timelineTolerance
+                      )
+                else {
+                    return nil
+                }
+
+                return symbol.withPosition(
+                    measureNumber: measure.number,
+                    offsetInQuarterNotes: quarterOffset(for: symbol.time, in: measure)
+                )
+            }
+            .sorted {
+                if abs($0.offsetInQuarterNotes - $1.offsetInQuarterNotes) > Self.timelineTolerance {
+                    return $0.offsetInQuarterNotes < $1.offsetInQuarterNotes
+                }
+
+                return $0.id.uuidString < $1.id.uuidString
+            }
+    }
+
+    private func quarterOffset(for time: TimeInterval, in measure: ScoreMeasure) -> Double {
+        let length = quarterLength(for: measure.attributes.timeSignature)
+        guard measure.duration > 0, length > 0 else { return 0 }
+        let progress = max(0, min((time - measure.startTime) / measure.duration, 1))
+        return progress * length
+    }
+
+    private func timeForQuarterOffset(_ offset: Double, in measure: ScoreMeasure) -> TimeInterval {
+        let length = quarterLength(for: measure.attributes.timeSignature)
+        guard measure.duration > 0, length > 0 else { return measure.startTime }
+        let progress = max(0, min(offset / length, 1))
+        return measure.startTime + progress * measure.duration
+    }
+
+    private func snappedOffset(
+        _ offset: Double,
+        in measure: ScoreMeasure,
+        resolution: HarmonyInputResolution
+    ) -> Double {
+        let step = resolution.stepInQuarterNotes
+        guard step > 0 else { return 0 }
+        let maximumOffset = maximumHarmonyOffset(in: measure, resolution: resolution)
+        let snapped = (offset / step).rounded() * step
+        return max(0, min(snapped, maximumOffset))
+    }
+
+    private func maximumHarmonyOffset(
+        in measure: ScoreMeasure,
+        resolution: HarmonyInputResolution
+    ) -> Double {
+        let length = quarterLength(for: measure.attributes.timeSignature)
+        let step = resolution.stepInQuarterNotes
+        guard length > 0, step > 0 else { return 0 }
+        let slots = max(0, Int(floor((length - Self.timelineTolerance) / step)))
+        return Double(slots) * step
+    }
+
+    private func quarterLength(for timeSignature: TimeSignature) -> Double {
+        Double(timeSignature.beatsPerBar) * 4.0 / Double(max(1, timeSignature.beatUnit))
+    }
+
     private static let maximumMeasureTraversalCount = 100_000
+    private static let timelineTolerance: TimeInterval = 0.000_001
 }
 
 private extension ScoreMeasure {
@@ -201,8 +376,23 @@ private extension ScoreMeasure {
         return copy
     }
 
+    func withHarmonies(_ harmonies: [HarmonySymbol]) -> ScoreMeasure {
+        var copy = self
+        copy.harmonies = harmonies
+        return copy
+    }
+
     func hasSameTimelineIdentity(as other: ScoreMeasure) -> Bool {
         abs(startTime - other.startTime) < 0.000_001
             && abs(endTime - other.endTime) < 0.000_001
+    }
+}
+
+private extension HarmonySymbol {
+    func withPosition(measureNumber: Int, offsetInQuarterNotes: Double) -> HarmonySymbol {
+        var copy = self
+        copy.measureNumber = measureNumber
+        copy.offsetInQuarterNotes = max(0, offsetInQuarterNotes)
+        return copy
     }
 }

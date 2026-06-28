@@ -249,7 +249,7 @@ enum AppTheme {
         static let tempoTrackHeight: CGFloat = 38
         static let waveformTrackHeight: CGFloat = 110
         static let notationTrackHeight: CGFloat = 88
-        static let notationVisibleMeasureCount = 8
+        static let notationMaximumVisibleMeasureCount = 8
         static let notationMeasureMinWidth: CGFloat = 148
         static let notationStaffLineSpacing: CGFloat = 8
         static let notationStaffHorizontalInset: CGFloat = 10
@@ -257,6 +257,9 @@ enum AppTheme {
         static let notationTimeSignatureWidth: CGFloat = 26
         static let notationAccidentalWidth: CGFloat = 11
         static let notationMinimumMeasureContentWidth: CGFloat = 28
+        static let notationMeasureNumberLabelWidth: CGFloat = 34
+        static let notationHarmonySymbolWidth: CGFloat = 84
+        static let notationHarmonyEditorWidth: CGFloat = 64
         static let stemTrackHeight: CGFloat = 48
         static let defaultVisibleStemRows = 4
         static let trackSpacing: CGFloat = 6

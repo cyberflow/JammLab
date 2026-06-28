@@ -276,6 +276,76 @@ final class AudioTimingLogicTests: XCTestCase {
         XCTAssertEqual(measureEightState.activeMeasureNumber, 8)
         XCTAssertEqual(measureNineState.firstVisibleMeasureNumber, 9)
         XCTAssertEqual(measureNineState.activeMeasureNumber, 9)
+        XCTAssertEqual(measureNineState.visibleMeasures.map(\.number), [9, 10, 11, 12, 13, 14, 15, 16])
+    }
+
+    func testNotationViewportStartsAtMeasureOneWhenTrackStartsAtZero() throws {
+        let state = notationViewportState(
+            tempoMap: fourFourTempoMap(duration: 120),
+            currentTime: 0,
+            playbackMarkerTime: 0,
+            visibleMeasureCount: 8
+        )
+        let firstMeasure = try XCTUnwrap(state.visibleMeasures.first)
+
+        XCTAssertEqual(state.firstVisibleMeasureNumber, 1)
+        XCTAssertEqual(state.activeMeasureNumber, 1)
+        XCTAssertEqual(state.visibleMeasures.map(\.number), [1, 2, 3, 4, 5, 6, 7, 8])
+        XCTAssertEqual(firstMeasure.startTime, 0, accuracy: 0.0001)
+        XCTAssertGreaterThan(firstMeasure.duration, 0)
+    }
+
+    func testNotationViewportStartsAtMeasureOneBeforeDelayedFirstBeat() throws {
+        let tempoMap = fourFourTempoMap(duration: 120, firstBeatTime: 0.78)
+
+        let state = notationViewportState(
+            tempoMap: tempoMap,
+            currentTime: 0,
+            playbackMarkerTime: 0,
+            visibleMeasureCount: 8
+        )
+        let firstMeasure = try XCTUnwrap(state.visibleMeasures.first)
+
+        XCTAssertTrue(state.isReady)
+        XCTAssertEqual(state.firstVisibleMeasureNumber, 1)
+        XCTAssertEqual(state.activeMeasureNumber, 1)
+        XCTAssertEqual(state.visibleMeasures.map(\.number), [1, 2, 3, 4, 5, 6, 7, 8])
+        XCTAssertEqual(state.anchorTime, 0.78, accuracy: 0.0001)
+        XCTAssertEqual(firstMeasure.startTime, 0.78, accuracy: 0.0001)
+        XCTAssertGreaterThan(firstMeasure.duration, 0)
+    }
+
+    func testNotationViewportKeepsMeasureOneAtDelayedFirstBeat() {
+        let tempoMap = fourFourTempoMap(duration: 120, firstBeatTime: 0.78)
+
+        let state = notationViewportState(
+            tempoMap: tempoMap,
+            currentTime: 0.78,
+            playbackMarkerTime: 0,
+            visibleMeasureCount: 8
+        )
+
+        XCTAssertTrue(state.isReady)
+        XCTAssertEqual(state.firstVisibleMeasureNumber, 1)
+        XCTAssertEqual(state.activeMeasureNumber, 1)
+        XCTAssertEqual(state.visibleMeasures.map(\.number), [1, 2, 3, 4, 5, 6, 7, 8])
+        XCTAssertEqual(state.anchorTime, 0.78, accuracy: 0.0001)
+    }
+
+    func testNotationViewportKeepsFirstPageInsideSecondDelayedMeasure() {
+        let tempoMap = fourFourTempoMap(duration: 120, firstBeatTime: 0.78)
+
+        let state = notationViewportState(
+            tempoMap: tempoMap,
+            currentTime: 3.0,
+            playbackMarkerTime: 0,
+            visibleMeasureCount: 8
+        )
+
+        XCTAssertTrue(state.isReady)
+        XCTAssertEqual(state.firstVisibleMeasureNumber, 1)
+        XCTAssertEqual(state.activeMeasureNumber, 2)
+        XCTAssertEqual(state.visibleMeasures.map(\.number), [1, 2, 3, 4, 5, 6, 7, 8])
     }
 
     func testNotationViewportCarriesMeasureAttributesAcrossTimeSignatureMarker() {
@@ -357,6 +427,199 @@ final class AudioTimingLogicTests: XCTestCase {
         XCTAssertFalse(state.isReady)
         XCTAssertTrue(state.visibleMeasures.isEmpty)
         XCTAssertEqual(state.visibleMeasureCount, 8)
+    }
+
+    func testNotationVisibleMeasureFitterChoosesCountForAvailableWidth() {
+        let minimumWidth = AppTheme.Timeline.notationMeasureMinWidth
+        let stateForMeasureCount: (Int) -> NotationViewportState = {
+            NotationViewportState.pending(visibleMeasureCount: $0)
+        }
+
+        XCTAssertEqual(
+            NotationVisibleMeasureFitter.fittedMeasureCount(
+                availableWidth: minimumWidth * 8,
+                maximumMeasureCount: 8,
+                stateForMeasureCount: stateForMeasureCount
+            ),
+            8
+        )
+        XCTAssertEqual(
+            NotationVisibleMeasureFitter.fittedMeasureCount(
+                availableWidth: minimumWidth * 4 + 10,
+                maximumMeasureCount: 8,
+                stateForMeasureCount: stateForMeasureCount
+            ),
+            4
+        )
+        XCTAssertEqual(
+            NotationVisibleMeasureFitter.fittedMeasureCount(
+                availableWidth: minimumWidth * 0.5,
+                maximumMeasureCount: 8,
+                stateForMeasureCount: stateForMeasureCount
+            ),
+            1
+        )
+    }
+
+    func testNotationVisibleMeasureFitterAccountsForAttributeReserveWidth() {
+        let tempoMap = fourFourTempoMap(duration: 120)
+        let availableWidth = AppTheme.Timeline.notationMeasureMinWidth * 4
+        let stateForMeasureCount: (Int) -> NotationViewportState = { count in
+            self.notationViewportState(
+                tempoMap: tempoMap,
+                currentTime: 0,
+                keyName: "D major",
+                visibleMeasureCount: count
+            )
+        }
+
+        let fittedCount = NotationVisibleMeasureFitter.fittedMeasureCount(
+            availableWidth: availableWidth,
+            maximumMeasureCount: 4,
+            stateForMeasureCount: stateForMeasureCount
+        )
+        let fittedState = stateForMeasureCount(fittedCount)
+        let fourMeasureState = stateForMeasureCount(4)
+
+        XCTAssertLessThan(fittedCount, 4)
+        XCTAssertLessThanOrEqual(
+            NotationVisibleMeasureFitter.minimumRequiredWidth(for: fittedState),
+            availableWidth + NotationVisibleMeasureFitter.widthTolerance
+        )
+        XCTAssertGreaterThan(
+            NotationVisibleMeasureFitter.minimumRequiredWidth(for: fourMeasureState),
+            availableWidth + NotationVisibleMeasureFitter.widthTolerance
+        )
+    }
+
+    func testNotationVisibleMeasureFitterFallsBackToOneWhenPreferredSingleMeasureIsTooWide() {
+        let tempoMap = fourFourTempoMap(duration: 120)
+        let availableWidth: CGFloat = 10
+        let stateForMeasureCount: (Int) -> NotationViewportState = { count in
+            self.notationViewportState(
+                tempoMap: tempoMap,
+                currentTime: 0,
+                keyName: "D major",
+                visibleMeasureCount: count
+            )
+        }
+
+        let fittedCount = NotationVisibleMeasureFitter.fittedMeasureCount(
+            availableWidth: availableWidth,
+            maximumMeasureCount: 8,
+            stateForMeasureCount: stateForMeasureCount
+        )
+
+        XCTAssertEqual(fittedCount, 1)
+        XCTAssertGreaterThan(
+            NotationVisibleMeasureFitter.minimumRequiredWidth(for: stateForMeasureCount(1)),
+            availableWidth
+        )
+    }
+
+    func testNotationViewportKeepsActiveMeasureVisibleWhenVisibleCountChanges() throws {
+        let tempoMap = fourFourTempoMap(duration: 120)
+
+        let eightCountState = notationViewportState(
+            tempoMap: tempoMap,
+            currentTime: 14.1,
+            visibleMeasureCount: 8
+        )
+        let sevenCountState = notationViewportState(
+            tempoMap: tempoMap,
+            currentTime: 14.1,
+            visibleMeasureCount: 7
+        )
+        let fourCountState = notationViewportState(
+            tempoMap: tempoMap,
+            currentTime: 8.1,
+            visibleMeasureCount: 4
+        )
+        let threeCountState = notationViewportState(
+            tempoMap: tempoMap,
+            currentTime: 8.1,
+            visibleMeasureCount: 3
+        )
+
+        XCTAssertTrue(eightCountState.visibleMeasures.map(\.number).contains(try XCTUnwrap(eightCountState.activeMeasureNumber)))
+        XCTAssertTrue(sevenCountState.visibleMeasures.map(\.number).contains(try XCTUnwrap(sevenCountState.activeMeasureNumber)))
+        XCTAssertTrue(fourCountState.visibleMeasures.map(\.number).contains(try XCTUnwrap(fourCountState.activeMeasureNumber)))
+        XCTAssertTrue(threeCountState.visibleMeasures.map(\.number).contains(try XCTUnwrap(threeCountState.activeMeasureNumber)))
+    }
+
+    func testNotationViewportAttachesHarmonySymbolsToVisibleMeasures() throws {
+        let firstID = UUID(uuidString: "00000000-0000-0000-0000-000000000101")!
+        let secondID = UUID(uuidString: "00000000-0000-0000-0000-000000000102")!
+        let state = notationViewportState(
+            tempoMap: fourFourTempoMap(duration: 8),
+            currentTime: 0.1,
+            visibleMeasureCount: 2,
+            harmonySymbols: [
+                HarmonySymbol(
+                    id: firstID,
+                    time: 0.75,
+                    measureNumber: 99,
+                    offsetInQuarterNotes: 99,
+                    rawText: "Cmaj7"
+                ),
+                HarmonySymbol(
+                    id: secondID,
+                    time: 2.5,
+                    measureNumber: 1,
+                    offsetInQuarterNotes: 0,
+                    rawText: "G7"
+                )
+            ]
+        )
+
+        let firstHarmony = try XCTUnwrap(state.visibleMeasures[0].harmonies.first)
+        let secondHarmony = try XCTUnwrap(state.visibleMeasures[1].harmonies.first)
+
+        XCTAssertEqual(firstHarmony.id, firstID)
+        XCTAssertEqual(firstHarmony.measureNumber, 1)
+        XCTAssertEqual(firstHarmony.offsetInQuarterNotes, 1.5, accuracy: 0.0001)
+        XCTAssertEqual(firstHarmony.rawText, "Cmaj7")
+        XCTAssertEqual(secondHarmony.id, secondID)
+        XCTAssertEqual(secondHarmony.measureNumber, 2)
+        XCTAssertEqual(secondHarmony.offsetInQuarterNotes, 1, accuracy: 0.0001)
+        XCTAssertEqual(secondHarmony.rawText, "G7")
+    }
+
+    func testHarmonyPlacementSnapsToResolutionAndNavigatesAcrossMeasures() throws {
+        let factory = NotationViewportFactory()
+        let tempoMap = fourFourTempoMap(duration: 8)
+        let resolution = HarmonyInputResolution(denominator: 4)
+
+        let placement = try XCTUnwrap(factory.harmonyPlacement(
+            for: 0.87,
+            tempoMap: tempoMap,
+            duration: 8,
+            resolution: resolution
+        ))
+        let nextMeasure = try XCTUnwrap(factory.adjacentHarmonyPlacement(
+            from: 1.5,
+            direction: .next,
+            tempoMap: tempoMap,
+            duration: 8,
+            resolution: resolution
+        ))
+        let previousMeasure = try XCTUnwrap(factory.adjacentHarmonyPlacement(
+            from: 2,
+            direction: .previous,
+            tempoMap: tempoMap,
+            duration: 8,
+            resolution: resolution
+        ))
+
+        XCTAssertEqual(placement.measureNumber, 1)
+        XCTAssertEqual(placement.offsetInQuarterNotes, 2, accuracy: 0.0001)
+        XCTAssertEqual(placement.time, 1, accuracy: 0.0001)
+        XCTAssertEqual(nextMeasure.measureNumber, 2)
+        XCTAssertEqual(nextMeasure.offsetInQuarterNotes, 0, accuracy: 0.0001)
+        XCTAssertEqual(nextMeasure.time, 2, accuracy: 0.0001)
+        XCTAssertEqual(previousMeasure.measureNumber, 1)
+        XCTAssertEqual(previousMeasure.offsetInQuarterNotes, 3, accuracy: 0.0001)
+        XCTAssertEqual(previousMeasure.time, 1.5, accuracy: 0.0001)
     }
 
     func testNotationKeySignatureParsingSupportsCommonDetectedKeysAndFallback() {
@@ -449,6 +712,10 @@ final class AudioTimingLogicTests: XCTestCase {
         )
         let cellWidth: CGFloat = 148
         let display = NotationAttributeDisplay.full
+        let attributeReserveWidth = NotationMeasureLayout.attributeReserveWidth(
+            for: attributes,
+            display: display
+        )
 
         let attributedStart = NotationMeasureLayout.playheadX(
             measureIndex: 0,
@@ -489,17 +756,27 @@ final class AudioTimingLogicTests: XCTestCase {
 
         XCTAssertGreaterThan(attributedStart, AppTheme.Spacing.md)
         XCTAssertEqual(attributedStart, contentStart, accuracy: 0.0001)
-        XCTAssertEqual(attributedEnd, cellWidth, accuracy: 0.0001)
+        XCTAssertEqual(attributedStart, attributeReserveWidth, accuracy: 0.0001)
+        XCTAssertEqual(attributedEnd, contentStart + cellWidth, accuracy: 0.0001)
         XCTAssertEqual(ordinaryStart, cellWidth, accuracy: 0.0001)
         XCTAssertEqual(geometry.contentStartX, attributedStart, accuracy: 0.0001)
-        XCTAssertEqual(geometry.contentEndX, cellWidth, accuracy: 0.0001)
+        XCTAssertEqual(geometry.contentEndX, contentStart + cellWidth, accuracy: 0.0001)
+        XCTAssertEqual(geometry.contentEndX - geometry.contentStartX, cellWidth, accuracy: 0.0001)
+        XCTAssertEqual(
+            NotationMeasureLayout.playheadX(geometry: geometry, progress: 1),
+            geometry.contentEndX,
+            accuracy: 0.0001
+        )
         XCTAssertEqual(geometry.staffStartX, AppTheme.Timeline.notationStaffHorizontalInset, accuracy: 0.0001)
         XCTAssertFalse(geometry.includesRawStartBarline)
         XCTAssertTrue(geometry.contentStartsAfterCellBoundary)
+        XCTAssertEqual(geometry.leadingBarlineX ?? -1, geometry.staffStartX, accuracy: 0.0001)
+        XCTAssertTrue(barlines.contains { abs($0.x - geometry.staffStartX) < 0.0001 })
         XCTAssertFalse(barlines.contains { abs($0.x - geometry.contentStartX) < 0.0001 })
-        XCTAssertEqual(barlines.count, 1)
-        XCTAssertEqual(barlines[0].x, geometry.cellEndX, accuracy: 0.0001)
+        XCTAssertEqual(barlines.count, 2)
+        XCTAssertEqual(barlines[1].x, geometry.cellEndX, accuracy: 0.0001)
         XCTAssertTrue(barlines[0].isOuterBoundary)
+        XCTAssertTrue(barlines[1].isOuterBoundary)
     }
 
     func testNotationMeasureLayoutUsesTimeOnlyWidthAtTimeSignatureChange() {
@@ -585,6 +862,10 @@ final class AudioTimingLogicTests: XCTestCase {
         )
         let cellWidth: CGFloat = 148
         let display = NotationAttributeDisplay.full
+        let attributeReserveWidth = NotationMeasureLayout.attributeReserveWidth(
+            for: attributes,
+            display: display
+        )
 
         let geometry = NotationMeasureLayout.canvasGeometry(
             measureIndex: 2,
@@ -597,7 +878,9 @@ final class AudioTimingLogicTests: XCTestCase {
 
         XCTAssertEqual(geometry.cellStartX, cellWidth * 2, accuracy: 0.0001)
         XCTAssertGreaterThan(geometry.contentStartX, geometry.cellStartX)
-        XCTAssertEqual(geometry.contentEndX, cellWidth * 3, accuracy: 0.0001)
+        XCTAssertEqual(geometry.contentStartX, geometry.cellStartX + attributeReserveWidth, accuracy: 0.0001)
+        XCTAssertEqual(geometry.contentEndX - geometry.contentStartX, cellWidth, accuracy: 0.0001)
+        XCTAssertEqual(geometry.cellEndX, geometry.contentStartX + cellWidth, accuracy: 0.0001)
         XCTAssertEqual(geometry.staffStartX, geometry.cellStartX, accuracy: 0.0001)
         XCTAssertTrue(geometry.includesRawStartBarline)
         XCTAssertTrue(geometry.contentStartsAfterCellBoundary)
@@ -605,6 +888,60 @@ final class AudioTimingLogicTests: XCTestCase {
             NotationMeasureLayout.barlineGeometries(for: [geometry])
                 .contains { abs($0.x - geometry.contentStartX) < 0.0001 }
         )
+    }
+
+    func testNotationMeasureLayoutExpandsAttributedMeasuresWithoutShrinkingBodies() {
+        let fullAttributes = MeasureAttributes(
+            keySignature: KeySignature.normalized(from: "F major"),
+            timeSignature: TimeSignature(beatsPerBar: 7, beatUnit: 4),
+            clef: .treble
+        )
+        let timeOnlyAttributes = MeasureAttributes(
+            keySignature: KeySignature.normalized(from: "F major"),
+            timeSignature: TimeSignature(beatsPerBar: 3, beatUnit: 4),
+            clef: .treble
+        )
+        let bodyWidth: CGFloat = 148
+        let fullReserve = NotationMeasureLayout.attributeReserveWidth(
+            for: fullAttributes,
+            display: .full
+        )
+        let timeReserve = NotationMeasureLayout.attributeReserveWidth(
+            for: timeOnlyAttributes,
+            display: NotationAttributeDisplay(
+                showsClef: false,
+                showsKeySignature: false,
+                showsTimeSignature: true
+            )
+        )
+        let totalWidth = NotationMeasureLayout.canvasWidth(
+            measureCount: 4,
+            availableWidth: bodyWidth * 4,
+            attributeReserveWidths: [fullReserve, 0, timeReserve, 0]
+        )
+
+        let geometries = NotationMeasureLayout.canvasGeometries(
+            measureCount: 4,
+            totalWidth: totalWidth,
+            attributeReserveWidths: [fullReserve, 0, timeReserve, 0]
+        )
+        let barlines = NotationMeasureLayout.barlineGeometries(for: geometries)
+
+        XCTAssertEqual(geometries.count, 4)
+        XCTAssertEqual(totalWidth, bodyWidth * 4 + fullReserve + timeReserve, accuracy: 0.0001)
+        XCTAssertEqual(geometries[0].contentStartX, fullReserve, accuracy: 0.0001)
+        XCTAssertEqual(geometries[2].contentStartX, geometries[2].cellStartX + timeReserve, accuracy: 0.0001)
+
+        for geometry in geometries {
+            XCTAssertEqual(geometry.contentEndX - geometry.contentStartX, bodyWidth, accuracy: 0.0001)
+        }
+
+        XCTAssertEqual(geometries[1].cellStartX, geometries[0].cellEndX, accuracy: 0.0001)
+        XCTAssertEqual(geometries[2].cellStartX, geometries[1].cellEndX, accuracy: 0.0001)
+        XCTAssertEqual(geometries[3].cellStartX, geometries[2].cellEndX, accuracy: 0.0001)
+        XCTAssertEqual(geometries[3].cellEndX, totalWidth, accuracy: 0.0001)
+        XCTAssertFalse(barlines.contains { abs($0.x - geometries[0].contentStartX) < 0.0001 })
+        XCTAssertFalse(barlines.contains { abs($0.x - geometries[2].contentStartX) < 0.0001 })
     }
 
     func testNotationMeasureLayoutFallbackGeometryPreservesOuterStaffInsets() {
@@ -621,6 +958,105 @@ final class AudioTimingLogicTests: XCTestCase {
         XCTAssertEqual(geometries[0].staffEndX, totalWidth - AppTheme.Timeline.notationStaffHorizontalInset, accuracy: 0.0001)
         XCTAssertTrue(geometries[0].includesRawStartBarline)
         XCTAssertFalse(geometries[0].contentStartsAfterCellBoundary)
+        XCTAssertEqual(geometries[0].leadingBarlineX ?? -1, geometries[0].staffStartX, accuracy: 0.0001)
+    }
+
+    func testNotationMeasureLayoutPositionsMeasureNumbersBeforeMeasureBoundary() {
+        let cellWidth: CGFloat = 148
+        let attributes = MeasureAttributes(
+            keySignature: KeySignature.normalized(from: "C major"),
+            timeSignature: .fourFour,
+            clef: .treble
+        )
+        let firstGeometry = NotationMeasureLayout.canvasGeometry(
+            measureIndex: 0,
+            measureCount: 4,
+            cellWidth: cellWidth,
+            attributes: attributes,
+            display: .full,
+            totalWidth: cellWidth * 4
+        )
+
+        let firstLabelX = NotationMeasureLayout.measureNumberLabelX(
+            measureIndex: 0,
+            cellWidth: cellWidth
+        )
+        let secondLabelX = NotationMeasureLayout.measureNumberLabelX(
+            measureIndex: 1,
+            cellWidth: cellWidth
+        )
+        let thirdLabelX = NotationMeasureLayout.measureNumberLabelX(
+            measureIndex: 2,
+            cellWidth: cellWidth
+        )
+
+        XCTAssertEqual(firstLabelX, AppTheme.Spacing.xs, accuracy: 0.0001)
+        XCTAssertGreaterThanOrEqual(firstLabelX, 0)
+        XCTAssertLessThanOrEqual(
+            firstLabelX + NotationMeasureLayout.measureNumberLabelWidth,
+            firstGeometry.contentStartX + 0.0001
+        )
+        XCTAssertEqual(
+            secondLabelX + NotationMeasureLayout.measureNumberLabelWidth,
+            cellWidth - AppTheme.Spacing.xs,
+            accuracy: 0.0001
+        )
+        XCTAssertEqual(
+            thirdLabelX + NotationMeasureLayout.measureNumberLabelWidth,
+            cellWidth * 2 - AppTheme.Spacing.xs,
+            accuracy: 0.0001
+        )
+    }
+
+    func testNotationMeasureLayoutKeepsHarmonyLabelAboveStaff() {
+        let defaultStaffTop: CGFloat = 32
+        let lowerStaffTop: CGFloat = 60
+
+        let defaultY = NotationMeasureLayout.harmonyLabelY(staffTop: defaultStaffTop)
+        let lowerY = NotationMeasureLayout.harmonyLabelY(staffTop: lowerStaffTop)
+
+        XCTAssertEqual(defaultY, AppTheme.Spacing.xs, accuracy: 0.0001)
+        XCTAssertLessThanOrEqual(
+            defaultY + AppTheme.ControlSize.abletonNumberFieldHeight + AppTheme.Spacing.xs,
+            defaultStaffTop
+        )
+        XCTAssertEqual(
+            lowerY + AppTheme.ControlSize.abletonNumberFieldHeight + AppTheme.Spacing.xs,
+            lowerStaffTop,
+            accuracy: 0.0001
+        )
+    }
+
+    func testNotationMeasureLayoutPositionsHarmonyAfterAttributes() {
+        let attributes = MeasureAttributes(
+            keySignature: KeySignature.normalized(from: "F major"),
+            timeSignature: TimeSignature(beatsPerBar: 7, beatUnit: 4),
+            clef: .treble
+        )
+        let cellWidth: CGFloat = 148
+        let geometry = NotationMeasureLayout.canvasGeometry(
+            measureIndex: 0,
+            measureCount: 4,
+            cellWidth: cellWidth,
+            attributes: attributes,
+            display: .full,
+            totalWidth: cellWidth * 4
+        )
+
+        let harmonyStartX = NotationMeasureLayout.harmonyX(
+            geometry: geometry,
+            offsetInQuarterNotes: 0,
+            timeSignature: attributes.timeSignature
+        )
+        let snappedEndOffset = NotationMeasureLayout.snappedHarmonyOffset(
+            7,
+            timeSignature: attributes.timeSignature,
+            resolution: HarmonyInputResolution(denominator: 4)
+        )
+
+        XCTAssertEqual(harmonyStartX, geometry.contentStartX, accuracy: 0.0001)
+        XCTAssertGreaterThan(harmonyStartX, geometry.cellStartX)
+        XCTAssertEqual(snappedEndOffset, 6, accuracy: 0.0001)
     }
 
     func testBeatGridCalculatorUsesTempoMapSegmentsWithoutBoundaryDuplicates() throws {
@@ -872,10 +1308,15 @@ final class AudioTimingLogicTests: XCTestCase {
 
     private func fourFourTempoMap(
         duration: TimeInterval,
+        firstBeatTime: TimeInterval = 0,
         markers: [TimecodedNote] = []
     ) -> TempoMap {
         TempoMap(
-            baseSettings: BeatGridSettings(bpm: 120, timeSignature: .fourFour),
+            baseSettings: BeatGridSettings(
+                bpm: 120,
+                firstBeatTime: firstBeatTime,
+                timeSignature: .fourFour
+            ),
             markers: markers,
             duration: duration
         )
@@ -887,7 +1328,8 @@ final class AudioTimingLogicTests: XCTestCase {
         playbackMarkerTime: TimeInterval = 0,
         isPlaying: Bool = true,
         keyName: String? = "C major",
-        visibleMeasureCount: Int = 8
+        visibleMeasureCount: Int = 8,
+        harmonySymbols: [HarmonySymbol] = []
     ) -> NotationViewportState {
         NotationViewportFactory().viewportState(
             tempoMap: tempoMap,
@@ -896,7 +1338,8 @@ final class AudioTimingLogicTests: XCTestCase {
             playbackMarkerTime: playbackMarkerTime,
             isPlaying: isPlaying,
             keyName: keyName,
-            visibleMeasureCount: visibleMeasureCount
+            visibleMeasureCount: visibleMeasureCount,
+            harmonySymbols: harmonySymbols
         )
     }
 

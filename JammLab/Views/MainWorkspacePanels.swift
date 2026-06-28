@@ -42,9 +42,16 @@ extension ContentView {
                 timelineMinimumContentHeight,
                 columnHeight - AppTheme.Spacing.md - AppTheme.ControlSize.transportBarMinHeight
             )
+            let notationTrackContentWidth = max(
+                1,
+                proxy.size.width - AppTheme.Timeline.trackControlWidth - AppTheme.Spacing.md
+            )
 
             VStack(alignment: .leading, spacing: AppTheme.Spacing.md) {
-                timelineBlock(height: timelineHeight)
+                timelineBlock(
+                    height: timelineHeight,
+                    notationTrackContentWidth: notationTrackContentWidth
+                )
 
                 transportBar
                     .frame(height: AppTheme.ControlSize.transportBarMinHeight)
@@ -60,12 +67,15 @@ extension ContentView {
         .layoutPriority(2)
     }
 
-    func timelineBlock(height: CGFloat) -> some View {
+    func timelineBlock(
+        height: CGFloat,
+        notationTrackContentWidth: CGFloat
+    ) -> some View {
         ZStack(alignment: .topLeading) {
             timelineTrackHeadersPanelBackground(height: height)
 
             VStack(spacing: AppTheme.Spacing.none) {
-                timelineSection
+                timelineSection(notationTrackContentWidth: notationTrackContentWidth)
                     .frame(height: timelineTracksHeight, alignment: .top)
 
                 Spacer(minLength: AppTheme.Timeline.viewportFooterGap)
@@ -83,9 +93,9 @@ extension ContentView {
         }
     }
 
-    var timelineSection: some View {
+    func timelineSection(notationTrackContentWidth: CGFloat) -> some View {
         WaveformTimelineView(
-            state: timelineViewState,
+            state: timelineViewState(notationTrackContentWidth: notationTrackContentWidth),
             actions: timelineViewActions,
             stemActions: stemTrackActions
         )
@@ -110,7 +120,7 @@ extension ContentView {
             + AppTheme.ControlSize.transportBarMinHeight
     }
 
-    var timelineViewState: TimelineViewState {
+    func timelineViewState(notationTrackContentWidth: CGFloat) -> TimelineViewState {
         TimelineViewState(
             peakformData: viewModel.peakformData,
             duration: viewModel.duration,
@@ -119,9 +129,12 @@ extension ContentView {
             loopStart: viewModel.loopRegion.start,
             loopEnd: viewModel.loopRegion.end,
             notes: viewModel.notes,
+            selectedHarmonySymbolID: viewModel.selectedHarmonySymbolID,
+            harmonyInputResolutionDenominator: viewModel.harmonyInputResolutionDenominator,
+            pendingHarmonyEditorRequest: viewModel.pendingHarmonyEditorRequest,
             selectedRegionID: viewModel.selectedRegionID,
             beatGrid: beatGrid,
-            notationViewport: notationViewportState,
+            notationViewport: notationViewportState(availableWidth: notationTrackContentWidth),
             isLoadingPeakform: viewModel.isBuildingWaveform,
             mainTrackVolume: viewModel.mainTrackVolume,
             playbackMode: viewModel.playbackMode,
@@ -132,15 +145,34 @@ extension ContentView {
         )
     }
 
-    var notationViewportState: NotationViewportState {
-        NotationViewportFactory().viewportState(
+    func notationViewportState(availableWidth: CGFloat) -> NotationViewportState {
+        let factory = NotationViewportFactory()
+        let maximumMeasureCount = AppTheme.Timeline.notationMaximumVisibleMeasureCount
+        let fittedMeasureCount = NotationVisibleMeasureFitter.fittedMeasureCount(
+            availableWidth: availableWidth,
+            maximumMeasureCount: maximumMeasureCount
+        ) { measureCount in
+            factory.viewportState(
+                tempoMap: viewModel.tempoMap,
+                duration: viewModel.duration,
+                currentTime: viewModel.currentTime,
+                playbackMarkerTime: viewModel.playbackMarkerTime,
+                isPlaying: viewModel.playbackState == .playing,
+                keyName: viewModel.analysisResult?.keyName,
+                visibleMeasureCount: measureCount,
+                harmonySymbols: viewModel.harmonySymbols
+            )
+        }
+
+        return factory.viewportState(
             tempoMap: viewModel.tempoMap,
             duration: viewModel.duration,
             currentTime: viewModel.currentTime,
             playbackMarkerTime: viewModel.playbackMarkerTime,
             isPlaying: viewModel.playbackState == .playing,
             keyName: viewModel.analysisResult?.keyName,
-            visibleMeasureCount: AppTheme.Timeline.notationVisibleMeasureCount
+            visibleMeasureCount: fittedMeasureCount,
+            harmonySymbols: viewModel.harmonySymbols
         )
     }
 
@@ -148,6 +180,11 @@ extension ContentView {
         TimelineViewActions(
             locatePlaybackMarker: { viewModel.locatePlaybackMarker(to: $0) },
             addNote: { viewModel.addNote(at: $0) },
+            harmonyInputResolutionChanged: { viewModel.setHarmonyInputResolutionDenominator($0) },
+            selectHarmony: { viewModel.selectHarmonySymbol(id: $0) },
+            saveHarmony: { viewModel.saveHarmonySymbol($0) },
+            deleteHarmony: { viewModel.deleteHarmonySymbol(id: $0) },
+            adjacentHarmonyPlacement: { viewModel.adjacentHarmonyPlacement(from: $0, direction: $1) },
             addTempoTimeSignatureMarker: { beginAddingTempoTimeSignatureMarker(at: $0) },
             editNote: { beginEditingMarker($0) },
             deleteNote: { viewModel.deleteNote(id: $0) },

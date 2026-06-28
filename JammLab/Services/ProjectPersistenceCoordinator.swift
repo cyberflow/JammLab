@@ -30,6 +30,7 @@ struct ProjectDocumentSnapshot {
     let projectURL: URL
     let duration: TimeInterval
     let notes: [TimecodedNote]
+    let harmonySymbols: [HarmonySymbol]
     let loopRegion: LoopRegion
     let loopMinimumLength: TimeInterval
     let isLooping: Bool
@@ -206,6 +207,7 @@ struct ProjectPersistenceCoordinator {
             audioDuration: snapshot.duration,
             mediaKind: snapshot.importedFile.mediaKind,
             notes: ProjectStateNormalizer.normalizedNotes(snapshot.notes, duration: snapshot.duration),
+            harmonySymbols: ProjectStateNormalizer.normalizedHarmonySymbols(snapshot.harmonySymbols, duration: snapshot.duration),
             loopStart: snapshot.loopRegion.clamped(to: snapshot.duration, minimumLength: snapshot.loopMinimumLength).start,
             loopEnd: snapshot.loopRegion.clamped(to: snapshot.duration, minimumLength: snapshot.loopMinimumLength).end,
             isLoopEnabled: snapshot.isLooping,

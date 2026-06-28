@@ -44,6 +44,7 @@
 		9FEA01022D70000100112233 /* NotationViewportState.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9FEA00022D70000100112233 /* NotationViewportState.swift */; };
 		9FEA01032D70000100112233 /* NotationViewportFactory.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9FEA00032D70000100112233 /* NotationViewportFactory.swift */; };
 		9FEA01042D70000100112233 /* NotationTrackView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9FEA00042D70000100112233 /* NotationTrackView.swift */; };
+		9FEA01052D70000100112233 /* NotationVisibleMeasureFitter.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9FEA00052D70000100112233 /* NotationVisibleMeasureFitter.swift */; };
 		9F8B01062C10000100112233 /* TestSupport.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9F8B00072C10000100112233 /* TestSupport.swift */; };
 		9FCD01012D50000100112233 /* PerformanceBenchmarkTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9FCD00012D50000100112233 /* PerformanceBenchmarkTests.swift */; };
 		9FCD01022D50000100112233 /* TestSupport.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9F8B00072C10000100112233 /* TestSupport.swift */; };
@@ -194,6 +195,7 @@
 		9FEA00022D70000100112233 /* NotationViewportState.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotationViewportState.swift; sourceTree = "<group>"; };
 		9FEA00032D70000100112233 /* NotationViewportFactory.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotationViewportFactory.swift; sourceTree = "<group>"; };
 		9FEA00042D70000100112233 /* NotationTrackView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotationTrackView.swift; sourceTree = "<group>"; };
+		9FEA00052D70000100112233 /* NotationVisibleMeasureFitter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotationVisibleMeasureFitter.swift; sourceTree = "<group>"; };
 		9F8B00062C10000100112233 /* JammLabTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = JammLabTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		9F8B00072C10000100112233 /* TestSupport.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TestSupport.swift; sourceTree = "<group>"; };
 		9FCD00012D50000100112233 /* PerformanceBenchmarkTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PerformanceBenchmarkTests.swift; sourceTree = "<group>"; };
@@ -362,6 +364,7 @@
 				9F8A00172C00000100112233 /* BeatGridCalculator.swift */,
 				9F8A00182C00000100112233 /* MetronomeClickScheduler.swift */,
 				9FEA00032D70000100112233 /* NotationViewportFactory.swift */,
+				9FEA00052D70000100112233 /* NotationVisibleMeasureFitter.swift */,
 				9F8A00192C00000100112233 /* ProjectArtifactStore.swift */,
 				9F8A00142C00000100112233 /* ProjectDocumentService.swift */,
 				9FB202002D31000100112233 /* ProjectPersistenceCoordinator.swift */,
@@ -733,6 +736,7 @@
 				9FEA01042D70000100112233 /* NotationTrackView.swift in Sources */,
 				9F8A010D2C00000100112233 /* AppHotkey.swift in Sources */,
 				9FEA01032D70000100112233 /* NotationViewportFactory.swift in Sources */,
+				9FEA01052D70000100112233 /* NotationVisibleMeasureFitter.swift in Sources */,
 				9FEA01022D70000100112233 /* NotationViewportState.swift in Sources */,
 				9F8B01032C10000100112233 /* PeakformTimelineView.swift in Sources */,
 				9F8A01192C00000100112233 /* ProjectArtifactStore.swift in Sources */,

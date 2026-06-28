@@ -36,7 +36,11 @@ final class AudioPlayerViewModel: ObservableObject {
     @Published var tempoBPM: Double? = AppDefaults.defaultTempoBPM
     @Published var beatGridSettings = BeatGridSettings(bpm: AppDefaults.defaultTempoBPM)
     @Published var notes: [TimecodedNote] = []
+    @Published var harmonySymbols: [HarmonySymbol] = []
     @Published var selectedRegionID: TimecodedNote.ID?
+    @Published var selectedHarmonySymbolID: HarmonySymbol.ID?
+    @Published var harmonyInputResolutionDenominator = HarmonyInputResolution.defaultDenominator
+    @Published var pendingHarmonyEditorRequest: HarmonyEditorRequest?
     @Published var activeLoopRegionID: TimecodedNote.ID?
     @Published var loopRegion: LoopRegion = .empty
     @Published var timelineVisibleRange: ClosedRange<TimeInterval> = 0...0

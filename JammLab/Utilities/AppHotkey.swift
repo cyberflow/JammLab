@@ -7,6 +7,7 @@ enum AppHotkey: CaseIterable, Hashable {
     case setLoopStart
     case setLoopEnd
     case addNote
+    case addHarmonyAtPlaybackMarker
     case addTempoTimeSignatureMarker
     case setBeatOne
     case toggleClick
@@ -52,6 +53,8 @@ enum AppHotkey: CaseIterable, Hashable {
             self = .setLoopEnd
         case 46:
             self = .addNote
+        case 0:
+            self = .addHarmonyAtPlaybackMarker
         case 11:
             self = .setBeatOne
         case 8:
@@ -73,6 +76,8 @@ enum AppHotkey: CaseIterable, Hashable {
             return "]"
         case .addNote:
             return "M"
+        case .addHarmonyAtPlaybackMarker:
+            return "A"
         case .addTempoTimeSignatureMarker:
             return "Shift+C"
         case .setBeatOne:
@@ -100,6 +105,8 @@ enum AppHotkey: CaseIterable, Hashable {
             return "Set Loop End"
         case .addNote:
             return "Add Marker"
+        case .addHarmonyAtPlaybackMarker:
+            return "Add Harmony"
         case .addTempoTimeSignatureMarker:
             return "Add Tempo / Time Signature Marker"
         case .setBeatOne:
@@ -127,6 +134,8 @@ enum AppHotkey: CaseIterable, Hashable {
             return "Move loop end to the current playback position."
         case .addNote:
             return "Add a timecoded note at the current playback position."
+        case .addHarmonyAtPlaybackMarker:
+            return "Open a harmony editor at the position marker, snapped to the Notation track resolution."
         case .addTempoTimeSignatureMarker:
             return "Add a tempo or time signature change marker at the current playback position."
         case .setBeatOne:
