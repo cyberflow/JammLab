@@ -111,8 +111,13 @@ extension AudioPlayerViewModel {
         beatGridSettings = BeatGridSettings(bpm: AppDefaults.defaultTempoBPM)
         shouldAcceptAnalyzedTempo = true
         notes = []
+        harmonySymbols = []
+        projectKeySelection = nil
         selectedRegionID = nil
+        selectedHarmonySymbolID = nil
+        pendingHarmonyEditorRequest = nil
         activeLoopRegionID = nil
+        harmonyInputResolutionDenominator = HarmonyInputResolution.defaultDenominator
         loopRegion = .empty
         timelineVisibleRange = 0...0
         userTimelineVisibleRange = 0...0
@@ -154,7 +159,7 @@ extension AudioPlayerViewModel {
         markProjectClean()
 
         buildPeakform(file: file)
-        analyze(file: file)
+        analyze(file: file, includesTempo: true, includesKey: true)
     }
 
     private func resetForImportedFile(_ file: ImportedAudioFile) {
@@ -166,7 +171,12 @@ extension AudioPlayerViewModel {
         beatGridSettings = BeatGridSettings(bpm: AppDefaults.defaultTempoBPM).clamped(to: file.duration)
         shouldAcceptAnalyzedTempo = true
         notes = []
+        harmonySymbols = []
+        projectKeySelection = nil
         selectedRegionID = nil
+        selectedHarmonySymbolID = nil
+        pendingHarmonyEditorRequest = nil
+        harmonyInputResolutionDenominator = HarmonyInputResolution.defaultDenominator
         activeLoopRegionID = nil
         loopRegion = LoopRegion(start: 0, end: file.duration).clamped(to: file.duration)
         timelineVisibleRange = 0...file.duration
@@ -233,7 +243,15 @@ extension AudioPlayerViewModel {
             playbackMarkerTime = restoredPlaybackMarkerTime
             currentTime = restoredPlaybackMarkerTime
             notes = ProjectStateNormalizer.normalizedNotes(project.notes, duration: resolvedProjectDuration)
+            harmonySymbols = ProjectStateNormalizer.normalizedHarmonySymbols(
+                project.harmonySymbols,
+                duration: resolvedProjectDuration
+            )
+            projectKeySelection = project.projectKeySelection
             selectedRegionID = nil
+            selectedHarmonySymbolID = nil
+            pendingHarmonyEditorRequest = nil
+            harmonyInputResolutionDenominator = HarmonyInputResolution.defaultDenominator
             activeLoopRegionID = nil
             loopRegion = ProjectStateNormalizer.normalizedLoopRegion(
                 start: project.loopStart,
@@ -262,7 +280,13 @@ extension AudioPlayerViewModel {
 
             addRecentProject(url: url)
             buildPeakform(file: file)
-            analyze(file: file, includesTempo: shouldAcceptAnalyzedTempo)
+            let shouldAnalyzeKey = project.projectKeySelection == nil
+            analyze(
+                file: file,
+                includesTempo: shouldAcceptAnalyzedTempo,
+                includesKey: shouldAnalyzeKey,
+                marksProjectModifiedForAutoKey: shouldAnalyzeKey
+            )
         } catch {
             isImporting = false
             if !didAdoptProject {
@@ -349,6 +373,8 @@ extension AudioPlayerViewModel {
             projectURL: projectURL,
             duration: duration,
             notes: notes,
+            harmonySymbols: harmonySymbols,
+            projectKeySelection: projectKeySelection,
             loopRegion: loopRegion,
             loopMinimumLength: activeRangeMinimumLength,
             isLooping: isLooping,
@@ -417,18 +443,54 @@ extension AudioPlayerViewModel {
         return beginProjectSecurityScopedAccess(for: artifactRootURL)
     }
 
-    func analyze(file: ImportedAudioFile, includesTempo: Bool = true) {
+    func analyze(
+        file: ImportedAudioFile,
+        includesTempo: Bool = true,
+        includesKey: Bool = true,
+        marksProjectModifiedForAutoKey: Bool = false
+    ) {
+        guard includesTempo || includesKey else {
+            analysisTask?.cancel()
+            analysisTask = nil
+            isAnalyzing = false
+            analysisResult = nil
+            return
+        }
+
         analysisTask?.cancel()
         isAnalyzing = true
         analysisResult = nil
+        let keySelectionAtStart = projectKeySelection
 
         analysisTask = Task { [weak self] in
             guard let self else { return }
 
             do {
-                let result = try await analyzer.analyze(url: file.url, includesTempo: includesTempo)
+                let result = try await analyzer.analyze(
+                    url: file.url,
+                    includesTempo: includesTempo,
+                    includesKey: includesKey
+                )
                 guard !Task.isCancelled else { return }
                 analysisResult = result
+
+                if includesKey,
+                   keySelectionAtStart == nil,
+                   projectKeySelection == nil,
+                   let detectedKey = ProjectKeySelection.detected(
+                    from: result.keyName,
+                    confidence: result.keyConfidence
+                   ) {
+                    projectKeySelection = detectedKey
+                    if marksProjectModifiedForAutoKey {
+                        refreshProjectModifiedState()
+                    } else if !isProjectModified {
+                        markProjectClean()
+                    } else {
+                        refreshProjectModifiedState()
+                    }
+                }
+
                 if includesTempo, shouldAcceptAnalyzedTempo, let analyzedBPM = result.bpm {
                     tempoBPM = Double(analyzedBPM)
                     beatGridSettings.bpm = tempoBPM

@@ -37,6 +37,8 @@ struct AppThemeColors: Equatable {
     var waveformColor: Color { color(for: .waveformColor) }
     var waveformDisabledBackground: Color { color(for: .waveformDisabledBackground) }
     var waveformDisabledColor: Color { color(for: .waveformDisabledColor) }
+    var notationTrackBackground: Color { color(for: .notationTrackBackground) }
+    var notationSymbolsAndLines: Color { color(for: .notationSymbolsAndLines) }
     var timeTrackAccentBeatLine: Color { color(for: .timeTrackAccentBeatLine) }
     var timeTrackBeatLine: Color { color(for: .timeTrackBeatLine) }
     var waveformAccentBeatLine: Color { color(for: .waveformAccentBeatLine) }
@@ -144,6 +146,8 @@ enum AppTheme {
         static let toolbarTempoFieldWidth: CGFloat = 62
         static let toolbarTimeSignatureNumberFieldWidth: CGFloat = 28
         static let toolbarKeyFieldWidth: CGFloat = 88
+        static let toolbarKeyTonicFieldWidth: CGFloat = 64
+        static let toolbarKeyModeFieldWidth: CGFloat = 72
         static let transportTimeWidth: CGFloat = 56
         static let transportSliderWidth: CGFloat = 130
         static let clickVolumeWidth: CGFloat = 110
@@ -246,11 +250,26 @@ enum AppTheme {
         static let markerTrackHeight: CGFloat = 24
         static let tempoTrackHeight: CGFloat = 38
         static let waveformTrackHeight: CGFloat = 110
+        static let notationTrackHeight: CGFloat = 88
+        static let notationMaximumVisibleMeasureCount = 8
+        static let notationMeasureMinWidth: CGFloat = 148
+        static let notationStaffLineSpacing: CGFloat = 8
+        static let notationStaffHorizontalInset: CGFloat = 10
+        static let notationClefWidth: CGFloat = 32
+        static let notationTimeSignatureWidth: CGFloat = 26
+        static let notationAccidentalWidth: CGFloat = 11
+        static let notationMinimumMeasureContentWidth: CGFloat = 28
+        static let notationMeasureNumberLabelWidth: CGFloat = 34
+        static let notationHarmonySymbolWidth: CGFloat = 84
+        static let notationHarmonyEditorWidth: CGFloat = 64
         static let stemTrackHeight: CGFloat = 48
         static let defaultVisibleStemRows = 4
         static let trackSpacing: CGFloat = 6
-        static var upperTrackStackHeight: CGFloat {
+        static var zoomableUpperTrackStackHeight: CGFloat {
             regionTrackHeight + markerTrackHeight + tempoTrackHeight + waveformTrackHeight
+        }
+        static var upperTrackStackHeight: CGFloat {
+            zoomableUpperTrackStackHeight + notationTrackHeight
         }
         static func stemTracksHeight(rowCount: Int) -> CGFloat {
             let visibleRows = max(defaultVisibleStemRows, rowCount)

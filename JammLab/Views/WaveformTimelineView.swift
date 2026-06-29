@@ -24,8 +24,12 @@ struct TimelineViewState: Equatable {
     var loopStart: TimeInterval
     var loopEnd: TimeInterval
     var notes: [TimecodedNote]
+    var selectedHarmonySymbolID: HarmonySymbol.ID?
+    var harmonyInputResolutionDenominator: Int
+    var pendingHarmonyEditorRequest: HarmonyEditorRequest?
     var selectedRegionID: TimecodedNote.ID?
     var beatGrid: BeatGridConfiguration
+    var notationViewport: NotationViewportState
     var isLoadingPeakform: Bool
     var mainTrackVolume: Float
     var playbackMode: PlaybackMode
@@ -38,6 +42,11 @@ struct TimelineViewState: Equatable {
 struct TimelineViewActions {
     var locatePlaybackMarker: (TimeInterval) -> Void
     var addNote: (TimeInterval) -> Void
+    var harmonyInputResolutionChanged: (Int) -> Void
+    var selectHarmony: (HarmonySymbol.ID?) -> Void
+    var saveHarmony: (HarmonySymbol) -> Void
+    var deleteHarmony: (HarmonySymbol.ID) -> Void
+    var adjacentHarmonyPlacement: (TimeInterval, HarmonyNavigationDirection) -> HarmonyPlacement?
     var addTempoTimeSignatureMarker: (TimeInterval) -> Void
     var editNote: (TimecodedNote) -> Void
     var deleteNote: (TimecodedNote.ID) -> Void
@@ -163,10 +172,25 @@ struct WaveformTimelineView: View {
 
             mainTrackRow
                 .frame(height: AppTheme.Timeline.waveformTrackHeight)
+
+            notationTrackRow
+                .frame(height: AppTheme.Timeline.notationTrackHeight)
         }
     }
 
     private var timelineScrollOverlay: some View {
+        ZStack(alignment: .topLeading) {
+            timelineScrollCaptureArea
+                .frame(height: AppTheme.Timeline.zoomableUpperTrackStackHeight)
+
+            timelineScrollCaptureArea
+                .frame(height: stemTracksHeight)
+                .offset(y: AppTheme.Timeline.upperTrackStackHeight + AppTheme.Timeline.trackSpacing)
+        }
+        .frame(height: tracksHeight, alignment: .topLeading)
+    }
+
+    private var timelineScrollCaptureArea: some View {
         HStack(spacing: AppTheme.Spacing.md) {
             Color.clear
                 .frame(width: trackControlWidth)
@@ -199,6 +223,66 @@ struct WaveformTimelineView: View {
 
             audioTrack
         }
+    }
+
+    private var notationTrackRow: some View {
+        HStack(spacing: AppTheme.Spacing.md) {
+            notationTrackControls
+                .frame(width: trackControlWidth)
+                .frame(height: AppTheme.Timeline.notationTrackHeight)
+
+            NotationTrackView(
+                state: state.notationViewport,
+                selectedHarmonySymbolID: state.selectedHarmonySymbolID,
+                pendingEditorRequest: state.pendingHarmonyEditorRequest,
+                inputResolution: HarmonyInputResolution(denominator: state.harmonyInputResolutionDenominator),
+                actions: NotationTrackActions(
+                    selectHarmony: actions.selectHarmony,
+                    saveHarmony: actions.saveHarmony,
+                    deleteHarmony: actions.deleteHarmony,
+                    adjacentHarmonyPlacement: actions.adjacentHarmonyPlacement
+                )
+            )
+                .frame(height: AppTheme.Timeline.notationTrackHeight)
+        }
+    }
+
+    private var notationTrackControls: some View {
+        VStack(alignment: .leading, spacing: AppTheme.Spacing.sm) {
+            Text("Notation")
+                .font(AppTheme.Typography.noteTitle)
+                .lineLimit(1)
+                .frame(maxWidth: .infinity, alignment: .leading)
+
+            HStack(spacing: AppTheme.Spacing.xxs) {
+                Text("1/")
+                    .font(AppTheme.Typography.captionMonospaced)
+                    .foregroundStyle(appColors.secondaryText)
+
+                AbletonNumberField(
+                    value: Binding(
+                        get: { Double(state.harmonyInputResolutionDenominator) },
+                        set: { actions.harmonyInputResolutionChanged(Int($0.rounded())) }
+                    ),
+                    minValue: 1,
+                    maxValue: 8,
+                    defaultValue: Double(HarmonyInputResolution.defaultDenominator),
+                    step: 1,
+                    precision: 0,
+                    accessibilityLabel: "Harmony Input Resolution"
+                )
+                .frame(
+                    width: AppTheme.ControlSize.toolbarTimeSignatureNumberFieldWidth,
+                    height: AppTheme.ControlSize.abletonNumberFieldHeight
+                )
+                .disabled(!state.notationViewport.isReady)
+                .help(ControlHelpText.harmonyInputResolution)
+            }
+        }
+        .padding(.horizontal, AppTheme.Spacing.md)
+        .padding(.vertical, AppTheme.Spacing.sm)
+        .controlSize(.small)
+        .opacity(state.notationViewport.isReady ? 1 : 0.5)
     }
 
     private var mainTrackControls: some View {

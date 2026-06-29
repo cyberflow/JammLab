@@ -4,7 +4,10 @@ extension AudioPlayerViewModel {
     var editableState: ProjectEditableState {
         ProjectEditableState(
             notes: notes,
+            harmonySymbols: harmonySymbols,
+            projectKeySelection: projectKeySelection,
             selectedRegionID: selectedRegionID,
+            selectedHarmonySymbolID: selectedHarmonySymbolID,
             activeLoopRegionID: activeLoopRegionID,
             loopRegion: loopRegion,
             isLooping: isLooping,
@@ -28,6 +31,8 @@ extension AudioPlayerViewModel {
 
         return ProjectPersistedEditableState(
             notes: ProjectStateNormalizer.normalizedNotes(notes, duration: duration),
+            harmonySymbols: ProjectStateNormalizer.normalizedHarmonySymbols(harmonySymbols, duration: duration),
+            projectKeySelection: projectKeySelection,
             loopRegion: clampedLoop,
             isLooping: isLooping,
             tempoBPM: ProjectStateNormalizer.normalizedTempo(tempoBPM),
@@ -67,7 +72,10 @@ extension AudioPlayerViewModel {
         beatGridSettings.bpm = tempoBPM
         shouldAcceptAnalyzedTempo = false
         notes = ProjectStateNormalizer.normalizedNotes(state.notes, duration: duration)
+        harmonySymbols = ProjectStateNormalizer.normalizedHarmonySymbols(state.harmonySymbols, duration: duration)
+        projectKeySelection = state.projectKeySelection
         selectedRegionID = availableRegionID(state.selectedRegionID)
+        selectedHarmonySymbolID = availableHarmonySymbolID(state.selectedHarmonySymbolID)
         activeLoopRegionID = availableRegionID(state.activeLoopRegionID)
         loopRegion = state.loopRegion.clamped(to: duration, minimumLength: activeRangeMinimumLength)
         stemMixState = state.stemMixState
@@ -106,6 +114,12 @@ extension AudioPlayerViewModel {
         refreshProjectModifiedState()
     }
 
+    func setProjectKeySelection(_ selection: ProjectKeySelection) {
+        performUndoableEdit("Change Key") {
+            projectKeySelection = selection.asUserSelection
+        }
+    }
+
     func registerUndoState(_ state: ProjectEditableState, actionName: String) {
         guard !isRestoringUndoState, let undoManager else { return }
 
@@ -138,6 +152,11 @@ extension AudioPlayerViewModel {
 
     func availableRegionID(_ id: TimecodedNote.ID?) -> TimecodedNote.ID? {
         guard let id, notes.contains(where: { $0.id == id && $0.isRegion }) else { return nil }
+        return id
+    }
+
+    func availableHarmonySymbolID(_ id: HarmonySymbol.ID?) -> HarmonySymbol.ID? {
+        guard let id, harmonySymbols.contains(where: { $0.id == id }) else { return nil }
         return id
     }
 

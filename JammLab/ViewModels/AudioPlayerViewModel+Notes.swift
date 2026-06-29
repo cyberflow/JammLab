@@ -30,6 +30,95 @@ extension AudioPlayerViewModel {
         )
     }
 
+    func setHarmonyInputResolutionDenominator(_ denominator: Int) {
+        harmonyInputResolutionDenominator = HarmonyInputResolution.normalizedDenominator(denominator)
+    }
+
+    func requestAddHarmonyAtPlaybackMarker() {
+        requestAddHarmony(at: playbackMarkerTime)
+    }
+
+    func requestAddHarmony(at time: TimeInterval) {
+        guard duration > 0,
+              let placement = harmonyPlacement(for: time, resolution: currentHarmonyInputResolution)
+        else {
+            return
+        }
+
+        selectedHarmonySymbolID = harmonySymbolID(at: placement.time)
+        pendingHarmonyEditorRequest = HarmonyEditorRequest(time: placement.time)
+    }
+
+    func selectHarmonySymbol(id: HarmonySymbol.ID?) {
+        selectedHarmonySymbolID = availableHarmonySymbolID(id)
+    }
+
+    func saveHarmonySymbol(_ symbol: HarmonySymbol) {
+        guard duration > 0,
+              let placement = harmonyPlacement(for: symbol.time, resolution: nil)
+        else {
+            return
+        }
+
+        let trimmedText = symbol.rawText.trimmingCharacters(in: .whitespacesAndNewlines)
+        if trimmedText.isEmpty {
+            deleteHarmonySymbol(id: symbol.id)
+            return
+        }
+
+        let existingIndex = harmonySymbols.firstIndex { $0.id == symbol.id }
+        let duplicateIndex = harmonySymbols.firstIndex {
+            $0.id != symbol.id && sameHarmonyPosition($0.time, placement.time)
+        }
+        let actionName = existingIndex == nil && duplicateIndex == nil ? "Add Harmony" : "Edit Harmony"
+
+        performUndoableEdit(actionName) {
+            let normalizedSymbol = HarmonySymbol(
+                id: duplicateIndex.map { harmonySymbols[$0].id } ?? symbol.id,
+                time: placement.time,
+                measureNumber: placement.measureNumber,
+                offsetInQuarterNotes: placement.offsetInQuarterNotes,
+                rawText: symbol.rawText
+            )
+
+            if let existingIndex, let duplicateIndex {
+                harmonySymbols[duplicateIndex] = normalizedSymbol
+                harmonySymbols.remove(at: existingIndex)
+            } else if let existingIndex {
+                harmonySymbols[existingIndex] = normalizedSymbol
+            } else if let duplicateIndex {
+                harmonySymbols[duplicateIndex] = normalizedSymbol
+            } else {
+                harmonySymbols.append(normalizedSymbol)
+            }
+
+            harmonySymbols = ProjectStateNormalizer.normalizedHarmonySymbols(harmonySymbols, duration: duration)
+            selectedHarmonySymbolID = normalizedSymbol.id
+        }
+    }
+
+    func deleteHarmonySymbol(id: HarmonySymbol.ID) {
+        performUndoableEdit("Delete Harmony") {
+            harmonySymbols.removeAll { $0.id == id }
+            if selectedHarmonySymbolID == id {
+                selectedHarmonySymbolID = nil
+            }
+        }
+    }
+
+    func adjacentHarmonyPlacement(
+        from time: TimeInterval,
+        direction: HarmonyNavigationDirection
+    ) -> HarmonyPlacement? {
+        NotationViewportFactory().adjacentHarmonyPlacement(
+            from: time,
+            direction: direction,
+            tempoMap: tempoMap,
+            duration: duration,
+            resolution: currentHarmonyInputResolution
+        )
+    }
+
     func addNote(at time: TimeInterval) {
         performUndoableEdit("Add Marker") {
             guard duration > 0 else { return }
@@ -282,6 +371,30 @@ extension AudioPlayerViewModel {
             setsNewFirstBeat: setsNewFirstBeat
         )
         return payload.hasChanges ? payload : nil
+    }
+
+    private var currentHarmonyInputResolution: HarmonyInputResolution {
+        HarmonyInputResolution(denominator: harmonyInputResolutionDenominator)
+    }
+
+    private func harmonyPlacement(
+        for time: TimeInterval,
+        resolution: HarmonyInputResolution?
+    ) -> HarmonyPlacement? {
+        NotationViewportFactory().harmonyPlacement(
+            for: time,
+            tempoMap: tempoMap,
+            duration: duration,
+            resolution: resolution
+        )
+    }
+
+    private func harmonySymbolID(at time: TimeInterval) -> HarmonySymbol.ID? {
+        harmonySymbols.first { sameHarmonyPosition($0.time, time) }?.id
+    }
+
+    private func sameHarmonyPosition(_ lhs: TimeInterval, _ rhs: TimeInterval) -> Bool {
+        abs(lhs - rhs) < 0.000_001
     }
 
     func updateLoopStart(_ start: TimeInterval) {

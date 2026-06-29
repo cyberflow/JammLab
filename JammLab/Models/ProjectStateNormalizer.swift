@@ -90,6 +90,34 @@ struct ProjectStateNormalizer {
             .sorted { $0.time < $1.time }
     }
 
+    static func normalizedHarmonySymbols(
+        _ symbols: [HarmonySymbol],
+        duration: TimeInterval
+    ) -> [HarmonySymbol] {
+        let duration = normalizedDuration(duration)
+        return symbols
+            .map { symbol in
+                HarmonySymbol(
+                    id: symbol.id,
+                    time: max(0, min(finiteTime(symbol.time), duration)),
+                    measureNumber: max(1, symbol.measureNumber),
+                    offsetInQuarterNotes: max(0, finiteTime(symbol.offsetInQuarterNotes)),
+                    rawText: symbol.rawText
+                )
+            }
+            .sorted {
+                if abs($0.time - $1.time) > 0.000_001 {
+                    return $0.time < $1.time
+                }
+
+                if abs($0.offsetInQuarterNotes - $1.offsetInQuarterNotes) > 0.000_001 {
+                    return $0.offsetInQuarterNotes < $1.offsetInQuarterNotes
+                }
+
+                return $0.id.uuidString < $1.id.uuidString
+            }
+    }
+
     static func normalizedNote(_ note: TimecodedNote, duration: TimeInterval) -> TimecodedNote {
         let title = normalizedTitle(note.title, fallback: note.isRegion ? "Region" : "Marker")
 

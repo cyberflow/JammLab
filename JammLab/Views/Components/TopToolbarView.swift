@@ -4,7 +4,8 @@ struct TopToolbarView: View {
     let tempoValue: Double
     let isTempoEditable: Bool
     let timeSignature: TimeSignature
-    let keyText: String
+    let keySelection: ProjectKeySelection?
+    let keyControlsEnabled: Bool
     let canUseBeatTools: Bool
     let isClickEnabled: Bool
     let clickVolume: Float
@@ -16,6 +17,7 @@ struct TopToolbarView: View {
     let stemSeparationState: StemSeparationViewState
     let onTempoChanged: (Double) -> Void
     let onTimeSignatureChanged: (Int, Int) -> Void
+    let onKeySelectionChanged: (ProjectKeySelection) -> Void
     let onClickToggle: () -> Void
     let onClickVolumeChanged: (Float) -> Void
     let onPopoverDismiss: () -> Void
@@ -77,9 +79,54 @@ struct TopToolbarView: View {
             timeSignatureControls
                 .help(ControlHelpText.timeSignature)
 
-            readOnlyField(keyText, width: AppTheme.ControlSize.toolbarKeyFieldWidth)
+            keyControls
                 .help(ControlHelpText.key)
         }
+    }
+
+    private var keyControls: some View {
+        HStack(spacing: AppTheme.Spacing.xxs) {
+            CompactValuePicker(
+                values: ProjectKeyTonic.allCases,
+                selection: Binding(
+                    get: { displayedKeySelection.tonic },
+                    set: { tonic in
+                        var updated = displayedKeySelection
+                        updated.tonic = tonic
+                        onKeySelectionChanged(updated.asUserSelection)
+                    }
+                ),
+                titleForValue: { $0.displayName },
+                accessibilityLabel: "Key Tonic"
+            )
+            .frame(
+                width: AppTheme.ControlSize.toolbarKeyTonicFieldWidth,
+                height: AppTheme.ControlSize.abletonNumberFieldHeight
+            )
+
+            CompactValuePicker(
+                values: KeySignature.Mode.allCases,
+                selection: Binding(
+                    get: { displayedKeySelection.mode },
+                    set: { mode in
+                        var updated = displayedKeySelection
+                        updated.mode = mode
+                        onKeySelectionChanged(updated.asUserSelection)
+                    }
+                ),
+                titleForValue: { $0.displayName },
+                accessibilityLabel: "Key Mode"
+            )
+            .frame(
+                width: AppTheme.ControlSize.toolbarKeyModeFieldWidth,
+                height: AppTheme.ControlSize.abletonNumberFieldHeight
+            )
+        }
+        .disabled(!keyControlsEnabled)
+    }
+
+    private var displayedKeySelection: ProjectKeySelection {
+        keySelection ?? .defaultSelection()
     }
 
     private var timeSignatureControls: some View {

@@ -40,6 +40,12 @@
 		9FDD01042D60000100112233 /* NoteColorPresentation.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9FDD00042D60000100112233 /* NoteColorPresentation.swift */; };
 		9FDD01052D60000100112233 /* SettingsSections.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9FDD00052D60000100112233 /* SettingsSections.swift */; };
 		9FDD01062D60000100112233 /* SettingsContentViews.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9FDD00062D60000100112233 /* SettingsContentViews.swift */; };
+		9FEA01012D70000100112233 /* ScoreDocument.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9FEA00012D70000100112233 /* ScoreDocument.swift */; };
+		9FEA01022D70000100112233 /* NotationViewportState.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9FEA00022D70000100112233 /* NotationViewportState.swift */; };
+		9FEA01032D70000100112233 /* NotationViewportFactory.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9FEA00032D70000100112233 /* NotationViewportFactory.swift */; };
+		9FEA01042D70000100112233 /* NotationTrackView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9FEA00042D70000100112233 /* NotationTrackView.swift */; };
+		9FEA01052D70000100112233 /* NotationVisibleMeasureFitter.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9FEA00052D70000100112233 /* NotationVisibleMeasureFitter.swift */; };
+		9FEA01062D70000100112233 /* ProjectKeySelection.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9FEA00062D70000100112233 /* ProjectKeySelection.swift */; };
 		9F8B01062C10000100112233 /* TestSupport.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9F8B00072C10000100112233 /* TestSupport.swift */; };
 		9FCD01012D50000100112233 /* PerformanceBenchmarkTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9FCD00012D50000100112233 /* PerformanceBenchmarkTests.swift */; };
 		9FCD01022D50000100112233 /* TestSupport.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9F8B00072C10000100112233 /* TestSupport.swift */; };
@@ -186,6 +192,12 @@
 		9FDD00042D60000100112233 /* NoteColorPresentation.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NoteColorPresentation.swift; sourceTree = "<group>"; };
 		9FDD00052D60000100112233 /* SettingsSections.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsSections.swift; sourceTree = "<group>"; };
 		9FDD00062D60000100112233 /* SettingsContentViews.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsContentViews.swift; sourceTree = "<group>"; };
+		9FEA00012D70000100112233 /* ScoreDocument.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScoreDocument.swift; sourceTree = "<group>"; };
+		9FEA00022D70000100112233 /* NotationViewportState.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotationViewportState.swift; sourceTree = "<group>"; };
+		9FEA00032D70000100112233 /* NotationViewportFactory.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotationViewportFactory.swift; sourceTree = "<group>"; };
+		9FEA00042D70000100112233 /* NotationTrackView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotationTrackView.swift; sourceTree = "<group>"; };
+		9FEA00052D70000100112233 /* NotationVisibleMeasureFitter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotationVisibleMeasureFitter.swift; sourceTree = "<group>"; };
+		9FEA00062D70000100112233 /* ProjectKeySelection.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProjectKeySelection.swift; sourceTree = "<group>"; };
 		9F8B00062C10000100112233 /* JammLabTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = JammLabTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		9F8B00072C10000100112233 /* TestSupport.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TestSupport.swift; sourceTree = "<group>"; };
 		9FCD00012D50000100112233 /* PerformanceBenchmarkTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PerformanceBenchmarkTests.swift; sourceTree = "<group>"; };
@@ -329,10 +341,13 @@
 				9F8A00162C00000100112233 /* BeatGridSettings.swift */,
 				9F8A000A2C00000100112233 /* ImportedAudioFile.swift */,
 				9F8A00072C00000100112233 /* LoopRegion.swift */,
+				9FEA00022D70000100112233 /* NotationViewportState.swift */,
 				9FBA00012D40000100112233 /* PitchDetection.swift */,
 				9F8A00132C00000100112233 /* JammLabProject.swift */,
+				9FEA00062D70000100112233 /* ProjectKeySelection.swift */,
 				9F8B00022C10000100112233 /* ProjectStateNormalizer.swift */,
 				9FAC00012CF0000100112233 /* ProjectEditableState.swift */,
+				9FEA00012D70000100112233 /* ScoreDocument.swift */,
 				9F9300012C90000100112233 /* StemBackendResolver.swift */,
 				9F8D00012C30000100112233 /* StemModels.swift */,
 				9F8E00012C40000100112233 /* StemSeparationJobModels.swift */,
@@ -351,6 +366,8 @@
 				9F8F00022C50000100112233 /* AudioPlaybackControlling.swift */,
 				9F8A00172C00000100112233 /* BeatGridCalculator.swift */,
 				9F8A00182C00000100112233 /* MetronomeClickScheduler.swift */,
+				9FEA00032D70000100112233 /* NotationViewportFactory.swift */,
+				9FEA00052D70000100112233 /* NotationVisibleMeasureFitter.swift */,
 				9F8A00192C00000100112233 /* ProjectArtifactStore.swift */,
 				9F8A00142C00000100112233 /* ProjectDocumentService.swift */,
 				9FB202002D31000100112233 /* ProjectPersistenceCoordinator.swift */,
@@ -395,6 +412,7 @@
 				9F8A00102C00000100112233 /* HotkeysHelpView.swift */,
 				9F8C00062C20000100112233 /* MainWorkspacePanels.swift */,
 				9FDD00042D60000100112233 /* NoteColorPresentation.swift */,
+				9FEA00042D70000100112233 /* NotationTrackView.swift */,
 				9F8B00032C10000100112233 /* PeakformTimelineView.swift */,
 				9FDD00032D60000100112233 /* RegionInteractionOverlay.swift */,
 				9FDD00062D60000100112233 /* SettingsContentViews.swift */,
@@ -718,8 +736,13 @@
 				9F8A01112C00000100112233 /* JammLabProject.swift in Sources */,
 				9F8C01062C20000100112233 /* MainWorkspacePanels.swift in Sources */,
 				9F8C01052C20000100112233 /* NoteRowView.swift in Sources */,
+				9FEA01042D70000100112233 /* NotationTrackView.swift in Sources */,
 				9F8A010D2C00000100112233 /* AppHotkey.swift in Sources */,
+				9FEA01032D70000100112233 /* NotationViewportFactory.swift in Sources */,
+				9FEA01052D70000100112233 /* NotationVisibleMeasureFitter.swift in Sources */,
+				9FEA01022D70000100112233 /* NotationViewportState.swift in Sources */,
 				9F8B01032C10000100112233 /* PeakformTimelineView.swift in Sources */,
+				9FEA01062D70000100112233 /* ProjectKeySelection.swift in Sources */,
 				9F8A01192C00000100112233 /* ProjectArtifactStore.swift in Sources */,
 				9F8B01022C10000100112233 /* ProjectStateNormalizer.swift in Sources */,
 				9FAC01012CF0000100112233 /* ProjectEditableState.swift in Sources */,
@@ -727,6 +750,7 @@
 				9FB202012D31000100112233 /* ProjectPersistenceCoordinator.swift in Sources */,
 				9F8A01132C00000100112233 /* RecentProjectsStore.swift in Sources */,
 				9F9401012CA0000100112233 /* AppSettingsStore.swift in Sources */,
+				9FEA01012D70000100112233 /* ScoreDocument.swift in Sources */,
 				9F8D01042C30000100112233 /* AudioRenderState.swift in Sources */,
 				9F8D01052C30000100112233 /* ClickRenderState.swift in Sources */,
 				9F8D01032C30000100112233 /* StemMixAudioPlayer.swift in Sources */,

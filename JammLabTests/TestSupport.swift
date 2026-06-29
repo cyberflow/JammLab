@@ -88,11 +88,17 @@ final class MockStemHelperProcess: StemHelperLaunchedProcess {
     }
 }
 
-struct MockAnalyzer: AudioAnalyzing {
+final class MockAnalyzer: AudioAnalyzing {
     var result = AnalysisResult(bpm: nil, keyName: nil, keyConfidence: 0)
+    private(set) var calls: [(includesTempo: Bool, includesKey: Bool)] = []
 
-    func analyze(url: URL, includesTempo: Bool) async throws -> AnalysisResult {
-        result
+    func analyze(url: URL, includesTempo: Bool, includesKey: Bool) async throws -> AnalysisResult {
+        calls.append((includesTempo: includesTempo, includesKey: includesKey))
+        return AnalysisResult(
+            bpm: includesTempo ? result.bpm : nil,
+            keyName: includesKey ? result.keyName : nil,
+            keyConfidence: includesKey ? result.keyConfidence : 0
+        )
     }
 }
 

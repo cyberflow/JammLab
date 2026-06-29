@@ -889,6 +889,8 @@ final class SettingsAndControlLogicTests: XCTestCase {
         XCTAssertEqual(palette.hex(for: .waveformColor), "#212121")
         XCTAssertEqual(palette.hex(for: .waveformDisabledBackground), "#5C5C5C")
         XCTAssertEqual(palette.hex(for: .waveformDisabledColor), "#2F2F2F")
+        XCTAssertEqual(palette.hex(for: .notationTrackBackground), "#303030")
+        XCTAssertEqual(palette.hex(for: .notationSymbolsAndLines), "#F2F2F2")
         XCTAssertEqual(palette.hex(for: .timeTrackAccentBeatLine), "#747474")
         XCTAssertEqual(palette.hex(for: .timeTrackBeatLine), "#AEAEAE")
         XCTAssertEqual(palette.hex(for: .waveformAccentBeatLine), "#0C0C0C")
@@ -923,7 +925,8 @@ final class SettingsAndControlLogicTests: XCTestCase {
         let defaults = try temporaryUserDefaults()
         let invalidPalette = AppColorPalette(values: [
             AppColorRole.accent.rawValue: "not-a-color",
-            AppColorRole.primaryText.rawValue: "#FFFF"
+            AppColorRole.primaryText.rawValue: "#FFFF",
+            AppColorRole.notationSymbolsAndLines.rawValue: "#12GG34"
         ])
         defaults.set(try JSONEncoder().encode(invalidPalette), forKey: AppSettingsStore.colorPaletteKey)
 
@@ -931,6 +934,7 @@ final class SettingsAndControlLogicTests: XCTestCase {
 
         XCTAssertEqual(store.colorPalette.hex(for: .accent), AppColorRole.accent.defaultHex)
         XCTAssertEqual(store.colorPalette.hex(for: .primaryText), AppColorRole.primaryText.defaultHex)
+        XCTAssertEqual(store.colorPalette.hex(for: .notationSymbolsAndLines), AppColorRole.notationSymbolsAndLines.defaultHex)
     }
 
     func testColorPaletteMergesPartialSavedValuesWithDefaults() throws {
@@ -946,6 +950,8 @@ final class SettingsAndControlLogicTests: XCTestCase {
         XCTAssertEqual(store.colorPalette.hex(for: .panelBackground), AppColorRole.panelBackground.defaultHex)
         XCTAssertEqual(store.colorPalette.hex(for: .timeTrackAccentBeatLine), AppColorRole.timeTrackAccentBeatLine.defaultHex)
         XCTAssertEqual(store.colorPalette.hex(for: .waveformBeatLine), AppColorRole.waveformBeatLine.defaultHex)
+        XCTAssertEqual(store.colorPalette.hex(for: .notationTrackBackground), AppColorRole.notationTrackBackground.defaultHex)
+        XCTAssertEqual(store.colorPalette.hex(for: .notationSymbolsAndLines), AppColorRole.notationSymbolsAndLines.defaultHex)
     }
 
     func testColorPaletteDropsRemovedSavedKeysAfterNormalization() throws {

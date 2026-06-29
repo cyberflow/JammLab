@@ -101,6 +101,8 @@ enum AppColorRole: String, Codable, CaseIterable, Identifiable {
     case waveformColor
     case waveformDisabledBackground
     case waveformDisabledColor
+    case notationTrackBackground
+    case notationSymbolsAndLines
     case timeTrackAccentBeatLine
     case timeTrackBeatLine
     case waveformAccentBeatLine
@@ -156,6 +158,10 @@ enum AppColorRole: String, Codable, CaseIterable, Identifiable {
             return "Waveform Disabled Background"
         case .waveformDisabledColor:
             return "Waveform Disabled Color"
+        case .notationTrackBackground:
+            return "Notation Track Background"
+        case .notationSymbolsAndLines:
+            return "Notation Symbols & Lines"
         case .timeTrackAccentBeatLine:
             return "Time-Track Accent Beat Line"
         case .timeTrackBeatLine:
@@ -215,6 +221,10 @@ enum AppColorRole: String, Codable, CaseIterable, Identifiable {
             return "#5C5C5C"
         case .waveformDisabledColor:
             return "#2F2F2F"
+        case .notationTrackBackground:
+            return "#303030"
+        case .notationSymbolsAndLines:
+            return "#F2F2F2"
         case .timeTrackAccentBeatLine:
             return "#747474"
         case .timeTrackBeatLine:
@@ -233,6 +243,7 @@ enum AppColorRoleGroup: String, CaseIterable, Identifiable {
     case controls
     case accentStatus
     case waveform
+    case notation
     case gridLines
 
     var id: String { rawValue }
@@ -249,6 +260,8 @@ enum AppColorRoleGroup: String, CaseIterable, Identifiable {
             return "Accent & Status"
         case .waveform:
             return "Waveform"
+        case .notation:
+            return "Notation"
         case .gridLines:
             return "Grid Lines"
         }
@@ -266,6 +279,8 @@ enum AppColorRoleGroup: String, CaseIterable, Identifiable {
             return [.accent, .accentHover, .accentPressed, .statusButtonFill, .statusButtonCriticalFill, .statusButtonAttentionFill]
         case .waveform:
             return [.waveformBackground, .waveformColor, .waveformDisabledBackground, .waveformDisabledColor]
+        case .notation:
+            return [.notationTrackBackground, .notationSymbolsAndLines]
         case .gridLines:
             return [.timeTrackAccentBeatLine, .timeTrackBeatLine, .waveformAccentBeatLine, .waveformBeatLine]
         }
