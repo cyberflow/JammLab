@@ -123,6 +123,11 @@ struct MeasureAttributes: Equatable {
     )
 }
 
+struct KeySignatureAccidental: Equatable {
+    var symbol: String
+    var staffPositionFromTopLine: Int
+}
+
 struct KeySignature: Equatable {
     enum Mode: String, Codable, CaseIterable, Equatable {
         case major
@@ -142,25 +147,23 @@ struct KeySignature: Equatable {
 
     static let cMajor = KeySignature(fifths: 0, mode: .major, displayName: "C major")
 
-    var accidentalSymbol: String? {
-        if fifths > 0 {
-            return "♯"
-        }
-
-        if fifths < 0 {
-            return "♭"
-        }
-
-        return nil
-    }
-
     var accidentalCount: Int {
         abs(fifths)
     }
 
-    var notationAccidentals: String {
-        guard let accidentalSymbol else { return "" }
-        return String(repeating: accidentalSymbol, count: accidentalCount)
+    func notationAccidentalGlyphs(for clef: Clef) -> [KeySignatureAccidental] {
+        switch clef {
+        case .treble:
+            if fifths > 0 {
+                return Array(Self.trebleSharpAccidentals.prefix(accidentalCount))
+            }
+
+            if fifths < 0 {
+                return Array(Self.trebleFlatAccidentals.prefix(accidentalCount))
+            }
+
+            return []
+        }
     }
 
     static func normalized(from keyName: String?) -> KeySignature {
@@ -244,6 +247,26 @@ struct KeySignature: Equatable {
         "Ab": -7, "Eb": -6, "Bb": -5, "F": -4, "C": -3, "G": -2, "D": -1,
         "A": 0,
         "E": 1, "B": 2, "F#": 3, "C#": 4, "G#": 5, "D#": 6, "A#": 7
+    ]
+
+    private static let trebleSharpAccidentals: [KeySignatureAccidental] = [
+        KeySignatureAccidental(symbol: "♯", staffPositionFromTopLine: 0),
+        KeySignatureAccidental(symbol: "♯", staffPositionFromTopLine: 3),
+        KeySignatureAccidental(symbol: "♯", staffPositionFromTopLine: -1),
+        KeySignatureAccidental(symbol: "♯", staffPositionFromTopLine: 2),
+        KeySignatureAccidental(symbol: "♯", staffPositionFromTopLine: 5),
+        KeySignatureAccidental(symbol: "♯", staffPositionFromTopLine: 1),
+        KeySignatureAccidental(symbol: "♯", staffPositionFromTopLine: 4)
+    ]
+
+    private static let trebleFlatAccidentals: [KeySignatureAccidental] = [
+        KeySignatureAccidental(symbol: "♭", staffPositionFromTopLine: 4),
+        KeySignatureAccidental(symbol: "♭", staffPositionFromTopLine: 1),
+        KeySignatureAccidental(symbol: "♭", staffPositionFromTopLine: 5),
+        KeySignatureAccidental(symbol: "♭", staffPositionFromTopLine: 2),
+        KeySignatureAccidental(symbol: "♭", staffPositionFromTopLine: 6),
+        KeySignatureAccidental(symbol: "♭", staffPositionFromTopLine: 3),
+        KeySignatureAccidental(symbol: "♭", staffPositionFromTopLine: 7)
     ]
 }
 

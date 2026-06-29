@@ -275,7 +275,10 @@ struct NotationTrackView: View {
                     )
                     .offset(
                         x: geometries[index].cellStartX + AppTheme.Spacing.md,
-                        y: staffTop(in: height) - AppTheme.Spacing.xs
+                        y: staffTop(in: height) - attributeStaffTopInset(
+                            attributes: attributes,
+                            display: display
+                        )
                     )
                 }
             }
@@ -386,6 +389,7 @@ struct NotationTrackView: View {
                 - fixedComponentWidth
                 - visibleSpacingWidth
         )
+        let keySignatureGlyphs = attributes.keySignature.notationAccidentalGlyphs(for: attributes.clef)
 
         return HStack(alignment: .center, spacing: AppTheme.Spacing.xs) {
             if display.showsClef {
@@ -396,20 +400,20 @@ struct NotationTrackView: View {
                     .accessibilityLabel("Treble clef")
             }
 
-            if display.showsKeySignature && !attributes.keySignature.notationAccidentals.isEmpty {
-                Text(attributes.keySignature.notationAccidentals)
-                    .font(.system(size: 20, weight: .semibold))
-                    .foregroundStyle(appColors.notationSymbolsAndLines)
-                    .lineLimit(1)
-                    .minimumScaleFactor(0.7)
-                    .frame(
-                        width: min(
-                            NotationMeasureLayout.keySignatureWidth(for: attributes),
-                            availableAccidentalWidth
-                        ),
-                        alignment: .leading
-                    )
-                    .accessibilityLabel("\(attributes.keySignature.displayName) key signature")
+            if display.showsKeySignature && !keySignatureGlyphs.isEmpty {
+                KeySignatureAccidentalsView(
+                    glyphs: keySignatureGlyphs,
+                    color: appColors.notationSymbolsAndLines
+                )
+                .frame(
+                    width: min(
+                        NotationMeasureLayout.keySignatureWidth(for: attributes),
+                        availableAccidentalWidth
+                    ),
+                    alignment: .leading
+                )
+                .accessibilityElement(children: .ignore)
+                .accessibilityLabel("\(attributes.keySignature.displayName) key signature")
             }
 
             if display.showsTimeSignature {
@@ -426,6 +430,15 @@ struct NotationTrackView: View {
         }
         .frame(width: max(0, blockWidth), alignment: .leading)
         .clipped()
+    }
+
+    private func attributeStaffTopInset(
+        attributes: MeasureAttributes,
+        display: NotationAttributeDisplay
+    ) -> CGFloat {
+        let hasKeySignature = display.showsKeySignature
+            && !attributes.keySignature.notationAccidentalGlyphs(for: attributes.clef).isEmpty
+        return hasKeySignature ? KeySignatureAccidentalsView.staffTopInset : AppTheme.Spacing.xs
     }
 
     @ViewBuilder
@@ -720,6 +733,39 @@ struct NotationTrackView: View {
     }
 }
 
+private struct KeySignatureAccidentalsView: View {
+    let glyphs: [KeySignatureAccidental]
+    let color: Color
+
+    fileprivate static let staffTopInset = AppTheme.Spacing.xxl
+
+    private let fontSize: CGFloat = 20
+
+    var body: some View {
+        GeometryReader { proxy in
+            let width = max(proxy.size.width, 0)
+            let advance = glyphs.isEmpty ? 0 : width / CGFloat(glyphs.count)
+            let lineSpacing = AppTheme.Timeline.notationStaffLineSpacing
+            let staffTop = Self.staffTopInset
+
+            ZStack(alignment: .topLeading) {
+                ForEach(Array(glyphs.enumerated()), id: \.offset) { index, glyph in
+                    Text(glyph.symbol)
+                        .font(.system(size: fontSize, weight: .semibold))
+                        .foregroundStyle(color)
+                        .lineLimit(1)
+                        .accessibilityHidden(true)
+                        .position(
+                            x: CGFloat(index) * advance + advance / 2,
+                            y: staffTop + CGFloat(glyph.staffPositionFromTopLine) * lineSpacing / 2
+                        )
+                }
+            }
+        }
+        .frame(height: Self.staffTopInset * 2 + AppTheme.Timeline.notationStaffLineSpacing * 4)
+    }
+}
+
 struct NotationAttributeDisplay: Equatable {
     var showsClef: Bool
     var showsKeySignature: Bool
@@ -961,9 +1007,10 @@ struct NotationMeasureLayout {
     }
 
     static func keySignatureWidth(for attributes: MeasureAttributes) -> CGFloat {
-        attributes.keySignature.notationAccidentals.isEmpty
+        let glyphs = attributes.keySignature.notationAccidentalGlyphs(for: attributes.clef)
+        return glyphs.isEmpty
             ? 0
-            : max(12, CGFloat(attributes.keySignature.accidentalCount) * AppTheme.Timeline.notationAccidentalWidth)
+            : max(12, CGFloat(glyphs.count) * AppTheme.Timeline.notationAccidentalWidth)
     }
 
     static func visibleComponentCount(
