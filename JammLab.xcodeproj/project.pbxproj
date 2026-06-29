@@ -681,7 +681,8 @@
 			inputFileListPaths = (
 			);
 			inputPaths = (
-				"$(SRCROOT)/build/JammLabSeparatorHelper/dist/JammLabSeparatorHelper/JammLabSeparatorHelper",
+				"$(SRCROOT)/scripts/embed_separator_helper.sh",
+				"$(SRCROOT)/build/JammLabSeparatorHelper/dist/JammLabSeparatorHelper",
 			);
 			name = "Embed Separator Helper";
 			outputFileListPaths = (
@@ -981,6 +982,7 @@
 				ENABLE_RESOURCE_ACCESS_PHOTO_LIBRARY = NO;
 				ENABLE_RESOURCE_ACCESS_PRINTING = NO;
 				ENABLE_RESOURCE_ACCESS_USB = NO;
+				ENABLE_USER_SCRIPT_SANDBOXING = NO;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_KEY_CFBundleDisplayName = JammLab;
 				INFOPLIST_KEY_CFBundleIconFile = AppIcon;
@@ -1029,6 +1031,7 @@
 				ENABLE_RESOURCE_ACCESS_PHOTO_LIBRARY = NO;
 				ENABLE_RESOURCE_ACCESS_PRINTING = NO;
 				ENABLE_RESOURCE_ACCESS_USB = NO;
+				ENABLE_USER_SCRIPT_SANDBOXING = NO;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_KEY_CFBundleDisplayName = JammLab;
 				INFOPLIST_KEY_CFBundleIconFile = AppIcon;
