@@ -31,6 +31,7 @@ struct ProjectDocumentSnapshot {
     let duration: TimeInterval
     let notes: [TimecodedNote]
     let harmonySymbols: [HarmonySymbol]
+    let projectKeySelection: ProjectKeySelection?
     let loopRegion: LoopRegion
     let loopMinimumLength: TimeInterval
     let isLooping: Bool
@@ -208,6 +209,7 @@ struct ProjectPersistenceCoordinator {
             mediaKind: snapshot.importedFile.mediaKind,
             notes: ProjectStateNormalizer.normalizedNotes(snapshot.notes, duration: snapshot.duration),
             harmonySymbols: ProjectStateNormalizer.normalizedHarmonySymbols(snapshot.harmonySymbols, duration: snapshot.duration),
+            projectKeySelection: snapshot.projectKeySelection,
             loopStart: snapshot.loopRegion.clamped(to: snapshot.duration, minimumLength: snapshot.loopMinimumLength).start,
             loopEnd: snapshot.loopRegion.clamped(to: snapshot.duration, minimumLength: snapshot.loopMinimumLength).end,
             isLoopEnabled: snapshot.isLooping,

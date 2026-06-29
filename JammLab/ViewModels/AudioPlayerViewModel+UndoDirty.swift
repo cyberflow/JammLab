@@ -5,6 +5,7 @@ extension AudioPlayerViewModel {
         ProjectEditableState(
             notes: notes,
             harmonySymbols: harmonySymbols,
+            projectKeySelection: projectKeySelection,
             selectedRegionID: selectedRegionID,
             selectedHarmonySymbolID: selectedHarmonySymbolID,
             activeLoopRegionID: activeLoopRegionID,
@@ -31,6 +32,7 @@ extension AudioPlayerViewModel {
         return ProjectPersistedEditableState(
             notes: ProjectStateNormalizer.normalizedNotes(notes, duration: duration),
             harmonySymbols: ProjectStateNormalizer.normalizedHarmonySymbols(harmonySymbols, duration: duration),
+            projectKeySelection: projectKeySelection,
             loopRegion: clampedLoop,
             isLooping: isLooping,
             tempoBPM: ProjectStateNormalizer.normalizedTempo(tempoBPM),
@@ -71,6 +73,7 @@ extension AudioPlayerViewModel {
         shouldAcceptAnalyzedTempo = false
         notes = ProjectStateNormalizer.normalizedNotes(state.notes, duration: duration)
         harmonySymbols = ProjectStateNormalizer.normalizedHarmonySymbols(state.harmonySymbols, duration: duration)
+        projectKeySelection = state.projectKeySelection
         selectedRegionID = availableRegionID(state.selectedRegionID)
         selectedHarmonySymbolID = availableHarmonySymbolID(state.selectedHarmonySymbolID)
         activeLoopRegionID = availableRegionID(state.activeLoopRegionID)
@@ -109,6 +112,12 @@ extension AudioPlayerViewModel {
             registerUndoState(previousState, actionName: actionName)
         }
         refreshProjectModifiedState()
+    }
+
+    func setProjectKeySelection(_ selection: ProjectKeySelection) {
+        performUndoableEdit("Change Key") {
+            projectKeySelection = selection.asUserSelection
+        }
     }
 
     func registerUndoState(_ state: ProjectEditableState, actionName: String) {

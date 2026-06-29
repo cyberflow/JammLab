@@ -23,6 +23,7 @@ struct JammLabProject: Codable {
     var mediaKind: ImportedMediaKind?
     var notes: [TimecodedNote]
     var harmonySymbols: [HarmonySymbol]
+    var projectKeySelection: ProjectKeySelection?
     var loopStart: TimeInterval
     var loopEnd: TimeInterval
     var isLoopEnabled: Bool?
@@ -41,7 +42,7 @@ struct JammLabProject: Codable {
     var isVideoWindowOpen: Bool?
 
     init(
-        formatVersion: Int = 9,
+        formatVersion: Int = 10,
         audioBookmarkData: Data,
         artifactRootBookmarkData: Data? = nil,
         audioDisplayName: String,
@@ -49,6 +50,7 @@ struct JammLabProject: Codable {
         mediaKind: ImportedMediaKind? = nil,
         notes: [TimecodedNote],
         harmonySymbols: [HarmonySymbol] = [],
+        projectKeySelection: ProjectKeySelection? = nil,
         loopStart: TimeInterval,
         loopEnd: TimeInterval,
         isLoopEnabled: Bool? = nil,
@@ -74,6 +76,7 @@ struct JammLabProject: Codable {
         self.mediaKind = mediaKind
         self.notes = notes
         self.harmonySymbols = harmonySymbols
+        self.projectKeySelection = projectKeySelection
         self.loopStart = loopStart
         self.loopEnd = loopEnd
         self.isLoopEnabled = isLoopEnabled
@@ -101,6 +104,7 @@ struct JammLabProject: Codable {
         case mediaKind
         case notes
         case harmonySymbols
+        case projectKeySelection
         case loopStart
         case loopEnd
         case isLoopEnabled
@@ -129,6 +133,7 @@ struct JammLabProject: Codable {
         mediaKind = try container.decodeIfPresent(ImportedMediaKind.self, forKey: .mediaKind)
         notes = try container.decode([TimecodedNote].self, forKey: .notes)
         harmonySymbols = try container.decodeIfPresent([HarmonySymbol].self, forKey: .harmonySymbols) ?? []
+        projectKeySelection = try container.decodeIfPresent(ProjectKeySelection.self, forKey: .projectKeySelection)
         loopStart = try container.decode(TimeInterval.self, forKey: .loopStart)
         loopEnd = try container.decode(TimeInterval.self, forKey: .loopEnd)
         isLoopEnabled = try container.decodeIfPresent(Bool.self, forKey: .isLoopEnabled)
@@ -157,6 +162,7 @@ struct JammLabProject: Codable {
         try container.encodeIfPresent(mediaKind, forKey: .mediaKind)
         try container.encode(notes, forKey: .notes)
         try container.encode(harmonySymbols, forKey: .harmonySymbols)
+        try container.encodeIfPresent(projectKeySelection, forKey: .projectKeySelection)
         try container.encode(loopStart, forKey: .loopStart)
         try container.encode(loopEnd, forKey: .loopEnd)
         try container.encodeIfPresent(isLoopEnabled, forKey: .isLoopEnabled)

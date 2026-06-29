@@ -146,6 +146,8 @@ enum AppTheme {
         static let toolbarTempoFieldWidth: CGFloat = 62
         static let toolbarTimeSignatureNumberFieldWidth: CGFloat = 28
         static let toolbarKeyFieldWidth: CGFloat = 88
+        static let toolbarKeyTonicFieldWidth: CGFloat = 64
+        static let toolbarKeyModeFieldWidth: CGFloat = 72
         static let transportTimeWidth: CGFloat = 56
         static let transportSliderWidth: CGFloat = 130
         static let clickVolumeWidth: CGFloat = 110

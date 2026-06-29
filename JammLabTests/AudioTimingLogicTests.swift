@@ -637,6 +637,23 @@ final class AudioTimingLogicTests: XCTestCase {
         XCTAssertEqual(fallback, .cMajor)
     }
 
+    func testProjectKeySelectionMapsDetectedKeysToToolbarValuesAndCanonicalNames() throws {
+        let fSharpMinor = try XCTUnwrap(ProjectKeySelection.detected(from: "F# minor", confidence: 0.82))
+        let bFlatMajor = try XCTUnwrap(ProjectKeySelection.detected(from: "Bb major", confidence: 0.76))
+        let unknown = ProjectKeySelection.detected(from: "Pending", confidence: 0)
+
+        XCTAssertEqual(fSharpMinor.tonic, .fSharpGb)
+        XCTAssertEqual(fSharpMinor.mode, .minor)
+        XCTAssertEqual(fSharpMinor.canonicalKeyName, "F# minor")
+        XCTAssertEqual(fSharpMinor.source, .auto)
+        XCTAssertEqual(try XCTUnwrap(fSharpMinor.confidence), 0.82, accuracy: 0.0001)
+
+        XCTAssertEqual(bFlatMajor.tonic, .aSharpBb)
+        XCTAssertEqual(bFlatMajor.mode, .major)
+        XCTAssertEqual(bFlatMajor.canonicalKeyName, "Bb major")
+        XCTAssertNil(unknown)
+    }
+
     func testNotationAttributeDisplayShowsFullBlockForFirstVisibleMeasure() {
         let attributes = MeasureAttributes(
             keySignature: KeySignature.normalized(from: "F major"),

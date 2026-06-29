@@ -3,6 +3,7 @@ import Foundation
 struct ProjectEditableState: Equatable {
     var notes: [TimecodedNote]
     var harmonySymbols: [HarmonySymbol] = []
+    var projectKeySelection: ProjectKeySelection? = nil
     var selectedRegionID: TimecodedNote.ID?
     var selectedHarmonySymbolID: HarmonySymbol.ID?
     var activeLoopRegionID: TimecodedNote.ID?
@@ -23,6 +24,7 @@ struct ProjectEditableState: Equatable {
 struct ProjectPersistedEditableState: Equatable {
     var notes: [TimecodedNote]
     var harmonySymbols: [HarmonySymbol] = []
+    var projectKeySelection: ProjectKeySelection? = nil
     var loopRegion: LoopRegion
     var isLooping: Bool
     var tempoBPM: Double?

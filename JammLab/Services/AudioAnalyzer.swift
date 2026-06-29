@@ -2,12 +2,16 @@ import AVFoundation
 import Foundation
 
 protocol AudioAnalyzing {
-    func analyze(url: URL, includesTempo: Bool) async throws -> AnalysisResult
+    func analyze(url: URL, includesTempo: Bool, includesKey: Bool) async throws -> AnalysisResult
 }
 
 extension AudioAnalyzing {
     func analyze(url: URL) async throws -> AnalysisResult {
-        try await analyze(url: url, includesTempo: true)
+        try await analyze(url: url, includesTempo: true, includesKey: true)
+    }
+
+    func analyze(url: URL, includesTempo: Bool) async throws -> AnalysisResult {
+        try await analyze(url: url, includesTempo: includesTempo, includesKey: true)
     }
 }
 
@@ -28,16 +32,20 @@ enum AudioAnalyzerError: LocalizedError {
 final class AudioAnalyzer: AudioAnalyzing {
     private let maximumAnalysisSeconds: Double = 90
 
-    func analyze(url: URL, includesTempo: Bool) async throws -> AnalysisResult {
-        try await Task.detached(priority: .userInitiated) {
+    func analyze(url: URL, includesTempo: Bool, includesKey: Bool) async throws -> AnalysisResult {
+        guard includesTempo || includesKey else {
+            return AnalysisResult(bpm: nil, keyName: nil, keyConfidence: 0)
+        }
+
+        return try await Task.detached(priority: .userInitiated) {
             let audio = try self.loadMonoSamples(from: url)
             let bpm = includesTempo ? self.estimateBPM(samples: audio.samples, sampleRate: audio.sampleRate) : nil
-            let key = self.estimateKey(samples: audio.samples, sampleRate: audio.sampleRate)
+            let key = includesKey ? self.estimateKey(samples: audio.samples, sampleRate: audio.sampleRate) : nil
 
             return AnalysisResult(
                 bpm: bpm,
-                keyName: key.name,
-                keyConfidence: key.confidence
+                keyName: key?.name,
+                keyConfidence: key?.confidence ?? 0
             )
         }.value
     }

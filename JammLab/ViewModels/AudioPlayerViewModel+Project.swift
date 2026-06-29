@@ -112,6 +112,7 @@ extension AudioPlayerViewModel {
         shouldAcceptAnalyzedTempo = true
         notes = []
         harmonySymbols = []
+        projectKeySelection = nil
         selectedRegionID = nil
         selectedHarmonySymbolID = nil
         pendingHarmonyEditorRequest = nil
@@ -158,7 +159,7 @@ extension AudioPlayerViewModel {
         markProjectClean()
 
         buildPeakform(file: file)
-        analyze(file: file)
+        analyze(file: file, includesTempo: true, includesKey: true)
     }
 
     private func resetForImportedFile(_ file: ImportedAudioFile) {
@@ -171,6 +172,7 @@ extension AudioPlayerViewModel {
         shouldAcceptAnalyzedTempo = true
         notes = []
         harmonySymbols = []
+        projectKeySelection = nil
         selectedRegionID = nil
         selectedHarmonySymbolID = nil
         pendingHarmonyEditorRequest = nil
@@ -245,6 +247,7 @@ extension AudioPlayerViewModel {
                 project.harmonySymbols,
                 duration: resolvedProjectDuration
             )
+            projectKeySelection = project.projectKeySelection
             selectedRegionID = nil
             selectedHarmonySymbolID = nil
             pendingHarmonyEditorRequest = nil
@@ -277,7 +280,13 @@ extension AudioPlayerViewModel {
 
             addRecentProject(url: url)
             buildPeakform(file: file)
-            analyze(file: file, includesTempo: shouldAcceptAnalyzedTempo)
+            let shouldAnalyzeKey = project.projectKeySelection == nil
+            analyze(
+                file: file,
+                includesTempo: shouldAcceptAnalyzedTempo,
+                includesKey: shouldAnalyzeKey,
+                marksProjectModifiedForAutoKey: shouldAnalyzeKey
+            )
         } catch {
             isImporting = false
             if !didAdoptProject {
@@ -365,6 +374,7 @@ extension AudioPlayerViewModel {
             duration: duration,
             notes: notes,
             harmonySymbols: harmonySymbols,
+            projectKeySelection: projectKeySelection,
             loopRegion: loopRegion,
             loopMinimumLength: activeRangeMinimumLength,
             isLooping: isLooping,
@@ -433,18 +443,54 @@ extension AudioPlayerViewModel {
         return beginProjectSecurityScopedAccess(for: artifactRootURL)
     }
 
-    func analyze(file: ImportedAudioFile, includesTempo: Bool = true) {
+    func analyze(
+        file: ImportedAudioFile,
+        includesTempo: Bool = true,
+        includesKey: Bool = true,
+        marksProjectModifiedForAutoKey: Bool = false
+    ) {
+        guard includesTempo || includesKey else {
+            analysisTask?.cancel()
+            analysisTask = nil
+            isAnalyzing = false
+            analysisResult = nil
+            return
+        }
+
         analysisTask?.cancel()
         isAnalyzing = true
         analysisResult = nil
+        let keySelectionAtStart = projectKeySelection
 
         analysisTask = Task { [weak self] in
             guard let self else { return }
 
             do {
-                let result = try await analyzer.analyze(url: file.url, includesTempo: includesTempo)
+                let result = try await analyzer.analyze(
+                    url: file.url,
+                    includesTempo: includesTempo,
+                    includesKey: includesKey
+                )
                 guard !Task.isCancelled else { return }
                 analysisResult = result
+
+                if includesKey,
+                   keySelectionAtStart == nil,
+                   projectKeySelection == nil,
+                   let detectedKey = ProjectKeySelection.detected(
+                    from: result.keyName,
+                    confidence: result.keyConfidence
+                   ) {
+                    projectKeySelection = detectedKey
+                    if marksProjectModifiedForAutoKey {
+                        refreshProjectModifiedState()
+                    } else if !isProjectModified {
+                        markProjectClean()
+                    } else {
+                        refreshProjectModifiedState()
+                    }
+                }
+
                 if includesTempo, shouldAcceptAnalyzedTempo, let analyzedBPM = result.bpm {
                     tempoBPM = Double(analyzedBPM)
                     beatGridSettings.bpm = tempoBPM

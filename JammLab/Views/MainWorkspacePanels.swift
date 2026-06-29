@@ -158,7 +158,7 @@ extension ContentView {
                 currentTime: viewModel.currentTime,
                 playbackMarkerTime: viewModel.playbackMarkerTime,
                 isPlaying: viewModel.playbackState == .playing,
-                keyName: viewModel.analysisResult?.keyName,
+                keyName: viewModel.effectiveKeyName,
                 visibleMeasureCount: measureCount,
                 harmonySymbols: viewModel.harmonySymbols
             )
@@ -170,7 +170,7 @@ extension ContentView {
             currentTime: viewModel.currentTime,
             playbackMarkerTime: viewModel.playbackMarkerTime,
             isPlaying: viewModel.playbackState == .playing,
-            keyName: viewModel.analysisResult?.keyName,
+            keyName: viewModel.effectiveKeyName,
             visibleMeasureCount: fittedMeasureCount,
             harmonySymbols: viewModel.harmonySymbols
         )

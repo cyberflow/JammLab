@@ -124,9 +124,16 @@ struct MeasureAttributes: Equatable {
 }
 
 struct KeySignature: Equatable {
-    enum Mode: String, Equatable {
+    enum Mode: String, Codable, CaseIterable, Equatable {
         case major
         case minor
+
+        var displayName: String {
+            switch self {
+            case .major: return "Major"
+            case .minor: return "Minor"
+            }
+        }
     }
 
     var fifths: Int

@@ -37,6 +37,7 @@ final class AudioPlayerViewModel: ObservableObject {
     @Published var beatGridSettings = BeatGridSettings(bpm: AppDefaults.defaultTempoBPM)
     @Published var notes: [TimecodedNote] = []
     @Published var harmonySymbols: [HarmonySymbol] = []
+    @Published var projectKeySelection: ProjectKeySelection?
     @Published var selectedRegionID: TimecodedNote.ID?
     @Published var selectedHarmonySymbolID: HarmonySymbol.ID?
     @Published var harmonyInputResolutionDenominator = HarmonyInputResolution.defaultDenominator
@@ -142,6 +143,14 @@ final class AudioPlayerViewModel: ObservableObject {
 
     var canRedo: Bool {
         undoManager?.canRedo ?? false
+    }
+
+    var displayedProjectKeySelection: ProjectKeySelection {
+        projectKeySelection ?? .defaultSelection()
+    }
+
+    var effectiveKeyName: String? {
+        projectKeySelection?.canonicalKeyName ?? analysisResult?.keyName
     }
 
     init(
