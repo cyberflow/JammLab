@@ -106,7 +106,8 @@ struct NotationWindowView: View {
                                 inputResolution: HarmonyInputResolution(
                                     denominator: viewModel.harmonyInputResolutionDenominator
                                 ),
-                                actions: notationActions
+                                actions: notationActions,
+                                cornerRadius: AppTheme.Spacing.none
                             )
                             .frame(height: AppTheme.NotationWindow.systemHeight)
                             .id(system.id)

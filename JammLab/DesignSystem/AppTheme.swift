@@ -259,6 +259,7 @@ enum AppTheme {
         static let notationMeasureMinWidth: CGFloat = 148
         static let notationStaffLineSpacing: CGFloat = 8
         static let notationStaffHorizontalInset: CGFloat = 10
+        static let notationAttributeStaffTopInset: CGFloat = AppTheme.Spacing.xxl
         static let notationClefFontSize: CGFloat = 48
         static let notationClefWidth: CGFloat = 38
         static let notationTrebleClefVerticalOffset: CGFloat = -6
@@ -268,7 +269,7 @@ enum AppTheme {
         static let notationMeasureNumberLabelWidth: CGFloat = 34
         static let notationSlashWidth: CGFloat = 7
         static let notationSlashHeight: CGFloat = 16
-        static let notationSlashLineWidth: CGFloat = 2
+        static let notationSlashLineWidth: CGFloat = 3
         static let notationSlashMinimumBeatSpacing: CGFloat = 16
         static let notationBeatAnchorInset: CGFloat = AppTheme.Spacing.lg
         static let notationHarmonyAnchorLeadingOffset: CGFloat = AppTheme.Spacing.md
@@ -377,7 +378,7 @@ enum AppTheme {
     enum NotationWindow {
         static let maximumMeasuresPerSystem = 4
         static let systemHeight: CGFloat = 112
-        static let systemSpacing: CGFloat = 18
+        static let systemSpacing: CGFloat = AppTheme.Spacing.none
         static let pagePadding: CGFloat = 28
     }
 }
