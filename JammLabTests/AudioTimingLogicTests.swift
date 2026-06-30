@@ -585,6 +585,89 @@ final class AudioTimingLogicTests: XCTestCase {
         XCTAssertEqual(secondHarmony.rawText, "G7")
     }
 
+    func testNotationScoreStateBuildsWholeDurationAndSystems() throws {
+        let state = NotationViewportFactory().scoreState(
+            tempoMap: fourFourTempoMap(duration: 8),
+            duration: 8,
+            currentTime: 4.1,
+            playbackMarkerTime: 1,
+            isPlaying: true,
+            keyName: "G major"
+        )
+
+        XCTAssertTrue(state.isReady)
+        XCTAssertEqual(state.measures.map(\.number), [1, 2, 3, 4])
+        XCTAssertEqual(state.measures.map(\.attributes.keySignature).map(\.fifths), [1, 1, 1, 1])
+        XCTAssertEqual(state.activeMeasureNumber, 3)
+        XCTAssertEqual(state.anchorTime, 4.1, accuracy: 0.0001)
+
+        let systems = state.systems(measuresPerSystem: 2)
+        XCTAssertEqual(systems.count, 2)
+        XCTAssertEqual(systems[0].viewportState.visibleMeasures.map(\.number), [1, 2])
+        XCTAssertEqual(systems[1].viewportState.visibleMeasures.map(\.number), [3, 4])
+        XCTAssertEqual(systems[1].viewportState.activeMeasureNumber, 3)
+    }
+
+    func testNotationScoreStateUsesPlaybackMarkerWhenNotPlayingAndClampsAtEnd() throws {
+        let state = NotationViewportFactory().scoreState(
+            tempoMap: fourFourTempoMap(duration: 8),
+            duration: 8,
+            currentTime: 6,
+            playbackMarkerTime: 20,
+            isPlaying: false,
+            keyName: "C major"
+        )
+
+        XCTAssertEqual(state.activeMeasureNumber, 4)
+        XCTAssertLessThan(state.anchorTime, 8)
+        XCTAssertGreaterThan(state.anchorTime, 7.9)
+    }
+
+    func testNotationScoreStateTracksTimeSignatureMarkersAndHarmonies() throws {
+        let harmonyID = UUID(uuidString: "00000000-0000-0000-0000-000000000201")!
+        let state = NotationViewportFactory().scoreState(
+            tempoMap: fourFourTempoMap(
+                duration: 8,
+                markers: [timeSignatureMarker(time: 4, beatsPerBar: 3)]
+            ),
+            duration: 8,
+            currentTime: 5,
+            playbackMarkerTime: 0,
+            isPlaying: true,
+            keyName: "C major",
+            harmonySymbols: [
+                HarmonySymbol(
+                    id: harmonyID,
+                    time: 5,
+                    measureNumber: 99,
+                    offsetInQuarterNotes: 99,
+                    rawText: "Dm7"
+                )
+            ]
+        )
+
+        XCTAssertEqual(state.measures.map(\.attributes.timeSignature.beatsPerBar), [4, 4, 3, 3, 3])
+        let harmony = try XCTUnwrap(state.measures.flatMap(\.harmonies).first)
+        XCTAssertEqual(harmony.id, harmonyID)
+        XCTAssertEqual(harmony.measureNumber, 3)
+        XCTAssertEqual(harmony.rawText, "Dm7")
+    }
+
+    func testNotationScoreStateIsPendingForZeroDuration() {
+        let state = NotationViewportFactory().scoreState(
+            tempoMap: fourFourTempoMap(duration: 0),
+            duration: 0,
+            currentTime: 0,
+            playbackMarkerTime: 0,
+            isPlaying: false,
+            keyName: "D major"
+        )
+
+        XCTAssertFalse(state.isReady)
+        XCTAssertTrue(state.measures.isEmpty)
+        XCTAssertEqual(state.keySignature.fifths, 2)
+    }
+
     func testHarmonyPlacementSnapsToResolutionAndNavigatesAcrossMeasures() throws {
         let factory = NotationViewportFactory()
         let tempoMap = fourFourTempoMap(duration: 8)
@@ -1006,17 +1089,39 @@ final class AudioTimingLogicTests: XCTestCase {
         XCTAssertEqual(geometries[2].cellStartX, geometries[1].cellEndX, accuracy: 0.0001)
         XCTAssertEqual(geometries[3].cellStartX, geometries[2].cellEndX, accuracy: 0.0001)
         XCTAssertEqual(geometries[3].cellEndX, totalWidth, accuracy: 0.0001)
+        XCTAssertEqual(geometries[3].contentEndX, totalWidth, accuracy: 0.0001)
+        XCTAssertEqual(
+            NotationMeasureLayout.playheadX(geometry: geometries[3], progress: 1),
+            totalWidth,
+            accuracy: 0.0001
+        )
+        XCTAssertLessThanOrEqual(
+            NotationMeasureLayout.playheadIndicatorX(
+                geometry: geometries[3],
+                progress: 1,
+                indicatorWidth: AppTheme.Stroke.thick
+            ) + AppTheme.Stroke.thick,
+            geometries[3].staffEndX + 0.0001
+        )
+        XCTAssertEqual(geometries[0].staffStartX, AppTheme.Timeline.notationStaffHorizontalInset, accuracy: 0.0001)
+        XCTAssertEqual(geometries[3].staffEndX, totalWidth - AppTheme.Timeline.notationStaffHorizontalInset, accuracy: 0.0001)
+        XCTAssertEqual(barlines.last?.x ?? -1, totalWidth - AppTheme.Timeline.notationStaffHorizontalInset, accuracy: 0.0001)
+        XCTAssertEqual(barlines.last?.x ?? -1, geometries[3].staffEndX, accuracy: 0.0001)
+        XCTAssertTrue(barlines.contains { abs($0.x - geometries[1].cellStartX) < 0.0001 })
+        XCTAssertTrue(barlines.contains { abs($0.x - geometries[2].cellStartX) < 0.0001 })
+        XCTAssertTrue(barlines.contains { abs($0.x - geometries[3].cellStartX) < 0.0001 })
         XCTAssertFalse(barlines.contains { abs($0.x - geometries[0].contentStartX) < 0.0001 })
         XCTAssertFalse(barlines.contains { abs($0.x - geometries[2].contentStartX) < 0.0001 })
     }
 
-    func testNotationMeasureLayoutFallbackGeometryPreservesOuterStaffInsets() {
+    func testNotationMeasureLayoutFallbackGeometryPreservesSymmetricOuterInsets() {
         let totalWidth: CGFloat = 296
 
         let geometries = NotationMeasureLayout.fallbackCanvasGeometries(
             measureCount: 0,
             totalWidth: totalWidth
         )
+        let barlines = NotationMeasureLayout.barlineGeometries(for: geometries)
 
         XCTAssertEqual(geometries.count, 1)
         XCTAssertEqual(geometries[0].contentStartX, 0, accuracy: 0.0001)
@@ -1025,6 +1130,47 @@ final class AudioTimingLogicTests: XCTestCase {
         XCTAssertTrue(geometries[0].includesRawStartBarline)
         XCTAssertFalse(geometries[0].contentStartsAfterCellBoundary)
         XCTAssertEqual(geometries[0].leadingBarlineX ?? -1, geometries[0].staffStartX, accuracy: 0.0001)
+        XCTAssertEqual(barlines.last?.x ?? -1, geometries[0].staffEndX, accuracy: 0.0001)
+        XCTAssertEqual(
+            NotationMeasureLayout.playheadX(geometry: geometries[0], progress: 0),
+            geometries[0].contentStartX,
+            accuracy: 0.0001
+        )
+        XCTAssertEqual(
+            NotationMeasureLayout.playheadIndicatorX(
+                geometry: geometries[0],
+                progress: 0,
+                indicatorWidth: AppTheme.Stroke.thick
+            ),
+            geometries[0].staffStartX,
+            accuracy: 0.0001
+        )
+    }
+
+    func testNotationMeasureLayoutClampsSymmetricOuterInsetsForNarrowWidth() {
+        let inset = AppTheme.Timeline.notationStaffHorizontalInset
+        let totalWidth = inset * 1.5
+
+        let geometries = NotationMeasureLayout.fallbackCanvasGeometries(
+            measureCount: 1,
+            totalWidth: totalWidth
+        )
+        let geometry = geometries[0]
+        let barlines = NotationMeasureLayout.barlineGeometries(for: geometries)
+
+        XCTAssertEqual(geometry.staffStartX, inset, accuracy: 0.0001)
+        XCTAssertEqual(geometry.staffEndX, geometry.staffStartX, accuracy: 0.0001)
+        XCTAssertEqual(barlines.first?.x ?? -1, geometry.staffStartX, accuracy: 0.0001)
+        XCTAssertEqual(barlines.last?.x ?? -1, geometry.staffEndX, accuracy: 0.0001)
+        XCTAssertEqual(
+            NotationMeasureLayout.playheadIndicatorX(
+                geometry: geometry,
+                progress: 1,
+                indicatorWidth: AppTheme.Stroke.thick
+            ),
+            geometry.staffStartX,
+            accuracy: 0.0001
+        )
     }
 
     func testNotationMeasureLayoutPositionsMeasureNumbersBeforeMeasureBoundary() {

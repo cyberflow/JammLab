@@ -83,6 +83,10 @@ enum AppTheme {
         static let helpWidth: CGFloat = 520
         static let helpMinHeight: CGFloat = 300
         static let helpHeight: CGFloat = 420
+        static let notationWidth: CGFloat = 900
+        static let notationMinWidth: CGFloat = 620
+        static let notationHeight: CGFloat = 720
+        static let notationMinHeight: CGFloat = 420
         static let tunerWidth: CGFloat = 360
         static let tunerMinHeight: CGFloat = 460
     }
@@ -256,6 +260,7 @@ enum AppTheme {
         static let notationStaffLineSpacing: CGFloat = 8
         static let notationStaffHorizontalInset: CGFloat = 10
         static let notationClefWidth: CGFloat = 32
+        static let notationTrebleClefVerticalOffset: CGFloat = -5
         static let notationTimeSignatureWidth: CGFloat = 26
         static let notationAccidentalWidth: CGFloat = 11
         static let notationMinimumMeasureContentWidth: CGFloat = 28
@@ -360,5 +365,12 @@ enum AppTheme {
     enum Animation {
         static let fast = 0.16
         static let standard = 0.22
+    }
+
+    enum NotationWindow {
+        static let maximumMeasuresPerSystem = 4
+        static let systemHeight: CGFloat = 112
+        static let systemSpacing: CGFloat = 18
+        static let pagePadding: CGFloat = 28
     }
 }

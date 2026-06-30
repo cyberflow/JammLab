@@ -1,6 +1,10 @@
 import AppKit
 import SwiftUI
 
+enum AppWindowID {
+    static let notation = "notation"
+}
+
 @main
 struct JammLabApp: App {
     @NSApplicationDelegateAdaptor(JammLabAppDelegate.self) private var appDelegate
@@ -43,6 +47,13 @@ struct JammLabApp: App {
                 .environment(\.appColors, AppThemeColors(palette: settingsStore.colorPalette))
         }
         .windowResizability(.contentSize)
+
+        Window("Notation", id: AppWindowID.notation) {
+            NotationWindowView(viewModel: viewModel)
+                .environment(\.appColors, AppThemeColors(palette: settingsStore.colorPalette))
+        }
+        .defaultSize(width: AppTheme.Window.notationWidth, height: AppTheme.Window.notationHeight)
+        .windowResizability(.contentMinSize)
 
         Settings {
             SettingsView(settingsStore: settingsStore)
@@ -130,6 +141,11 @@ struct JammLabCommands: Commands {
         }
 
         CommandGroup(after: .toolbar) {
+            Button("Show Notation Window") {
+                openWindow(id: AppWindowID.notation)
+            }
+            .disabled(!viewModel.canShowNotationWindow)
+
             Button("Video Window") {
                 viewModel.toggleVideoWindow()
             }

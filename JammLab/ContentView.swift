@@ -4,7 +4,6 @@ import UniformTypeIdentifiers
 
 struct ContentView: View {
     @ObservedObject var viewModel: AudioPlayerViewModel
-    @State private var spaceKeyMonitor: Any?
     @State var isEditingMarker = false
     @State var editingMarkerID: TimecodedNote.ID?
     @State var editingMarkerTitle = ""
@@ -16,7 +15,7 @@ struct ContentView: View {
     @State var editingTempoTimeSignatureSetsNewFirstBeat = false
     @State var notesFilter: NotesFilter = .notes
     @Environment(\.appColors) var appColors
-    @Environment(\.openWindow) private var openWindow
+    @Environment(\.openWindow) var openWindow
     @Environment(\.undoManager) private var undoManager
 
     var body: some View {
@@ -40,17 +39,21 @@ struct ContentView: View {
             )
         )
         .background(WindowCloseGuard())
+        .background(
+            AppHotkeyMonitorView(
+                allowedHotkeys: Set(AppHotkey.allCases),
+                onHotkey: handleHotkey
+            )
+        )
         .task {
             viewModel.startPlaybackClock()
         }
         .onAppear {
             viewModel.undoManager = undoManager
-            installSpaceKeyMonitor()
             clearKeyboardFocus()
         }
         .onDisappear {
             viewModel.stopPlaybackClock()
-            removeSpaceKeyMonitor()
         }
         .sheet(isPresented: $isEditingMarker) {
             RenameNoteDialog(
@@ -165,68 +168,41 @@ struct ContentView: View {
         )
     }
 
-    private func installSpaceKeyMonitor() {
-        guard spaceKeyMonitor == nil else { return }
-
-        spaceKeyMonitor = NSEvent.addLocalMonitorForEvents(matching: .keyDown) { event in
-            guard !event.isARepeat else {
-                return event
-            }
-
-            if NSApp.keyWindow?.firstResponder is NSTextView {
-                return event
-            }
-            if NSApp.keyWindow?.firstResponder is AbletonNumberFieldNSView {
-                return event
-            }
-
-            guard let hotkey = AppHotkey(event: event) else {
-                return event
-            }
-
-            // AppHotkey is the single source of truth for handled shortcuts.
-            // Add new hotkeys there first so Help > Keyboard Shortcuts updates
-            // together with this dispatch switch.
-            switch hotkey {
-            case .playPause:
-                viewModel.togglePlayStop()
-            case .toggleLoop:
-                viewModel.toggleLooping()
-            case .setLoopStart:
-                viewModel.setLoopStartAtCurrentTime()
-            case .setLoopEnd:
-                viewModel.setLoopEndAtCurrentTime()
-            case .addNote:
-                viewModel.addNoteAtCurrentTime()
-            case .addHarmonyAtPlaybackMarker:
-                viewModel.requestAddHarmonyAtPlaybackMarker()
-            case .addTempoTimeSignatureMarker:
-                beginAddingTempoTimeSignatureMarker(at: viewModel.currentTime)
-            case .setBeatOne:
-                viewModel.setCurrentTimeAsBeatOne()
-            case .toggleClick:
-                viewModel.toggleClick()
-            case .toggleSnap:
-                viewModel.toggleSnap()
-            case .togglePlaybackMode:
-                viewModel.togglePlaybackMode()
-            case .toggleVideoWindow:
-                viewModel.toggleVideoWindow()
-            }
-
-            return nil
-        }
-    }
-
-    private func removeSpaceKeyMonitor() {
-        guard let spaceKeyMonitor else { return }
-        NSEvent.removeMonitor(spaceKeyMonitor)
-        self.spaceKeyMonitor = nil
-    }
-
     func clearKeyboardFocus() {
         DispatchQueue.main.async {
             NSApp.keyWindow?.makeFirstResponder(nil)
+        }
+    }
+
+    private func handleHotkey(_ hotkey: AppHotkey) {
+        // AppHotkey is the single source of truth for handled shortcuts.
+        // Add new hotkeys there first so Help > Keyboard Shortcuts updates
+        // together with this dispatch switch.
+        switch hotkey {
+        case .playPause:
+            viewModel.togglePlayStop()
+        case .toggleLoop:
+            viewModel.toggleLooping()
+        case .setLoopStart:
+            viewModel.setLoopStartAtCurrentTime()
+        case .setLoopEnd:
+            viewModel.setLoopEndAtCurrentTime()
+        case .addNote:
+            viewModel.addNoteAtCurrentTime()
+        case .addHarmonyAtPlaybackMarker:
+            viewModel.requestAddHarmonyAtPlaybackMarker()
+        case .addTempoTimeSignatureMarker:
+            beginAddingTempoTimeSignatureMarker(at: viewModel.currentTime)
+        case .setBeatOne:
+            viewModel.setCurrentTimeAsBeatOne()
+        case .toggleClick:
+            viewModel.toggleClick()
+        case .toggleSnap:
+            viewModel.toggleSnap()
+        case .togglePlaybackMode:
+            viewModel.togglePlaybackMode()
+        case .toggleVideoWindow:
+            viewModel.toggleVideoWindow()
         }
     }
 

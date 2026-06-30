@@ -37,3 +37,63 @@ struct NotationViewportState: Equatable {
         )
     }
 }
+
+struct NotationScoreState: Equatable {
+    var availability: NotationViewportState.Availability
+    var keySignature: KeySignature
+    var measures: [ScoreMeasure]
+    var anchorTime: TimeInterval
+    var activeMeasureNumber: Int?
+
+    var isReady: Bool {
+        availability == .ready
+    }
+
+    static func pending(keySignature: KeySignature = .cMajor) -> NotationScoreState {
+        NotationScoreState(
+            availability: .pending,
+            keySignature: keySignature,
+            measures: [],
+            anchorTime: 0,
+            activeMeasureNumber: nil
+        )
+    }
+
+    func systems(measuresPerSystem: Int) -> [NotationSystemState] {
+        guard isReady, !measures.isEmpty else { return [] }
+
+        let safeMeasuresPerSystem = max(1, measuresPerSystem)
+        return stride(from: 0, to: measures.count, by: safeMeasuresPerSystem).map { startIndex in
+            let endIndex = min(startIndex + safeMeasuresPerSystem, measures.count)
+            let systemMeasures = Array(measures[startIndex..<endIndex])
+
+            return NotationSystemState(
+                index: startIndex / safeMeasuresPerSystem,
+                viewportState: NotationViewportState(
+                    availability: availability,
+                    clef: systemMeasures.first?.attributes.clef ?? .treble,
+                    keySignature: systemMeasures.first?.attributes.keySignature ?? keySignature,
+                    timeSignature: systemMeasures.first?.attributes.timeSignature ?? .fourFour,
+                    firstVisibleMeasureNumber: systemMeasures.first?.number ?? 1,
+                    visibleMeasureCount: systemMeasures.count,
+                    visibleMeasures: systemMeasures,
+                    anchorTime: anchorTime,
+                    activeMeasureNumber: activeMeasureNumber
+                )
+            )
+        }
+    }
+}
+
+struct NotationSystemState: Equatable, Identifiable {
+    var index: Int
+    var viewportState: NotationViewportState
+
+    var id: String {
+        guard let firstMeasure = viewportState.visibleMeasures.first else {
+            return "system-\(index)-empty"
+        }
+
+        return "system-\(index)-\(firstMeasure.id)"
+    }
+}

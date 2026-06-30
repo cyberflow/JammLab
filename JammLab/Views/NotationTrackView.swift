@@ -397,6 +397,7 @@ struct NotationTrackView: View {
                     .font(.system(size: 42))
                     .foregroundStyle(appColors.notationSymbolsAndLines)
                     .frame(width: AppTheme.Timeline.notationClefWidth, alignment: .center)
+                    .offset(y: clefVerticalOffset(for: attributes.clef))
                     .accessibilityLabel("Treble clef")
             }
 
@@ -441,6 +442,13 @@ struct NotationTrackView: View {
         return hasKeySignature ? KeySignatureAccidentalsView.staffTopInset : AppTheme.Spacing.xs
     }
 
+    private func clefVerticalOffset(for clef: Clef) -> CGFloat {
+        switch clef {
+        case .treble:
+            return AppTheme.Timeline.notationTrebleClefVerticalOffset
+        }
+    }
+
     @ViewBuilder
     private func playheadIndicator(
         width: CGFloat,
@@ -461,9 +469,10 @@ struct NotationTrackView: View {
                 ? geometries[activeMeasureIndex]
                 : nil
             let x = geometry.map {
-                NotationMeasureLayout.playheadX(
+                NotationMeasureLayout.playheadIndicatorX(
                     geometry: $0,
-                    progress: CGFloat(progress)
+                    progress: CGFloat(progress),
+                    indicatorWidth: AppTheme.Stroke.thick
                 )
             } ?? 0
             let staffTop = staffTop(in: height)
@@ -974,7 +983,7 @@ struct NotationMeasureLayout {
         }
         barlines.append(
             NotationBarlineGeometry(
-                x: lastGeometry.cellEndX,
+                x: lastGeometry.staffEndX,
                 isOuterBoundary: true
             )
         )
@@ -1075,6 +1084,19 @@ struct NotationMeasureLayout {
         return geometry.contentStartX + clampedProgress * width
     }
 
+    static func playheadIndicatorX(
+        geometry: NotationMeasureCanvasGeometry,
+        progress: CGFloat,
+        indicatorWidth: CGFloat
+    ) -> CGFloat {
+        let rawX = playheadX(geometry: geometry, progress: progress)
+        let visualStartX = min(geometry.staffStartX, geometry.staffEndX)
+        let visualEndX = max(geometry.staffStartX, geometry.staffEndX)
+        let safeIndicatorWidth = max(0, indicatorWidth)
+        let maximumX = max(visualStartX, visualEndX - safeIndicatorWidth)
+        return min(max(rawX, visualStartX), maximumX)
+    }
+
     static func harmonyX(
         geometry: NotationMeasureCanvasGeometry,
         offsetInQuarterNotes: Double,
@@ -1160,10 +1182,10 @@ struct NotationMeasureLayout {
         contentStartX: CGFloat,
         totalWidth: CGFloat
     ) -> NotationMeasureCanvasGeometry {
-        let safeMeasureCount = max(1, measureCount)
         let safeCellStartX = max(0, cellStartX)
         let safeCellEndX = max(safeCellStartX, cellEndX)
         let clampedContentStartX = min(max(safeCellStartX, contentStartX), safeCellEndX)
+        let lastMeasureIndex = max(0, measureCount - 1)
         var staffStartX = safeCellStartX
         var staffEndX = safeCellEndX
 
@@ -1174,10 +1196,10 @@ struct NotationMeasureLayout {
             )
         }
 
-        if measureIndex == safeMeasureCount - 1 {
-            staffEndX = min(
-                staffEndX,
-                max(staffStartX, totalWidth - AppTheme.Timeline.notationStaffHorizontalInset)
+        if measureIndex == lastMeasureIndex {
+            staffEndX = max(
+                staffStartX,
+                safeCellEndX - AppTheme.Timeline.notationStaffHorizontalInset
             )
         }
 

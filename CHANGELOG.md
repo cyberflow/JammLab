@@ -8,6 +8,7 @@ development artifact builds use `vMAJOR.MINOR.PATCH-dev.N`.
 
 ## Unreleased
 
+- Added a synced Notation window that opens from the View menu or the Notation track context menu, showing the full chart in a notebook-style layout while sharing harmony editing with the timeline track.
 - Added a MusicXML-ready notation track MVP with synced staff measures, persisted harmony editing, snapped `A`-key insertion, adaptive measure fitting, and editable project key/mode selectors backed by auto-detected tonal metadata.
 - Fixed key-signature accidentals on the Notation track so sharps and flats render on the correct staff positions.
 

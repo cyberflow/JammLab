@@ -24,6 +24,7 @@ The project is an offline-first MVP. Keep the app local-only: no server, no paid
 - Persist Region as `time + duration`. Do not persist Region `end`; use `regionEndTime` as a computed value.
 - Temporary loop range is separate from saved Regions. Editing a temporary loop must not mutate a saved Region. Editing a saved Region must not silently move the temporary loop unless the user explicitly activates that Region as loop.
 - Waveform, tempo track, region track, notes, loop markers, beat grid, and playhead must share one visible time range. Use `TimelineViewport` for `time <-> pixel`, zoom, pan, bounds, and intersections.
+- The Notation track and Notation window must share score generation, harmony editing actions, selection, and the `AudioPlayerViewModel` playback clock. The window may lay out the full score in multiple systems, but it must not create a second notation storage model or a second playback source of truth.
 - Heavy audio work must not run on the main thread. Analysis and peakform generation should stay async/background.
 - Do not use system macOS alert/beep sounds for the metronome. Use the app's metronome sound abstraction.
 - Keep hotkeys centralized in `AppHotkey`; Help > Keyboard Shortcuts is generated from it.
@@ -94,6 +95,7 @@ Do not use vague names such as `ai-work`, `codex-fix`, `changes`, `update`, or `
 - Convert pixel to time with `TimelineViewport.time(forX:width:)`.
 - Clip overlays through `TimelineViewport.intersection(start:end:)`.
 - Future snapping, zoom-to-selection, follow-playhead, and minimap work should build on the same viewport model.
+- Standalone notation views should project from the same measure/harmony model as the timeline Notation track. Window layout can use multiple systems, but row-local hit testing must resolve back to absolute audio time before mutating harmony symbols.
 
 ## Audio Rules
 

@@ -63,6 +63,7 @@ struct TimelineViewActions {
     var loopRegionChanged: (TimeInterval, TimeInterval) -> Void
     var timelineScroll: (Double, Double, TimeInterval?) -> Void
     var mainTrackVolumeChanged: (Float) -> Void
+    var showNotationWindow: () -> Void
 }
 
 struct StemTrackActions {
@@ -244,6 +245,15 @@ struct WaveformTimelineView: View {
                 )
             )
                 .frame(height: AppTheme.Timeline.notationTrackHeight)
+        }
+        .overlay {
+            if state.duration > 0 {
+                RightClickMenuCaptureView(
+                    title: "Show in the Window",
+                    action: actions.showNotationWindow
+                )
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+            }
         }
     }
 
