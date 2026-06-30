@@ -269,7 +269,7 @@ enum AppTheme {
         static let notationMeasureNumberLabelWidth: CGFloat = 34
         static let notationSlashWidth: CGFloat = 7
         static let notationSlashHeight: CGFloat = 16
-        static let notationSlashLineWidth: CGFloat = 2
+        static let notationSlashLineWidth: CGFloat = 3
         static let notationSlashMinimumBeatSpacing: CGFloat = 16
         static let notationBeatAnchorInset: CGFloat = AppTheme.Spacing.lg
         static let notationHarmonyAnchorLeadingOffset: CGFloat = AppTheme.Spacing.md
