@@ -26,7 +26,7 @@ jobs:
     runs-on: macos-26
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: Run Python helper tests
         run: python3 -m unittest JammLabSeparatorHelper/test_runner.py
@@ -36,7 +36,7 @@ jobs:
     runs-on: macos-26
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: Run Swift tests
         run: >
@@ -64,7 +64,7 @@ jobs:
           - Release
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: Build unsigned app
         run: >
@@ -98,7 +98,7 @@ jobs:
       SKIP_BUNDLED_SEPARATOR_HELPER: "0"
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
         with:
           fetch-depth: 0
 
