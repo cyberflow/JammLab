@@ -14,6 +14,7 @@ struct NotationTrackView: View {
     let pendingEditorRequest: HarmonyEditorRequest?
     let inputResolution: HarmonyInputResolution
     let actions: NotationTrackActions
+    let cornerRadius: CGFloat
 
     @Environment(\.appColors) private var appColors
     @FocusState private var isTrackFocused: Bool
@@ -24,13 +25,15 @@ struct NotationTrackView: View {
         selectedHarmonySymbolID: HarmonySymbol.ID? = nil,
         pendingEditorRequest: HarmonyEditorRequest? = nil,
         inputResolution: HarmonyInputResolution = HarmonyInputResolution(),
-        actions: NotationTrackActions = .noop
+        actions: NotationTrackActions = .noop,
+        cornerRadius: CGFloat = AppTheme.Radius.small
     ) {
         self.state = state
         self.selectedHarmonySymbolID = selectedHarmonySymbolID
         self.pendingEditorRequest = pendingEditorRequest
         self.inputResolution = inputResolution
         self.actions = actions
+        self.cornerRadius = cornerRadius
     }
 
     var body: some View {
@@ -81,7 +84,7 @@ struct NotationTrackView: View {
             .onTapGesture {
                 isTrackFocused = true
             }
-            .clipShape(RoundedRectangle(cornerRadius: AppTheme.Radius.small))
+            .clipShape(RoundedRectangle(cornerRadius: cornerRadius))
             .focusable()
             .focused($isTrackFocused)
             .onDeleteCommand {
@@ -130,7 +133,7 @@ struct NotationTrackView: View {
         Canvas { context, size in
             let rect = CGRect(origin: .zero, size: size)
             context.fill(
-                Path(roundedRect: rect, cornerRadius: AppTheme.Radius.small),
+                Path(roundedRect: rect, cornerRadius: cornerRadius),
                 with: .color(appColors.notationTrackBackground)
             )
 
@@ -333,8 +336,8 @@ struct NotationTrackView: View {
                     )
                     .offset(
                         x: geometries[index].cellStartX + AppTheme.Spacing.md,
-                        y: staffTop(in: height) - attributeStaffTopInset(
-                            attributes: attributes,
+                        y: staffTop(in: height) - NotationMeasureLayout.attributeStaffTopInset(
+                            for: attributes,
                             display: display
                         )
                     )
@@ -489,15 +492,6 @@ struct NotationTrackView: View {
         }
         .frame(width: max(0, blockWidth), alignment: .leading)
         .clipped()
-    }
-
-    private func attributeStaffTopInset(
-        attributes: MeasureAttributes,
-        display: NotationAttributeDisplay
-    ) -> CGFloat {
-        let hasKeySignature = display.showsKeySignature
-            && !attributes.keySignature.notationAccidentalGlyphs(for: attributes.clef).isEmpty
-        return hasKeySignature ? KeySignatureAccidentalsView.staffTopInset : AppTheme.Spacing.xs
     }
 
     private func clefVerticalOffset(for clef: Clef) -> CGFloat {
@@ -806,7 +800,7 @@ private struct KeySignatureAccidentalsView: View {
     let glyphs: [KeySignatureAccidental]
     let color: Color
 
-    fileprivate static let staffTopInset = AppTheme.Spacing.xxl
+    fileprivate static let staffTopInset = AppTheme.Timeline.notationAttributeStaffTopInset
 
     private let fontSize: CGFloat = 20
 
@@ -1095,6 +1089,13 @@ struct NotationMeasureLayout {
 
     static func spacingWidth(forVisibleComponentCount componentCount: Int) -> CGFloat {
         AppTheme.Spacing.xs * CGFloat(max(0, componentCount - 1))
+    }
+
+    static func attributeStaffTopInset(
+        for _: MeasureAttributes,
+        display: NotationAttributeDisplay
+    ) -> CGFloat {
+        display.isEmpty ? 0 : AppTheme.Timeline.notationAttributeStaffTopInset
     }
 
     static func contentStartX(
