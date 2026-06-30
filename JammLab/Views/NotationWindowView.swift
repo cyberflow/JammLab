@@ -1,9 +1,11 @@
+import AppKit
 import SwiftUI
 
 struct NotationWindowView: View {
     @ObservedObject var viewModel: AudioPlayerViewModel
 
     @Environment(\.appColors) private var appColors
+    @State private var didSetInitialFocus = false
     @State private var isUserNavigating = false
     @State private var lastAutoScrolledSystemID: NotationSystemState.ID?
     @State private var resumeAutoScrollTask: Task<Void, Never>?
@@ -29,6 +31,11 @@ struct NotationWindowView: View {
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
             .background(appColors.appBackground)
+            .background(
+                NotationWindowInitialFocusLandingView(
+                    didSetInitialFocus: $didSetInitialFocus
+                )
+            )
             .background(
                 AppHotkeyMonitorView(
                     allowedHotkeys: [.playPause],
@@ -258,4 +265,156 @@ struct NotationWindowView: View {
 #Preview {
     NotationWindowView(viewModel: AudioPlayerViewModel())
         .environment(\.appColors, AppThemeColors.default)
+}
+
+private struct NotationWindowInitialFocusLandingView: NSViewRepresentable {
+    @Binding var didSetInitialFocus: Bool
+
+    func makeCoordinator() -> Coordinator {
+        Coordinator(didSetInitialFocus: $didSetInitialFocus)
+    }
+
+    func makeNSView(context: Context) -> NotationWindowInitialFocusLandingNSView {
+        let view = NotationWindowInitialFocusLandingNSView(frame: .zero)
+        configure(view, context: context)
+        return view
+    }
+
+    func updateNSView(
+        _ nsView: NotationWindowInitialFocusLandingNSView,
+        context: Context
+    ) {
+        configure(nsView, context: context)
+    }
+
+    private func configure(
+        _ view: NotationWindowInitialFocusLandingNSView,
+        context: Context
+    ) {
+        view.onFocusLandingRequested = { [weak coordinator = context.coordinator] window, landingView in
+            coordinator?.requestInitialFocus(in: window, landingView: landingView)
+        }
+    }
+
+    final class Coordinator {
+        private let didSetInitialFocus: Binding<Bool>
+        private var isSchedulingFocus = false
+
+        init(didSetInitialFocus: Binding<Bool>) {
+            self.didSetInitialFocus = didSetInitialFocus
+        }
+
+        func requestInitialFocus(
+            in window: NSWindow,
+            landingView: NotationWindowInitialFocusLandingNSView
+        ) {
+            guard !didSetInitialFocus.wrappedValue, !isSchedulingFocus else { return }
+            isSchedulingFocus = true
+
+            let delays: [TimeInterval] = [0, 0.08]
+            for (index, delay) in delays.enumerated() {
+                DispatchQueue.main.asyncAfter(deadline: .now() + delay) { [weak self, weak window, weak landingView] in
+                    guard let self else { return }
+                    guard let window, let landingView else {
+                        self.isSchedulingFocus = false
+                        return
+                    }
+                    let isFinalAttempt = index == delays.count - 1
+                    self.trySetInitialFocus(
+                        in: window,
+                        landingView: landingView,
+                        isFinalAttempt: isFinalAttempt
+                    )
+                }
+            }
+        }
+
+        private func trySetInitialFocus(
+            in window: NSWindow,
+            landingView: NotationWindowInitialFocusLandingNSView,
+            isFinalAttempt: Bool
+        ) {
+            guard !didSetInitialFocus.wrappedValue else {
+                isSchedulingFocus = false
+                return
+            }
+            guard shouldOverrideFirstResponder(
+                window.firstResponder,
+                window: window,
+                landingView: landingView
+            ) else {
+                if isFinalAttempt {
+                    isSchedulingFocus = false
+                }
+                return
+            }
+
+            let didLandFocus = window.makeFirstResponder(landingView)
+                && window.firstResponder === landingView
+            if didLandFocus, isFinalAttempt {
+                didSetInitialFocus.wrappedValue = true
+            }
+            if isFinalAttempt {
+                isSchedulingFocus = false
+            }
+        }
+
+        private func shouldOverrideFirstResponder(
+            _ firstResponder: NSResponder?,
+            window: NSWindow,
+            landingView: NotationWindowInitialFocusLandingNSView
+        ) -> Bool {
+            guard let firstResponder else { return true }
+            if firstResponder === window { return true }
+            if firstResponder === landingView { return true }
+            return AppHotkeyEventFilter.isAbletonNumberFieldResponder(firstResponder)
+        }
+    }
+}
+
+private final class NotationWindowInitialFocusLandingNSView: NSView {
+    var onFocusLandingRequested: ((NSWindow, NotationWindowInitialFocusLandingNSView) -> Void)?
+
+    private var didBecomeKeyObserver: NSObjectProtocol?
+
+    override var acceptsFirstResponder: Bool { true }
+
+    override init(frame frameRect: NSRect) {
+        super.init(frame: frameRect)
+        setAccessibilityElement(false)
+    }
+
+    required init?(coder: NSCoder) {
+        super.init(coder: coder)
+        setAccessibilityElement(false)
+    }
+
+    deinit {
+        removeWindowObserver()
+    }
+
+    override func viewDidMoveToWindow() {
+        super.viewDidMoveToWindow()
+        removeWindowObserver()
+        guard let window else { return }
+
+        didBecomeKeyObserver = NotificationCenter.default.addObserver(
+            forName: NSWindow.didBecomeKeyNotification,
+            object: window,
+            queue: .main
+        ) { [weak self] notification in
+            guard let self,
+                  let window = notification.object as? NSWindow
+            else { return }
+            self.onFocusLandingRequested?(window, self)
+        }
+
+        onFocusLandingRequested?(window, self)
+    }
+
+    private func removeWindowObserver() {
+        guard let didBecomeKeyObserver else { return }
+        NotificationCenter.default.removeObserver(didBecomeKeyObserver)
+        self.didBecomeKeyObserver = nil
+    }
 }

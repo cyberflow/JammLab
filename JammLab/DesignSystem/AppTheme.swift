@@ -259,8 +259,9 @@ enum AppTheme {
         static let notationMeasureMinWidth: CGFloat = 148
         static let notationStaffLineSpacing: CGFloat = 8
         static let notationStaffHorizontalInset: CGFloat = 10
-        static let notationClefWidth: CGFloat = 32
-        static let notationTrebleClefVerticalOffset: CGFloat = -5
+        static let notationClefFontSize: CGFloat = 48
+        static let notationClefWidth: CGFloat = 38
+        static let notationTrebleClefVerticalOffset: CGFloat = -6
         static let notationTimeSignatureWidth: CGFloat = 26
         static let notationAccidentalWidth: CGFloat = 11
         static let notationMinimumMeasureContentWidth: CGFloat = 28

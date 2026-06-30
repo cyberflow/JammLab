@@ -559,6 +559,31 @@ final class TimelineProjectLogicTests: XCTestCase {
             ),
             .playPause
         )
+        XCTAssertEqual(
+            AppHotkeyEventFilter.hotkey(
+                for: spaceEvent,
+                attachedWindowNumber: 42,
+                firstResponder: NSView(),
+                allowedHotkeys: [.playPause]
+            ),
+            .playPause
+        )
+        XCTAssertNil(
+            AppHotkeyEventFilter.hotkey(
+                for: spaceEvent,
+                attachedWindowNumber: 42,
+                firstResponder: AbletonNumberFieldNSView(),
+                allowedHotkeys: [.playPause]
+            )
+        )
+        XCTAssertNil(
+            AppHotkeyEventFilter.hotkey(
+                for: spaceEvent,
+                attachedWindowNumber: 42,
+                firstResponder: NSTextView(),
+                allowedHotkeys: [.playPause]
+            )
+        )
         XCTAssertNil(
             AppHotkeyEventFilter.hotkey(
                 for: spaceEvent,

@@ -83,9 +83,13 @@ enum AppHotkeyEventFilter {
         guard event.windowNumber == attachedWindowNumber else { return nil }
         guard !event.isARepeat else { return nil }
         guard !(firstResponder is NSTextView) else { return nil }
-        guard !(firstResponder is AbletonNumberFieldNSView) else { return nil }
+        guard !isAbletonNumberFieldResponder(firstResponder) else { return nil }
         guard let hotkey = AppHotkey(event: event) else { return nil }
         guard allowedHotkeys.contains(hotkey) else { return nil }
         return hotkey
+    }
+
+    static func isAbletonNumberFieldResponder(_ responder: NSResponder?) -> Bool {
+        responder is AbletonNumberFieldNSView
     }
 }
