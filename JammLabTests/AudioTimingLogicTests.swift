@@ -979,6 +979,34 @@ final class AudioTimingLogicTests: XCTestCase {
         XCTAssertFalse(barlines.contains { abs($0.x - geometry.contentStartX) < 0.0001 })
     }
 
+    func testNotationMeasureLayoutUsesThemeClefWidthInFullAttributeReserve() {
+        let attributes = MeasureAttributes(
+            keySignature: KeySignature.normalized(from: "F major"),
+            timeSignature: .fourFour,
+            clef: .treble
+        )
+        let blockWidth = NotationMeasureLayout.attributeBlockWidth(
+            for: attributes,
+            display: .full,
+            cellWidth: AppTheme.Timeline.notationMeasureMinWidth
+        )
+        let reserveWidth = NotationMeasureLayout.attributeReserveWidth(
+            for: attributes,
+            display: .full
+        )
+        let expectedBlockWidth = AppTheme.Timeline.notationClefWidth
+            + NotationMeasureLayout.keySignatureWidth(for: attributes)
+            + AppTheme.Timeline.notationTimeSignatureWidth
+            + NotationMeasureLayout.spacingWidth(forVisibleComponentCount: 3)
+
+        XCTAssertEqual(blockWidth, expectedBlockWidth, accuracy: 0.0001)
+        XCTAssertEqual(
+            reserveWidth,
+            AppTheme.Spacing.md + expectedBlockWidth + AppTheme.Spacing.xs,
+            accuracy: 0.0001
+        )
+    }
+
     func testNotationMeasureLayoutKeepsOrdinaryMeasureAtRawBoundary() {
         let attributes = MeasureAttributes(
             keySignature: KeySignature.normalized(from: "C major"),
@@ -1173,7 +1201,7 @@ final class AudioTimingLogicTests: XCTestCase {
         )
     }
 
-    func testNotationMeasureLayoutPositionsMeasureNumbersBeforeMeasureBoundary() {
+    func testNotationMeasureLayoutPositionsSystemMeasureNumberAtStaffStart() {
         let cellWidth: CGFloat = 148
         let attributes = MeasureAttributes(
             keySignature: KeySignature.normalized(from: "C major"),
@@ -1189,35 +1217,35 @@ final class AudioTimingLogicTests: XCTestCase {
             totalWidth: cellWidth * 4
         )
 
-        let firstLabelX = NotationMeasureLayout.measureNumberLabelX(
-            measureIndex: 0,
-            cellWidth: cellWidth
+        let labelX = NotationMeasureLayout.systemMeasureNumberLabelX(
+            geometry: firstGeometry
         )
-        let secondLabelX = NotationMeasureLayout.measureNumberLabelX(
-            measureIndex: 1,
-            cellWidth: cellWidth
+        let labelTrailingX = NotationMeasureLayout.systemMeasureNumberLabelTrailingX(
+            geometry: firstGeometry
         )
-        let thirdLabelX = NotationMeasureLayout.measureNumberLabelX(
-            measureIndex: 2,
-            cellWidth: cellWidth
+        let expectedTrailingX = firstGeometry.staffStartX + AppTheme.Spacing.sm
+        let expectedX = expectedTrailingX - NotationMeasureLayout.measureNumberLabelWidth
+
+        let staffTop: CGFloat = 32
+        let labelY = NotationMeasureLayout.systemMeasureNumberLabelY(staffTop: staffTop)
+        let shallowLabelY = NotationMeasureLayout.systemMeasureNumberLabelY(
+            staffTop: AppTheme.Spacing.xs
         )
 
-        XCTAssertEqual(firstLabelX, AppTheme.Spacing.xs, accuracy: 0.0001)
-        XCTAssertGreaterThanOrEqual(firstLabelX, 0)
-        XCTAssertLessThanOrEqual(
-            firstLabelX + NotationMeasureLayout.measureNumberLabelWidth,
-            firstGeometry.contentStartX + 0.0001
-        )
+        XCTAssertEqual(labelTrailingX, expectedTrailingX, accuracy: 0.0001)
         XCTAssertEqual(
-            secondLabelX + NotationMeasureLayout.measureNumberLabelWidth,
-            cellWidth - AppTheme.Spacing.xs,
+            labelX + NotationMeasureLayout.measureNumberLabelWidth,
+            expectedTrailingX,
             accuracy: 0.0001
         )
+        XCTAssertEqual(labelX, expectedX, accuracy: 0.0001)
+        XCTAssertLessThan(labelX, firstGeometry.staffStartX)
         XCTAssertEqual(
-            thirdLabelX + NotationMeasureLayout.measureNumberLabelWidth,
-            cellWidth * 2 - AppTheme.Spacing.xs,
+            labelY,
+            staffTop - NotationMeasureLayout.systemMeasureNumberStaffGap,
             accuracy: 0.0001
         )
+        XCTAssertEqual(shallowLabelY, AppTheme.Spacing.xs, accuracy: 0.0001)
     }
 
     func testNotationMeasureLayoutKeepsHarmonyLabelAboveStaff() {

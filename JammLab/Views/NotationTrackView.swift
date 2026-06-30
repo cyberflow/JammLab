@@ -43,7 +43,11 @@ struct NotationTrackView: View {
                     measureCount: renderedMeasureCount,
                     attributeDisplays: attributeDisplays
                 )
-                measureNumberLabels(width: contentWidth)
+                measureNumberLabels(
+                    width: contentWidth,
+                    height: proxy.size.height,
+                    attributeDisplays: attributeDisplays
+                )
                 harmonySymbolsLayer(
                     width: contentWidth,
                     height: proxy.size.height,
@@ -219,29 +223,36 @@ struct NotationTrackView: View {
         )
     }
 
-    private func measureNumberLabels(width: CGFloat) -> some View {
+    private func measureNumberLabels(
+        width: CGFloat,
+        height: CGFloat,
+        attributeDisplays: [NotationAttributeDisplay]
+    ) -> some View {
         let geometries = measureCanvasGeometries(
             measureCount: renderedMeasureCount,
             width: width,
-            attributeDisplays: visibleAttributeDisplays
+            attributeDisplays: attributeDisplays
+        )
+        let labelY = NotationMeasureLayout.systemMeasureNumberLabelY(
+            staffTop: staffTop(in: height)
         )
 
         return ZStack(alignment: .topLeading) {
-            ForEach(state.visibleMeasures.indices, id: \.self) { index in
-                let labelX = geometries.indices.contains(index)
-                    ? NotationMeasureLayout.measureNumberLabelX(geometry: geometries[index])
-                    : AppTheme.Spacing.xs
+            if let firstMeasure = state.visibleMeasures.first {
+                let labelX = geometries.first.map {
+                    NotationMeasureLayout.systemMeasureNumberLabelX(geometry: $0)
+                } ?? AppTheme.Spacing.xs
 
-                Text("\(state.visibleMeasures[index].number)")
+                Text("\(firstMeasure.number)")
                     .font(AppTheme.Typography.timelineLabel.weight(.medium))
                     .foregroundStyle(appColors.secondaryText)
                     .lineLimit(1)
                     .frame(width: NotationMeasureLayout.measureNumberLabelWidth, alignment: .trailing)
                     .offset(
                         x: labelX,
-                        y: AppTheme.Spacing.xs
+                        y: labelY
                     )
-                    .accessibilityLabel("Measure \(state.visibleMeasures[index].number)")
+                    .accessibilityLabel("Measure \(firstMeasure.number)")
             }
         }
     }
@@ -394,7 +405,7 @@ struct NotationTrackView: View {
         return HStack(alignment: .center, spacing: AppTheme.Spacing.xs) {
             if display.showsClef {
                 Text(attributes.clef.displaySymbol)
-                    .font(.system(size: 42))
+                    .font(.system(size: AppTheme.Timeline.notationClefFontSize))
                     .foregroundStyle(appColors.notationSymbolsAndLines)
                     .frame(width: AppTheme.Timeline.notationClefWidth, alignment: .center)
                     .offset(y: clefVerticalOffset(for: attributes.clef))
@@ -950,16 +961,20 @@ struct NotationMeasureLayout {
         }
     }
 
-    static func measureNumberLabelX(measureIndex: Int, cellWidth: CGFloat) -> CGFloat {
-        guard measureIndex > 0 else { return AppTheme.Spacing.xs }
-
-        let cellStartX = CGFloat(max(0, measureIndex)) * max(0, cellWidth)
-        return max(0, cellStartX - measureNumberLabelWidth - AppTheme.Spacing.xs)
+    static func systemMeasureNumberLabelX(geometry: NotationMeasureCanvasGeometry) -> CGFloat {
+        systemMeasureNumberLabelTrailingX(geometry: geometry) - measureNumberLabelWidth
     }
 
-    static func measureNumberLabelX(geometry: NotationMeasureCanvasGeometry) -> CGFloat {
-        guard geometry.measureIndex > 0 else { return AppTheme.Spacing.xs }
-        return max(0, geometry.cellStartX - measureNumberLabelWidth - AppTheme.Spacing.xs)
+    static func systemMeasureNumberLabelTrailingX(geometry: NotationMeasureCanvasGeometry) -> CGFloat {
+        geometry.staffStartX + AppTheme.Spacing.sm
+    }
+
+    static var systemMeasureNumberStaffGap: CGFloat {
+        AppTheme.Spacing.headerVertical
+    }
+
+    static func systemMeasureNumberLabelY(staffTop: CGFloat) -> CGFloat {
+        max(AppTheme.Spacing.xs, staffTop - systemMeasureNumberStaffGap)
     }
 
     static func harmonyLabelY(
