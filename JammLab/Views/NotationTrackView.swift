@@ -147,6 +147,11 @@ struct NotationTrackView: View {
                 staffTop: staffTop,
                 in: &context
             )
+            drawSlashNotation(
+                geometries: geometries,
+                staffTop: staffTop,
+                in: &context
+            )
             drawBarlines(
                 geometries: geometries,
                 staffTop: staffTop,
@@ -203,6 +208,48 @@ struct NotationTrackView: View {
                 staffBottom: staffBottom,
                 in: &context
             )
+        }
+    }
+
+    private func drawSlashNotation(
+        geometries: [NotationMeasureCanvasGeometry],
+        staffTop: CGFloat,
+        in context: inout GraphicsContext
+    ) {
+        let centerY = staffTop + AppTheme.Timeline.notationStaffLineSpacing * 2
+        let slashWidth = AppTheme.Timeline.notationSlashWidth
+        let slashHeight = AppTheme.Timeline.notationSlashHeight
+        let style = StrokeStyle(
+            lineWidth: AppTheme.Timeline.notationSlashLineWidth,
+            lineCap: .round,
+            lineJoin: .round
+        )
+
+        for index in state.visibleMeasures.indices {
+            guard geometries.indices.contains(index) else { continue }
+
+            let measure = state.visibleMeasures[index]
+            let beatCenters = NotationMeasureLayout.slashBeatCenters(
+                geometry: geometries[index],
+                timeSignature: measure.attributes.timeSignature
+            )
+
+            for x in beatCenters {
+                var path = Path()
+                path.move(to: CGPoint(
+                    x: x - slashWidth / 2,
+                    y: centerY + slashHeight / 2
+                ))
+                path.addLine(to: CGPoint(
+                    x: x + slashWidth / 2,
+                    y: centerY - slashHeight / 2
+                ))
+                context.stroke(
+                    path,
+                    with: .color(appColors.notationSymbolsAndLines),
+                    style: style
+                )
+            }
         }
     }
 
@@ -527,7 +574,7 @@ struct NotationTrackView: View {
             return state.visibleMeasures[index].harmonies.map { symbol in
                 HarmonyLayoutItem(
                     symbol: symbol,
-                    x: NotationMeasureLayout.harmonyX(
+                    x: NotationMeasureLayout.harmonyLabelX(
                         geometry: geometries[index],
                         offsetInQuarterNotes: symbol.offsetInQuarterNotes,
                         timeSignature: state.visibleMeasures[index].attributes.timeSignature
@@ -557,7 +604,7 @@ struct NotationTrackView: View {
                 offsetInQuarterNotes: placement.offsetInQuarterNotes,
                 rawText: editingDraft?.text ?? ""
             ),
-            x: NotationMeasureLayout.harmonyX(
+            x: NotationMeasureLayout.harmonyLabelX(
                 geometry: geometries[placement.measureIndex],
                 offsetInQuarterNotes: placement.offsetInQuarterNotes,
                 timeSignature: state.visibleMeasures[placement.measureIndex].attributes.timeSignature
@@ -718,8 +765,10 @@ struct NotationTrackView: View {
         let measure = state.visibleMeasures[measureIndex]
         guard geometries.indices.contains(measureIndex) else { return nil }
         let geometry = geometries[measureIndex]
-        let contentWidth = max(1, geometry.contentEndX - geometry.contentStartX)
-        let progress = max(0, min((point.x - geometry.contentStartX) / contentWidth, 1))
+        let progress = NotationMeasureLayout.notationAnchorProgress(
+            atX: point.x,
+            geometry: geometry
+        )
         let rawOffset = progress * NotationMeasureLayout.quarterLength(for: measure.attributes.timeSignature)
         let snappedOffset = NotationMeasureLayout.snappedHarmonyOffset(
             rawOffset,
@@ -1112,16 +1161,84 @@ struct NotationMeasureLayout {
         return min(max(rawX, visualStartX), maximumX)
     }
 
+    static func slashBeatCenters(
+        geometry: NotationMeasureCanvasGeometry,
+        timeSignature: TimeSignature,
+        minimumBeatSpacing: CGFloat = AppTheme.Timeline.notationSlashMinimumBeatSpacing
+    ) -> [CGFloat] {
+        let beatCount = timeSignature.beatsPerBar
+        let contentWidth = geometry.contentEndX - geometry.contentStartX
+        guard beatCount > 0, contentWidth > 0 else { return [] }
+
+        let beatSpacing = contentWidth / CGFloat(beatCount)
+        guard beatSpacing >= max(0, minimumBeatSpacing) else { return [] }
+
+        let beatLength = 4.0 / Double(max(1, timeSignature.beatUnit))
+        return (0..<beatCount).map { index in
+            notationAnchorX(
+                geometry: geometry,
+                offsetInQuarterNotes: Double(index) * beatLength,
+                timeSignature: timeSignature
+            )
+        }
+    }
+
+    static func notationAnchorX(
+        geometry: NotationMeasureCanvasGeometry,
+        offsetInQuarterNotes: Double,
+        timeSignature: TimeSignature,
+        anchorInset: CGFloat = AppTheme.Timeline.notationBeatAnchorInset
+    ) -> CGFloat {
+        let quarterLength = quarterLength(for: timeSignature)
+        guard quarterLength > 0 else { return geometry.contentStartX }
+
+        let contentWidth = max(0, geometry.contentEndX - geometry.contentStartX)
+        let effectiveInset = min(max(0, anchorInset), contentWidth)
+        let progress = max(0, min(offsetInQuarterNotes / quarterLength, 1))
+        let rawX = geometry.contentStartX + effectiveInset + CGFloat(progress) * contentWidth
+        return min(max(rawX, geometry.contentStartX), geometry.contentEndX)
+    }
+
+    static func notationAnchorProgress(
+        atX x: CGFloat,
+        geometry: NotationMeasureCanvasGeometry,
+        anchorInset: CGFloat = AppTheme.Timeline.notationBeatAnchorInset
+    ) -> Double {
+        let contentWidth = max(0, geometry.contentEndX - geometry.contentStartX)
+        guard contentWidth > 0 else { return 0 }
+
+        let effectiveInset = min(max(0, anchorInset), contentWidth)
+        let rawProgress = (x - geometry.contentStartX - effectiveInset) / contentWidth
+        return Double(max(0, min(rawProgress, 1)))
+    }
+
     static func harmonyX(
         geometry: NotationMeasureCanvasGeometry,
         offsetInQuarterNotes: Double,
         timeSignature: TimeSignature
     ) -> CGFloat {
-        let quarterLength = quarterLength(for: timeSignature)
-        guard quarterLength > 0 else { return geometry.contentStartX }
-        let progress = max(0, min(offsetInQuarterNotes / quarterLength, 1))
-        let width = max(0, geometry.contentEndX - geometry.contentStartX)
-        return geometry.contentStartX + CGFloat(progress) * width
+        notationAnchorX(
+            geometry: geometry,
+            offsetInQuarterNotes: offsetInQuarterNotes,
+            timeSignature: timeSignature
+        )
+    }
+
+    static func harmonyLabelX(
+        geometry: NotationMeasureCanvasGeometry,
+        offsetInQuarterNotes: Double,
+        timeSignature: TimeSignature,
+        leadingOffset: CGFloat = AppTheme.Timeline.notationHarmonyAnchorLeadingOffset
+    ) -> CGFloat {
+        let anchorX = harmonyX(
+            geometry: geometry,
+            offsetInQuarterNotes: offsetInQuarterNotes,
+            timeSignature: timeSignature
+        )
+        let lowerBound = max(geometry.staffStartX, geometry.contentStartX)
+        let upperBound = max(lowerBound, geometry.contentEndX)
+        let rawX = anchorX - max(0, leadingOffset)
+        return min(max(rawX, lowerBound), upperBound)
     }
 
     static func snappedHarmonyOffset(

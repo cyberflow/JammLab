@@ -266,6 +266,12 @@ enum AppTheme {
         static let notationAccidentalWidth: CGFloat = 11
         static let notationMinimumMeasureContentWidth: CGFloat = 28
         static let notationMeasureNumberLabelWidth: CGFloat = 34
+        static let notationSlashWidth: CGFloat = 7
+        static let notationSlashHeight: CGFloat = 16
+        static let notationSlashLineWidth: CGFloat = 2
+        static let notationSlashMinimumBeatSpacing: CGFloat = 16
+        static let notationBeatAnchorInset: CGFloat = AppTheme.Spacing.lg
+        static let notationHarmonyAnchorLeadingOffset: CGFloat = AppTheme.Spacing.md
         static let notationHarmonySymbolWidth: CGFloat = 84
         static let notationHarmonyEditorWidth: CGFloat = 64
         static let stemTrackHeight: CGFloat = 48
