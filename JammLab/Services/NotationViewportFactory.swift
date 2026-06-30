@@ -1,6 +1,64 @@
 import Foundation
 
 struct NotationViewportFactory {
+    func scoreState(
+        tempoMap: TempoMap,
+        duration: TimeInterval,
+        currentTime: TimeInterval,
+        playbackMarkerTime: TimeInterval,
+        isPlaying: Bool,
+        keyName: String?,
+        harmonySymbols: [HarmonySymbol] = []
+    ) -> NotationScoreState {
+        let keySignature = KeySignature.normalized(from: keyName)
+        guard duration > 0 else {
+            return .pending(keySignature: keySignature)
+        }
+
+        let rawAnchorTime = Self.anchorTime(
+            currentTime: currentTime,
+            playbackMarkerTime: playbackMarkerTime,
+            isPlaying: isPlaying,
+            duration: duration
+        )
+
+        guard let activeMeasure = measure(containing: rawAnchorTime, tempoMap: tempoMap),
+              var cursor = measure(containing: 0, tempoMap: tempoMap)
+        else {
+            return .pending(keySignature: keySignature)
+        }
+
+        var measures: [ScoreMeasure] = []
+        for _ in 0..<Self.maximumMeasureTraversalCount {
+            measures.append(decoratedMeasure(
+                cursor,
+                keySignature: keySignature,
+                harmonySymbols: harmonySymbols
+            ))
+
+            guard cursor.endTime < duration - Self.timelineTolerance,
+                  let next = nextMeasure(after: cursor, tempoMap: tempoMap),
+                  !next.hasSameTimelineIdentity(as: cursor)
+            else {
+                break
+            }
+
+            cursor = next
+        }
+
+        guard !measures.isEmpty else {
+            return .pending(keySignature: keySignature)
+        }
+
+        return NotationScoreState(
+            availability: .ready,
+            keySignature: keySignature,
+            measures: measures,
+            anchorTime: Self.viewportAnchorTime(rawAnchorTime, in: activeMeasure),
+            activeMeasureNumber: activeMeasure.number
+        )
+    }
+
     func viewportState(
         tempoMap: TempoMap,
         duration: TimeInterval,
@@ -37,9 +95,10 @@ struct NotationViewportFactory {
         var visibleMeasures: [ScoreMeasure] = []
         var cursor = firstMeasure
         for _ in 0..<safeVisibleMeasureCount {
-            let keyedMeasure = cursor.withKeySignature(keySignature)
-            visibleMeasures.append(keyedMeasure.withHarmonies(
-                harmonies(for: keyedMeasure, from: harmonySymbols)
+            visibleMeasures.append(decoratedMeasure(
+                cursor,
+                keySignature: keySignature,
+                harmonySymbols: harmonySymbols
             ))
             guard let next = nextMeasure(after: cursor, tempoMap: tempoMap) else { break }
             cursor = next
@@ -59,6 +118,17 @@ struct NotationViewportFactory {
             visibleMeasures: visibleMeasures,
             anchorTime: Self.viewportAnchorTime(rawAnchorTime, in: activeMeasure),
             activeMeasureNumber: activeMeasure.number
+        )
+    }
+
+    private func decoratedMeasure(
+        _ measure: ScoreMeasure,
+        keySignature: KeySignature,
+        harmonySymbols: [HarmonySymbol]
+    ) -> ScoreMeasure {
+        let keyedMeasure = measure.withKeySignature(keySignature)
+        return keyedMeasure.withHarmonies(
+            harmonies(for: keyedMeasure, from: harmonySymbols)
         )
     }
 

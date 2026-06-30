@@ -200,7 +200,8 @@ extension ContentView {
             loopEndChanged: { viewModel.updateLoopEnd($0) },
             loopRegionChanged: { viewModel.updateLoopRegion(start: $0, end: $1) },
             timelineScroll: { viewModel.handleTimelineScroll(deltaX: $0, deltaY: $1, anchorTime: $2) },
-            mainTrackVolumeChanged: { viewModel.setMainTrackVolume($0) }
+            mainTrackVolumeChanged: { viewModel.setMainTrackVolume($0) },
+            showNotationWindow: { openWindow(id: AppWindowID.notation) }
         )
     }
 

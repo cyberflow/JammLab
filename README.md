@@ -22,6 +22,7 @@ not require a server, paid API, cloud upload, or user-installed
   the source of truth.
 - DAW-style transport with play, pause, stop, seek, speed, and pitch controls.
 - Waveform timeline with dynamic beat grid, zoom/scroll controls, and playhead.
+- Synced Notation track and full Notation Window for lead-sheet harmony editing.
 - Notes, markers, and colored regions for section-based practice.
 - Loop region editing with audio-engine loop execution.
 - Click, Snap, and editable time signature controls.
@@ -139,6 +140,8 @@ The app uses SwiftUI + MVVM with a service layer and focused pure logic models.
 edits, stems, video follower state, and undo/dirty tracking. Timeline rendering
 uses `TimelineViewport` as the shared time-to-pixel model so waveform, beat
 grid, regions, markers, loop handles, and playhead stay synchronized.
+Notation rendering uses the same playback clock and harmony editing state in
+the timeline track and the standalone Notation Window.
 
 ## Approximate Analysis
 

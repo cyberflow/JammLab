@@ -5,6 +5,10 @@ extension AudioPlayerViewModel {
         notes.filter(\.isRegion)
     }
 
+    var canShowNotationWindow: Bool {
+        duration > 0
+    }
+
     func setLoopStartAtCurrentTime() {
         updateLoopStart(currentTime)
     }

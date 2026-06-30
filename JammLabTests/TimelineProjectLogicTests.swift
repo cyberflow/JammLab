@@ -512,6 +512,79 @@ final class TimelineProjectLogicTests: XCTestCase {
         XCTAssertEqual(AppHotkey.playPause.detail, "Start playback from the position marker or stop and return to it.")
     }
 
+    func testAppHotkeyEventFilterScopesAllowedHotkeysToAttachedWindow() throws {
+        let spaceEvent = try XCTUnwrap(NSEvent.keyEvent(
+            with: .keyDown,
+            location: .zero,
+            modifierFlags: [],
+            timestamp: 0,
+            windowNumber: 42,
+            context: nil,
+            characters: " ",
+            charactersIgnoringModifiers: " ",
+            isARepeat: false,
+            keyCode: 49
+        ))
+        let repeatSpaceEvent = try XCTUnwrap(NSEvent.keyEvent(
+            with: .keyDown,
+            location: .zero,
+            modifierFlags: [],
+            timestamp: 0,
+            windowNumber: 42,
+            context: nil,
+            characters: " ",
+            charactersIgnoringModifiers: " ",
+            isARepeat: true,
+            keyCode: 49
+        ))
+        let tabEvent = try XCTUnwrap(NSEvent.keyEvent(
+            with: .keyDown,
+            location: .zero,
+            modifierFlags: [],
+            timestamp: 0,
+            windowNumber: 42,
+            context: nil,
+            characters: "\t",
+            charactersIgnoringModifiers: "\t",
+            isARepeat: false,
+            keyCode: 48
+        ))
+
+        XCTAssertEqual(
+            AppHotkeyEventFilter.hotkey(
+                for: spaceEvent,
+                attachedWindowNumber: 42,
+                firstResponder: nil,
+                allowedHotkeys: [.playPause]
+            ),
+            .playPause
+        )
+        XCTAssertNil(
+            AppHotkeyEventFilter.hotkey(
+                for: spaceEvent,
+                attachedWindowNumber: 7,
+                firstResponder: nil,
+                allowedHotkeys: [.playPause]
+            )
+        )
+        XCTAssertNil(
+            AppHotkeyEventFilter.hotkey(
+                for: repeatSpaceEvent,
+                attachedWindowNumber: 42,
+                firstResponder: nil,
+                allowedHotkeys: [.playPause]
+            )
+        )
+        XCTAssertNil(
+            AppHotkeyEventFilter.hotkey(
+                for: tabEvent,
+                attachedWindowNumber: 42,
+                firstResponder: nil,
+                allowedHotkeys: [.playPause]
+            )
+        )
+    }
+
     func testAppHotkeyRecognizesAForHarmonyAtPlaybackMarker() throws {
         let event = try XCTUnwrap(NSEvent.keyEvent(
             with: .keyDown,
