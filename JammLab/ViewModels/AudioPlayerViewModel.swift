@@ -40,6 +40,8 @@ final class AudioPlayerViewModel: ObservableObject {
     @Published var projectKeySelection: ProjectKeySelection?
     @Published var selectedRegionID: TimecodedNote.ID?
     @Published var selectedHarmonySymbolID: HarmonySymbol.ID?
+    @Published var selectedNotationMeasures: [NotationMeasureSelection] = []
+    @Published var notationMeasureClipboard: NotationMeasureClipboard?
     @Published var harmonyInputResolutionDenominator = HarmonyInputResolution.defaultDenominator
     @Published var pendingHarmonyEditorRequest: HarmonyEditorRequest?
     @Published var activeLoopRegionID: TimecodedNote.ID?
@@ -86,6 +88,7 @@ final class AudioPlayerViewModel: ObservableObject {
     var clockTask: Task<Void, Never>?
     var analysisTask: Task<Void, Never>?
     var waveformTask: Task<Void, Never>?
+    var notationMeasureSelectionAnchor: NotationMeasureSelection?
     var stemSeparationTask: Task<Void, Never>?
     var stemPeakformTask: Task<Void, Never>?
     var stemCacheMetadata: StemCacheMetadata?

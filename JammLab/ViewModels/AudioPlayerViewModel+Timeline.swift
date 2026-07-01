@@ -29,6 +29,7 @@ extension AudioPlayerViewModel {
             beatGridSettings.bpm = tempoBPM
             beatGridSettings.lastChangedAt = Date()
             shouldAcceptAnalyzedTempo = false
+            clearNotationMeasureSelection()
             applyTempoMapToPlaybackEngine()
         }
     }
@@ -38,24 +39,28 @@ extension AudioPlayerViewModel {
             beatGridSettings.timeSignature = TimeSignature(beatsPerBar: beatsPerBar, beatUnit: beatUnit)
             beatGridSettings.lastChangedAt = Date()
             shouldAcceptAnalyzedTempo = false
+            clearNotationMeasureSelection()
             applyTempoMapToPlaybackEngine()
         }
     }
 
     func setCurrentTimeAsBeatOne() {
         performUndoableEdit("Set Beat 1") {
+            clearNotationMeasureSelection()
             setFirstBeatTime(currentTime, source: .manual)
         }
     }
 
     func resetBeatGridAlignment() {
         performUndoableEdit("Reset Beat Grid") {
+            clearNotationMeasureSelection()
             setFirstBeatTime(beatGridSettings.automaticFirstBeatTime, source: .automatic)
         }
     }
 
     func nudgeBeatGrid(by delta: TimeInterval) {
         performUndoableEdit("Nudge Beat Grid") {
+            clearNotationMeasureSelection()
             setFirstBeatTime(beatGridSettings.firstBeatTime + delta, source: .manual)
         }
     }

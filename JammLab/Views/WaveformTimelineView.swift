@@ -25,6 +25,7 @@ struct TimelineViewState: Equatable {
     var loopEnd: TimeInterval
     var notes: [TimecodedNote]
     var selectedHarmonySymbolID: HarmonySymbol.ID?
+    var selectedNotationMeasures: [NotationMeasureSelection]
     var harmonyInputResolutionDenominator: Int
     var pendingHarmonyEditorRequest: HarmonyEditorRequest?
     var selectedRegionID: TimecodedNote.ID?
@@ -44,6 +45,7 @@ struct TimelineViewActions {
     var addNote: (TimeInterval) -> Void
     var harmonyInputResolutionChanged: (Int) -> Void
     var selectHarmony: (HarmonySymbol.ID?) -> Void
+    var selectNotationMeasure: (ScoreMeasure?, Bool) -> Void
     var saveHarmony: (HarmonySymbol) -> Void
     var deleteHarmony: (HarmonySymbol.ID) -> Void
     var adjacentHarmonyPlacement: (TimeInterval, HarmonyNavigationDirection) -> HarmonyPlacement?
@@ -235,10 +237,12 @@ struct WaveformTimelineView: View {
             NotationTrackView(
                 state: state.notationViewport,
                 selectedHarmonySymbolID: state.selectedHarmonySymbolID,
+                selectedMeasures: state.selectedNotationMeasures,
                 pendingEditorRequest: state.pendingHarmonyEditorRequest,
                 inputResolution: HarmonyInputResolution(denominator: state.harmonyInputResolutionDenominator),
                 actions: NotationTrackActions(
                     selectHarmony: actions.selectHarmony,
+                    selectMeasure: actions.selectNotationMeasure,
                     saveHarmony: actions.saveHarmony,
                     deleteHarmony: actions.deleteHarmony,
                     adjacentHarmonyPlacement: actions.adjacentHarmonyPlacement

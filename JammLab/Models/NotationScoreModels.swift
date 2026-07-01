@@ -55,6 +55,78 @@ struct NotationRegionLabel: Identifiable, Equatable {
     }
 }
 
+struct NotationMeasureSelection: Equatable, Identifiable {
+    var number: Int
+    var startTime: TimeInterval
+    var endTime: TimeInterval
+    var attributes: MeasureAttributes
+
+    init(measure: ScoreMeasure) {
+        self.number = measure.number
+        self.startTime = measure.startTime
+        self.endTime = measure.endTime
+        self.attributes = measure.attributes
+    }
+
+    var id: String {
+        "\(number)-\(startTime)-\(endTime)"
+    }
+
+    func matches(_ measure: ScoreMeasure) -> Bool {
+        number == measure.number
+            && abs(startTime - measure.startTime) < NotationMeasureTiming.timelineTolerance
+            && abs(endTime - measure.endTime) < NotationMeasureTiming.timelineTolerance
+    }
+}
+
+struct NotationMeasureClipboard: Equatable {
+    var measures: [NotationMeasureClipboardMeasure]
+}
+
+struct NotationMeasureClipboardMeasure: Equatable {
+    var items: [NotationMeasureClipboardItem]
+}
+
+struct NotationMeasureClipboardItem: Equatable {
+    var offsetInQuarterNotes: Double
+    var rawText: String
+}
+
+enum NotationMeasureTiming {
+    static let timelineTolerance: TimeInterval = 0.000_001
+
+    static func containsEventTime(_ time: TimeInterval, in measure: ScoreMeasure) -> Bool {
+        time >= measure.startTime - timelineTolerance
+            && (
+                time < measure.endTime - timelineTolerance
+                    || abs(time - measure.startTime) < timelineTolerance
+            )
+    }
+
+    static func quarterOffset(for time: TimeInterval, in measure: ScoreMeasure) -> Double {
+        let length = quarterLength(for: measure.attributes.timeSignature)
+        guard measure.duration > 0, length > 0 else { return 0 }
+        let progress = max(0, min((time - measure.startTime) / measure.duration, 1))
+        return progress * length
+    }
+
+    static func time(forQuarterOffset offset: Double, in measure: ScoreMeasure) -> TimeInterval {
+        let length = quarterLength(for: measure.attributes.timeSignature)
+        guard measure.duration > 0, length > 0 else { return measure.startTime }
+        let progress = max(0, min(offset / length, 1))
+        return measure.startTime + progress * measure.duration
+    }
+
+    static func isValidHarmonyOffset(_ offset: Double, in timeSignature: TimeSignature) -> Bool {
+        let length = quarterLength(for: timeSignature)
+        return offset >= -timelineTolerance && offset < length - timelineTolerance
+    }
+
+    static func quarterLength(for timeSignature: TimeSignature) -> Double {
+        Double(timeSignature.beatsPerBar) * 4.0 / Double(max(1, timeSignature.beatUnit))
+    }
+}
+
 struct HarmonySymbol: Identifiable, Codable, Equatable {
     var id: UUID
     var time: TimeInterval

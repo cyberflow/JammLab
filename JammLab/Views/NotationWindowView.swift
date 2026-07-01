@@ -38,8 +38,8 @@ struct NotationWindowView: View {
             )
             .background(
                 AppHotkeyMonitorView(
-                    allowedHotkeys: [.playPause],
-                    onHotkey: handleHotkey
+                    allowedHotkeys: allowedHotkeys,
+                    onHotkeyShouldConsume: handleHotkey
                 )
             )
         }
@@ -102,6 +102,7 @@ struct NotationWindowView: View {
                             NotationTrackView(
                                 state: system.viewportState,
                                 selectedHarmonySymbolID: viewModel.selectedHarmonySymbolID,
+                                selectedMeasures: viewModel.selectedNotationMeasures,
                                 pendingEditorRequest: viewModel.pendingHarmonyEditorRequest,
                                 inputResolution: HarmonyInputResolution(
                                     denominator: viewModel.harmonyInputResolutionDenominator
@@ -163,18 +164,42 @@ struct NotationWindowView: View {
     private var notationActions: NotationTrackActions {
         NotationTrackActions(
             selectHarmony: { viewModel.selectHarmonySymbol(id: $0) },
+            selectMeasure: { viewModel.selectNotationMeasure($0, extendingSelection: $1) },
             saveHarmony: { viewModel.saveHarmonySymbol($0) },
             deleteHarmony: { viewModel.deleteHarmonySymbol(id: $0) },
             adjacentHarmonyPlacement: { viewModel.adjacentHarmonyPlacement(from: $0, direction: $1) }
         )
     }
 
-    private func handleHotkey(_ hotkey: AppHotkey) {
+    private var allowedHotkeys: Set<AppHotkey> {
+        var hotkeys: Set<AppHotkey> = [.playPause]
+        if viewModel.canCopySelectedNotationMeasure {
+            hotkeys.insert(.copyMeasure)
+        }
+        if viewModel.canPasteNotationMeasureClipboard {
+            hotkeys.insert(.pasteMeasure)
+        }
+        if viewModel.hasSelectedNotationMeasures {
+            hotkeys.insert(.clearNotationMeasureSelection)
+        }
+        return hotkeys
+    }
+
+    @discardableResult
+    private func handleHotkey(_ hotkey: AppHotkey) -> Bool {
         switch hotkey {
         case .playPause:
             viewModel.togglePlayStop()
+            return true
+        case .copyMeasure:
+            return viewModel.copySelectedNotationMeasure()
+        case .pasteMeasure:
+            return viewModel.pasteNotationMeasureClipboard()
+        case .clearNotationMeasureSelection:
+            viewModel.clearNotationMeasureSelection()
+            return true
         default:
-            break
+            return false
         }
     }
 
