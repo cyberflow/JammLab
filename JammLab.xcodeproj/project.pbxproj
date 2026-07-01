@@ -40,12 +40,14 @@
 		9FDD01042D60000100112233 /* NoteColorPresentation.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9FDD00042D60000100112233 /* NoteColorPresentation.swift */; };
 		9FDD01052D60000100112233 /* SettingsSections.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9FDD00052D60000100112233 /* SettingsSections.swift */; };
 		9FDD01062D60000100112233 /* SettingsContentViews.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9FDD00062D60000100112233 /* SettingsContentViews.swift */; };
-		9FEA01012D70000100112233 /* ScoreDocument.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9FEA00012D70000100112233 /* ScoreDocument.swift */; };
+		9FEA01012D70000100112233 /* NotationScoreModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9FEA00012D70000100112233 /* NotationScoreModels.swift */; };
 		9FEA01022D70000100112233 /* NotationViewportState.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9FEA00022D70000100112233 /* NotationViewportState.swift */; };
 		9FEA01032D70000100112233 /* NotationViewportFactory.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9FEA00032D70000100112233 /* NotationViewportFactory.swift */; };
 		9FEA01042D70000100112233 /* NotationTrackView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9FEA00042D70000100112233 /* NotationTrackView.swift */; };
+		9FCB01062D80000100112233 /* NotationMeasureLayout.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9FCB00062D80000100112233 /* NotationMeasureLayout.swift */; };
 		9FEA01052D70000100112233 /* NotationVisibleMeasureFitter.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9FEA00052D70000100112233 /* NotationVisibleMeasureFitter.swift */; };
 		9FEA01062D70000100112233 /* ProjectKeySelection.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9FEA00062D70000100112233 /* ProjectKeySelection.swift */; };
+		9FCB01072D80000100112233 /* NotationHarmonyInlineTextField.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9FCB00072D80000100112233 /* NotationHarmonyInlineTextField.swift */; };
 		9FEC01012D71000100112233 /* NotationWindowView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9FEC00012D71000100112233 /* NotationWindowView.swift */; };
 		9F8B01062C10000100112233 /* TestSupport.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9F8B00072C10000100112233 /* TestSupport.swift */; };
 		9FCD01012D50000100112233 /* PerformanceBenchmarkTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9FCD00012D50000100112233 /* PerformanceBenchmarkTests.swift */; };
@@ -53,12 +55,20 @@
 		9F8C01012C20000100112233 /* AppTheme.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9F8C00012C20000100112233 /* AppTheme.swift */; };
 		9F8C01022C20000100112233 /* AppPanel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9F8C00022C20000100112233 /* AppPanel.swift */; };
 		9F8C01032C20000100112233 /* AppControls.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9F8C00032C20000100112233 /* AppControls.swift */; };
+		9FCB01022D80000100112233 /* CompactValuePicker.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9FCB00022D80000100112233 /* CompactValuePicker.swift */; };
+		9FCB01032D80000100112233 /* AppLetterToggleButton.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9FCB00032D80000100112233 /* AppLetterToggleButton.swift */; };
+		9FCB01042D80000100112233 /* JammModeToggleButton.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9FCB00042D80000100112233 /* JammModeToggleButton.swift */; };
+		9FCB01052D80000100112233 /* AppPopoverDismissModifier.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9FCB00052D80000100112233 /* AppPopoverDismissModifier.swift */; };
+		9FCB01092D80000100112233 /* ClickToolbarButton.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9FCB00092D80000100112233 /* ClickToolbarButton.swift */; };
+		9FCB010A2D80000100112233 /* BeatOneToolbarButton.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9FCB000A2D80000100112233 /* BeatOneToolbarButton.swift */; };
+		9FCB010B2D80000100112233 /* StemSeparationToolbarButton.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9FCB000B2D80000100112233 /* StemSeparationToolbarButton.swift */; };
 		9F8C01042C20000100112233 /* AppHotkeyMonitorView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9F8C00042C20000100112233 /* AppHotkeyMonitorView.swift */; };
 		9F8C01052C20000100112233 /* NoteRowView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9F8C00052C20000100112233 /* NoteRowView.swift */; };
 		9F8C01062C20000100112233 /* MainWorkspacePanels.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9F8C00062C20000100112233 /* MainWorkspacePanels.swift */; };
 		9F8C01072C20000100112233 /* TransportBarView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9F8C00072C20000100112233 /* TransportBarView.swift */; };
 		9F8C01082C20000100112233 /* WindowTitleUpdater.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9F8C00082C20000100112233 /* WindowTitleUpdater.swift */; };
 		9F8C01092C20000100112233 /* TopToolbarView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9F8C00092C20000100112233 /* TopToolbarView.swift */; };
+		9FCB01082D80000100112233 /* TransportButton.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9FCB00082D80000100112233 /* TransportButton.swift */; };
 		9F8D01012C30000100112233 /* StemModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9F8D00012C30000100112233 /* StemModels.swift */; };
 		9F8D01022C30000100112233 /* StemSeparationService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9F8D00022C30000100112233 /* StemSeparationService.swift */; };
 		9F8D01032C30000100112233 /* StemMixAudioPlayer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9F8D00032C30000100112233 /* StemMixAudioPlayer.swift */; };
@@ -113,6 +123,7 @@
 		9FB204052D32000100112233 /* PeakformBinaryCache.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9FB204042D32000100112233 /* PeakformBinaryCache.swift */; };
 		9FB205012D33000100112233 /* AppKitControlHelpers.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9FB205002D33000100112233 /* AppKitControlHelpers.swift */; };
 		9FBA01012D40000100112233 /* PitchDetection.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9FBA00012D40000100112233 /* PitchDetection.swift */; };
+		9FCB01012D80000100112233 /* AudioSampleConverter.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9FCB00012D80000100112233 /* AudioSampleConverter.swift */; };
 		9FBA01022D40000100112233 /* TrackPitchAnalyzer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9FBA00022D40000100112233 /* TrackPitchAnalyzer.swift */; };
 		9FBA01032D40000100112233 /* TunerInputService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9FBA00032D40000100112233 /* TunerInputService.swift */; };
 		9FBA01042D40000100112233 /* TunerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9FBA00042D40000100112233 /* TunerView.swift */; };
@@ -194,12 +205,14 @@
 		9FDD00042D60000100112233 /* NoteColorPresentation.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NoteColorPresentation.swift; sourceTree = "<group>"; };
 		9FDD00052D60000100112233 /* SettingsSections.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsSections.swift; sourceTree = "<group>"; };
 		9FDD00062D60000100112233 /* SettingsContentViews.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsContentViews.swift; sourceTree = "<group>"; };
-		9FEA00012D70000100112233 /* ScoreDocument.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScoreDocument.swift; sourceTree = "<group>"; };
+		9FEA00012D70000100112233 /* NotationScoreModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotationScoreModels.swift; sourceTree = "<group>"; };
 		9FEA00022D70000100112233 /* NotationViewportState.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotationViewportState.swift; sourceTree = "<group>"; };
 		9FEA00032D70000100112233 /* NotationViewportFactory.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotationViewportFactory.swift; sourceTree = "<group>"; };
 		9FEA00042D70000100112233 /* NotationTrackView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotationTrackView.swift; sourceTree = "<group>"; };
+		9FCB00062D80000100112233 /* NotationMeasureLayout.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotationMeasureLayout.swift; sourceTree = "<group>"; };
 		9FEA00052D70000100112233 /* NotationVisibleMeasureFitter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotationVisibleMeasureFitter.swift; sourceTree = "<group>"; };
 		9FEA00062D70000100112233 /* ProjectKeySelection.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProjectKeySelection.swift; sourceTree = "<group>"; };
+		9FCB00072D80000100112233 /* NotationHarmonyInlineTextField.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotationHarmonyInlineTextField.swift; sourceTree = "<group>"; };
 		9FEC00012D71000100112233 /* NotationWindowView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotationWindowView.swift; sourceTree = "<group>"; };
 		9F8B00062C10000100112233 /* JammLabTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = JammLabTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		9F8B00072C10000100112233 /* TestSupport.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TestSupport.swift; sourceTree = "<group>"; };
@@ -208,12 +221,20 @@
 		9F8C00012C20000100112233 /* AppTheme.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppTheme.swift; sourceTree = "<group>"; };
 		9F8C00022C20000100112233 /* AppPanel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppPanel.swift; sourceTree = "<group>"; };
 		9F8C00032C20000100112233 /* AppControls.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppControls.swift; sourceTree = "<group>"; };
+		9FCB00022D80000100112233 /* CompactValuePicker.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CompactValuePicker.swift; sourceTree = "<group>"; };
+		9FCB00032D80000100112233 /* AppLetterToggleButton.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppLetterToggleButton.swift; sourceTree = "<group>"; };
+		9FCB00042D80000100112233 /* JammModeToggleButton.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = JammModeToggleButton.swift; sourceTree = "<group>"; };
+		9FCB00052D80000100112233 /* AppPopoverDismissModifier.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppPopoverDismissModifier.swift; sourceTree = "<group>"; };
+		9FCB00092D80000100112233 /* ClickToolbarButton.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ClickToolbarButton.swift; sourceTree = "<group>"; };
+		9FCB000A2D80000100112233 /* BeatOneToolbarButton.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BeatOneToolbarButton.swift; sourceTree = "<group>"; };
+		9FCB000B2D80000100112233 /* StemSeparationToolbarButton.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StemSeparationToolbarButton.swift; sourceTree = "<group>"; };
 		9F8C00042C20000100112233 /* AppHotkeyMonitorView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppHotkeyMonitorView.swift; sourceTree = "<group>"; };
 		9F8C00052C20000100112233 /* NoteRowView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NoteRowView.swift; sourceTree = "<group>"; };
 		9F8C00062C20000100112233 /* MainWorkspacePanels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MainWorkspacePanels.swift; sourceTree = "<group>"; };
 		9F8C00072C20000100112233 /* TransportBarView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TransportBarView.swift; sourceTree = "<group>"; };
 		9F8C00082C20000100112233 /* WindowTitleUpdater.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WindowTitleUpdater.swift; sourceTree = "<group>"; };
 		9F8C00092C20000100112233 /* TopToolbarView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TopToolbarView.swift; sourceTree = "<group>"; };
+		9FCB00082D80000100112233 /* TransportButton.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TransportButton.swift; sourceTree = "<group>"; };
 		9F8D00012C30000100112233 /* StemModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StemModels.swift; sourceTree = "<group>"; };
 		9F8D00022C30000100112233 /* StemSeparationService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StemSeparationService.swift; sourceTree = "<group>"; };
 		9F8D00032C30000100112233 /* StemMixAudioPlayer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StemMixAudioPlayer.swift; sourceTree = "<group>"; };
@@ -262,6 +283,7 @@
 		9FB204042D32000100112233 /* PeakformBinaryCache.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PeakformBinaryCache.swift; sourceTree = "<group>"; };
 		9FB205002D33000100112233 /* AppKitControlHelpers.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppKitControlHelpers.swift; sourceTree = "<group>"; };
 		9FBA00012D40000100112233 /* PitchDetection.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PitchDetection.swift; sourceTree = "<group>"; };
+		9FCB00012D80000100112233 /* AudioSampleConverter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AudioSampleConverter.swift; sourceTree = "<group>"; };
 		9FBA00022D40000100112233 /* TrackPitchAnalyzer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TrackPitchAnalyzer.swift; sourceTree = "<group>"; };
 		9FBA00032D40000100112233 /* TunerInputService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TunerInputService.swift; sourceTree = "<group>"; };
 		9FBA00042D40000100112233 /* TunerView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TunerView.swift; sourceTree = "<group>"; };
@@ -351,7 +373,7 @@
 				9FEA00062D70000100112233 /* ProjectKeySelection.swift */,
 				9F8B00022C10000100112233 /* ProjectStateNormalizer.swift */,
 				9FAC00012CF0000100112233 /* ProjectEditableState.swift */,
-				9FEA00012D70000100112233 /* ScoreDocument.swift */,
+				9FEA00012D70000100112233 /* NotationScoreModels.swift */,
 				9F9300012C90000100112233 /* StemBackendResolver.swift */,
 				9F8D00012C30000100112233 /* StemModels.swift */,
 				9F8E00012C40000100112233 /* StemSeparationJobModels.swift */,
@@ -368,8 +390,10 @@
 				9FB001002D06000100112233 /* AudioDeviceService.swift */,
 				9F8A00042C00000100112233 /* AudioFileImporter.swift */,
 				9F8F00022C50000100112233 /* AudioPlaybackControlling.swift */,
+				9FCB00012D80000100112233 /* AudioSampleConverter.swift */,
 				9F8A00172C00000100112233 /* BeatGridCalculator.swift */,
 				9F8A00182C00000100112233 /* MetronomeClickScheduler.swift */,
+				9FCB00062D80000100112233 /* NotationMeasureLayout.swift */,
 				9FEA00032D70000100112233 /* NotationViewportFactory.swift */,
 				9FEA00052D70000100112233 /* NotationVisibleMeasureFitter.swift */,
 				9F8A00192C00000100112233 /* ProjectArtifactStore.swift */,
@@ -416,6 +440,7 @@
 				9F8A00102C00000100112233 /* HotkeysHelpView.swift */,
 				9F8C00062C20000100112233 /* MainWorkspacePanels.swift */,
 				9FDD00042D60000100112233 /* NoteColorPresentation.swift */,
+				9FCB00072D80000100112233 /* NotationHarmonyInlineTextField.swift */,
 				9FEA00042D70000100112233 /* NotationTrackView.swift */,
 				9FEC00012D71000100112233 /* NotationWindowView.swift */,
 				9F8B00032C10000100112233 /* PeakformTimelineView.swift */,
@@ -493,16 +518,24 @@
 				9F9500012CB0000100112233 /* AbletonNumberField.swift */,
 				9F9600012CC0000100112233 /* JammValueSlider.swift */,
 				9F8C00032C20000100112233 /* AppControls.swift */,
+				9FCB00032D80000100112233 /* AppLetterToggleButton.swift */,
+				9FCB00052D80000100112233 /* AppPopoverDismissModifier.swift */,
 				9F8C00042C20000100112233 /* AppHotkeyMonitorView.swift */,
 				9FB205002D33000100112233 /* AppKitControlHelpers.swift */,
 				9F8C00022C20000100112233 /* AppPanel.swift */,
+				9FCB000A2D80000100112233 /* BeatOneToolbarButton.swift */,
+				9FCB00092D80000100112233 /* ClickToolbarButton.swift */,
+				9FCB00022D80000100112233 /* CompactValuePicker.swift */,
 				9FD001002D20000100112233 /* ControlHelpText.swift */,
 				9F9000032C60000100112233 /* InspectorSidebarView.swift */,
+				9FCB00042D80000100112233 /* JammModeToggleButton.swift */,
 				9F8C00052C20000100112233 /* NoteRowView.swift */,
 				9F9800012CF0000100112233 /* RenameNoteDialog.swift */,
+				9FCB000B2D80000100112233 /* StemSeparationToolbarButton.swift */,
 				9F9700012CD0000100112233 /* TimelineViewportControlBar.swift */,
 				9F8C00092C20000100112233 /* TopToolbarView.swift */,
 				9F8C00072C20000100112233 /* TransportBarView.swift */,
+				9FCB00082D80000100112233 /* TransportButton.swift */,
 				9F9000012C60000100112233 /* TransportControlsView.swift */,
 				9FAF00022D02000100112233 /* WindowCloseGuard.swift */,
 				9F8C00082C20000100112233 /* WindowTitleUpdater.swift */,
@@ -713,6 +746,7 @@
 				9FB001012D06000100112233 /* AudioDeviceService.swift in Sources */,
 				9F8A01042C00000100112233 /* AudioFileImporter.swift in Sources */,
 				9F8F01032C50000100112233 /* AudioPlaybackControlling.swift in Sources */,
+				9FCB01012D80000100112233 /* AudioSampleConverter.swift in Sources */,
 				9F8A01032C00000100112233 /* AudioPlayerViewModel.swift in Sources */,
 				9FB200012D30000100112233 /* AudioPlayerViewModel+Project.swift in Sources */,
 				9FB200022D30000100112233 /* AudioPlayerViewModel+Playback.swift in Sources */,
@@ -722,12 +756,16 @@
 				9FB200062D30000100112233 /* AudioPlayerViewModel+Video.swift in Sources */,
 				9FB200072D30000100112233 /* AudioPlayerViewModel+UndoDirty.swift in Sources */,
 				9F8C01032C20000100112233 /* AppControls.swift in Sources */,
+				9FCB01032D80000100112233 /* AppLetterToggleButton.swift in Sources */,
+				9FCB01052D80000100112233 /* AppPopoverDismissModifier.swift in Sources */,
 				9F8C01042C20000100112233 /* AppHotkeyMonitorView.swift in Sources */,
 				9FB205012D33000100112233 /* AppKitControlHelpers.swift in Sources */,
 				9F9501012CB0000100112233 /* AbletonNumberField.swift in Sources */,
 				9FD001012D20000100112233 /* ControlHelpText.swift in Sources */,
 				9F9601012CC0000100112233 /* JammValueSlider.swift in Sources */,
+				9FCB01042D80000100112233 /* JammModeToggleButton.swift in Sources */,
 				9F8C01022C20000100112233 /* AppPanel.swift in Sources */,
+				9FCB01022D80000100112233 /* CompactValuePicker.swift in Sources */,
 				9F8C01012C20000100112233 /* AppTheme.swift in Sources */,
 				9F8A01152C00000100112233 /* BeatGridCalculator.swift in Sources */,
 				9F8A01162C00000100112233 /* MetronomeClickScheduler.swift in Sources */,
@@ -745,8 +783,10 @@
 				9F8C01062C20000100112233 /* MainWorkspacePanels.swift in Sources */,
 				9F8C01052C20000100112233 /* NoteRowView.swift in Sources */,
 				9FEA01042D70000100112233 /* NotationTrackView.swift in Sources */,
+				9FCB01072D80000100112233 /* NotationHarmonyInlineTextField.swift in Sources */,
 				9FEC01012D71000100112233 /* NotationWindowView.swift in Sources */,
 				9F8A010D2C00000100112233 /* AppHotkey.swift in Sources */,
+				9FCB01062D80000100112233 /* NotationMeasureLayout.swift in Sources */,
 				9FEA01032D70000100112233 /* NotationViewportFactory.swift in Sources */,
 				9FEA01052D70000100112233 /* NotationVisibleMeasureFitter.swift in Sources */,
 				9FEA01022D70000100112233 /* NotationViewportState.swift in Sources */,
@@ -759,7 +799,7 @@
 				9FB202012D31000100112233 /* ProjectPersistenceCoordinator.swift in Sources */,
 				9F8A01132C00000100112233 /* RecentProjectsStore.swift in Sources */,
 				9F9401012CA0000100112233 /* AppSettingsStore.swift in Sources */,
-				9FEA01012D70000100112233 /* ScoreDocument.swift in Sources */,
+				9FEA01012D70000100112233 /* NotationScoreModels.swift in Sources */,
 				9F8D01042C30000100112233 /* AudioRenderState.swift in Sources */,
 				9F8D01052C30000100112233 /* ClickRenderState.swift in Sources */,
 				9F8D01032C30000100112233 /* StemMixAudioPlayer.swift in Sources */,
@@ -781,9 +821,13 @@
 				9F8B01042C10000100112233 /* TimelineTracks.swift in Sources */,
 				9F8B01012C10000100112233 /* TimelineViewport.swift in Sources */,
 				9F9701012CD0000100112233 /* TimelineViewportControlBar.swift in Sources */,
+				9FCB010A2D80000100112233 /* BeatOneToolbarButton.swift in Sources */,
+				9FCB01092D80000100112233 /* ClickToolbarButton.swift in Sources */,
+				9FCB010B2D80000100112233 /* StemSeparationToolbarButton.swift in Sources */,
 				9F8C01092C20000100112233 /* TopToolbarView.swift in Sources */,
 				9FBA01022D40000100112233 /* TrackPitchAnalyzer.swift in Sources */,
 				9F8C01072C20000100112233 /* TransportBarView.swift in Sources */,
+				9FCB01082D80000100112233 /* TransportButton.swift in Sources */,
 				9F9001012C60000100112233 /* TransportControlsView.swift in Sources */,
 				9FBA01032D40000100112233 /* TunerInputService.swift in Sources */,
 				9FBA01042D40000100112233 /* TunerView.swift in Sources */,
