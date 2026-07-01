@@ -67,6 +67,17 @@ struct NotationBarlineGeometry: Equatable {
     let isOuterBoundary: Bool
 }
 
+struct NotationSelectionOverlayRun: Equatable, Identifiable {
+    let startMeasureIndex: Int
+    let endMeasureIndex: Int
+    let x: CGFloat
+    let width: CGFloat
+
+    var id: String {
+        "\(startMeasureIndex)-\(endMeasureIndex)"
+    }
+}
+
 struct NotationMeasureLayout {
     static var measureNumberLabelWidth: CGFloat {
         AppTheme.Timeline.notationMeasureNumberLabelWidth
@@ -277,6 +288,49 @@ struct NotationMeasureLayout {
             )
         )
         return barlines
+    }
+
+    static func selectionOverlayRuns(
+        selectedMeasureIndices: [Int],
+        geometries: [NotationMeasureCanvasGeometry]
+    ) -> [NotationSelectionOverlayRun] {
+        let normalizedIndices = Set(selectedMeasureIndices)
+            .filter { geometries.indices.contains($0) }
+            .sorted()
+        guard !normalizedIndices.isEmpty else { return [] }
+
+        var runs: [NotationSelectionOverlayRun] = []
+        var runStart = normalizedIndices[0]
+        var previousIndex = normalizedIndices[0]
+
+        func appendRun(start: Int, end: Int) {
+            guard geometries.indices.contains(start),
+                  geometries.indices.contains(end)
+            else { return }
+
+            let startGeometry = geometries[start]
+            let endGeometry = geometries[end]
+            runs.append(NotationSelectionOverlayRun(
+                startMeasureIndex: start,
+                endMeasureIndex: end,
+                x: startGeometry.cellStartX,
+                width: max(0, endGeometry.cellEndX - startGeometry.cellStartX)
+            ))
+        }
+
+        for index in normalizedIndices.dropFirst() {
+            if index == previousIndex + 1 {
+                previousIndex = index
+                continue
+            }
+
+            appendRun(start: runStart, end: previousIndex)
+            runStart = index
+            previousIndex = index
+        }
+
+        appendRun(start: runStart, end: previousIndex)
+        return runs
     }
 
     static func attributeBlockWidth(

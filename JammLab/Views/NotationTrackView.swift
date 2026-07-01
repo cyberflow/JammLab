@@ -343,26 +343,29 @@ struct NotationTrackView: View {
             + AppTheme.Timeline.notationStaffLineSpacing * 4
             + AppTheme.Spacing.lg
         let overlayHeight = max(1, overlayBottom - overlayY)
+        let selectedMeasureIndices = state.visibleMeasures.indices.filter { index in
+            selectedMeasures.contains(where: { $0.matches(state.visibleMeasures[index]) })
+        }
+        let selectionRuns = NotationMeasureLayout.selectionOverlayRuns(
+            selectedMeasureIndices: selectedMeasureIndices,
+            geometries: geometries
+        )
 
         return ZStack(alignment: .topLeading) {
-            ForEach(state.visibleMeasures.indices, id: \.self) { index in
-                if selectedMeasures.contains(where: { $0.matches(state.visibleMeasures[index]) }),
-                   geometries.indices.contains(index) {
-                    let geometry = geometries[index]
-                    RoundedRectangle(cornerRadius: AppTheme.Radius.small)
-                        .fill(appColors.accent.opacity(0.16))
-                        .overlay {
-                            RoundedRectangle(cornerRadius: AppTheme.Radius.small)
-                                .stroke(appColors.accent, lineWidth: AppTheme.Stroke.thick)
-                        }
-                        .frame(
-                            width: max(1, geometry.cellEndX - geometry.cellStartX),
-                            height: overlayHeight
-                        )
-                        .offset(x: geometry.cellStartX, y: overlayY)
-                        .allowsHitTesting(false)
-                        .accessibilityHidden(true)
-                }
+            ForEach(selectionRuns) { run in
+                RoundedRectangle(cornerRadius: AppTheme.Radius.small)
+                    .fill(appColors.accent.opacity(0.16))
+                    .overlay {
+                        RoundedRectangle(cornerRadius: AppTheme.Radius.small)
+                            .stroke(appColors.accent, lineWidth: AppTheme.Stroke.thick)
+                    }
+                    .frame(
+                        width: max(1, run.width),
+                        height: overlayHeight
+                    )
+                    .offset(x: run.x, y: overlayY)
+                    .allowsHitTesting(false)
+                    .accessibilityHidden(true)
             }
         }
     }
