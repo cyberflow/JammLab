@@ -65,6 +65,7 @@
 		9F8C01072C20000100112233 /* TransportBarView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9F8C00072C20000100112233 /* TransportBarView.swift */; };
 		9F8C01082C20000100112233 /* WindowTitleUpdater.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9F8C00082C20000100112233 /* WindowTitleUpdater.swift */; };
 		9F8C01092C20000100112233 /* TopToolbarView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9F8C00092C20000100112233 /* TopToolbarView.swift */; };
+		9FCB01082D80000100112233 /* TransportButton.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9FCB00082D80000100112233 /* TransportButton.swift */; };
 		9F8D01012C30000100112233 /* StemModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9F8D00012C30000100112233 /* StemModels.swift */; };
 		9F8D01022C30000100112233 /* StemSeparationService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9F8D00022C30000100112233 /* StemSeparationService.swift */; };
 		9F8D01032C30000100112233 /* StemMixAudioPlayer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9F8D00032C30000100112233 /* StemMixAudioPlayer.swift */; };
@@ -227,6 +228,7 @@
 		9F8C00072C20000100112233 /* TransportBarView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TransportBarView.swift; sourceTree = "<group>"; };
 		9F8C00082C20000100112233 /* WindowTitleUpdater.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WindowTitleUpdater.swift; sourceTree = "<group>"; };
 		9F8C00092C20000100112233 /* TopToolbarView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TopToolbarView.swift; sourceTree = "<group>"; };
+		9FCB00082D80000100112233 /* TransportButton.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TransportButton.swift; sourceTree = "<group>"; };
 		9F8D00012C30000100112233 /* StemModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StemModels.swift; sourceTree = "<group>"; };
 		9F8D00022C30000100112233 /* StemSeparationService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StemSeparationService.swift; sourceTree = "<group>"; };
 		9F8D00032C30000100112233 /* StemMixAudioPlayer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StemMixAudioPlayer.swift; sourceTree = "<group>"; };
@@ -524,6 +526,7 @@
 				9F9700012CD0000100112233 /* TimelineViewportControlBar.swift */,
 				9F8C00092C20000100112233 /* TopToolbarView.swift */,
 				9F8C00072C20000100112233 /* TransportBarView.swift */,
+				9FCB00082D80000100112233 /* TransportButton.swift */,
 				9F9000012C60000100112233 /* TransportControlsView.swift */,
 				9FAF00022D02000100112233 /* WindowCloseGuard.swift */,
 				9F8C00082C20000100112233 /* WindowTitleUpdater.swift */,
@@ -812,6 +815,7 @@
 				9F8C01092C20000100112233 /* TopToolbarView.swift in Sources */,
 				9FBA01022D40000100112233 /* TrackPitchAnalyzer.swift in Sources */,
 				9F8C01072C20000100112233 /* TransportBarView.swift in Sources */,
+				9FCB01082D80000100112233 /* TransportButton.swift in Sources */,
 				9F9001012C60000100112233 /* TransportControlsView.swift in Sources */,
 				9FBA01032D40000100112233 /* TunerInputService.swift in Sources */,
 				9FBA01042D40000100112233 /* TunerView.swift in Sources */,
