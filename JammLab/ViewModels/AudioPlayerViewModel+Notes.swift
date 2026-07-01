@@ -38,10 +38,6 @@ extension AudioPlayerViewModel {
         harmonyInputResolutionDenominator = HarmonyInputResolution.normalizedDenominator(denominator)
     }
 
-    func requestAddHarmonyAtPlaybackMarker() {
-        requestAddHarmony(at: playbackMarkerTime)
-    }
-
     func requestAddHarmony(at time: TimeInterval) {
         guard duration > 0,
               let placement = harmonyPlacement(for: time, resolution: currentHarmonyInputResolution)
