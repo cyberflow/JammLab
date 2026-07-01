@@ -189,8 +189,6 @@ struct ContentView: View {
             viewModel.setLoopEndAtCurrentTime()
         case .addNote:
             viewModel.addNoteAtCurrentTime()
-        case .addHarmonyAtPlaybackMarker:
-            viewModel.requestAddHarmonyAtPlaybackMarker()
         case .addTempoTimeSignatureMarker:
             beginAddingTempoTimeSignatureMarker(at: viewModel.currentTime)
         case .setBeatOne:

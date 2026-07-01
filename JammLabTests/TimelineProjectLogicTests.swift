@@ -610,8 +610,13 @@ final class TimelineProjectLogicTests: XCTestCase {
         )
     }
 
-    func testAppHotkeyRecognizesAForHarmonyAtPlaybackMarker() throws {
-        let event = try XCTUnwrap(NSEvent.keyEvent(
+    func testAppHotkeyDoesNotExposeHarmonyShortcutMetadata() {
+        XCTAssertFalse(AppHotkey.allCases.contains { $0.key == "A" })
+        XCTAssertFalse(AppHotkey.allCases.contains { $0.title == "Add Harmony" })
+    }
+
+    func testAppHotkeyDoesNotRecognizeAOrHForHarmony() throws {
+        let aEvent = try XCTUnwrap(NSEvent.keyEvent(
             with: .keyDown,
             location: .zero,
             modifierFlags: [],
@@ -623,17 +628,6 @@ final class TimelineProjectLogicTests: XCTestCase {
             isARepeat: false,
             keyCode: 0
         ))
-
-        XCTAssertEqual(AppHotkey(event: event), .addHarmonyAtPlaybackMarker)
-        XCTAssertEqual(AppHotkey.addHarmonyAtPlaybackMarker.key, "A")
-        XCTAssertEqual(AppHotkey.addHarmonyAtPlaybackMarker.title, "Add Harmony")
-        XCTAssertEqual(
-            AppHotkey.addHarmonyAtPlaybackMarker.detail,
-            "Open a harmony editor at the position marker, snapped to the Notation track resolution."
-        )
-    }
-
-    func testAppHotkeyDoesNotRecognizeHOrModifiedAForHarmony() throws {
         let hEvent = try XCTUnwrap(NSEvent.keyEvent(
             with: .keyDown,
             location: .zero,
@@ -671,6 +665,7 @@ final class TimelineProjectLogicTests: XCTestCase {
             keyCode: 0
         ))
 
+        XCTAssertNil(AppHotkey(event: aEvent))
         XCTAssertNil(AppHotkey(event: hEvent))
         XCTAssertNil(AppHotkey(event: commandAEvent))
         XCTAssertNil(AppHotkey(event: shiftAEvent))

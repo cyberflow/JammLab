@@ -139,7 +139,7 @@ final class ViewModelLifecycleTests: XCTestCase {
     }
 
     @MainActor
-    func testRequestAddHarmonyAtPlaybackMarkerUsesNotationResolutionSnapWhilePlaying() throws {
+    func testRequestAddHarmonyAtTimeUsesNotationResolutionSnapWhilePlaying() throws {
         let engine = MockPlaybackEngine()
         engine.isLoaded = true
         let viewModel = AudioPlayerViewModel(playbackEngine: engine)
@@ -155,7 +155,7 @@ final class ViewModelLifecycleTests: XCTestCase {
         XCTAssertEqual(viewModel.playbackMarkerTime, 1.26, accuracy: 0.0001)
         XCTAssertEqual(viewModel.currentTime, 3.0, accuracy: 0.0001)
 
-        viewModel.requestAddHarmonyAtPlaybackMarker()
+        viewModel.requestAddHarmony(at: 1.26)
 
         let request = try XCTUnwrap(viewModel.pendingHarmonyEditorRequest)
         XCTAssertEqual(request.time, 1.5, accuracy: 0.0001)
