@@ -9,6 +9,7 @@ development artifact builds use `vMAJOR.MINOR.PATCH-dev.N`.
 ## Unreleased
 
 - Added notation measure range selection with Shift-click, Cmd+C/Cmd+V measure copy and replace-paste for harmony contents, and Esc to clear the selection.
+- Improved notation measure range selection so adjacent selected measures draw as one continuous frame.
 - Added boxed Region start labels to Notation in the timeline track and Notation window.
 - Added beat slash notation to Notation measures in the timeline track and Notation window.
 - Added a synced Notation window that opens from the View menu or the Notation track context menu, showing the full chart in a notebook-style layout while sharing harmony editing with the timeline track.
