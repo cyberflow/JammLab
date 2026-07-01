@@ -3,7 +3,26 @@ import SwiftUI
 
 struct AppHotkeyMonitorView: NSViewRepresentable {
     let allowedHotkeys: Set<AppHotkey>
-    let onHotkey: (AppHotkey) -> Void
+    let onHotkey: (AppHotkey) -> Bool
+
+    init(
+        allowedHotkeys: Set<AppHotkey>,
+        onHotkey: @escaping (AppHotkey) -> Void
+    ) {
+        self.allowedHotkeys = allowedHotkeys
+        self.onHotkey = { hotkey in
+            onHotkey(hotkey)
+            return true
+        }
+    }
+
+    init(
+        allowedHotkeys: Set<AppHotkey>,
+        onHotkeyShouldConsume: @escaping (AppHotkey) -> Bool
+    ) {
+        self.allowedHotkeys = allowedHotkeys
+        self.onHotkey = onHotkeyShouldConsume
+    }
 
     func makeNSView(context: Context) -> AppHotkeyMonitorNSView {
         let view = AppHotkeyMonitorNSView(frame: .zero)
@@ -25,7 +44,7 @@ struct AppHotkeyMonitorView: NSViewRepresentable {
 
 final class AppHotkeyMonitorNSView: NSView {
     var allowedHotkeys: Set<AppHotkey> = []
-    var onHotkey: ((AppHotkey) -> Void)?
+    var onHotkey: ((AppHotkey) -> Bool)?
 
     private var monitor: Any?
 
@@ -51,8 +70,7 @@ final class AppHotkeyMonitorNSView: NSView {
             guard let self else { return event }
             guard let hotkey = self.hotkey(for: event) else { return event }
 
-            self.onHotkey?(hotkey)
-            return nil
+            return self.onHotkey?(hotkey) == true ? nil : event
         }
     }
 

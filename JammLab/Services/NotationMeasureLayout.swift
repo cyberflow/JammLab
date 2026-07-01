@@ -486,14 +486,11 @@ struct NotationMeasureLayout {
     }
 
     static func time(forHarmonyOffset offset: Double, in measure: ScoreMeasure) -> TimeInterval {
-        let quarterLength = quarterLength(for: measure.attributes.timeSignature)
-        guard measure.duration > 0, quarterLength > 0 else { return measure.startTime }
-        let progress = max(0, min(offset / quarterLength, 1))
-        return measure.startTime + progress * measure.duration
+        NotationMeasureTiming.time(forQuarterOffset: offset, in: measure)
     }
 
     static func quarterLength(for timeSignature: TimeSignature) -> Double {
-        Double(timeSignature.beatsPerBar) * 4.0 / Double(max(1, timeSignature.beatUnit))
+        NotationMeasureTiming.quarterLength(for: timeSignature)
     }
 
     static func canvasGeometry(

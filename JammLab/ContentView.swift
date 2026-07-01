@@ -41,8 +41,8 @@ struct ContentView: View {
         .background(WindowCloseGuard())
         .background(
             AppHotkeyMonitorView(
-                allowedHotkeys: Set(AppHotkey.allCases),
-                onHotkey: handleHotkey
+                allowedHotkeys: allowedHotkeys,
+                onHotkeyShouldConsume: handleHotkey
             )
         )
         .task {
@@ -174,33 +174,66 @@ struct ContentView: View {
         }
     }
 
-    private func handleHotkey(_ hotkey: AppHotkey) {
+    private var allowedHotkeys: Set<AppHotkey> {
+        var hotkeys = Set(AppHotkey.allCases)
+        if !viewModel.canCopySelectedNotationMeasure {
+            hotkeys.remove(.copyMeasure)
+        }
+        if !viewModel.canPasteNotationMeasureClipboard {
+            hotkeys.remove(.pasteMeasure)
+        }
+        if !viewModel.hasSelectedNotationMeasures {
+            hotkeys.remove(.clearNotationMeasureSelection)
+        }
+        return hotkeys
+    }
+
+    @discardableResult
+    private func handleHotkey(_ hotkey: AppHotkey) -> Bool {
         // AppHotkey is the single source of truth for handled shortcuts.
         // Add new hotkeys there first so Help > Keyboard Shortcuts updates
         // together with this dispatch switch.
         switch hotkey {
         case .playPause:
             viewModel.togglePlayStop()
+            return true
         case .toggleLoop:
             viewModel.toggleLooping()
+            return true
         case .setLoopStart:
             viewModel.setLoopStartAtCurrentTime()
+            return true
         case .setLoopEnd:
             viewModel.setLoopEndAtCurrentTime()
+            return true
         case .addNote:
             viewModel.addNoteAtCurrentTime()
+            return true
         case .addTempoTimeSignatureMarker:
             beginAddingTempoTimeSignatureMarker(at: viewModel.currentTime)
+            return true
         case .setBeatOne:
             viewModel.setCurrentTimeAsBeatOne()
+            return true
         case .toggleClick:
             viewModel.toggleClick()
+            return true
         case .toggleSnap:
             viewModel.toggleSnap()
+            return true
         case .togglePlaybackMode:
             viewModel.togglePlaybackMode()
+            return true
         case .toggleVideoWindow:
             viewModel.toggleVideoWindow()
+            return true
+        case .copyMeasure:
+            return viewModel.copySelectedNotationMeasure()
+        case .pasteMeasure:
+            return viewModel.pasteNotationMeasureClipboard()
+        case .clearNotationMeasureSelection:
+            viewModel.clearNotationMeasureSelection()
+            return true
         }
     }
 

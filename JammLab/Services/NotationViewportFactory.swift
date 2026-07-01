@@ -374,13 +374,13 @@ struct NotationViewportFactory {
     private func harmonies(for measure: ScoreMeasure, from harmonySymbols: [HarmonySymbol]) -> [HarmonySymbol] {
         harmonySymbols
             .compactMap { symbol -> HarmonySymbol? in
-                guard Self.isNotationEventTime(symbol.time, within: measure) else {
+                guard NotationMeasureTiming.containsEventTime(symbol.time, in: measure) else {
                     return nil
                 }
 
                 return symbol.withPosition(
                     measureNumber: measure.number,
-                    offsetInQuarterNotes: quarterOffset(for: symbol.time, in: measure)
+                    offsetInQuarterNotes: NotationMeasureTiming.quarterOffset(for: symbol.time, in: measure)
                 )
             }
             .sorted {
@@ -396,7 +396,7 @@ struct NotationViewportFactory {
     private func regionLabels(for measure: ScoreMeasure, from regionNotes: [TimecodedNote]) -> [NotationRegionLabel] {
         regionNotes
             .compactMap { note -> NotationRegionLabel? in
-                guard Self.isNotationEventTime(note.time, within: measure) else {
+                guard NotationMeasureTiming.containsEventTime(note.time, in: measure) else {
                     return nil
                 }
 
@@ -404,7 +404,7 @@ struct NotationViewportFactory {
                     id: note.id,
                     time: note.time,
                     measureNumber: measure.number,
-                    offsetInQuarterNotes: quarterOffset(for: note.time, in: measure),
+                    offsetInQuarterNotes: NotationMeasureTiming.quarterOffset(for: note.time, in: measure),
                     title: Self.regionLabelTitle(for: note)
                 )
             }
@@ -435,14 +435,6 @@ struct NotationViewportFactory {
         return trimmedTitle.isEmpty ? "Region" : trimmedTitle
     }
 
-    private static func isNotationEventTime(_ time: TimeInterval, within measure: ScoreMeasure) -> Bool {
-        time >= measure.startTime - timelineTolerance
-            && (
-                time < measure.endTime - timelineTolerance
-                    || abs(time - measure.startTime) < timelineTolerance
-            )
-    }
-
     private static func isOrderedByNotationPosition(
         lhsOffset: Double,
         lhsID: UUID,
@@ -457,17 +449,11 @@ struct NotationViewportFactory {
     }
 
     private func quarterOffset(for time: TimeInterval, in measure: ScoreMeasure) -> Double {
-        let length = quarterLength(for: measure.attributes.timeSignature)
-        guard measure.duration > 0, length > 0 else { return 0 }
-        let progress = max(0, min((time - measure.startTime) / measure.duration, 1))
-        return progress * length
+        NotationMeasureTiming.quarterOffset(for: time, in: measure)
     }
 
     private func timeForQuarterOffset(_ offset: Double, in measure: ScoreMeasure) -> TimeInterval {
-        let length = quarterLength(for: measure.attributes.timeSignature)
-        guard measure.duration > 0, length > 0 else { return measure.startTime }
-        let progress = max(0, min(offset / length, 1))
-        return measure.startTime + progress * measure.duration
+        NotationMeasureTiming.time(forQuarterOffset: offset, in: measure)
     }
 
     private func snappedOffset(
@@ -494,7 +480,7 @@ struct NotationViewportFactory {
     }
 
     private func quarterLength(for timeSignature: TimeSignature) -> Double {
-        Double(timeSignature.beatsPerBar) * 4.0 / Double(max(1, timeSignature.beatUnit))
+        NotationMeasureTiming.quarterLength(for: timeSignature)
     }
 
     private static let maximumMeasureTraversalCount = 100_000

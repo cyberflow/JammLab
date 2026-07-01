@@ -13,6 +13,9 @@ enum AppHotkey: CaseIterable, Hashable {
     case toggleSnap
     case togglePlaybackMode
     case toggleVideoWindow
+    case copyMeasure
+    case pasteMeasure
+    case clearNotationMeasureSelection
 
     // Keep this enum as the single source of truth for keyboard shortcuts.
     // When adding a new handled hotkey, add a case here with its help metadata
@@ -23,6 +26,10 @@ enum AppHotkey: CaseIterable, Hashable {
         let relevantModifiers = modifierFlags.intersection(shortcutModifiers)
 
         switch (event.keyCode, relevantModifiers) {
+        case (8, [.command]):
+            self = .copyMeasure
+        case (9, [.command]):
+            self = .pasteMeasure
         case (1, [.option]):
             self = .toggleSnap
         case (9, [.option]):
@@ -56,6 +63,8 @@ enum AppHotkey: CaseIterable, Hashable {
             self = .setBeatOne
         case 8:
             self = .toggleClick
+        case 53:
+            self = .clearNotationMeasureSelection
         default:
             return nil
         }
@@ -85,6 +94,12 @@ enum AppHotkey: CaseIterable, Hashable {
             return "Tab"
         case .toggleVideoWindow:
             return "Opt+V"
+        case .copyMeasure:
+            return "Cmd+C"
+        case .pasteMeasure:
+            return "Cmd+V"
+        case .clearNotationMeasureSelection:
+            return "Esc"
         }
     }
 
@@ -112,6 +127,12 @@ enum AppHotkey: CaseIterable, Hashable {
             return "Original / Stems"
         case .toggleVideoWindow:
             return "Video Window"
+        case .copyMeasure:
+            return "Copy Measure"
+        case .pasteMeasure:
+            return "Paste Measure"
+        case .clearNotationMeasureSelection:
+            return "Clear Measure Selection"
         }
     }
 
@@ -139,6 +160,12 @@ enum AppHotkey: CaseIterable, Hashable {
             return "Switch between original playback and stems playback when stems are available."
         case .toggleVideoWindow:
             return "Open or close the sidecar video window for the current video project."
+        case .copyMeasure:
+            return "Copy the selected notation measure."
+        case .pasteMeasure:
+            return "Replace the selected notation measure with the copied measure contents."
+        case .clearNotationMeasureSelection:
+            return "Clear the selected notation measure or measure range."
         }
     }
 }

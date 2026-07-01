@@ -53,6 +53,124 @@ extension AudioPlayerViewModel {
         selectedHarmonySymbolID = availableHarmonySymbolID(id)
     }
 
+    var canCopySelectedNotationMeasure: Bool {
+        !currentSelectedNotationMeasures().isEmpty
+    }
+
+    var canPasteNotationMeasureClipboard: Bool {
+        guard let clipboard = notationMeasureClipboard, !clipboard.measures.isEmpty else { return false }
+        return currentPasteTargetMeasures(forClipboardMeasureCount: clipboard.measures.count) != nil
+    }
+
+    var hasSelectedNotationMeasures: Bool {
+        !selectedNotationMeasures.isEmpty
+    }
+
+    func selectNotationMeasure(_ measure: ScoreMeasure?, extendingSelection: Bool = false) {
+        guard let measure else {
+            clearNotationMeasureSelection()
+            return
+        }
+
+        if extendingSelection, let anchor = notationMeasureSelectionAnchor {
+            let scoreMeasures = currentNotationScoreMeasures()
+            if let anchorIndex = scoreMeasures.firstIndex(where: anchor.matches),
+               let measureIndex = scoreMeasures.firstIndex(where: { NotationMeasureSelection(measure: measure).matches($0) }) {
+                let range = min(anchorIndex, measureIndex)...max(anchorIndex, measureIndex)
+                selectedNotationMeasures = range.map { NotationMeasureSelection(measure: scoreMeasures[$0]) }
+            } else {
+                selectedNotationMeasures = [NotationMeasureSelection(measure: measure)]
+                notationMeasureSelectionAnchor = NotationMeasureSelection(measure: measure)
+            }
+        } else {
+            selectedNotationMeasures = [NotationMeasureSelection(measure: measure)]
+            notationMeasureSelectionAnchor = NotationMeasureSelection(measure: measure)
+        }
+        selectedHarmonySymbolID = nil
+    }
+
+    func clearNotationMeasureSelection() {
+        selectedNotationMeasures = []
+        notationMeasureSelectionAnchor = nil
+        selectedHarmonySymbolID = nil
+    }
+
+    func clearNotationMeasureSelectionAndClipboard() {
+        clearNotationMeasureSelection()
+        notationMeasureClipboard = nil
+    }
+
+    @discardableResult
+    func copySelectedNotationMeasure() -> Bool {
+        guard let measures = validatedSelectedNotationMeasures() else { return false }
+
+        notationMeasureClipboard = NotationMeasureClipboard(
+            measures: measures.map { measure in
+                NotationMeasureClipboardMeasure(
+                    items: notationClipboardItems(in: measure)
+                )
+            }
+        )
+        return true
+    }
+
+    @discardableResult
+    func pasteNotationMeasureClipboard() -> Bool {
+        guard let clipboard = notationMeasureClipboard,
+              let targetMeasures = validatedPasteTargetMeasures(forClipboardMeasureCount: clipboard.measures.count)
+        else {
+            return false
+        }
+
+        let pastedItemsByMeasure = zip(targetMeasures, clipboard.measures).map { targetMeasure, sourceMeasure in
+            sourceMeasure.items
+                .filter {
+                    NotationMeasureTiming.isValidHarmonyOffset(
+                        $0.offsetInQuarterNotes,
+                        in: targetMeasure.attributes.timeSignature
+                    )
+                }
+                .sorted(by: notationClipboardItemSort)
+        }
+        let currentItemsByMeasure = targetMeasures.map { notationClipboardItems(in: $0) }
+
+        guard currentItemsByMeasure != pastedItemsByMeasure else {
+            selectedHarmonySymbolID = nil
+            selectedNotationMeasures = targetMeasures.map(NotationMeasureSelection.init)
+            notationMeasureSelectionAnchor = selectedNotationMeasures.first
+            return true
+        }
+
+        performUndoableEdit(targetMeasures.count == 1 ? "Paste Measure" : "Paste Measures") {
+            harmonySymbols.removeAll { symbol in
+                targetMeasures.contains { targetMeasure in
+                    NotationMeasureTiming.containsEventTime(symbol.time, in: targetMeasure)
+                }
+            }
+
+            for (targetMeasure, pastedItems) in zip(targetMeasures, pastedItemsByMeasure) {
+                harmonySymbols.append(contentsOf: pastedItems.map { item in
+                    HarmonySymbol(
+                        time: NotationMeasureTiming.time(
+                            forQuarterOffset: item.offsetInQuarterNotes,
+                            in: targetMeasure
+                        ),
+                        measureNumber: targetMeasure.number,
+                        offsetInQuarterNotes: item.offsetInQuarterNotes,
+                        rawText: item.rawText
+                    )
+                })
+            }
+
+            harmonySymbols = ProjectStateNormalizer.normalizedHarmonySymbols(harmonySymbols, duration: duration)
+            selectedHarmonySymbolID = nil
+            selectedNotationMeasures = targetMeasures.map(NotationMeasureSelection.init)
+            notationMeasureSelectionAnchor = selectedNotationMeasures.first
+        }
+
+        return true
+    }
+
     func saveHarmonySymbol(_ symbol: HarmonySymbol) {
         guard duration > 0,
               let placement = harmonyPlacement(for: symbol.time, resolution: nil)
@@ -156,6 +274,7 @@ extension AudioPlayerViewModel {
             )
             notes.append(note)
             notes.sort { $0.time < $1.time }
+            clearNotationMeasureSelection()
             applyTempoMapToPlaybackEngine()
         }
     }
@@ -284,6 +403,7 @@ extension AudioPlayerViewModel {
                 excluding: id
             ) else {
                 notes.remove(at: index)
+                clearNotationMeasureSelection()
                 applyTempoMapToPlaybackEngine()
                 return
             }
@@ -291,6 +411,7 @@ extension AudioPlayerViewModel {
             notes[index].metadata = payload.metadata
             notes[index].title = payload.title
             notes.sort { $0.time < $1.time }
+            clearNotationMeasureSelection()
             applyTempoMapToPlaybackEngine()
         }
     }
@@ -321,6 +442,7 @@ extension AudioPlayerViewModel {
             notes[index].time = snappedTimelineTime(time)
             notes.sort { $0.time < $1.time }
             if notes.contains(where: { $0.id == id && $0.isTempoTimeSignatureMarker }) {
+                clearNotationMeasureSelection()
                 applyTempoMapToPlaybackEngine()
             }
         }
@@ -328,6 +450,7 @@ extension AudioPlayerViewModel {
 
     func deleteNote(id: TimecodedNote.ID) {
         performUndoableEdit("Delete Marker") {
+            let deletesTempoMapMarker = notes.contains { $0.id == id && $0.isTempoTimeSignatureMarker }
             notes.removeAll { $0.id == id }
 
             if selectedRegionID == id {
@@ -339,6 +462,9 @@ extension AudioPlayerViewModel {
                 applyLoopConfiguration()
             }
 
+            if deletesTempoMapMarker {
+                clearNotationMeasureSelection()
+            }
             applyTempoMapToPlaybackEngine()
         }
     }
@@ -395,6 +521,112 @@ extension AudioPlayerViewModel {
 
     private func sameHarmonyPosition(_ lhs: TimeInterval, _ rhs: TimeInterval) -> Bool {
         abs(lhs - rhs) < 0.000_001
+    }
+
+    private func notationClipboardItemSort(
+        _ lhs: NotationMeasureClipboardItem,
+        _ rhs: NotationMeasureClipboardItem
+    ) -> Bool {
+        if abs(lhs.offsetInQuarterNotes - rhs.offsetInQuarterNotes) > NotationMeasureTiming.timelineTolerance {
+            return lhs.offsetInQuarterNotes < rhs.offsetInQuarterNotes
+        }
+
+        return lhs.rawText < rhs.rawText
+    }
+
+    private func notationClipboardItems(in measure: ScoreMeasure) -> [NotationMeasureClipboardItem] {
+        harmonySymbols
+            .compactMap { symbol -> (HarmonySymbol, Double)? in
+                guard NotationMeasureTiming.containsEventTime(symbol.time, in: measure) else {
+                    return nil
+                }
+
+                return (symbol, NotationMeasureTiming.quarterOffset(for: symbol.time, in: measure))
+            }
+            .sorted {
+                if abs($0.1 - $1.1) > NotationMeasureTiming.timelineTolerance {
+                    return $0.1 < $1.1
+                }
+
+                return $0.0.id.uuidString < $1.0.id.uuidString
+            }
+            .map { symbol, offset in
+                NotationMeasureClipboardItem(
+                    offsetInQuarterNotes: offset,
+                    rawText: symbol.rawText
+                )
+            }
+    }
+
+    private func validatedSelectedNotationMeasures() -> [ScoreMeasure]? {
+        let measures = currentSelectedNotationMeasures()
+        guard !measures.isEmpty else {
+            clearNotationMeasureSelection()
+            return nil
+        }
+
+        selectedNotationMeasures = measures.map(NotationMeasureSelection.init)
+        if let anchor = notationMeasureSelectionAnchor,
+           measures.contains(where: anchor.matches) {
+            notationMeasureSelectionAnchor = anchor
+        } else {
+            notationMeasureSelectionAnchor = selectedNotationMeasures.first
+        }
+        return measures
+    }
+
+    private func validatedPasteTargetMeasures(forClipboardMeasureCount clipboardMeasureCount: Int) -> [ScoreMeasure]? {
+        guard let targetMeasures = currentPasteTargetMeasures(forClipboardMeasureCount: clipboardMeasureCount) else {
+            clearNotationMeasureSelection()
+            return nil
+        }
+
+        selectedNotationMeasures = targetMeasures.map(NotationMeasureSelection.init)
+        notationMeasureSelectionAnchor = selectedNotationMeasures.first
+        return targetMeasures
+    }
+
+    private func currentSelectedNotationMeasures() -> [ScoreMeasure] {
+        guard !selectedNotationMeasures.isEmpty else { return [] }
+
+        let scoreMeasures = currentNotationScoreMeasures()
+        guard let firstIndex = scoreMeasures.firstIndex(where: selectedNotationMeasures[0].matches) else { return [] }
+        let expectedRange = firstIndex..<(firstIndex + selectedNotationMeasures.count)
+        guard expectedRange.upperBound <= scoreMeasures.endIndex else { return [] }
+        let expectedMeasures = expectedRange.map { scoreMeasures[$0] }
+
+        return zip(expectedMeasures, selectedNotationMeasures).allSatisfy { measure, selection in
+            selection.matches(measure)
+        } ? expectedMeasures : []
+    }
+
+    private func currentPasteTargetMeasures(forClipboardMeasureCount clipboardMeasureCount: Int) -> [ScoreMeasure]? {
+        guard clipboardMeasureCount > 0 else { return nil }
+        let selectedMeasures = currentSelectedNotationMeasures()
+        guard let firstSelectedMeasure = selectedMeasures.first else { return nil }
+
+        let scoreMeasures = currentNotationScoreMeasures()
+        let firstSelection = NotationMeasureSelection(measure: firstSelectedMeasure)
+        guard let startIndex = scoreMeasures.firstIndex(where: { firstSelection.matches($0) }) else {
+            return nil
+        }
+
+        let targetCount = min(clipboardMeasureCount, scoreMeasures.count - startIndex)
+        guard targetCount > 0 else { return nil }
+        return (startIndex..<(startIndex + targetCount)).map { scoreMeasures[$0] }
+    }
+
+    private func currentNotationScoreMeasures() -> [ScoreMeasure] {
+        NotationViewportFactory().scoreState(
+            tempoMap: tempoMap,
+            duration: duration,
+            currentTime: currentTime,
+            playbackMarkerTime: playbackMarkerTime,
+            isPlaying: playbackState == .playing,
+            keyName: effectiveKeyName,
+            harmonySymbols: harmonySymbols,
+            notes: notes
+        ).measures
     }
 
     func updateLoopStart(_ start: TimeInterval) {

@@ -3,6 +3,7 @@ import SwiftUI
 
 struct NotationTrackActions {
     var selectHarmony: (HarmonySymbol.ID?) -> Void
+    var selectMeasure: (ScoreMeasure?, Bool) -> Void
     var saveHarmony: (HarmonySymbol) -> Void
     var deleteHarmony: (HarmonySymbol.ID) -> Void
     var adjacentHarmonyPlacement: (TimeInterval, HarmonyNavigationDirection) -> HarmonyPlacement?
@@ -11,6 +12,7 @@ struct NotationTrackActions {
 struct NotationTrackView: View {
     let state: NotationViewportState
     let selectedHarmonySymbolID: HarmonySymbol.ID?
+    let selectedMeasures: [NotationMeasureSelection]
     let pendingEditorRequest: HarmonyEditorRequest?
     let inputResolution: HarmonyInputResolution
     let actions: NotationTrackActions
@@ -23,6 +25,7 @@ struct NotationTrackView: View {
     init(
         state: NotationViewportState,
         selectedHarmonySymbolID: HarmonySymbol.ID? = nil,
+        selectedMeasures: [NotationMeasureSelection] = [],
         pendingEditorRequest: HarmonyEditorRequest? = nil,
         inputResolution: HarmonyInputResolution = HarmonyInputResolution(),
         actions: NotationTrackActions = .noop,
@@ -30,6 +33,7 @@ struct NotationTrackView: View {
     ) {
         self.state = state
         self.selectedHarmonySymbolID = selectedHarmonySymbolID
+        self.selectedMeasures = selectedMeasures
         self.pendingEditorRequest = pendingEditorRequest
         self.inputResolution = inputResolution
         self.actions = actions
@@ -44,6 +48,16 @@ struct NotationTrackView: View {
             ZStack(alignment: .topLeading) {
                 notationCanvas(
                     measureCount: renderedMeasureCount,
+                    attributeDisplays: attributeDisplays
+                )
+                selectedMeasureOverlay(
+                    width: contentWidth,
+                    height: proxy.size.height,
+                    attributeDisplays: attributeDisplays
+                )
+                measureSelectionHitLayer(
+                    width: contentWidth,
+                    height: proxy.size.height,
                     attributeDisplays: attributeDisplays
                 )
                 measureNumberLabels(
@@ -92,6 +106,7 @@ struct NotationTrackView: View {
             .clipShape(RoundedRectangle(cornerRadius: cornerRadius))
             .focusable()
             .focused($isTrackFocused)
+            .focusEffectDisabled(true)
             .onDeleteCommand {
                 deleteSelectedHarmony()
             }
@@ -312,6 +327,80 @@ struct NotationTrackView: View {
         }
     }
 
+    private func selectedMeasureOverlay(
+        width: CGFloat,
+        height: CGFloat,
+        attributeDisplays: [NotationAttributeDisplay]
+    ) -> some View {
+        let geometries = measureCanvasGeometries(
+            measureCount: renderedMeasureCount,
+            width: width,
+            attributeDisplays: attributeDisplays
+        )
+        let staffTop = staffTop(in: height)
+        let overlayY = max(AppTheme.Spacing.xs, staffTop - AppTheme.Spacing.xxl)
+        let overlayBottom = staffTop
+            + AppTheme.Timeline.notationStaffLineSpacing * 4
+            + AppTheme.Spacing.lg
+        let overlayHeight = max(1, overlayBottom - overlayY)
+
+        return ZStack(alignment: .topLeading) {
+            ForEach(state.visibleMeasures.indices, id: \.self) { index in
+                if selectedMeasures.contains(where: { $0.matches(state.visibleMeasures[index]) }),
+                   geometries.indices.contains(index) {
+                    let geometry = geometries[index]
+                    RoundedRectangle(cornerRadius: AppTheme.Radius.small)
+                        .fill(appColors.accent.opacity(0.16))
+                        .overlay {
+                            RoundedRectangle(cornerRadius: AppTheme.Radius.small)
+                                .stroke(appColors.accent, lineWidth: AppTheme.Stroke.thick)
+                        }
+                        .frame(
+                            width: max(1, geometry.cellEndX - geometry.cellStartX),
+                            height: overlayHeight
+                        )
+                        .offset(x: geometry.cellStartX, y: overlayY)
+                        .allowsHitTesting(false)
+                        .accessibilityHidden(true)
+                }
+            }
+        }
+    }
+
+    private func measureSelectionHitLayer(
+        width: CGFloat,
+        height: CGFloat,
+        attributeDisplays: [NotationAttributeDisplay]
+    ) -> some View {
+        let geometries = measureCanvasGeometries(
+            measureCount: renderedMeasureCount,
+            width: width,
+            attributeDisplays: attributeDisplays
+        )
+
+        return ZStack(alignment: .topLeading) {
+            ForEach(state.visibleMeasures.indices, id: \.self) { index in
+                if geometries.indices.contains(index) {
+                    let geometry = geometries[index]
+                    Rectangle()
+                        .fill(Color.clear)
+                        .contentShape(Rectangle())
+                        .frame(
+                            width: max(1, geometry.cellEndX - geometry.cellStartX),
+                            height: height
+                        )
+                        .offset(x: geometry.cellStartX, y: 0)
+                        .onTapGesture {
+                            isTrackFocused = true
+                            editingDraft = nil
+                            actions.selectMeasure(state.visibleMeasures[index], isShiftClickActive)
+                        }
+                        .accessibilityHidden(true)
+                }
+            }
+        }
+    }
+
     private func regionLabelsLayer(
         width: CGFloat,
         height: CGFloat,
@@ -441,10 +530,18 @@ struct NotationTrackView: View {
             .contentShape(Rectangle())
             .onTapGesture {
                 isTrackFocused = true
-                actions.selectHarmony(symbol.id)
+                if let measure = measure(containing: symbol) {
+                    actions.selectMeasure(measure, isShiftClickActive)
+                }
+                if !isShiftClickActive {
+                    actions.selectHarmony(symbol.id)
+                }
             }
             .onTapGesture(count: 2) {
                 isTrackFocused = true
+                if let measure = measure(containing: symbol) {
+                    actions.selectMeasure(measure, false)
+                }
                 beginEditingHarmony(symbol)
             }
             .accessibilityLabel("Harmony \(symbol.rawText)")
@@ -805,6 +902,12 @@ struct NotationTrackView: View {
             .first { abs($0.time - time) < 0.000_001 }
     }
 
+    private func measure(containing symbol: HarmonySymbol) -> ScoreMeasure? {
+        state.visibleMeasures.first {
+            NotationMeasureTiming.containsEventTime(symbol.time, in: $0)
+        }
+    }
+
     private func harmonyPlacement(for time: TimeInterval) -> NotationHarmonyPlacement? {
         guard let measureIndex = state.visibleMeasures.indices.first(where: { index in
             let measure = state.visibleMeasures[index]
@@ -882,7 +985,22 @@ struct NotationTrackView: View {
             return "Pending tempo"
         }
 
-        return "Measures \(first.number) through \(last.number), \(state.keySignature.displayName), \(state.timeSignature.displayText)"
+        let selectedMeasureText: String
+        if selectedMeasures.isEmpty {
+            selectedMeasureText = ""
+        } else if selectedMeasures.count == 1, let selectedMeasure = selectedMeasures.first {
+            selectedMeasureText = ", selected measure \(selectedMeasure.number)"
+        } else if let firstSelectedMeasure = selectedMeasures.first,
+                  let lastSelectedMeasure = selectedMeasures.last {
+            selectedMeasureText = ", selected measures \(firstSelectedMeasure.number) through \(lastSelectedMeasure.number)"
+        } else {
+            selectedMeasureText = ""
+        }
+        return "Measures \(first.number) through \(last.number), \(state.keySignature.displayName), \(state.timeSignature.displayText)\(selectedMeasureText)"
+    }
+
+    private var isShiftClickActive: Bool {
+        NSApp.currentEvent?.modifierFlags.contains(.shift) == true
     }
 
     private var scrollResetIdentity: String {
@@ -970,6 +1088,7 @@ private struct NotationHarmonyPlacement: Equatable {
 private extension NotationTrackActions {
     static let noop = NotationTrackActions(
         selectHarmony: { _ in },
+        selectMeasure: { _, _ in },
         saveHarmony: { _ in },
         deleteHarmony: { _ in },
         adjacentHarmonyPlacement: { _, _ in nil }

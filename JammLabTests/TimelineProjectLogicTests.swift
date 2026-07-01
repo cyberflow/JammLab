@@ -713,4 +713,155 @@ final class TimelineProjectLogicTests: XCTestCase {
         XCTAssertEqual(AppHotkey.addTempoTimeSignatureMarker.title, "Add Tempo / Time Signature Marker")
     }
 
+    func testAppHotkeyRecognizesCommandCAndVForNotationMeasureCopyPaste() throws {
+        let copyEvent = try XCTUnwrap(NSEvent.keyEvent(
+            with: .keyDown,
+            location: .zero,
+            modifierFlags: [.command],
+            timestamp: 0,
+            windowNumber: 0,
+            context: nil,
+            characters: "c",
+            charactersIgnoringModifiers: "c",
+            isARepeat: false,
+            keyCode: 8
+        ))
+        let pasteEvent = try XCTUnwrap(NSEvent.keyEvent(
+            with: .keyDown,
+            location: .zero,
+            modifierFlags: [.command],
+            timestamp: 0,
+            windowNumber: 0,
+            context: nil,
+            characters: "v",
+            charactersIgnoringModifiers: "v",
+            isARepeat: false,
+            keyCode: 9
+        ))
+
+        XCTAssertEqual(AppHotkey(event: copyEvent), .copyMeasure)
+        XCTAssertEqual(AppHotkey.copyMeasure.key, "Cmd+C")
+        XCTAssertEqual(AppHotkey.copyMeasure.title, "Copy Measure")
+        XCTAssertEqual(AppHotkey(event: pasteEvent), .pasteMeasure)
+        XCTAssertEqual(AppHotkey.pasteMeasure.key, "Cmd+V")
+        XCTAssertEqual(AppHotkey.pasteMeasure.title, "Paste Measure")
+    }
+
+    func testAppHotkeyRecognizesEscapeForNotationMeasureSelectionClear() throws {
+        let event = try XCTUnwrap(NSEvent.keyEvent(
+            with: .keyDown,
+            location: .zero,
+            modifierFlags: [],
+            timestamp: 0,
+            windowNumber: 0,
+            context: nil,
+            characters: "\u{1b}",
+            charactersIgnoringModifiers: "\u{1b}",
+            isARepeat: false,
+            keyCode: 53
+        ))
+
+        XCTAssertEqual(AppHotkey(event: event), .clearNotationMeasureSelection)
+        XCTAssertEqual(AppHotkey.clearNotationMeasureSelection.key, "Esc")
+        XCTAssertEqual(AppHotkey.clearNotationMeasureSelection.title, "Clear Measure Selection")
+    }
+
+    func testAppHotkeyEventFilterDoesNotStealMeasureCopyPasteFromTextRespondersOrUnavailableScopes() throws {
+        let copyEvent = try XCTUnwrap(NSEvent.keyEvent(
+            with: .keyDown,
+            location: .zero,
+            modifierFlags: [.command],
+            timestamp: 0,
+            windowNumber: 42,
+            context: nil,
+            characters: "c",
+            charactersIgnoringModifiers: "c",
+            isARepeat: false,
+            keyCode: 8
+        ))
+
+        XCTAssertEqual(
+            AppHotkeyEventFilter.hotkey(
+                for: copyEvent,
+                attachedWindowNumber: 42,
+                firstResponder: nil,
+                allowedHotkeys: [.copyMeasure]
+            ),
+            .copyMeasure
+        )
+        XCTAssertNil(
+            AppHotkeyEventFilter.hotkey(
+                for: copyEvent,
+                attachedWindowNumber: 42,
+                firstResponder: nil,
+                allowedHotkeys: [.playPause]
+            )
+        )
+        XCTAssertNil(
+            AppHotkeyEventFilter.hotkey(
+                for: copyEvent,
+                attachedWindowNumber: 42,
+                firstResponder: NSTextView(),
+                allowedHotkeys: [.copyMeasure]
+            )
+        )
+        XCTAssertNil(
+            AppHotkeyEventFilter.hotkey(
+                for: copyEvent,
+                attachedWindowNumber: 42,
+                firstResponder: AbletonNumberFieldNSView(),
+                allowedHotkeys: [.copyMeasure]
+            )
+        )
+    }
+
+    func testAppHotkeyEventFilterDoesNotStealEscapeFromTextRespondersOrUnavailableScopes() throws {
+        let escapeEvent = try XCTUnwrap(NSEvent.keyEvent(
+            with: .keyDown,
+            location: .zero,
+            modifierFlags: [],
+            timestamp: 0,
+            windowNumber: 42,
+            context: nil,
+            characters: "\u{1b}",
+            charactersIgnoringModifiers: "\u{1b}",
+            isARepeat: false,
+            keyCode: 53
+        ))
+
+        XCTAssertEqual(
+            AppHotkeyEventFilter.hotkey(
+                for: escapeEvent,
+                attachedWindowNumber: 42,
+                firstResponder: nil,
+                allowedHotkeys: [.clearNotationMeasureSelection]
+            ),
+            .clearNotationMeasureSelection
+        )
+        XCTAssertNil(
+            AppHotkeyEventFilter.hotkey(
+                for: escapeEvent,
+                attachedWindowNumber: 42,
+                firstResponder: nil,
+                allowedHotkeys: [.playPause]
+            )
+        )
+        XCTAssertNil(
+            AppHotkeyEventFilter.hotkey(
+                for: escapeEvent,
+                attachedWindowNumber: 42,
+                firstResponder: NSTextView(),
+                allowedHotkeys: [.clearNotationMeasureSelection]
+            )
+        )
+        XCTAssertNil(
+            AppHotkeyEventFilter.hotkey(
+                for: escapeEvent,
+                attachedWindowNumber: 42,
+                firstResponder: AbletonNumberFieldNSView(),
+                allowedHotkeys: [.clearNotationMeasureSelection]
+            )
+        )
+    }
+
 }

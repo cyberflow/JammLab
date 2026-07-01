@@ -115,6 +115,7 @@ extension AudioPlayerViewModel {
         projectKeySelection = nil
         selectedRegionID = nil
         selectedHarmonySymbolID = nil
+        clearNotationMeasureSelectionAndClipboard()
         pendingHarmonyEditorRequest = nil
         activeLoopRegionID = nil
         harmonyInputResolutionDenominator = HarmonyInputResolution.defaultDenominator
@@ -175,6 +176,7 @@ extension AudioPlayerViewModel {
         projectKeySelection = nil
         selectedRegionID = nil
         selectedHarmonySymbolID = nil
+        clearNotationMeasureSelectionAndClipboard()
         pendingHarmonyEditorRequest = nil
         harmonyInputResolutionDenominator = HarmonyInputResolution.defaultDenominator
         activeLoopRegionID = nil
@@ -250,6 +252,7 @@ extension AudioPlayerViewModel {
             projectKeySelection = project.projectKeySelection
             selectedRegionID = nil
             selectedHarmonySymbolID = nil
+            clearNotationMeasureSelectionAndClipboard()
             pendingHarmonyEditorRequest = nil
             harmonyInputResolutionDenominator = HarmonyInputResolution.defaultDenominator
             activeLoopRegionID = nil
