@@ -1,27 +1,5 @@
 import Foundation
 
-struct ScoreDocument: Equatable {
-    var title: String?
-    var parts: [ScorePart]
-
-    init(title: String? = nil, parts: [ScorePart]) {
-        self.title = title
-        self.parts = parts
-    }
-}
-
-struct ScorePart: Equatable, Identifiable {
-    var id: String
-    var name: String
-    var measures: [ScoreMeasure]
-
-    init(id: String = "P1", name: String = "Notation", measures: [ScoreMeasure]) {
-        self.id = id
-        self.name = name
-        self.measures = measures
-    }
-}
-
 struct ScoreMeasure: Equatable, Identifiable {
     var number: Int
     var startTime: TimeInterval
