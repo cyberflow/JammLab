@@ -8,12 +8,14 @@ struct NotationViewportFactory {
         playbackMarkerTime: TimeInterval,
         isPlaying: Bool,
         keyName: String?,
-        harmonySymbols: [HarmonySymbol] = []
+        harmonySymbols: [HarmonySymbol] = [],
+        notes: [TimecodedNote] = []
     ) -> NotationScoreState {
         let keySignature = KeySignature.normalized(from: keyName)
         guard duration > 0 else {
             return .pending(keySignature: keySignature)
         }
+        let regionNotes = Self.regionLabelSourceNotes(from: notes)
 
         let rawAnchorTime = Self.anchorTime(
             currentTime: currentTime,
@@ -33,7 +35,8 @@ struct NotationViewportFactory {
             measures.append(decoratedMeasure(
                 cursor,
                 keySignature: keySignature,
-                harmonySymbols: harmonySymbols
+                harmonySymbols: harmonySymbols,
+                regionNotes: regionNotes
             ))
 
             guard cursor.endTime < duration - Self.timelineTolerance,
@@ -67,13 +70,15 @@ struct NotationViewportFactory {
         isPlaying: Bool,
         keyName: String?,
         visibleMeasureCount: Int,
-        harmonySymbols: [HarmonySymbol] = []
+        harmonySymbols: [HarmonySymbol] = [],
+        notes: [TimecodedNote] = []
     ) -> NotationViewportState {
         let safeVisibleMeasureCount = max(1, visibleMeasureCount)
         let keySignature = KeySignature.normalized(from: keyName)
         guard duration > 0 else {
             return .pending(visibleMeasureCount: safeVisibleMeasureCount, keySignature: keySignature)
         }
+        let regionNotes = Self.regionLabelSourceNotes(from: notes)
 
         let rawAnchorTime = Self.anchorTime(
             currentTime: currentTime,
@@ -98,7 +103,8 @@ struct NotationViewportFactory {
             visibleMeasures.append(decoratedMeasure(
                 cursor,
                 keySignature: keySignature,
-                harmonySymbols: harmonySymbols
+                harmonySymbols: harmonySymbols,
+                regionNotes: regionNotes
             ))
             guard let next = nextMeasure(after: cursor, tempoMap: tempoMap) else { break }
             cursor = next
@@ -124,12 +130,13 @@ struct NotationViewportFactory {
     private func decoratedMeasure(
         _ measure: ScoreMeasure,
         keySignature: KeySignature,
-        harmonySymbols: [HarmonySymbol]
+        harmonySymbols: [HarmonySymbol],
+        regionNotes: [TimecodedNote]
     ) -> ScoreMeasure {
         let keyedMeasure = measure.withKeySignature(keySignature)
-        return keyedMeasure.withHarmonies(
-            harmonies(for: keyedMeasure, from: harmonySymbols)
-        )
+        return keyedMeasure
+            .withHarmonies(harmonies(for: keyedMeasure, from: harmonySymbols))
+            .withRegionLabels(regionLabels(for: keyedMeasure, from: regionNotes))
     }
 
     static func anchorTime(
@@ -367,12 +374,7 @@ struct NotationViewportFactory {
     private func harmonies(for measure: ScoreMeasure, from harmonySymbols: [HarmonySymbol]) -> [HarmonySymbol] {
         harmonySymbols
             .compactMap { symbol -> HarmonySymbol? in
-                guard symbol.time >= measure.startTime - Self.timelineTolerance,
-                      (
-                        symbol.time < measure.endTime - Self.timelineTolerance
-                            || abs(symbol.time - measure.startTime) < Self.timelineTolerance
-                      )
-                else {
+                guard Self.isNotationEventTime(symbol.time, within: measure) else {
                     return nil
                 }
 
@@ -382,12 +384,76 @@ struct NotationViewportFactory {
                 )
             }
             .sorted {
-                if abs($0.offsetInQuarterNotes - $1.offsetInQuarterNotes) > Self.timelineTolerance {
-                    return $0.offsetInQuarterNotes < $1.offsetInQuarterNotes
+                Self.isOrderedByNotationPosition(
+                    lhsOffset: $0.offsetInQuarterNotes,
+                    lhsID: $0.id,
+                    rhsOffset: $1.offsetInQuarterNotes,
+                    rhsID: $1.id
+                )
+            }
+    }
+
+    private func regionLabels(for measure: ScoreMeasure, from regionNotes: [TimecodedNote]) -> [NotationRegionLabel] {
+        regionNotes
+            .compactMap { note -> NotationRegionLabel? in
+                guard Self.isNotationEventTime(note.time, within: measure) else {
+                    return nil
+                }
+
+                return NotationRegionLabel(
+                    id: note.id,
+                    time: note.time,
+                    measureNumber: measure.number,
+                    offsetInQuarterNotes: quarterOffset(for: note.time, in: measure),
+                    title: Self.regionLabelTitle(for: note)
+                )
+            }
+            .sorted {
+                Self.isOrderedByNotationPosition(
+                    lhsOffset: $0.offsetInQuarterNotes,
+                    lhsID: $0.id,
+                    rhsOffset: $1.offsetInQuarterNotes,
+                    rhsID: $1.id
+                )
+            }
+    }
+
+    private static func regionLabelSourceNotes(from notes: [TimecodedNote]) -> [TimecodedNote] {
+        notes
+            .filter(\.isRegion)
+            .sorted {
+                if abs($0.time - $1.time) > timelineTolerance {
+                    return $0.time < $1.time
                 }
 
                 return $0.id.uuidString < $1.id.uuidString
             }
+    }
+
+    private static func regionLabelTitle(for note: TimecodedNote) -> String {
+        let trimmedTitle = note.title.trimmingCharacters(in: .whitespacesAndNewlines)
+        return trimmedTitle.isEmpty ? "Region" : trimmedTitle
+    }
+
+    private static func isNotationEventTime(_ time: TimeInterval, within measure: ScoreMeasure) -> Bool {
+        time >= measure.startTime - timelineTolerance
+            && (
+                time < measure.endTime - timelineTolerance
+                    || abs(time - measure.startTime) < timelineTolerance
+            )
+    }
+
+    private static func isOrderedByNotationPosition(
+        lhsOffset: Double,
+        lhsID: UUID,
+        rhsOffset: Double,
+        rhsID: UUID
+    ) -> Bool {
+        if abs(lhsOffset - rhsOffset) > timelineTolerance {
+            return lhsOffset < rhsOffset
+        }
+
+        return lhsID.uuidString < rhsID.uuidString
     }
 
     private func quarterOffset(for time: TimeInterval, in measure: ScoreMeasure) -> Double {
@@ -449,6 +515,12 @@ private extension ScoreMeasure {
     func withHarmonies(_ harmonies: [HarmonySymbol]) -> ScoreMeasure {
         var copy = self
         copy.harmonies = harmonies
+        return copy
+    }
+
+    func withRegionLabels(_ regionLabels: [NotationRegionLabel]) -> ScoreMeasure {
+        var copy = self
+        copy.regionLabels = regionLabels
         return copy
     }
 

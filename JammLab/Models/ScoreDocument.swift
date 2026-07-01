@@ -28,19 +28,22 @@ struct ScoreMeasure: Equatable, Identifiable {
     var endTime: TimeInterval
     var attributes: MeasureAttributes
     var harmonies: [HarmonySymbol]
+    var regionLabels: [NotationRegionLabel]
 
     init(
         number: Int,
         startTime: TimeInterval,
         endTime: TimeInterval,
         attributes: MeasureAttributes,
-        harmonies: [HarmonySymbol] = []
+        harmonies: [HarmonySymbol] = [],
+        regionLabels: [NotationRegionLabel] = []
     ) {
         self.number = number
         self.startTime = startTime
         self.endTime = endTime
         self.attributes = attributes
         self.harmonies = harmonies
+        self.regionLabels = regionLabels
     }
 
     var id: String {
@@ -49,6 +52,28 @@ struct ScoreMeasure: Equatable, Identifiable {
 
     var duration: TimeInterval {
         max(0, endTime - startTime)
+    }
+}
+
+struct NotationRegionLabel: Identifiable, Equatable {
+    var id: UUID
+    var time: TimeInterval
+    var measureNumber: Int
+    var offsetInQuarterNotes: Double
+    var title: String
+
+    init(
+        id: UUID,
+        time: TimeInterval,
+        measureNumber: Int,
+        offsetInQuarterNotes: Double,
+        title: String
+    ) {
+        self.id = id
+        self.time = time
+        self.measureNumber = measureNumber
+        self.offsetInQuarterNotes = offsetInQuarterNotes
+        self.title = title
     }
 }
 
