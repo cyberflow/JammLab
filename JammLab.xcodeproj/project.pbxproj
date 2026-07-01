@@ -59,6 +59,7 @@
 		9FCB01032D80000100112233 /* AppLetterToggleButton.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9FCB00032D80000100112233 /* AppLetterToggleButton.swift */; };
 		9FCB01042D80000100112233 /* JammModeToggleButton.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9FCB00042D80000100112233 /* JammModeToggleButton.swift */; };
 		9FCB01052D80000100112233 /* AppPopoverDismissModifier.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9FCB00052D80000100112233 /* AppPopoverDismissModifier.swift */; };
+		9FCB01092D80000100112233 /* ClickToolbarButton.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9FCB00092D80000100112233 /* ClickToolbarButton.swift */; };
 		9F8C01042C20000100112233 /* AppHotkeyMonitorView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9F8C00042C20000100112233 /* AppHotkeyMonitorView.swift */; };
 		9F8C01052C20000100112233 /* NoteRowView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9F8C00052C20000100112233 /* NoteRowView.swift */; };
 		9F8C01062C20000100112233 /* MainWorkspacePanels.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9F8C00062C20000100112233 /* MainWorkspacePanels.swift */; };
@@ -222,6 +223,7 @@
 		9FCB00032D80000100112233 /* AppLetterToggleButton.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppLetterToggleButton.swift; sourceTree = "<group>"; };
 		9FCB00042D80000100112233 /* JammModeToggleButton.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = JammModeToggleButton.swift; sourceTree = "<group>"; };
 		9FCB00052D80000100112233 /* AppPopoverDismissModifier.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppPopoverDismissModifier.swift; sourceTree = "<group>"; };
+		9FCB00092D80000100112233 /* ClickToolbarButton.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ClickToolbarButton.swift; sourceTree = "<group>"; };
 		9F8C00042C20000100112233 /* AppHotkeyMonitorView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppHotkeyMonitorView.swift; sourceTree = "<group>"; };
 		9F8C00052C20000100112233 /* NoteRowView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NoteRowView.swift; sourceTree = "<group>"; };
 		9F8C00062C20000100112233 /* MainWorkspacePanels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MainWorkspacePanels.swift; sourceTree = "<group>"; };
@@ -517,6 +519,7 @@
 				9F8C00042C20000100112233 /* AppHotkeyMonitorView.swift */,
 				9FB205002D33000100112233 /* AppKitControlHelpers.swift */,
 				9F8C00022C20000100112233 /* AppPanel.swift */,
+				9FCB00092D80000100112233 /* ClickToolbarButton.swift */,
 				9FCB00022D80000100112233 /* CompactValuePicker.swift */,
 				9FD001002D20000100112233 /* ControlHelpText.swift */,
 				9F9000032C60000100112233 /* InspectorSidebarView.swift */,
@@ -812,6 +815,7 @@
 				9F8B01042C10000100112233 /* TimelineTracks.swift in Sources */,
 				9F8B01012C10000100112233 /* TimelineViewport.swift in Sources */,
 				9F9701012CD0000100112233 /* TimelineViewportControlBar.swift in Sources */,
+				9FCB01092D80000100112233 /* ClickToolbarButton.swift in Sources */,
 				9F8C01092C20000100112233 /* TopToolbarView.swift in Sources */,
 				9FBA01022D40000100112233 /* TrackPitchAnalyzer.swift in Sources */,
 				9F8C01072C20000100112233 /* TransportBarView.swift in Sources */,
