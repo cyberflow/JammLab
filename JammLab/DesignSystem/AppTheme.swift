@@ -254,7 +254,7 @@ enum AppTheme {
         static let markerTrackHeight: CGFloat = 24
         static let tempoTrackHeight: CGFloat = 38
         static let waveformTrackHeight: CGFloat = 110
-        static let notationTrackHeight: CGFloat = 88
+        static let notationTrackHeight: CGFloat = 124
         static let notationMaximumVisibleMeasureCount = 8
         static let notationMeasureMinWidth: CGFloat = 148
         static let notationStaffLineSpacing: CGFloat = 8
@@ -275,6 +275,11 @@ enum AppTheme {
         static let notationHarmonyAnchorLeadingOffset: CGFloat = AppTheme.Spacing.md
         static let notationHarmonySymbolWidth: CGFloat = 84
         static let notationHarmonyEditorWidth: CGFloat = 64
+        static let notationRegionLabelMaxWidth: CGFloat = 88
+        static let notationRegionLabelHeight: CGFloat = 16
+        static let notationRegionLabelFontSize: CGFloat = 10
+        static let notationRegionLabelCornerRadius: CGFloat = 1.5
+        static let notationRegionLabelGap: CGFloat = AppTheme.Spacing.xs
         static let stemTrackHeight: CGFloat = 48
         static let defaultVisibleStemRows = 4
         static let trackSpacing: CGFloat = 6
@@ -377,7 +382,7 @@ enum AppTheme {
 
     enum NotationWindow {
         static let maximumMeasuresPerSystem = 4
-        static let systemHeight: CGFloat = 112
+        static let systemHeight: CGFloat = 124
         static let systemSpacing: CGFloat = AppTheme.Spacing.none
         static let pagePadding: CGFloat = 28
     }

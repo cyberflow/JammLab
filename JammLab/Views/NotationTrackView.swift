@@ -51,6 +51,11 @@ struct NotationTrackView: View {
                     height: proxy.size.height,
                     attributeDisplays: attributeDisplays
                 )
+                regionLabelsLayer(
+                    width: contentWidth,
+                    height: proxy.size.height,
+                    attributeDisplays: attributeDisplays
+                )
                 harmonySymbolsLayer(
                     width: contentWidth,
                     height: proxy.size.height,
@@ -307,6 +312,54 @@ struct NotationTrackView: View {
         }
     }
 
+    private func regionLabelsLayer(
+        width: CGFloat,
+        height: CGFloat,
+        attributeDisplays: [NotationAttributeDisplay]
+    ) -> some View {
+        let geometries = measureCanvasGeometries(
+            measureCount: renderedMeasureCount,
+            width: width,
+            attributeDisplays: attributeDisplays
+        )
+        let labelY = NotationMeasureLayout.regionLabelY(staffTop: staffTop(in: height))
+
+        return ZStack(alignment: .topLeading) {
+            ForEach(regionLabelLayoutItems(geometries: geometries), id: \.label.id) { item in
+                regionLabelView(item.label)
+                    .offset(
+                        x: item.x,
+                        y: labelY
+                    )
+                    .allowsHitTesting(false)
+                    .accessibilityHidden(true)
+            }
+        }
+    }
+
+    private func regionLabelView(_ label: NotationRegionLabel) -> some View {
+        Text(label.title.uppercased())
+            .font(.system(size: AppTheme.Timeline.notationRegionLabelFontSize, weight: .bold))
+            .foregroundStyle(appColors.notationSymbolsAndLines)
+            .lineLimit(1)
+            .truncationMode(.tail)
+            .padding(.horizontal, AppTheme.Spacing.xxs)
+            .frame(
+                maxWidth: AppTheme.Timeline.notationRegionLabelMaxWidth,
+                minHeight: AppTheme.Timeline.notationRegionLabelHeight,
+                maxHeight: AppTheme.Timeline.notationRegionLabelHeight,
+                alignment: .center
+            )
+            .background(
+                RoundedRectangle(cornerRadius: AppTheme.Timeline.notationRegionLabelCornerRadius)
+                    .fill(appColors.notationTrackBackground)
+            )
+            .overlay(
+                RoundedRectangle(cornerRadius: AppTheme.Timeline.notationRegionLabelCornerRadius)
+                    .stroke(appColors.notationSymbolsAndLines, lineWidth: AppTheme.Stroke.thin)
+            )
+    }
+
     private func attributeLabels(
         width: CGFloat,
         height: CGFloat,
@@ -558,6 +611,51 @@ struct NotationTrackView: View {
 
     private func staffTop(in height: CGFloat) -> CGFloat {
         max(AppTheme.Spacing.xxl, (height - AppTheme.Timeline.notationStaffLineSpacing * 4) / 2 + AppTheme.Spacing.xs)
+    }
+
+    private func regionLabelLayoutItems(
+        geometries: [NotationMeasureCanvasGeometry]
+    ) -> [RegionLabelLayoutItem] {
+        let candidates = state.visibleMeasures.indices.flatMap { index -> [RegionLabelLayoutCandidate] in
+            guard geometries.indices.contains(index) else { return [] }
+            let measure = state.visibleMeasures[index]
+            return measure.regionLabels.map { label in
+                let avoidsMeasureNumber = index == 0
+                let bounds = NotationMeasureLayout.regionLabelXBounds(
+                    geometry: geometries[index],
+                    labelWidth: AppTheme.Timeline.notationRegionLabelMaxWidth,
+                    avoidsSystemMeasureNumber: avoidsMeasureNumber
+                )
+                let x = NotationMeasureLayout.regionLabelX(
+                    geometry: geometries[index],
+                    offsetInQuarterNotes: label.offsetInQuarterNotes,
+                    timeSignature: measure.attributes.timeSignature,
+                    bounds: bounds
+                )
+                return RegionLabelLayoutCandidate(
+                    label: label,
+                    x: x,
+                    upperBound: bounds.upperBound
+                )
+            }
+        }
+        .sorted {
+            if abs($0.x - $1.x) > 0.0001 {
+                return $0.x < $1.x
+            }
+
+            return $0.label.id.uuidString < $1.label.id.uuidString
+        }
+
+        var previousEnd: CGFloat?
+        return candidates.map { candidate in
+            let minimumX = previousEnd.map {
+                $0 + AppTheme.Timeline.notationRegionLabelGap
+            } ?? candidate.x
+            let adjustedX = min(max(candidate.x, minimumX), candidate.upperBound)
+            previousEnd = adjustedX + AppTheme.Timeline.notationRegionLabelMaxWidth
+            return RegionLabelLayoutItem(label: candidate.label, x: adjustedX)
+        }
     }
 
     private func harmonyLayoutItems(
@@ -873,6 +971,17 @@ private struct HarmonyEditorDraft: Equatable {
     var isNew: Bool
 }
 
+private struct RegionLabelLayoutCandidate: Equatable {
+    var label: NotationRegionLabel
+    var x: CGFloat
+    var upperBound: CGFloat
+}
+
+private struct RegionLabelLayoutItem: Equatable {
+    var label: NotationRegionLabel
+    var x: CGFloat
+}
+
 private struct HarmonyLayoutItem: Equatable {
     var symbol: HarmonySymbol
     var x: CGFloat
@@ -1026,6 +1135,94 @@ struct NotationMeasureLayout {
         gap: CGFloat = AppTheme.Spacing.xs
     ) -> CGFloat {
         max(AppTheme.Spacing.xs, staffTop - max(0, elementHeight) - max(0, gap))
+    }
+
+    static func regionLabelY(
+        staffTop: CGFloat,
+        labelHeight: CGFloat = AppTheme.Timeline.notationRegionLabelHeight,
+        gap: CGFloat = AppTheme.Timeline.notationRegionLabelGap
+    ) -> CGFloat {
+        let harmonyY = harmonyLabelY(staffTop: staffTop)
+        return max(AppTheme.Spacing.xxxs, harmonyY - max(0, labelHeight) - max(0, gap))
+    }
+
+    static func regionLabelX(
+        geometry: NotationMeasureCanvasGeometry,
+        offsetInQuarterNotes: Double,
+        timeSignature: TimeSignature,
+        labelWidth: CGFloat = AppTheme.Timeline.notationRegionLabelMaxWidth,
+        avoidsSystemMeasureNumber: Bool = false,
+        measureNumberGap: CGFloat = AppTheme.Spacing.sm
+    ) -> CGFloat {
+        let bounds = regionLabelXBounds(
+            geometry: geometry,
+            labelWidth: labelWidth,
+            avoidsSystemMeasureNumber: avoidsSystemMeasureNumber,
+            measureNumberGap: measureNumberGap
+        )
+        return regionLabelX(
+            geometry: geometry,
+            offsetInQuarterNotes: offsetInQuarterNotes,
+            timeSignature: timeSignature,
+            bounds: bounds
+        )
+    }
+
+    static func regionLabelX(
+        geometry: NotationMeasureCanvasGeometry,
+        offsetInQuarterNotes: Double,
+        timeSignature: TimeSignature,
+        bounds: ClosedRange<CGFloat>
+    ) -> CGFloat {
+        let anchorX = notationAnchorX(
+            geometry: geometry,
+            offsetInQuarterNotes: offsetInQuarterNotes,
+            timeSignature: timeSignature,
+            anchorInset: 0
+        )
+        return min(max(anchorX, bounds.lowerBound), bounds.upperBound)
+    }
+
+    static func regionLabelXBounds(
+        geometry: NotationMeasureCanvasGeometry,
+        labelWidth: CGFloat = AppTheme.Timeline.notationRegionLabelMaxWidth,
+        avoidsSystemMeasureNumber: Bool = false,
+        measureNumberGap: CGFloat = AppTheme.Spacing.sm
+    ) -> ClosedRange<CGFloat> {
+        let lowerBound = regionLabelLowerBound(
+            geometry: geometry,
+            avoidsSystemMeasureNumber: avoidsSystemMeasureNumber,
+            measureNumberGap: measureNumberGap
+        )
+        let rawUpperBound = regionLabelUpperBound(
+            geometry: geometry,
+            labelWidth: labelWidth
+        )
+
+        return lowerBound...max(lowerBound, rawUpperBound)
+    }
+
+    static func regionLabelLowerBound(
+        geometry: NotationMeasureCanvasGeometry,
+        avoidsSystemMeasureNumber: Bool,
+        measureNumberGap: CGFloat = AppTheme.Spacing.sm
+    ) -> CGFloat {
+        let baseLowerBound = max(geometry.staffStartX, geometry.cellStartX)
+        guard avoidsSystemMeasureNumber else { return baseLowerBound }
+
+        return max(
+            baseLowerBound,
+            systemMeasureNumberLabelTrailingX(geometry: geometry) + max(0, measureNumberGap)
+        )
+    }
+
+    static func regionLabelUpperBound(
+        geometry: NotationMeasureCanvasGeometry,
+        labelWidth: CGFloat = AppTheme.Timeline.notationRegionLabelMaxWidth
+    ) -> CGFloat {
+        let visualStartX = max(geometry.staffStartX, geometry.cellStartX)
+        let visualEndX = max(visualStartX, geometry.staffEndX)
+        return max(visualStartX, visualEndX - max(0, labelWidth))
     }
 
     static func barlineGeometries(for geometries: [NotationMeasureCanvasGeometry]) -> [NotationBarlineGeometry] {

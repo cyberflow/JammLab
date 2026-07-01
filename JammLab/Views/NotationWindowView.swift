@@ -155,7 +155,8 @@ struct NotationWindowView: View {
             playbackMarkerTime: viewModel.playbackMarkerTime,
             isPlaying: viewModel.playbackState == .playing,
             keyName: viewModel.effectiveKeyName,
-            harmonySymbols: viewModel.harmonySymbols
+            harmonySymbols: viewModel.harmonySymbols,
+            notes: viewModel.notes
         )
     }
 

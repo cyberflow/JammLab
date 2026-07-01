@@ -160,7 +160,8 @@ extension ContentView {
                 isPlaying: viewModel.playbackState == .playing,
                 keyName: viewModel.effectiveKeyName,
                 visibleMeasureCount: measureCount,
-                harmonySymbols: viewModel.harmonySymbols
+                harmonySymbols: viewModel.harmonySymbols,
+                notes: viewModel.notes
             )
         }
 
@@ -172,7 +173,8 @@ extension ContentView {
             isPlaying: viewModel.playbackState == .playing,
             keyName: viewModel.effectiveKeyName,
             visibleMeasureCount: fittedMeasureCount,
-            harmonySymbols: viewModel.harmonySymbols
+            harmonySymbols: viewModel.harmonySymbols,
+            notes: viewModel.notes
         )
     }
 
