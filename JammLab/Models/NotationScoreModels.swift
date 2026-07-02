@@ -79,6 +79,34 @@ struct NotationMeasureSelection: Equatable, Identifiable {
     }
 }
 
+struct NotationBeatSelection: Equatable, Identifiable {
+    var measureNumber: Int
+    var measureStartTime: TimeInterval
+    var measureEndTime: TimeInterval
+    var attributes: MeasureAttributes
+    var offsetInQuarterNotes: Double
+
+    init(measure: ScoreMeasure, offsetInQuarterNotes: Double) {
+        self.measureNumber = measure.number
+        self.measureStartTime = measure.startTime
+        self.measureEndTime = measure.endTime
+        self.attributes = measure.attributes
+        self.offsetInQuarterNotes = offsetInQuarterNotes
+    }
+
+    var id: String {
+        "\(measureNumber)-\(measureStartTime)-\(measureEndTime)-\(offsetInQuarterNotes)"
+    }
+
+    func matches(_ measure: ScoreMeasure, offsetInQuarterNotes offset: Double) -> Bool {
+        measureNumber == measure.number
+            && abs(measureStartTime - measure.startTime) < NotationMeasureTiming.timelineTolerance
+            && abs(measureEndTime - measure.endTime) < NotationMeasureTiming.timelineTolerance
+            && attributes == measure.attributes
+            && abs(offsetInQuarterNotes - offset) < NotationMeasureTiming.timelineTolerance
+    }
+}
+
 struct NotationMeasureClipboard: Equatable {
     var measures: [NotationMeasureClipboardMeasure]
 }

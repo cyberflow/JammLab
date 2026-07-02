@@ -16,6 +16,7 @@ enum AppHotkey: CaseIterable, Hashable {
     case copyMeasure
     case pasteMeasure
     case clearNotationMeasureSelection
+    case editHarmonyAtSelectedBeat
 
     // Keep this enum as the single source of truth for keyboard shortcuts.
     // When adding a new handled hotkey, add a case here with its help metadata
@@ -30,6 +31,8 @@ enum AppHotkey: CaseIterable, Hashable {
             self = .copyMeasure
         case (9, [.command]):
             self = .pasteMeasure
+        case (40, [.command]):
+            self = .editHarmonyAtSelectedBeat
         case (1, [.option]):
             self = .toggleSnap
         case (9, [.option]):
@@ -100,6 +103,8 @@ enum AppHotkey: CaseIterable, Hashable {
             return "Cmd+V"
         case .clearNotationMeasureSelection:
             return "Esc"
+        case .editHarmonyAtSelectedBeat:
+            return "Cmd+K"
         }
     }
 
@@ -133,6 +138,8 @@ enum AppHotkey: CaseIterable, Hashable {
             return "Paste Measure"
         case .clearNotationMeasureSelection:
             return "Clear Measure Selection"
+        case .editHarmonyAtSelectedBeat:
+            return "Edit Harmony"
         }
     }
 
@@ -166,6 +173,8 @@ enum AppHotkey: CaseIterable, Hashable {
             return "Replace the selected notation measure with the copied measure contents."
         case .clearNotationMeasureSelection:
             return "Clear the selected notation measure or measure range."
+        case .editHarmonyAtSelectedBeat:
+            return "Open harmony entry for the selected notation beat."
         }
     }
 }

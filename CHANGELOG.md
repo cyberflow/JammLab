@@ -8,6 +8,7 @@ development artifact builds use `vMAJOR.MINOR.PATCH-dev.N`.
 
 ## Unreleased
 
+- Changed notation harmony entry so beat slashes are selectable and Cmd+K opens chord input for the selected beat.
 - Added notation measure range selection with Shift-click, Cmd+C/Cmd+V measure copy and replace-paste for harmony contents, and Esc to clear the selection.
 - Improved notation measure range selection so adjacent selected measures draw as one continuous frame.
 - Added boxed Region start labels to Notation in the timeline track and Notation window.

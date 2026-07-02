@@ -9,12 +9,16 @@ struct HarmonyInlineTextField: NSViewRepresentable {
 
     func makeNSView(context: Context) -> HarmonyInlineNSTextField {
         let textField = HarmonyInlineNSTextField(string: text)
-        textField.isBordered = true
-        textField.isBezeled = true
-        textField.bezelStyle = .roundedBezel
-        textField.focusRingType = .default
+        textField.isBordered = false
+        textField.isBezeled = false
+        textField.drawsBackground = false
+        textField.backgroundColor = .clear
+        textField.focusRingType = .none
         textField.delegate = context.coordinator
         textField.font = .systemFont(ofSize: 13, weight: .semibold)
+        textField.textColor = .controlAccentColor
+        textField.lineBreakMode = .byClipping
+        textField.cell?.isScrollable = true
         textField.onWindowAttached = { [weak coordinator = context.coordinator, weak textField] in
             guard let textField else { return }
             coordinator?.focusAndSelectIfNeeded(textField)
@@ -27,6 +31,7 @@ struct HarmonyInlineTextField: NSViewRepresentable {
         if nsView.stringValue != text {
             nsView.stringValue = text
         }
+        nsView.invalidateIntrinsicContentSize()
         context.coordinator.focusAndSelectIfNeeded(nsView)
     }
 

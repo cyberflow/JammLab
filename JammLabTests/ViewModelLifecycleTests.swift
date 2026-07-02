@@ -1531,6 +1531,67 @@ final class ViewModelLifecycleTests: XCTestCase {
     }
 
     @MainActor
+    func testSelectingNotationBeatDoesNotMarkProjectModifiedAndClearsMeasureSelection() throws {
+        let viewModel = try loadedNotationViewModel(duration: 8)
+        let measure = try notationMeasure(1, in: viewModel)
+
+        viewModel.selectNotationMeasure(measure)
+        viewModel.selectNotationBeat(NotationBeatSelection(measure: measure, offsetInQuarterNotes: 2))
+
+        XCTAssertTrue(viewModel.selectedNotationMeasures.isEmpty)
+        XCTAssertEqual(viewModel.selectedNotationBeat?.measureNumber, 1)
+        XCTAssertEqual(viewModel.selectedNotationBeat?.offsetInQuarterNotes, 2)
+        XCTAssertFalse(viewModel.isProjectModified)
+    }
+
+    @MainActor
+    func testRequestEditSelectedNotationBeatUsesExactBeatOffsetAndExistingHarmony() throws {
+        let viewModel = try loadedNotationViewModel(duration: 8)
+        let measure = try notationMeasure(1, in: viewModel)
+        let harmony = HarmonySymbol(
+            time: NotationMeasureTiming.time(forQuarterOffset: 1, in: measure),
+            measureNumber: measure.number,
+            offsetInQuarterNotes: 1,
+            rawText: "Fmaj7"
+        )
+        viewModel.harmonySymbols = [harmony]
+        viewModel.setHarmonyInputResolutionDenominator(1)
+        viewModel.markProjectClean()
+
+        viewModel.selectNotationBeat(NotationBeatSelection(measure: measure, offsetInQuarterNotes: 1))
+
+        XCTAssertTrue(viewModel.requestEditSelectedNotationBeat())
+        let request = try XCTUnwrap(viewModel.pendingHarmonyEditorRequest)
+        XCTAssertEqual(request.time, harmony.time, accuracy: 0.0001)
+        XCTAssertEqual(viewModel.selectedHarmonySymbolID, harmony.id)
+        XCTAssertFalse(viewModel.isProjectModified)
+    }
+
+    @MainActor
+    func testNotationBeatSelectionClearsForTempoMapAndUndoChanges() throws {
+        let viewModel = try loadedNotationViewModel(duration: 8)
+        let firstMeasure = try notationMeasure(1, in: viewModel)
+
+        viewModel.selectNotationBeat(NotationBeatSelection(measure: firstMeasure, offsetInQuarterNotes: 1))
+        viewModel.setTimeSignature(beatsPerBar: 3, beatUnit: 4)
+
+        XCTAssertNil(viewModel.selectedNotationBeat)
+
+        let undoManager = UndoManager()
+        viewModel.undoManager = undoManager
+        let updatedMeasure = try notationMeasure(1, in: viewModel)
+        viewModel.markProjectClean()
+        viewModel.selectNotationBeat(NotationBeatSelection(measure: updatedMeasure, offsetInQuarterNotes: 1))
+        viewModel.addNote(at: 0.5)
+
+        XCTAssertNotNil(viewModel.selectedNotationBeat)
+
+        viewModel.undoLastEdit()
+
+        XCTAssertNil(viewModel.selectedNotationBeat)
+    }
+
+    @MainActor
     func testShiftSelectingNotationMeasuresBuildsContiguousRange() throws {
         let viewModel = try loadedNotationViewModel(duration: 8)
         let firstMeasure = try notationMeasure(1, in: viewModel)

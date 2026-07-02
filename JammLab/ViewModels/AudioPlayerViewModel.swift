@@ -41,6 +41,7 @@ final class AudioPlayerViewModel: ObservableObject {
     @Published var selectedRegionID: TimecodedNote.ID?
     @Published var selectedHarmonySymbolID: HarmonySymbol.ID?
     @Published var selectedNotationMeasures: [NotationMeasureSelection] = []
+    @Published var selectedNotationBeat: NotationBeatSelection?
     @Published var notationMeasureClipboard: NotationMeasureClipboard?
     @Published var harmonyInputResolutionDenominator = HarmonyInputResolution.defaultDenominator
     @Published var pendingHarmonyEditorRequest: HarmonyEditorRequest?
