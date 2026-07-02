@@ -40,6 +40,7 @@ struct JammLabProject: Codable {
     var timelineVisibleRange: ProjectTimelineVisibleRange?
     var stemState: StemProjectState?
     var isVideoWindowOpen: Bool?
+    var isNotationTrackCollapsed: Bool?
 
     init(
         formatVersion: Int = 10,
@@ -66,7 +67,8 @@ struct JammLabProject: Codable {
         playbackMarkerTime: TimeInterval? = nil,
         timelineVisibleRange: ProjectTimelineVisibleRange? = nil,
         stemState: StemProjectState? = nil,
-        isVideoWindowOpen: Bool? = nil
+        isVideoWindowOpen: Bool? = nil,
+        isNotationTrackCollapsed: Bool? = nil
     ) {
         self.formatVersion = formatVersion
         self.audioBookmarkData = audioBookmarkData
@@ -93,6 +95,7 @@ struct JammLabProject: Codable {
         self.timelineVisibleRange = timelineVisibleRange
         self.stemState = stemState
         self.isVideoWindowOpen = isVideoWindowOpen
+        self.isNotationTrackCollapsed = isNotationTrackCollapsed
     }
 
     private enum CodingKeys: String, CodingKey {
@@ -121,6 +124,7 @@ struct JammLabProject: Codable {
         case timelineVisibleRange
         case stemState
         case isVideoWindowOpen
+        case isNotationTrackCollapsed
     }
 
     init(from decoder: Decoder) throws {
@@ -150,6 +154,7 @@ struct JammLabProject: Codable {
         timelineVisibleRange = try container.decodeIfPresent(ProjectTimelineVisibleRange.self, forKey: .timelineVisibleRange)
         stemState = try container.decodeIfPresent(StemProjectState.self, forKey: .stemState)
         isVideoWindowOpen = try container.decodeIfPresent(Bool.self, forKey: .isVideoWindowOpen)
+        isNotationTrackCollapsed = try container.decodeIfPresent(Bool.self, forKey: .isNotationTrackCollapsed)
     }
 
     func encode(to encoder: Encoder) throws {
@@ -179,6 +184,7 @@ struct JammLabProject: Codable {
         try container.encodeIfPresent(timelineVisibleRange, forKey: .timelineVisibleRange)
         try container.encodeIfPresent(stemState, forKey: .stemState)
         try container.encodeIfPresent(isVideoWindowOpen, forKey: .isVideoWindowOpen)
+        try container.encodeIfPresent(isNotationTrackCollapsed, forKey: .isNotationTrackCollapsed)
     }
 
     func resolvedAudioURL() throws -> URL {

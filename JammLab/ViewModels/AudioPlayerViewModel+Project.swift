@@ -130,6 +130,7 @@ extension AudioPlayerViewModel {
         isLooping = false
         isClickEnabled = false
         isSnapEnabled = false
+        isNotationTrackCollapsed = true
         mainTrackVolume = AppSliderDefaults.mainTrackVolume
         clickVolume = AppSliderDefaults.clickVolume
         errorMessage = nil
@@ -184,6 +185,7 @@ extension AudioPlayerViewModel {
         timelineVisibleRange = 0...file.duration
         userTimelineVisibleRange = timelineVisibleRange
         playbackState = .stopped
+        isNotationTrackCollapsed = true
         resetStemState()
         isImporting = false
     }
@@ -274,6 +276,7 @@ extension AudioPlayerViewModel {
             restorePlaybackMode(restoredPlaybackMode, preservedTime: currentTime)
             setPlaybackMarkerExactly(to: restoredPlaybackMarkerTime)
             restoreVideoWindowOpenState(file.mediaKind == .video && project.isVideoWindowOpen == true)
+            isNotationTrackCollapsed = project.isNotationTrackCollapsed ?? true
             isImporting = false
             clearUndoHistory()
             markProjectClean()
@@ -393,7 +396,8 @@ extension AudioPlayerViewModel {
             playbackMarkerTime: playbackMarkerTime,
             timelineVisibleRange: userTimelineVisibleRange,
             stemState: makeStemProjectState(),
-            isVideoWindowOpen: isVideoWindowOpen
+            isVideoWindowOpen: isVideoWindowOpen,
+            isNotationTrackCollapsed: isNotationTrackCollapsed
         )
     }
 

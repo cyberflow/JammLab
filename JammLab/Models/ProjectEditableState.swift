@@ -40,4 +40,5 @@ struct ProjectPersistedEditableState: Equatable {
     var playbackMarkerTime: TimeInterval
     var timelineVisibleRange: ClosedRange<TimeInterval>
     var isVideoWindowOpen: Bool
+    var isNotationTrackCollapsed: Bool
 }

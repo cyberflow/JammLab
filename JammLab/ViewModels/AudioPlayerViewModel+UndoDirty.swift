@@ -47,7 +47,8 @@ extension AudioPlayerViewModel {
             isSnapEnabled: isSnapEnabled,
             playbackMarkerTime: ProjectStateNormalizer.normalizedTimelineTime(playbackMarkerTime, duration: duration),
             timelineVisibleRange: ProjectStateNormalizer.normalizedTimelineVisibleRange(userTimelineVisibleRange, duration: duration),
-            isVideoWindowOpen: importedFile?.mediaKind == .video && isVideoWindowOpen
+            isVideoWindowOpen: importedFile?.mediaKind == .video && isVideoWindowOpen,
+            isNotationTrackCollapsed: isNotationTrackCollapsed
         )
     }
 
@@ -119,6 +120,12 @@ extension AudioPlayerViewModel {
         performUndoableEdit("Change Key") {
             projectKeySelection = selection.asUserSelection
         }
+    }
+
+    func setNotationTrackCollapsed(_ isCollapsed: Bool) {
+        guard isNotationTrackCollapsed != isCollapsed else { return }
+        isNotationTrackCollapsed = isCollapsed
+        refreshProjectModifiedState()
     }
 
     func registerUndoState(_ state: ProjectEditableState, actionName: String) {

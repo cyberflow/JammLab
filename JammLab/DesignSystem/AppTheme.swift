@@ -255,6 +255,7 @@ enum AppTheme {
         static let tempoTrackHeight: CGFloat = 38
         static let waveformTrackHeight: CGFloat = 110
         static let notationTrackHeight: CGFloat = 124
+        static let notationTrackCollapsedHeight: CGFloat = 36
         static let notationMaximumVisibleMeasureCount = 8
         static let notationMeasureMinWidth: CGFloat = 148
         static let notationStaffLineSpacing: CGFloat = 8
@@ -288,8 +289,14 @@ enum AppTheme {
         static var zoomableUpperTrackStackHeight: CGFloat {
             regionTrackHeight + markerTrackHeight + tempoTrackHeight + waveformTrackHeight
         }
+        static func notationTrackCurrentHeight(isCollapsed: Bool) -> CGFloat {
+            isCollapsed ? notationTrackCollapsedHeight : notationTrackHeight
+        }
+        static func upperTrackStackHeight(isNotationTrackCollapsed: Bool) -> CGFloat {
+            zoomableUpperTrackStackHeight + notationTrackCurrentHeight(isCollapsed: isNotationTrackCollapsed)
+        }
         static var upperTrackStackHeight: CGFloat {
-            zoomableUpperTrackStackHeight + notationTrackHeight
+            upperTrackStackHeight(isNotationTrackCollapsed: false)
         }
         static func stemTracksHeight(rowCount: Int) -> CGFloat {
             let visibleRows = max(defaultVisibleStemRows, rowCount)
@@ -299,8 +306,10 @@ enum AppTheme {
         static var stemTracksHeight: CGFloat {
             stemTracksHeight(rowCount: defaultVisibleStemRows)
         }
-        static func tracksMinimumHeight(stemRowCount: Int) -> CGFloat {
-            upperTrackStackHeight + trackSpacing + stemTracksHeight(rowCount: stemRowCount)
+        static func tracksMinimumHeight(stemRowCount: Int, isNotationTrackCollapsed: Bool = false) -> CGFloat {
+            upperTrackStackHeight(isNotationTrackCollapsed: isNotationTrackCollapsed)
+                + trackSpacing
+                + stemTracksHeight(rowCount: stemRowCount)
         }
         static var tracksMinimumHeight: CGFloat {
             tracksMinimumHeight(stemRowCount: defaultVisibleStemRows)
@@ -309,14 +318,26 @@ enum AppTheme {
         static var trackControlsMinimumHeight: CGFloat {
             tracksMinimumHeight
         }
-        static func timelineBlockMinimumHeight(stemRowCount: Int) -> CGFloat {
-            tracksMinimumHeight(stemRowCount: stemRowCount) + viewportFooterGap + viewportControlBarHeight
+        static func timelineBlockMinimumHeight(
+            stemRowCount: Int,
+            isNotationTrackCollapsed: Bool = false
+        ) -> CGFloat {
+            tracksMinimumHeight(
+                stemRowCount: stemRowCount,
+                isNotationTrackCollapsed: isNotationTrackCollapsed
+            ) + viewportFooterGap + viewportControlBarHeight
         }
         static var timelineBlockMinimumHeight: CGFloat {
             timelineBlockMinimumHeight(stemRowCount: defaultVisibleStemRows)
         }
-        static func minimumContentHeight(stemRowCount: Int) -> CGFloat {
-            timelineBlockMinimumHeight(stemRowCount: stemRowCount)
+        static func minimumContentHeight(
+            stemRowCount: Int,
+            isNotationTrackCollapsed: Bool = false
+        ) -> CGFloat {
+            timelineBlockMinimumHeight(
+                stemRowCount: stemRowCount,
+                isNotationTrackCollapsed: isNotationTrackCollapsed
+            )
         }
         static var minimumContentHeight: CGFloat {
             timelineBlockMinimumHeight

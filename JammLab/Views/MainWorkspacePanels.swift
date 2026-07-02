@@ -107,7 +107,10 @@ extension ContentView {
     }
 
     var timelineTracksHeight: CGFloat {
-        AppTheme.Timeline.tracksMinimumHeight(stemRowCount: timelineStemRowCount)
+        AppTheme.Timeline.tracksMinimumHeight(
+            stemRowCount: timelineStemRowCount,
+            isNotationTrackCollapsed: viewModel.isNotationTrackCollapsed
+        )
     }
 
     var timelineMinimumContentHeight: CGFloat {
@@ -137,6 +140,7 @@ extension ContentView {
             selectedRegionID: viewModel.selectedRegionID,
             beatGrid: beatGrid,
             notationViewport: notationViewportState(availableWidth: notationTrackContentWidth),
+            isNotationTrackCollapsed: viewModel.isNotationTrackCollapsed,
             isLoadingPeakform: viewModel.isBuildingWaveform,
             mainTrackVolume: viewModel.mainTrackVolume,
             playbackMode: viewModel.playbackMode,
@@ -184,7 +188,6 @@ extension ContentView {
         TimelineViewActions(
             locatePlaybackMarker: { viewModel.locatePlaybackMarker(to: $0) },
             addNote: { viewModel.addNote(at: $0) },
-            harmonyInputResolutionChanged: { viewModel.setHarmonyInputResolutionDenominator($0) },
             selectHarmony: { viewModel.selectHarmonySymbol(id: $0) },
             selectNotationMeasure: { viewModel.selectNotationMeasure($0, extendingSelection: $1) },
             selectNotationBeat: { viewModel.selectNotationBeat($0) },
@@ -207,6 +210,7 @@ extension ContentView {
             loopRegionChanged: { viewModel.updateLoopRegion(start: $0, end: $1) },
             timelineScroll: { viewModel.handleTimelineScroll(deltaX: $0, deltaY: $1, anchorTime: $2) },
             mainTrackVolumeChanged: { viewModel.setMainTrackVolume($0) },
+            notationTrackCollapsedChanged: { viewModel.setNotationTrackCollapsed($0) },
             showNotationWindow: { openWindow(id: AppWindowID.notation) }
         )
     }

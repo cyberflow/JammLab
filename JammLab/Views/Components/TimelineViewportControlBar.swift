@@ -54,7 +54,6 @@ struct TimelineViewportControlBar: View {
     let onPanRight: () -> Void
     let onZoomIn: () -> Void
     let onZoomOut: () -> Void
-    @Environment(\.appColors) private var appColors
 
     var body: some View {
         HStack(spacing: AppTheme.Spacing.md) {
@@ -69,22 +68,51 @@ struct TimelineViewportControlBar: View {
             .frame(height: AppTheme.Timeline.viewportControlBarHeight)
 
             HStack(spacing: AppTheme.Spacing.xs) {
-                viewportButton(systemName: "chevron.left", helpText: ControlHelpText.timelinePanLeft, action: onPanLeft)
-                viewportButton(systemName: "chevron.right", helpText: ControlHelpText.timelinePanRight, action: onPanRight)
-                viewportButton(systemName: "plus", helpText: ControlHelpText.timelineZoomIn, action: onZoomIn)
-                viewportButton(systemName: "minus", helpText: ControlHelpText.timelineZoomOut, action: onZoomOut)
+                TimelineIconButton(systemName: "chevron.left", helpText: ControlHelpText.timelinePanLeft, action: onPanLeft)
+                TimelineIconButton(systemName: "chevron.right", helpText: ControlHelpText.timelinePanRight, action: onPanRight)
+                TimelineIconButton(systemName: "plus", helpText: ControlHelpText.timelineZoomIn, action: onZoomIn)
+                TimelineIconButton(systemName: "minus", helpText: ControlHelpText.timelineZoomOut, action: onZoomOut)
             }
         }
         .frame(height: AppTheme.Timeline.viewportControlBarHeight)
         .disabled(duration <= 0)
         .opacity(duration > 0 ? 1 : 0.45)
     }
+}
 
-    private func viewportButton(
+struct TimelineIconButton: View {
+    let systemName: String
+    let helpText: String
+    let accessibilityLabel: String?
+    let accessibilityValue: String?
+    let action: () -> Void
+    @Environment(\.appColors) private var appColors
+
+    init(
         systemName: String,
         helpText: String,
+        accessibilityLabel: String? = nil,
+        accessibilityValue: String? = nil,
         action: @escaping () -> Void
-    ) -> some View {
+    ) {
+        self.systemName = systemName
+        self.helpText = helpText
+        self.accessibilityLabel = accessibilityLabel
+        self.accessibilityValue = accessibilityValue
+        self.action = action
+    }
+
+    var body: some View {
+        if let accessibilityLabel {
+            baseButton
+                .accessibilityLabel(accessibilityLabel)
+                .accessibilityValue(accessibilityValue ?? "")
+        } else {
+            baseButton
+        }
+    }
+
+    private var baseButton: some View {
         Button(action: action) {
             Image(systemName: systemName)
                 .font(.system(size: 10, weight: .semibold))
@@ -99,6 +127,7 @@ struct TimelineViewportControlBar: View {
                     RoundedRectangle(cornerRadius: AppTheme.Timeline.viewportControlButtonRadius, style: .continuous)
                         .stroke(appColors.border, lineWidth: AppTheme.Stroke.thin)
                 }
+                .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
         .help(helpText)
