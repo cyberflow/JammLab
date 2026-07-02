@@ -60,6 +60,18 @@ struct NotationWindowView: View {
 
             Spacer(minLength: AppTheme.Spacing.md)
 
+            AppControlButton(
+                title: "Export MusicXML",
+                systemImage: "square.and.arrow.up"
+            ) {
+                Task {
+                    await viewModel.exportNotationAsMusicXML()
+                }
+            }
+            .disabled(!viewModel.canExportNotation)
+            .help(ControlHelpText.exportNotationMusicXML)
+            .accessibilityLabel(ControlHelpText.exportNotationMusicXML)
+
             HStack(spacing: AppTheme.Spacing.xxs) {
                 Text("1/")
                     .font(AppTheme.Typography.captionMonospaced)
