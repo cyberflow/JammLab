@@ -185,6 +185,9 @@ struct ContentView: View {
         if !viewModel.hasSelectedNotationMeasures {
             hotkeys.remove(.clearNotationMeasureSelection)
         }
+        if !viewModel.canEditSelectedNotationBeat {
+            hotkeys.remove(.editHarmonyAtSelectedBeat)
+        }
         return hotkeys
     }
 
@@ -234,6 +237,8 @@ struct ContentView: View {
         case .clearNotationMeasureSelection:
             viewModel.clearNotationMeasureSelection()
             return true
+        case .editHarmonyAtSelectedBeat:
+            return viewModel.requestEditSelectedNotationBeat()
         }
     }
 

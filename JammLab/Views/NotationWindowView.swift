@@ -103,6 +103,7 @@ struct NotationWindowView: View {
                                 state: system.viewportState,
                                 selectedHarmonySymbolID: viewModel.selectedHarmonySymbolID,
                                 selectedMeasures: viewModel.selectedNotationMeasures,
+                                selectedBeat: viewModel.selectedNotationBeat,
                                 pendingEditorRequest: viewModel.pendingHarmonyEditorRequest,
                                 inputResolution: HarmonyInputResolution(
                                     denominator: viewModel.harmonyInputResolutionDenominator
@@ -165,6 +166,7 @@ struct NotationWindowView: View {
         NotationTrackActions(
             selectHarmony: { viewModel.selectHarmonySymbol(id: $0) },
             selectMeasure: { viewModel.selectNotationMeasure($0, extendingSelection: $1) },
+            selectBeat: { viewModel.selectNotationBeat($0) },
             saveHarmony: { viewModel.saveHarmonySymbol($0) },
             deleteHarmony: { viewModel.deleteHarmonySymbol(id: $0) },
             adjacentHarmonyPlacement: { viewModel.adjacentHarmonyPlacement(from: $0, direction: $1) }
@@ -182,6 +184,9 @@ struct NotationWindowView: View {
         if viewModel.hasSelectedNotationMeasures {
             hotkeys.insert(.clearNotationMeasureSelection)
         }
+        if viewModel.canEditSelectedNotationBeat {
+            hotkeys.insert(.editHarmonyAtSelectedBeat)
+        }
         return hotkeys
     }
 
@@ -198,6 +203,8 @@ struct NotationWindowView: View {
         case .clearNotationMeasureSelection:
             viewModel.clearNotationMeasureSelection()
             return true
+        case .editHarmonyAtSelectedBeat:
+            return viewModel.requestEditSelectedNotationBeat()
         default:
             return false
         }

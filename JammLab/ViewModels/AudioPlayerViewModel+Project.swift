@@ -501,6 +501,7 @@ extension AudioPlayerViewModel {
                     beatGridSettings.firstBeatTime = 0
                     beatGridSettings.alignmentSource = .automatic
                     beatGridSettings.lastChangedAt = Date()
+                    clearNotationMeasureSelection()
                     applyTempoMapToPlaybackEngine()
                     playbackEngine.setClickEnabled(isClickEnabled && beatGridSettings.bpm != nil)
                     if !isProjectModified {

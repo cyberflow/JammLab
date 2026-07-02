@@ -610,12 +610,17 @@ final class TimelineProjectLogicTests: XCTestCase {
         )
     }
 
-    func testAppHotkeyDoesNotExposeHarmonyShortcutMetadata() {
-        XCTAssertFalse(AppHotkey.allCases.contains { $0.key == "A" })
-        XCTAssertFalse(AppHotkey.allCases.contains { $0.title == "Add Harmony" })
+    func testAppHotkeyExposesSelectedBeatHarmonyShortcutMetadata() {
+        XCTAssertTrue(AppHotkey.allCases.contains(.editHarmonyAtSelectedBeat))
+        XCTAssertEqual(AppHotkey.editHarmonyAtSelectedBeat.key, "Cmd+K")
+        XCTAssertEqual(AppHotkey.editHarmonyAtSelectedBeat.title, "Edit Harmony")
+        XCTAssertEqual(
+            AppHotkey.editHarmonyAtSelectedBeat.detail,
+            "Open harmony entry for the selected notation beat."
+        )
     }
 
-    func testAppHotkeyDoesNotRecognizeAOrHForHarmony() throws {
+    func testAppHotkeyRecognizesCmdKButNotOldHarmonyKeys() throws {
         let aEvent = try XCTUnwrap(NSEvent.keyEvent(
             with: .keyDown,
             location: .zero,
@@ -652,6 +657,18 @@ final class TimelineProjectLogicTests: XCTestCase {
             isARepeat: false,
             keyCode: 0
         ))
+        let commandKEvent = try XCTUnwrap(NSEvent.keyEvent(
+            with: .keyDown,
+            location: .zero,
+            modifierFlags: [.command],
+            timestamp: 0,
+            windowNumber: 0,
+            context: nil,
+            characters: "k",
+            charactersIgnoringModifiers: "k",
+            isARepeat: false,
+            keyCode: 40
+        ))
         let shiftAEvent = try XCTUnwrap(NSEvent.keyEvent(
             with: .keyDown,
             location: .zero,
@@ -668,6 +685,7 @@ final class TimelineProjectLogicTests: XCTestCase {
         XCTAssertNil(AppHotkey(event: aEvent))
         XCTAssertNil(AppHotkey(event: hEvent))
         XCTAssertNil(AppHotkey(event: commandAEvent))
+        XCTAssertEqual(AppHotkey(event: commandKEvent), .editHarmonyAtSelectedBeat)
         XCTAssertNil(AppHotkey(event: shiftAEvent))
     }
 
@@ -860,6 +878,75 @@ final class TimelineProjectLogicTests: XCTestCase {
                 attachedWindowNumber: 42,
                 firstResponder: AbletonNumberFieldNSView(),
                 allowedHotkeys: [.clearNotationMeasureSelection]
+            )
+        )
+    }
+
+    func testAppHotkeyEventFilterDoesNotStealEditHarmonyFromTextRespondersOrUnavailableScopes() throws {
+        let editHarmonyEvent = try XCTUnwrap(NSEvent.keyEvent(
+            with: .keyDown,
+            location: .zero,
+            modifierFlags: [.command],
+            timestamp: 0,
+            windowNumber: 42,
+            context: nil,
+            characters: "k",
+            charactersIgnoringModifiers: "k",
+            isARepeat: false,
+            keyCode: 40
+        ))
+        let repeatEditHarmonyEvent = try XCTUnwrap(NSEvent.keyEvent(
+            with: .keyDown,
+            location: .zero,
+            modifierFlags: [.command],
+            timestamp: 0,
+            windowNumber: 42,
+            context: nil,
+            characters: "k",
+            charactersIgnoringModifiers: "k",
+            isARepeat: true,
+            keyCode: 40
+        ))
+
+        XCTAssertEqual(
+            AppHotkeyEventFilter.hotkey(
+                for: editHarmonyEvent,
+                attachedWindowNumber: 42,
+                firstResponder: nil,
+                allowedHotkeys: [.editHarmonyAtSelectedBeat]
+            ),
+            .editHarmonyAtSelectedBeat
+        )
+        XCTAssertNil(
+            AppHotkeyEventFilter.hotkey(
+                for: editHarmonyEvent,
+                attachedWindowNumber: 42,
+                firstResponder: nil,
+                allowedHotkeys: [.playPause]
+            )
+        )
+        XCTAssertNil(
+            AppHotkeyEventFilter.hotkey(
+                for: editHarmonyEvent,
+                attachedWindowNumber: 42,
+                firstResponder: NSTextView(),
+                allowedHotkeys: [.editHarmonyAtSelectedBeat]
+            )
+        )
+        XCTAssertNil(
+            AppHotkeyEventFilter.hotkey(
+                for: editHarmonyEvent,
+                attachedWindowNumber: 42,
+                firstResponder: AbletonNumberFieldNSView(),
+                allowedHotkeys: [.editHarmonyAtSelectedBeat]
+            )
+        )
+        XCTAssertNil(
+            AppHotkeyEventFilter.hotkey(
+                for: repeatEditHarmonyEvent,
+                attachedWindowNumber: 42,
+                firstResponder: nil,
+                allowedHotkeys: [.editHarmonyAtSelectedBeat]
             )
         )
     }

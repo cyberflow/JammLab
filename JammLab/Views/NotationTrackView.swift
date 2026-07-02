@@ -4,6 +4,7 @@ import SwiftUI
 struct NotationTrackActions {
     var selectHarmony: (HarmonySymbol.ID?) -> Void
     var selectMeasure: (ScoreMeasure?, Bool) -> Void
+    var selectBeat: (NotationBeatSelection?) -> Void
     var saveHarmony: (HarmonySymbol) -> Void
     var deleteHarmony: (HarmonySymbol.ID) -> Void
     var adjacentHarmonyPlacement: (TimeInterval, HarmonyNavigationDirection) -> HarmonyPlacement?
@@ -13,6 +14,7 @@ struct NotationTrackView: View {
     let state: NotationViewportState
     let selectedHarmonySymbolID: HarmonySymbol.ID?
     let selectedMeasures: [NotationMeasureSelection]
+    let selectedBeat: NotationBeatSelection?
     let pendingEditorRequest: HarmonyEditorRequest?
     let inputResolution: HarmonyInputResolution
     let actions: NotationTrackActions
@@ -26,6 +28,7 @@ struct NotationTrackView: View {
         state: NotationViewportState,
         selectedHarmonySymbolID: HarmonySymbol.ID? = nil,
         selectedMeasures: [NotationMeasureSelection] = [],
+        selectedBeat: NotationBeatSelection? = nil,
         pendingEditorRequest: HarmonyEditorRequest? = nil,
         inputResolution: HarmonyInputResolution = HarmonyInputResolution(),
         actions: NotationTrackActions = .noop,
@@ -34,6 +37,7 @@ struct NotationTrackView: View {
         self.state = state
         self.selectedHarmonySymbolID = selectedHarmonySymbolID
         self.selectedMeasures = selectedMeasures
+        self.selectedBeat = selectedBeat
         self.pendingEditorRequest = pendingEditorRequest
         self.inputResolution = inputResolution
         self.actions = actions
@@ -56,6 +60,11 @@ struct NotationTrackView: View {
                     attributeDisplays: attributeDisplays
                 )
                 measureSelectionHitLayer(
+                    width: contentWidth,
+                    height: proxy.size.height,
+                    attributeDisplays: attributeDisplays
+                )
+                beatSelectionHitLayer(
                     width: contentWidth,
                     height: proxy.size.height,
                     attributeDisplays: attributeDisplays
@@ -94,12 +103,6 @@ struct NotationTrackView: View {
             .frame(width: contentWidth, height: proxy.size.height)
             .id(scrollResetIdentity)
             .contentShape(Rectangle())
-            .simultaneousGesture(
-                SpatialTapGesture(count: 2)
-                    .onEnded { value in
-                        beginEditingHarmony(at: value.location, width: contentWidth)
-                    }
-            )
             .onTapGesture {
                 isTrackFocused = true
             }
@@ -248,31 +251,27 @@ struct NotationTrackView: View {
             lineJoin: .round
         )
 
-        for index in state.visibleMeasures.indices {
-            guard geometries.indices.contains(index) else { continue }
-
-            let measure = state.visibleMeasures[index]
-            let beatCenters = NotationMeasureLayout.slashBeatCenters(
-                geometry: geometries[index],
-                timeSignature: measure.attributes.timeSignature
+        for item in beatLayoutItems(geometries: geometries) {
+            let color = selectedBeat?.matches(
+                item.measure,
+                offsetInQuarterNotes: item.selection.offsetInQuarterNotes
+            ) == true
+                ? appColors.accent
+                : appColors.notationSymbolsAndLines
+            var path = Path()
+            path.move(to: CGPoint(
+                x: item.x - slashWidth / 2,
+                y: centerY + slashHeight / 2
+            ))
+            path.addLine(to: CGPoint(
+                x: item.x + slashWidth / 2,
+                y: centerY - slashHeight / 2
+            ))
+            context.stroke(
+                path,
+                with: .color(color),
+                style: style
             )
-
-            for x in beatCenters {
-                var path = Path()
-                path.move(to: CGPoint(
-                    x: x - slashWidth / 2,
-                    y: centerY + slashHeight / 2
-                ))
-                path.addLine(to: CGPoint(
-                    x: x + slashWidth / 2,
-                    y: centerY - slashHeight / 2
-                ))
-                context.stroke(
-                    path,
-                    with: .color(appColors.notationSymbolsAndLines),
-                    style: style
-                )
-            }
         }
     }
 
@@ -400,6 +399,50 @@ struct NotationTrackView: View {
                         }
                         .accessibilityHidden(true)
                 }
+            }
+        }
+    }
+
+    private func beatSelectionHitLayer(
+        width: CGFloat,
+        height: CGFloat,
+        attributeDisplays: [NotationAttributeDisplay]
+    ) -> some View {
+        let geometries = measureCanvasGeometries(
+            measureCount: renderedMeasureCount,
+            width: width,
+            attributeDisplays: attributeDisplays
+        )
+        let staffTop = staffTop(in: height)
+        let hitY = max(0, staffTop - AppTheme.Spacing.sm)
+        let hitHeight = AppTheme.Timeline.notationStaffLineSpacing * 4 + AppTheme.Spacing.md
+        let hitWidth = max(
+            AppTheme.ControlSize.abletonNumberFieldHeight,
+            AppTheme.Timeline.notationSlashWidth + AppTheme.Spacing.lg
+        )
+
+        return ZStack(alignment: .topLeading) {
+            ForEach(beatLayoutItems(geometries: geometries), id: \.id) { item in
+                Rectangle()
+                    .fill(Color.clear)
+                    .contentShape(Rectangle())
+                    .frame(width: hitWidth, height: hitHeight)
+                    .offset(
+                        x: item.x - hitWidth / 2,
+                        y: hitY
+                    )
+                    .onTapGesture {
+                        isTrackFocused = true
+                        editingDraft = nil
+                        actions.selectBeat(item.selection)
+                    }
+                    .accessibilityLabel("Beat \(item.beatNumber) in measure \(item.selection.measureNumber)")
+                    .accessibilityValue(
+                        selectedBeat?.matches(
+                            item.measure,
+                            offsetInQuarterNotes: item.selection.offsetInQuarterNotes
+                        ) == true ? "Selected" : ""
+                    )
             }
         }
     }
@@ -533,18 +576,14 @@ struct NotationTrackView: View {
             .contentShape(Rectangle())
             .onTapGesture {
                 isTrackFocused = true
-                if let measure = measure(containing: symbol) {
-                    actions.selectMeasure(measure, isShiftClickActive)
-                }
+                actions.selectBeat(beatSelection(for: symbol))
                 if !isShiftClickActive {
                     actions.selectHarmony(symbol.id)
                 }
             }
             .onTapGesture(count: 2) {
                 isTrackFocused = true
-                if let measure = measure(containing: symbol) {
-                    actions.selectMeasure(measure, false)
-                }
+                actions.selectBeat(beatSelection(for: symbol))
                 beginEditingHarmony(symbol)
             }
             .accessibilityLabel("Harmony \(symbol.rawText)")
@@ -575,7 +614,7 @@ struct NotationTrackView: View {
                 onNavigate: { commitEditingDraft(navigation: $0) }
             )
             .frame(
-                width: AppTheme.Timeline.notationHarmonyEditorWidth,
+                width: harmonyEditorWidth(for: editingDraft.text),
                 height: AppTheme.ControlSize.abletonNumberFieldHeight
             )
             .offset(
@@ -583,6 +622,17 @@ struct NotationTrackView: View {
                 y: harmonyY
             )
         }
+    }
+
+    private func harmonyEditorWidth(for text: String) -> CGFloat {
+        let measuredText = text.isEmpty ? "M" : text
+        let font = NSFont.systemFont(ofSize: 13, weight: .semibold)
+        let textWidth = (measuredText as NSString).size(withAttributes: [.font: font]).width
+        let paddedWidth = ceil(textWidth) + AppTheme.Spacing.md
+        return min(
+            AppTheme.Timeline.notationHarmonyEditorMaxWidth,
+            max(AppTheme.Timeline.notationHarmonyEditorMinWidth, paddedWidth)
+        )
     }
 
     private func measureAttributes(
@@ -776,6 +826,33 @@ struct NotationTrackView: View {
         }
     }
 
+    private func beatLayoutItems(
+        geometries: [NotationMeasureCanvasGeometry]
+    ) -> [BeatLayoutItem] {
+        state.visibleMeasures.indices.flatMap { index -> [BeatLayoutItem] in
+            guard geometries.indices.contains(index) else { return [] }
+            let measure = state.visibleMeasures[index]
+            let centers = NotationMeasureLayout.slashBeatCenters(
+                geometry: geometries[index],
+                timeSignature: measure.attributes.timeSignature
+            )
+            let beatLength = 4.0 / Double(max(1, measure.attributes.timeSignature.beatUnit))
+
+            return centers.enumerated().map { beatIndex, x in
+                let offset = Double(beatIndex) * beatLength
+                return BeatLayoutItem(
+                    measure: measure,
+                    selection: NotationBeatSelection(
+                        measure: measure,
+                        offsetInQuarterNotes: offset
+                    ),
+                    beatNumber: beatIndex + 1,
+                    x: x
+                )
+            }
+        }
+    }
+
     private func harmonyLayoutItem(
         for time: TimeInterval,
         width: CGFloat,
@@ -909,6 +986,15 @@ struct NotationTrackView: View {
         state.visibleMeasures.first {
             NotationMeasureTiming.containsEventTime(symbol.time, in: $0)
         }
+    }
+
+    private func beatSelection(for symbol: HarmonySymbol) -> NotationBeatSelection? {
+        guard let measure = measure(containing: symbol) else { return nil }
+
+        return NotationBeatSelection(
+            measure: measure,
+            offsetInQuarterNotes: symbol.offsetInQuarterNotes
+        )
     }
 
     private func harmonyPlacement(for time: TimeInterval) -> NotationHarmonyPlacement? {
@@ -1073,6 +1159,17 @@ private struct HarmonyLayoutItem: Equatable {
     var x: CGFloat
 }
 
+private struct BeatLayoutItem: Equatable, Identifiable {
+    var measure: ScoreMeasure
+    var selection: NotationBeatSelection
+    var beatNumber: Int
+    var x: CGFloat
+
+    var id: String {
+        selection.id
+    }
+}
+
 private struct NotationHarmonyPlacement: Equatable {
     var measureIndex: Int
     var time: TimeInterval
@@ -1092,6 +1189,7 @@ private extension NotationTrackActions {
     static let noop = NotationTrackActions(
         selectHarmony: { _ in },
         selectMeasure: { _, _ in },
+        selectBeat: { _ in },
         saveHarmony: { _ in },
         deleteHarmony: { _ in },
         adjacentHarmonyPlacement: { _, _ in nil }

@@ -275,6 +275,8 @@ enum AppTheme {
         static let notationHarmonyAnchorLeadingOffset: CGFloat = AppTheme.Spacing.md
         static let notationHarmonySymbolWidth: CGFloat = 84
         static let notationHarmonyEditorWidth: CGFloat = 64
+        static let notationHarmonyEditorMinWidth: CGFloat = 38
+        static let notationHarmonyEditorMaxWidth: CGFloat = 104
         static let notationRegionLabelMaxWidth: CGFloat = 88
         static let notationRegionLabelHeight: CGFloat = 16
         static let notationRegionLabelFontSize: CGFloat = 10

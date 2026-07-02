@@ -76,6 +76,7 @@ extension AudioPlayerViewModel {
         projectKeySelection = state.projectKeySelection
         selectedRegionID = availableRegionID(state.selectedRegionID)
         selectedHarmonySymbolID = availableHarmonySymbolID(state.selectedHarmonySymbolID)
+        selectedNotationBeat = nil
         activeLoopRegionID = availableRegionID(state.activeLoopRegionID)
         loopRegion = state.loopRegion.clamped(to: duration, minimumLength: activeRangeMinimumLength)
         stemMixState = state.stemMixState
