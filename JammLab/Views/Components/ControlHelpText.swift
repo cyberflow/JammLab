@@ -31,6 +31,8 @@ enum ControlHelpText {
     static let timelinePanRight = "Move timeline right"
     static let timelineZoomIn = "Zoom in"
     static let timelineZoomOut = "Zoom out"
+    static let expandNotationTrack = "Expand Notation track"
+    static let collapseNotationTrack = "Collapse Notation track"
 
     static let resetThemeColors = "Reset theme colors to defaults"
     static let resetClickDefaults = "Restore the current built-in click sound: 1760/1120 Hz and 36/26 ms."

@@ -48,6 +48,7 @@ struct ProjectDocumentSnapshot {
     let timelineVisibleRange: ClosedRange<TimeInterval>
     let stemState: StemProjectState?
     let isVideoWindowOpen: Bool
+    let isNotationTrackCollapsed: Bool
 }
 
 struct ProjectPersistenceCoordinator {
@@ -227,7 +228,8 @@ struct ProjectPersistenceCoordinator {
                 ProjectStateNormalizer.normalizedTimelineVisibleRange(snapshot.timelineVisibleRange, duration: snapshot.duration)
             ),
             stemState: snapshot.stemState,
-            isVideoWindowOpen: snapshot.importedFile.mediaKind == .video ? snapshot.isVideoWindowOpen : nil
+            isVideoWindowOpen: snapshot.importedFile.mediaKind == .video ? snapshot.isVideoWindowOpen : nil,
+            isNotationTrackCollapsed: snapshot.isNotationTrackCollapsed
         )
     }
 

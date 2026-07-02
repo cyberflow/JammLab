@@ -62,6 +62,7 @@ final class AudioPlayerViewModel: ObservableObject {
     @Published var isClickEnabled = false
     @Published var isSnapEnabled = false
     @Published var isVideoWindowOpen = false
+    @Published var isNotationTrackCollapsed = true
     @Published var mainTrackVolume: Float = AppSliderDefaults.mainTrackVolume
     @Published var clickVolume: Float = AudioPlayerViewModel.restoredClickVolume()
     @Published var undoStateRevision = 0

@@ -32,6 +32,7 @@ struct TimelineViewState: Equatable {
     var selectedRegionID: TimecodedNote.ID?
     var beatGrid: BeatGridConfiguration
     var notationViewport: NotationViewportState
+    var isNotationTrackCollapsed: Bool
     var isLoadingPeakform: Bool
     var mainTrackVolume: Float
     var playbackMode: PlaybackMode
@@ -44,7 +45,6 @@ struct TimelineViewState: Equatable {
 struct TimelineViewActions {
     var locatePlaybackMarker: (TimeInterval) -> Void
     var addNote: (TimeInterval) -> Void
-    var harmonyInputResolutionChanged: (Int) -> Void
     var selectHarmony: (HarmonySymbol.ID?) -> Void
     var selectNotationMeasure: (ScoreMeasure?, Bool) -> Void
     var selectNotationBeat: (NotationBeatSelection?) -> Void
@@ -67,6 +67,7 @@ struct TimelineViewActions {
     var loopRegionChanged: (TimeInterval, TimeInterval) -> Void
     var timelineScroll: (Double, Double, TimeInterval?) -> Void
     var mainTrackVolumeChanged: (Float) -> Void
+    var notationTrackCollapsedChanged: (Bool) -> Void
     var showNotationWindow: () -> Void
 }
 
@@ -126,7 +127,22 @@ struct WaveformTimelineView: View {
     }
 
     private var tracksHeight: CGFloat {
-        AppTheme.Timeline.tracksMinimumHeight(stemRowCount: visibleStemRowCount)
+        AppTheme.Timeline.tracksMinimumHeight(
+            stemRowCount: visibleStemRowCount,
+            isNotationTrackCollapsed: state.isNotationTrackCollapsed
+        )
+    }
+
+    private var upperTrackStackHeight: CGFloat {
+        AppTheme.Timeline.upperTrackStackHeight(
+            isNotationTrackCollapsed: state.isNotationTrackCollapsed
+        )
+    }
+
+    private var notationTrackCurrentHeight: CGFloat {
+        AppTheme.Timeline.notationTrackCurrentHeight(
+            isCollapsed: state.isNotationTrackCollapsed
+        )
     }
 
     private var upperTrackStack: some View {
@@ -179,7 +195,7 @@ struct WaveformTimelineView: View {
                 .frame(height: AppTheme.Timeline.waveformTrackHeight)
 
             notationTrackRow
-                .frame(height: AppTheme.Timeline.notationTrackHeight)
+                .frame(height: notationTrackCurrentHeight)
         }
     }
 
@@ -190,7 +206,7 @@ struct WaveformTimelineView: View {
 
             timelineScrollCaptureArea
                 .frame(height: stemTracksHeight)
-                .offset(y: AppTheme.Timeline.upperTrackStackHeight + AppTheme.Timeline.trackSpacing)
+                .offset(y: upperTrackStackHeight + AppTheme.Timeline.trackSpacing)
         }
         .frame(height: tracksHeight, alignment: .topLeading)
     }
@@ -231,11 +247,18 @@ struct WaveformTimelineView: View {
     }
 
     private var notationTrackRow: some View {
-        HStack(spacing: AppTheme.Spacing.md) {
+        HStack(alignment: .top, spacing: AppTheme.Spacing.md) {
             notationTrackControls
                 .frame(width: trackControlWidth)
-                .frame(height: AppTheme.Timeline.notationTrackHeight)
+                .frame(height: notationTrackCurrentHeight, alignment: .topLeading)
 
+            notationTrackContent
+        }
+    }
+
+    @ViewBuilder
+    private var notationTrackContent: some View {
+        if !state.isNotationTrackCollapsed {
             NotationTrackView(
                 state: state.notationViewport,
                 selectedHarmonySymbolID: state.selectedHarmonySymbolID,
@@ -252,55 +275,55 @@ struct WaveformTimelineView: View {
                     adjacentHarmonyPlacement: actions.adjacentHarmonyPlacement
                 )
             )
-                .frame(height: AppTheme.Timeline.notationTrackHeight)
-        }
-        .overlay {
-            if state.duration > 0 {
-                RightClickMenuCaptureView(
-                    title: "Show in the Window",
-                    action: actions.showNotationWindow
-                )
-                .frame(maxWidth: .infinity, maxHeight: .infinity)
+            .frame(height: AppTheme.Timeline.notationTrackHeight)
+            .overlay {
+                if state.duration > 0 {
+                    RightClickMenuCaptureView(
+                        title: "Show in the Window",
+                        action: actions.showNotationWindow
+                    )
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+                }
             }
+        } else {
+            Color.clear
+                .frame(maxWidth: .infinity)
+                .frame(height: notationTrackCurrentHeight)
         }
     }
 
     private var notationTrackControls: some View {
-        VStack(alignment: .leading, spacing: AppTheme.Spacing.sm) {
-            Text("Notation")
-                .font(AppTheme.Typography.noteTitle)
-                .lineLimit(1)
-                .frame(maxWidth: .infinity, alignment: .leading)
-
-            HStack(spacing: AppTheme.Spacing.xxs) {
-                Text("1/")
-                    .font(AppTheme.Typography.captionMonospaced)
-                    .foregroundStyle(appColors.secondaryText)
-
-                AbletonNumberField(
-                    value: Binding(
-                        get: { Double(state.harmonyInputResolutionDenominator) },
-                        set: { actions.harmonyInputResolutionChanged(Int($0.rounded())) }
-                    ),
-                    minValue: 1,
-                    maxValue: 8,
-                    defaultValue: Double(HarmonyInputResolution.defaultDenominator),
-                    step: 1,
-                    precision: 0,
-                    accessibilityLabel: "Harmony Input Resolution"
-                )
-                .frame(
-                    width: AppTheme.ControlSize.toolbarTimeSignatureNumberFieldWidth,
-                    height: AppTheme.ControlSize.abletonNumberFieldHeight
-                )
-                .disabled(!state.notationViewport.isReady)
-                .help(ControlHelpText.harmonyInputResolution)
-            }
+        VStack(alignment: .leading, spacing: AppTheme.Spacing.none) {
+            notationTrackHeader
         }
         .padding(.horizontal, AppTheme.Spacing.md)
         .padding(.vertical, AppTheme.Spacing.sm)
         .controlSize(.small)
-        .opacity(state.notationViewport.isReady ? 1 : 0.5)
+    }
+
+    private var notationTrackHeader: some View {
+        HStack(spacing: AppTheme.Spacing.sm) {
+            Text("Notation")
+                .font(AppTheme.Typography.noteTitle)
+                .lineLimit(1)
+
+            Spacer(minLength: AppTheme.Spacing.sm)
+
+            TimelineIconButton(
+                systemName: state.isNotationTrackCollapsed ? "plus" : "minus",
+                helpText: notationTrackToggleHelpText,
+                accessibilityLabel: notationTrackToggleHelpText,
+                accessibilityValue: state.isNotationTrackCollapsed ? "Collapsed" : "Expanded"
+            ) {
+                actions.notationTrackCollapsedChanged(!state.isNotationTrackCollapsed)
+            }
+        }
+    }
+
+    private var notationTrackToggleHelpText: String {
+        state.isNotationTrackCollapsed
+            ? ControlHelpText.expandNotationTrack
+            : ControlHelpText.collapseNotationTrack
     }
 
     private var mainTrackControls: some View {

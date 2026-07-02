@@ -139,7 +139,8 @@ final class StemWorkflowLogicTests: XCTestCase {
             playbackMode: .stems,
             playbackMarkerTime: 12.5,
             stemState: metadata,
-            isVideoWindowOpen: true
+            isVideoWindowOpen: true,
+            isNotationTrackCollapsed: false
         )
 
         let decoded = try JSONDecoder().decode(JammLabProject.self, from: JSONEncoder().encode(project))
@@ -156,6 +157,7 @@ final class StemWorkflowLogicTests: XCTestCase {
         XCTAssertEqual(decoded.isSnapEnabled, true)
         XCTAssertEqual(decoded.playbackMode, .stems)
         XCTAssertEqual(decoded.isVideoWindowOpen, true)
+        XCTAssertEqual(decoded.isNotationTrackCollapsed, false)
         XCTAssertEqual(decoded.stemState?.cacheKey, "cache-123")
         XCTAssertEqual(decoded.stemState?.playbackMode, .stems)
         XCTAssertEqual(try XCTUnwrap(decoded.stemState?.mixState.effectiveVolume(for: .vocals)), 0, accuracy: 0.0001)
@@ -197,6 +199,29 @@ final class StemWorkflowLogicTests: XCTestCase {
         )
     }
 
+    func testTimelineHeightHelpersCollapseNotationTrackWithoutChangingStemExpansion() {
+        let collapsedHeight = AppTheme.Timeline.tracksMinimumHeight(
+            stemRowCount: StemSeparationMethod.defaultValue.stemTypes.count,
+            isNotationTrackCollapsed: true
+        )
+        let expandedHeight = AppTheme.Timeline.tracksMinimumHeight(
+            stemRowCount: StemSeparationMethod.defaultValue.stemTypes.count,
+            isNotationTrackCollapsed: false
+        )
+        let sixStemCollapsedHeight = AppTheme.Timeline.tracksMinimumHeight(
+            stemRowCount: StemSeparationMethod.sixStem.stemTypes.count,
+            isNotationTrackCollapsed: true
+        )
+
+        XCTAssertLessThan(collapsedHeight, expandedHeight)
+        XCTAssertEqual(
+            expandedHeight - collapsedHeight,
+            AppTheme.Timeline.notationTrackHeight - AppTheme.Timeline.notationTrackCollapsedHeight,
+            accuracy: 0.0001
+        )
+        XCTAssertGreaterThan(sixStemCollapsedHeight, collapsedHeight)
+    }
+
     func testLegacyProjectWithoutStemStateStillDecodes() throws {
         let json = """
         {
@@ -228,6 +253,7 @@ final class StemWorkflowLogicTests: XCTestCase {
         XCTAssertNil(decoded.playbackMode)
         XCTAssertNil(decoded.mediaKind)
         XCTAssertNil(decoded.isVideoWindowOpen)
+        XCTAssertNil(decoded.isNotationTrackCollapsed)
     }
 
     func testMediaImporterClassifiesSupportedFormats() {
