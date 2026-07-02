@@ -124,6 +124,15 @@ struct JammLabCommands: Commands {
                 }
             }
             .keyboardShortcut("s", modifiers: [.command, .shift])
+
+            Divider()
+
+            Button("Export Notation as MusicXML...") {
+                Task {
+                    await viewModel.exportNotationAsMusicXML()
+                }
+            }
+            .disabled(!viewModel.canExportNotation)
         }
 
         CommandGroup(replacing: .undoRedo) {

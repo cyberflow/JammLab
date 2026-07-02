@@ -85,6 +85,8 @@ final class AudioPlayerViewModel: ObservableObject {
     let projectService: ProjectDocumentService
     let projectArtifactStore: ProjectArtifactStore
     let projectPersistenceCoordinator: ProjectPersistenceCoordinator
+    let notationExportService: NotationExportService
+    let notationExportDocumentService: NotationExportDocumentService
     let recentProjectsStore: RecentProjectsStore
     let isSandboxed: () -> Bool
     var clockTask: Task<Void, Never>?
@@ -169,6 +171,8 @@ final class AudioPlayerViewModel: ObservableObject {
         projectService: ProjectDocumentService = ProjectDocumentService(),
         projectArtifactStore: ProjectArtifactStore = ProjectArtifactStore(),
         projectPersistenceCoordinator: ProjectPersistenceCoordinator? = nil,
+        notationExportService: NotationExportService = NotationExportService(),
+        notationExportDocumentService: NotationExportDocumentService = NotationExportDocumentService(),
         recentProjectsStore: RecentProjectsStore? = nil,
         isSandboxed: @escaping () -> Bool = AudioPlayerViewModel.defaultSandboxDetection
     ) {
@@ -189,6 +193,8 @@ final class AudioPlayerViewModel: ObservableObject {
             peakformProvider: peakformProvider,
             stemSeparationService: resolvedStemSeparationService
         )
+        self.notationExportService = notationExportService
+        self.notationExportDocumentService = notationExportDocumentService
         self.recentProjectsStore = recentProjectsStore ?? .shared
         self.isSandboxed = isSandboxed
         self.playbackEngine.setClickVolume(clickVolume)
