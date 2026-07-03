@@ -5,6 +5,7 @@ struct ScoreMeasure: Equatable, Identifiable {
     var startTime: TimeInterval
     var endTime: TimeInterval
     var attributes: MeasureAttributes
+    var notationItems: [NotationMeasureItem]
     var harmonies: [HarmonySymbol]
     var regionLabels: [NotationRegionLabel]
 
@@ -13,6 +14,7 @@ struct ScoreMeasure: Equatable, Identifiable {
         startTime: TimeInterval,
         endTime: TimeInterval,
         attributes: MeasureAttributes,
+        notationItems: [NotationMeasureItem] = [],
         harmonies: [HarmonySymbol] = [],
         regionLabels: [NotationRegionLabel] = []
     ) {
@@ -20,6 +22,7 @@ struct ScoreMeasure: Equatable, Identifiable {
         self.startTime = startTime
         self.endTime = endTime
         self.attributes = attributes
+        self.notationItems = notationItems
         self.harmonies = harmonies
         self.regionLabels = regionLabels
     }
@@ -79,31 +82,37 @@ struct NotationMeasureSelection: Equatable, Identifiable {
     }
 }
 
-struct NotationBeatSelection: Equatable, Identifiable {
+struct NotationItemSelection: Equatable, Identifiable {
     var measureNumber: Int
     var measureStartTime: TimeInterval
     var measureEndTime: TimeInterval
     var attributes: MeasureAttributes
+    var itemID: String
     var offsetInQuarterNotes: Double
+    var durationInQuarterNotes: Double
 
-    init(measure: ScoreMeasure, offsetInQuarterNotes: Double) {
+    init(measure: ScoreMeasure, item: NotationMeasureItem) {
         self.measureNumber = measure.number
         self.measureStartTime = measure.startTime
         self.measureEndTime = measure.endTime
         self.attributes = measure.attributes
-        self.offsetInQuarterNotes = offsetInQuarterNotes
+        self.itemID = item.id
+        self.offsetInQuarterNotes = item.offsetInQuarterNotes
+        self.durationInQuarterNotes = item.durationInQuarterNotes
     }
 
     var id: String {
-        "\(measureNumber)-\(measureStartTime)-\(measureEndTime)-\(offsetInQuarterNotes)"
+        "\(measureNumber)-\(measureStartTime)-\(measureEndTime)-\(itemID)-\(offsetInQuarterNotes)-\(durationInQuarterNotes)"
     }
 
-    func matches(_ measure: ScoreMeasure, offsetInQuarterNotes offset: Double) -> Bool {
+    func matches(_ measure: ScoreMeasure, item: NotationMeasureItem) -> Bool {
         measureNumber == measure.number
             && abs(measureStartTime - measure.startTime) < NotationMeasureTiming.timelineTolerance
             && abs(measureEndTime - measure.endTime) < NotationMeasureTiming.timelineTolerance
             && attributes == measure.attributes
-            && abs(offsetInQuarterNotes - offset) < NotationMeasureTiming.timelineTolerance
+            && itemID == item.id
+            && abs(offsetInQuarterNotes - item.offsetInQuarterNotes) < NotationMeasureTiming.timelineTolerance
+            && abs(durationInQuarterNotes - item.durationInQuarterNotes) < NotationMeasureTiming.timelineTolerance
     }
 }
 
@@ -113,11 +122,18 @@ struct NotationMeasureClipboard: Equatable {
 
 struct NotationMeasureClipboardMeasure: Equatable {
     var items: [NotationMeasureClipboardItem]
+    var notationItems: [NotationMeasureClipboardNotationItem] = []
 }
 
 struct NotationMeasureClipboardItem: Equatable {
     var offsetInQuarterNotes: Double
     var rawText: String
+}
+
+struct NotationMeasureClipboardNotationItem: Equatable {
+    var offsetInQuarterNotes: Double
+    var durationInQuarterNotes: Double
+    var displayDuration: NotationDuration
 }
 
 enum NotationMeasureTiming {
@@ -193,9 +209,9 @@ enum HarmonyNavigationDirection: Equatable {
     case next
 }
 
-struct HarmonyInputResolution: Equatable {
+struct NotationDuration: Codable, Equatable, Identifiable {
     static let allowedDenominators = [1, 2, 4, 8]
-    static let defaultDenominator = 4
+    static let defaultDenominator = 1
 
     var denominator: Int
 
@@ -203,14 +219,170 @@ struct HarmonyInputResolution: Equatable {
         self.denominator = Self.normalizedDenominator(denominator)
     }
 
-    var stepInQuarterNotes: Double {
+    var id: Int { denominator }
+
+    var durationInQuarterNotes: Double {
         4.0 / Double(denominator)
+    }
+
+    var displayName: String {
+        switch denominator {
+        case 1:
+            return "whole"
+        case 2:
+            return "half"
+        case 4:
+            return "quarter"
+        case 8:
+            return "eighth"
+        default:
+            return "duration"
+        }
+    }
+
+    var pluralDisplayName: String {
+        "\(displayName) notes"
     }
 
     static func normalizedDenominator(_ denominator: Int) -> Int {
         allowedDenominators.min { lhs, rhs in
             abs(lhs - denominator) < abs(rhs - denominator)
         } ?? defaultDenominator
+    }
+}
+
+struct NotationMeasureItem: Identifiable, Codable, Equatable {
+    enum Kind: String, Codable, Equatable {
+        case rest
+    }
+
+    var id: String
+    var kind: Kind
+    var measureNumber: Int
+    var measureStartTime: TimeInterval
+    var offsetInQuarterNotes: Double
+    var durationInQuarterNotes: Double
+    var displayDuration: NotationDuration
+    var isSynthesized: Bool
+
+    init(
+        id: String = UUID().uuidString,
+        kind: Kind = .rest,
+        measureNumber: Int,
+        measureStartTime: TimeInterval,
+        offsetInQuarterNotes: Double,
+        durationInQuarterNotes: Double,
+        displayDuration: NotationDuration,
+        isSynthesized: Bool = false
+    ) {
+        self.id = id
+        self.kind = kind
+        self.measureNumber = measureNumber
+        self.measureStartTime = measureStartTime
+        self.offsetInQuarterNotes = offsetInQuarterNotes
+        self.durationInQuarterNotes = durationInQuarterNotes
+        self.displayDuration = displayDuration
+        self.isSynthesized = isSynthesized
+    }
+}
+
+enum NotationRestItemFactory {
+    struct Segment: Equatable {
+        var offsetInQuarterNotes: Double
+        var durationInQuarterNotes: Double
+        var displayDuration: NotationDuration
+        var isTail: Bool
+    }
+
+    static func greedySegments(
+        startOffset: Double,
+        remaining: Double,
+        includeTail: Bool = false,
+        tolerance: Double = NotationMeasureTiming.timelineTolerance
+    ) -> [Segment] {
+        var segments: [Segment] = []
+        var cursor = startOffset
+        var rest = remaining
+        for denominator in NotationDuration.allowedDenominators {
+            let duration = NotationDuration(denominator: denominator)
+            let length = duration.durationInQuarterNotes
+            while rest >= length - tolerance {
+                segments.append(Segment(
+                    offsetInQuarterNotes: cursor,
+                    durationInQuarterNotes: min(length, rest),
+                    displayDuration: duration,
+                    isTail: false
+                ))
+                cursor += length
+                rest -= length
+            }
+        }
+
+        if includeTail, rest > tolerance {
+            let duration = NotationDuration(denominator: NotationDuration.allowedDenominators.last ?? 8)
+            segments.append(Segment(
+                offsetInQuarterNotes: cursor,
+                durationInQuarterNotes: rest,
+                displayDuration: duration,
+                isTail: true
+            ))
+        }
+
+        return segments
+    }
+
+    static func restItems(
+        measureNumber: Int,
+        measureStartTime: TimeInterval,
+        startOffset: Double,
+        remaining: Double,
+        isSynthesized: Bool = false,
+        includeTail: Bool = false,
+        id: (Segment) -> String? = { _ in nil }
+    ) -> [NotationMeasureItem] {
+        greedySegments(startOffset: startOffset, remaining: remaining, includeTail: includeTail)
+            .map { segment in
+                restItem(
+                    id: id(segment),
+                    measureNumber: measureNumber,
+                    measureStartTime: measureStartTime,
+                    offsetInQuarterNotes: segment.offsetInQuarterNotes,
+                    durationInQuarterNotes: segment.durationInQuarterNotes,
+                    displayDuration: segment.displayDuration,
+                    isSynthesized: isSynthesized
+                )
+            }
+    }
+
+    static func restItem(
+        id: String? = nil,
+        measureNumber: Int,
+        measureStartTime: TimeInterval,
+        offsetInQuarterNotes: Double,
+        durationInQuarterNotes: Double,
+        displayDuration: NotationDuration,
+        isSynthesized: Bool = false
+    ) -> NotationMeasureItem {
+        if let id {
+            return NotationMeasureItem(
+                id: id,
+                measureNumber: measureNumber,
+                measureStartTime: measureStartTime,
+                offsetInQuarterNotes: offsetInQuarterNotes,
+                durationInQuarterNotes: durationInQuarterNotes,
+                displayDuration: displayDuration,
+                isSynthesized: isSynthesized
+            )
+        }
+
+        return NotationMeasureItem(
+            measureNumber: measureNumber,
+            measureStartTime: measureStartTime,
+            offsetInQuarterNotes: offsetInQuarterNotes,
+            durationInQuarterNotes: durationInQuarterNotes,
+            displayDuration: displayDuration,
+            isSynthesized: isSynthesized
+        )
     }
 }
 

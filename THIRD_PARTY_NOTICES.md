@@ -34,6 +34,7 @@ Apple system frameworks used by the native macOS app are not listed here.
 | `imageio-ffmpeg` | 0.6.0 | BSD-2-Clause | Provides the bundled FFmpeg executable used by the Python helper. |
 | FFmpeg | 7.1 | GPL review required for bundled binary | The bundled binary reports `--enable-gpl`. |
 | diffq | 0.2.4 | CC BY-NC 4.0 metadata | Bundled transitive dependency; requires release review. |
+| Leland | 0.80 | SIL Open Font License 1.1 | Bundled SMuFL music font used for notation and rest glyph rendering. |
 | PyInstaller | 6.20.0 | GPLv2-or-later with PyInstaller exception | Used to package `JammLabSeparatorHelper`. |
 | PyTorch / `torch` | 2.12.0 | BSD-3-Clause | Bundled ML runtime dependency. |
 | ONNX Runtime / `onnxruntime` | 1.26.0 | MIT | Bundled inference runtime dependency. |
@@ -124,3 +125,5 @@ Apple system frameworks used by the native macOS app are not listed here.
 - `JammLabSeparatorHelper/requirements.txt`.
 - PyPI metadata for `audio-separator`.
 - FFmpeg license documentation for `--enable-gpl` behavior.
+- Local bundled Leland font files in `JammLab/Resources/Fonts`, including
+  `Leland-README.md`, `Leland-LICENSE.txt`, and `Leland-OFL-FAQ.txt`.

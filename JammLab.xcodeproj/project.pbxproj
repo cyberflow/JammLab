@@ -29,6 +29,11 @@
 		9F8A01152C00000100112233 /* BeatGridCalculator.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9F8A00172C00000100112233 /* BeatGridCalculator.swift */; };
 		9F8A01162C00000100112233 /* MetronomeClickScheduler.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9F8A00182C00000100112233 /* MetronomeClickScheduler.swift */; };
 		9F8A01192C00000100112233 /* ProjectArtifactStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9F8A00192C00000100112233 /* ProjectArtifactStore.swift */; };
+		9F2701012EA0000100112233 /* NotationSMuFL.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9F2700012EA0000100112233 /* NotationSMuFL.swift */; };
+		9F2701022EA0000100112233 /* Leland.otf in Resources */ = {isa = PBXBuildFile; fileRef = 9F2700022EA0000100112233 /* Leland.otf */; };
+		9F2701032EA0000100112233 /* Leland-LICENSE.txt in Resources */ = {isa = PBXBuildFile; fileRef = 9F2700032EA0000100112233 /* Leland-LICENSE.txt */; };
+		9F2701042EA0000100112233 /* Leland-OFL-FAQ.txt in Resources */ = {isa = PBXBuildFile; fileRef = 9F2700042EA0000100112233 /* Leland-OFL-FAQ.txt */; };
+		9F2701052EA0000100112233 /* Leland-README.md in Resources */ = {isa = PBXBuildFile; fileRef = 9F2700052EA0000100112233 /* Leland-README.md */; };
 		9F8B01012C10000100112233 /* TimelineViewport.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9F8B00012C10000100112233 /* TimelineViewport.swift */; };
 		9F8B01022C10000100112233 /* ProjectStateNormalizer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9F8B00022C10000100112233 /* ProjectStateNormalizer.swift */; };
 		9F8B01032C10000100112233 /* PeakformTimelineView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9F8B00032C10000100112233 /* PeakformTimelineView.swift */; };
@@ -196,6 +201,11 @@
 		9F8A00172C00000100112233 /* BeatGridCalculator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BeatGridCalculator.swift; sourceTree = "<group>"; };
 		9F8A00182C00000100112233 /* MetronomeClickScheduler.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MetronomeClickScheduler.swift; sourceTree = "<group>"; };
 		9F8A00192C00000100112233 /* ProjectArtifactStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProjectArtifactStore.swift; sourceTree = "<group>"; };
+		9F2700012EA0000100112233 /* NotationSMuFL.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotationSMuFL.swift; sourceTree = "<group>"; };
+		9F2700022EA0000100112233 /* Leland.otf */ = {isa = PBXFileReference; lastKnownFileType = file; path = Leland.otf; sourceTree = "<group>"; };
+		9F2700032EA0000100112233 /* Leland-LICENSE.txt */ = {isa = PBXFileReference; lastKnownFileType = text; path = "Leland-LICENSE.txt"; sourceTree = "<group>"; };
+		9F2700042EA0000100112233 /* Leland-OFL-FAQ.txt */ = {isa = PBXFileReference; lastKnownFileType = text; path = "Leland-OFL-FAQ.txt"; sourceTree = "<group>"; };
+		9F2700052EA0000100112233 /* Leland-README.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = "Leland-README.md"; sourceTree = "<group>"; };
 		9F8B00012C10000100112233 /* TimelineViewport.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TimelineViewport.swift; sourceTree = "<group>"; };
 		9F8B00022C10000100112233 /* ProjectStateNormalizer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProjectStateNormalizer.swift; sourceTree = "<group>"; };
 		9F8B00032C10000100112233 /* PeakformTimelineView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PeakformTimelineView.swift; sourceTree = "<group>"; };
@@ -356,6 +366,7 @@
 				9F8A03052C00000100112233 /* ViewModels */,
 				9F8A03062C00000100112233 /* Views */,
 				9F8A03072C00000100112233 /* Utilities */,
+				9F2700062EA0000100112233 /* Resources */,
 				9F8A000B2C00000100112233 /* Assets.xcassets */,
 				9F8A000C2C00000100112233 /* JammLab.entitlements */,
 			);
@@ -399,6 +410,7 @@
 				9F8A00182C00000100112233 /* MetronomeClickScheduler.swift */,
 				9FCB00062D80000100112233 /* NotationMeasureLayout.swift */,
 				9FEE00012D90000100112233 /* NotationExportService.swift */,
+				9F2700012EA0000100112233 /* NotationSMuFL.swift */,
 				9FEA00032D70000100112233 /* NotationViewportFactory.swift */,
 				9FEA00052D70000100112233 /* NotationVisibleMeasureFitter.swift */,
 				9F8A00192C00000100112233 /* ProjectArtifactStore.swift */,
@@ -421,6 +433,25 @@
 				9F8A000E2C00000100112233 /* WaveformProvider.swift */,
 			);
 			path = Services;
+			sourceTree = "<group>";
+		};
+		9F2700062EA0000100112233 /* Resources */ = {
+			isa = PBXGroup;
+			children = (
+				9F2700072EA0000100112233 /* Fonts */,
+			);
+			path = Resources;
+			sourceTree = "<group>";
+		};
+		9F2700072EA0000100112233 /* Fonts */ = {
+			isa = PBXGroup;
+			children = (
+				9F2700022EA0000100112233 /* Leland.otf */,
+				9F2700032EA0000100112233 /* Leland-LICENSE.txt */,
+				9F2700042EA0000100112233 /* Leland-OFL-FAQ.txt */,
+				9F2700052EA0000100112233 /* Leland-README.md */,
+			);
+			path = Fonts;
 			sourceTree = "<group>";
 		};
 		9F8A03052C00000100112233 /* ViewModels */ = {
@@ -698,6 +729,10 @@
 			buildActionMask = 2147483647;
 			files = (
 				9F8A010B2C00000100112233 /* Assets.xcassets in Resources */,
+				9F2701022EA0000100112233 /* Leland.otf in Resources */,
+				9F2701032EA0000100112233 /* Leland-LICENSE.txt in Resources */,
+				9F2701042EA0000100112233 /* Leland-OFL-FAQ.txt in Resources */,
+				9F2701052EA0000100112233 /* Leland-README.md in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -808,6 +843,7 @@
 				9F8A01132C00000100112233 /* RecentProjectsStore.swift in Sources */,
 				9F9401012CA0000100112233 /* AppSettingsStore.swift in Sources */,
 				9FEA01012D70000100112233 /* NotationScoreModels.swift in Sources */,
+				9F2701012EA0000100112233 /* NotationSMuFL.swift in Sources */,
 				9F8D01042C30000100112233 /* AudioRenderState.swift in Sources */,
 				9F8D01052C30000100112233 /* ClickRenderState.swift in Sources */,
 				9F8D01032C30000100112233 /* StemMixAudioPlayer.swift in Sources */,

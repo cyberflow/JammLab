@@ -10,7 +10,7 @@ enum ControlHelpText {
     static let tempo = "Tempo"
     static let timeSignature = "Time signature"
     static let key = "Project key"
-    static let harmonyInputResolution = "Harmony input resolution"
+    static let notationDuration = "Notation duration"
     static let click = "Click on/off (C). Right-click to adjust volume."
     static let clickVolume = "Click volume"
     static let snap = "Snap playback cursor, loop and region edits to the nearest beat (Opt+S)"

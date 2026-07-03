@@ -134,8 +134,7 @@ extension ContentView {
             notes: viewModel.notes,
             selectedHarmonySymbolID: viewModel.selectedHarmonySymbolID,
             selectedNotationMeasures: viewModel.selectedNotationMeasures,
-            selectedNotationBeat: viewModel.selectedNotationBeat,
-            harmonyInputResolutionDenominator: viewModel.harmonyInputResolutionDenominator,
+            selectedNotationItem: viewModel.selectedNotationItem,
             pendingHarmonyEditorRequest: viewModel.pendingHarmonyEditorRequest,
             selectedRegionID: viewModel.selectedRegionID,
             beatGrid: beatGrid,
@@ -166,6 +165,7 @@ extension ContentView {
                 isPlaying: viewModel.playbackState == .playing,
                 keyName: viewModel.effectiveKeyName,
                 visibleMeasureCount: measureCount,
+                notationItems: viewModel.notationItems,
                 harmonySymbols: viewModel.harmonySymbols,
                 notes: viewModel.notes
             )
@@ -179,6 +179,7 @@ extension ContentView {
             isPlaying: viewModel.playbackState == .playing,
             keyName: viewModel.effectiveKeyName,
             visibleMeasureCount: fittedMeasureCount,
+            notationItems: viewModel.notationItems,
             harmonySymbols: viewModel.harmonySymbols,
             notes: viewModel.notes
         )
@@ -190,7 +191,7 @@ extension ContentView {
             addNote: { viewModel.addNote(at: $0) },
             selectHarmony: { viewModel.selectHarmonySymbol(id: $0) },
             selectNotationMeasure: { viewModel.selectNotationMeasure($0, extendingSelection: $1) },
-            selectNotationBeat: { viewModel.selectNotationBeat($0) },
+            selectNotationItem: { viewModel.selectNotationItem($0) },
             saveHarmony: { viewModel.saveHarmonySymbol($0) },
             deleteHarmony: { viewModel.deleteHarmonySymbol(id: $0) },
             adjacentHarmonyPlacement: { viewModel.adjacentHarmonyPlacement(from: $0, direction: $1) },

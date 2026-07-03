@@ -5,6 +5,7 @@ extension AudioPlayerViewModel {
         ProjectEditableState(
             notes: notes,
             harmonySymbols: harmonySymbols,
+            notationItems: notationItems,
             projectKeySelection: projectKeySelection,
             selectedRegionID: selectedRegionID,
             selectedHarmonySymbolID: selectedHarmonySymbolID,
@@ -32,6 +33,7 @@ extension AudioPlayerViewModel {
         return ProjectPersistedEditableState(
             notes: ProjectStateNormalizer.normalizedNotes(notes, duration: duration),
             harmonySymbols: ProjectStateNormalizer.normalizedHarmonySymbols(harmonySymbols, duration: duration),
+            notationItems: ProjectStateNormalizer.normalizedNotationItems(notationItems, duration: duration),
             projectKeySelection: projectKeySelection,
             loopRegion: clampedLoop,
             isLooping: isLooping,
@@ -74,10 +76,11 @@ extension AudioPlayerViewModel {
         shouldAcceptAnalyzedTempo = false
         notes = ProjectStateNormalizer.normalizedNotes(state.notes, duration: duration)
         harmonySymbols = ProjectStateNormalizer.normalizedHarmonySymbols(state.harmonySymbols, duration: duration)
+        notationItems = ProjectStateNormalizer.normalizedNotationItems(state.notationItems, duration: duration)
         projectKeySelection = state.projectKeySelection
         selectedRegionID = availableRegionID(state.selectedRegionID)
         selectedHarmonySymbolID = availableHarmonySymbolID(state.selectedHarmonySymbolID)
-        selectedNotationBeat = nil
+        selectedNotationItem = nil
         activeLoopRegionID = availableRegionID(state.activeLoopRegionID)
         loopRegion = state.loopRegion.clamped(to: duration, minimumLength: activeRangeMinimumLength)
         stemMixState = state.stemMixState

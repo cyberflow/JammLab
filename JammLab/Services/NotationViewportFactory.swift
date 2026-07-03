@@ -8,6 +8,7 @@ struct NotationViewportFactory {
         playbackMarkerTime: TimeInterval,
         isPlaying: Bool,
         keyName: String?,
+        notationItems: [NotationMeasureItem] = [],
         harmonySymbols: [HarmonySymbol] = [],
         notes: [TimecodedNote] = []
     ) -> NotationScoreState {
@@ -35,6 +36,7 @@ struct NotationViewportFactory {
             measures.append(decoratedMeasure(
                 cursor,
                 keySignature: keySignature,
+                notationItems: notationItems,
                 harmonySymbols: harmonySymbols,
                 regionNotes: regionNotes
             ))
@@ -70,6 +72,7 @@ struct NotationViewportFactory {
         isPlaying: Bool,
         keyName: String?,
         visibleMeasureCount: Int,
+        notationItems: [NotationMeasureItem] = [],
         harmonySymbols: [HarmonySymbol] = [],
         notes: [TimecodedNote] = []
     ) -> NotationViewportState {
@@ -103,6 +106,7 @@ struct NotationViewportFactory {
             visibleMeasures.append(decoratedMeasure(
                 cursor,
                 keySignature: keySignature,
+                notationItems: notationItems,
                 harmonySymbols: harmonySymbols,
                 regionNotes: regionNotes
             ))
@@ -130,11 +134,13 @@ struct NotationViewportFactory {
     private func decoratedMeasure(
         _ measure: ScoreMeasure,
         keySignature: KeySignature,
+        notationItems: [NotationMeasureItem],
         harmonySymbols: [HarmonySymbol],
         regionNotes: [TimecodedNote]
     ) -> ScoreMeasure {
         let keyedMeasure = measure.withKeySignature(keySignature)
         return keyedMeasure
+            .withNotationItems(Self.notationItems(for: keyedMeasure, from: notationItems))
             .withHarmonies(harmonies(for: keyedMeasure, from: harmonySymbols))
             .withRegionLabels(regionLabels(for: keyedMeasure, from: regionNotes))
     }
@@ -160,8 +166,7 @@ struct NotationViewportFactory {
     func harmonyPlacement(
         for time: TimeInterval,
         tempoMap: TempoMap,
-        duration: TimeInterval,
-        resolution: HarmonyInputResolution? = nil
+        duration: TimeInterval
     ) -> HarmonyPlacement? {
         let clampedTime = Self.anchorTime(
             currentTime: time,
@@ -170,8 +175,7 @@ struct NotationViewportFactory {
             duration: duration
         )
         guard let measure = measure(containing: clampedTime, tempoMap: tempoMap) else { return nil }
-        let rawOffset = quarterOffset(for: clampedTime, in: measure)
-        let offset = resolution.map { snappedOffset(rawOffset, in: measure, resolution: $0) } ?? rawOffset
+        let offset = quarterOffset(for: clampedTime, in: measure)
         let resolvedTime = timeForQuarterOffset(offset, in: measure)
 
         return HarmonyPlacement(
@@ -186,7 +190,7 @@ struct NotationViewportFactory {
         direction: HarmonyNavigationDirection,
         tempoMap: TempoMap,
         duration: TimeInterval,
-        resolution: HarmonyInputResolution
+        notationItems: [NotationMeasureItem]
     ) -> HarmonyPlacement? {
         let clampedTime = Self.anchorTime(
             currentTime: time,
@@ -195,29 +199,21 @@ struct NotationViewportFactory {
             duration: duration
         )
         guard let measure = measure(containing: clampedTime, tempoMap: tempoMap) else { return nil }
+        let currentOffset = quarterOffset(for: clampedTime, in: measure)
+        let currentItems = Self.notationItems(for: measure, from: notationItems)
+        let orderedCurrentOffsets = currentItems.map(\.offsetInQuarterNotes).sorted()
 
-        let currentOffset = snappedOffset(
-            quarterOffset(for: clampedTime, in: measure),
-            in: measure,
-            resolution: resolution
-        )
-        let step = resolution.stepInQuarterNotes
-        let nextOffset: Double
         switch direction {
         case .previous:
-            nextOffset = currentOffset - step
+            if let previousOffset = orderedCurrentOffsets.last(where: { $0 < currentOffset - Self.timelineTolerance }) {
+                let targetTime = timeForQuarterOffset(previousOffset, in: measure)
+                return harmonyPlacement(for: targetTime, tempoMap: tempoMap, duration: duration)
+            }
         case .next:
-            nextOffset = currentOffset + step
-        }
-
-        if nextOffset >= 0, nextOffset <= maximumHarmonyOffset(in: measure, resolution: resolution) {
-            let targetTime = timeForQuarterOffset(nextOffset, in: measure)
-            return harmonyPlacement(
-                for: targetTime,
-                tempoMap: tempoMap,
-                duration: duration,
-                resolution: resolution
-            )
+            if let nextOffset = orderedCurrentOffsets.first(where: { $0 > currentOffset + Self.timelineTolerance }) {
+                let targetTime = timeForQuarterOffset(nextOffset, in: measure)
+                return harmonyPlacement(for: targetTime, tempoMap: tempoMap, duration: duration)
+            }
         }
 
         let adjacentMeasure: ScoreMeasure?
@@ -227,23 +223,21 @@ struct NotationViewportFactory {
         case .next:
             adjacentMeasure = nextMeasure(after: measure, tempoMap: tempoMap)
         }
-
         guard let adjacentMeasure else { return nil }
-        let targetOffset: Double
+        let adjacentItems = Self.notationItems(for: adjacentMeasure, from: notationItems)
+        guard !adjacentItems.isEmpty else { return nil }
+
+        let targetOffset: Double?
         switch direction {
         case .previous:
-            targetOffset = maximumHarmonyOffset(in: adjacentMeasure, resolution: resolution)
+            targetOffset = adjacentItems.map(\.offsetInQuarterNotes).max()
         case .next:
-            targetOffset = 0
+            targetOffset = adjacentItems.map(\.offsetInQuarterNotes).min()
         }
 
+        guard let targetOffset else { return nil }
         let targetTime = timeForQuarterOffset(targetOffset, in: adjacentMeasure)
-        return harmonyPlacement(
-            for: targetTime,
-            tempoMap: tempoMap,
-            duration: duration,
-            resolution: resolution
-        )
+        return harmonyPlacement(for: targetTime, tempoMap: tempoMap, duration: duration)
     }
 
     private func measure(containing time: TimeInterval, tempoMap: TempoMap) -> ScoreMeasure? {
@@ -456,31 +450,99 @@ struct NotationViewportFactory {
         NotationMeasureTiming.time(forQuarterOffset: offset, in: measure)
     }
 
-    private func snappedOffset(
-        _ offset: Double,
-        in measure: ScoreMeasure,
-        resolution: HarmonyInputResolution
-    ) -> Double {
-        let step = resolution.stepInQuarterNotes
-        guard step > 0 else { return 0 }
-        let maximumOffset = maximumHarmonyOffset(in: measure, resolution: resolution)
-        let snapped = (offset / step).rounded() * step
-        return max(0, min(snapped, maximumOffset))
-    }
-
-    private func maximumHarmonyOffset(
-        in measure: ScoreMeasure,
-        resolution: HarmonyInputResolution
-    ) -> Double {
-        let length = quarterLength(for: measure.attributes.timeSignature)
-        let step = resolution.stepInQuarterNotes
-        guard length > 0, step > 0 else { return 0 }
-        let slots = max(0, Int(floor((length - Self.timelineTolerance) / step)))
-        return Double(slots) * step
-    }
-
     private func quarterLength(for timeSignature: TimeSignature) -> Double {
         NotationMeasureTiming.quarterLength(for: timeSignature)
+    }
+
+    static func notationItems(
+        for measure: ScoreMeasure,
+        from notationItems: [NotationMeasureItem]
+    ) -> [NotationMeasureItem] {
+        let measureLength = NotationMeasureTiming.quarterLength(for: measure.attributes.timeSignature)
+        guard measureLength > 0 else { return [] }
+
+        let explicitItems = notationItems
+            .filter { item in
+                item.measureNumber == measure.number
+                    && abs(item.measureStartTime - measure.startTime) < timelineTolerance
+            }
+            .sorted(by: itemSort)
+        guard !explicitItems.isEmpty else {
+            return [
+                NotationRestItemFactory.restItem(
+                    id: "default-rest-\(measure.number)-\(measure.startTime)-\(measure.endTime)",
+                    measureNumber: measure.number,
+                    measureStartTime: measure.startTime,
+                    offsetInQuarterNotes: 0,
+                    durationInQuarterNotes: measureLength,
+                    displayDuration: NotationDuration(denominator: NotationDuration.defaultDenominator),
+                    isSynthesized: true
+                )
+            ]
+        }
+
+        var normalized: [NotationMeasureItem] = []
+        var cursor = 0.0
+        for item in explicitItems {
+            let offset = max(cursor, min(item.offsetInQuarterNotes, measureLength))
+            if offset > cursor + timelineTolerance {
+                normalized.append(contentsOf: fillerItems(
+                    measure: measure,
+                    startOffset: cursor,
+                    remaining: offset - cursor
+                ))
+            }
+
+            let available = measureLength - offset
+            guard available > timelineTolerance else { continue }
+            let duration = min(max(0, item.durationInQuarterNotes), available)
+            guard duration > timelineTolerance else { continue }
+
+            var copy = item
+            copy.measureNumber = measure.number
+            copy.measureStartTime = measure.startTime
+            copy.offsetInQuarterNotes = offset
+            copy.durationInQuarterNotes = duration
+            copy.isSynthesized = false
+            normalized.append(copy)
+            cursor = offset + duration
+        }
+
+        if cursor < measureLength - timelineTolerance {
+            normalized.append(contentsOf: fillerItems(
+                measure: measure,
+                startOffset: cursor,
+                remaining: measureLength - cursor
+            ))
+        }
+
+        return normalized.sorted(by: itemSort)
+    }
+
+    static func fillerItems(
+        measure: ScoreMeasure,
+        startOffset: Double,
+        remaining: Double
+    ) -> [NotationMeasureItem] {
+        NotationRestItemFactory.restItems(
+            measureNumber: measure.number,
+            measureStartTime: measure.startTime,
+            startOffset: startOffset,
+            remaining: remaining,
+            isSynthesized: true,
+            includeTail: true
+        ) { segment in
+            let suffix = segment.isTail ? "tail" : "\(segment.displayDuration.denominator)"
+            return "fill-rest-\(measure.number)-\(measure.startTime)-\(segment.offsetInQuarterNotes)-\(suffix)"
+        }
+    }
+
+    private static func itemSort(_ lhs: NotationMeasureItem, _ rhs: NotationMeasureItem) -> Bool {
+        if abs(lhs.offsetInQuarterNotes - rhs.offsetInQuarterNotes) > timelineTolerance {
+            return lhs.offsetInQuarterNotes < rhs.offsetInQuarterNotes
+        }
+
+        return lhs.id < rhs.id
     }
 
     private static let maximumMeasureTraversalCount = 100_000
@@ -495,6 +557,12 @@ private extension ScoreMeasure {
     func withKeySignature(_ keySignature: KeySignature) -> ScoreMeasure {
         var copy = self
         copy.attributes.keySignature = keySignature
+        return copy
+    }
+
+    func withNotationItems(_ notationItems: [NotationMeasureItem]) -> ScoreMeasure {
+        var copy = self
+        copy.notationItems = notationItems
         return copy
     }
 

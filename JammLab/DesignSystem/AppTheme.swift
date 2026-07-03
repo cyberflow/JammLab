@@ -163,8 +163,8 @@ enum AppTheme {
         static let hotkeyKeyWidth: CGFloat = 70
         static let controlHeight: CGFloat = 28
         static let buttonHeight: CGFloat = 28
-        static let notationResolutionButtonWidth: CGFloat = 32
-        static let notationResolutionControlHeight: CGFloat = controlHeight
+        static let notationDurationButtonWidth: CGFloat = 32
+        static let notationDurationControlHeight: CGFloat = controlHeight
         static let transportBarMinHeight: CGFloat = 70
         static let abletonNumberFieldHeight: CGFloat = 24
         static let jammValueSliderWidth: CGFloat = 70
@@ -274,7 +274,7 @@ enum AppTheme {
         static let notationSlashHeight: CGFloat = 16
         static let notationSlashLineWidth: CGFloat = 3
         static let notationSlashMinimumBeatSpacing: CGFloat = 16
-        static let notationBeatAnchorInset: CGFloat = AppTheme.Spacing.lg
+        static let notationItemAnchorInset: CGFloat = AppTheme.Spacing.lg
         static let notationHarmonyAnchorLeadingOffset: CGFloat = AppTheme.Spacing.md
         static let notationHarmonySymbolWidth: CGFloat = 84
         static let notationHarmonyEditorWidth: CGFloat = 64

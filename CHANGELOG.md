@@ -8,6 +8,7 @@ development artifact builds use `vMAJOR.MINOR.PATCH-dev.N`.
 
 ## Unreleased
 
+- Added selectable Notation rest durations with persisted measure layouts and split-rest MusicXML export.
 - Added MusicXML export for Notation from the File menu and Notation window.
 - Added a collapsible Notation track in the main timeline, collapsed by default and saved per project.
 - Changed notation harmony entry so beat slashes are selectable and Cmd+K opens chord input for the selected beat.

@@ -141,13 +141,12 @@ final class ViewModelLifecycleTests: XCTestCase {
     }
 
     @MainActor
-    func testRequestAddHarmonyAtTimeUsesNotationResolutionSnapWhilePlaying() throws {
+    func testRequestAddHarmonyAtTimeUsesExactRequestedTimeWhilePlaying() throws {
         let engine = MockPlaybackEngine()
         engine.isLoaded = true
         let viewModel = AudioPlayerViewModel(playbackEngine: engine)
         viewModel.duration = 8
         viewModel.beatGridSettings = BeatGridSettings(bpm: 120, firstBeatTime: 0, timeSignature: .fourFour)
-        viewModel.setHarmonyInputResolutionDenominator(4)
         viewModel.setPlaybackMarkerExactly(to: 1.26)
 
         viewModel.play()
@@ -160,8 +159,8 @@ final class ViewModelLifecycleTests: XCTestCase {
         viewModel.requestAddHarmony(at: 1.26)
 
         let request = try XCTUnwrap(viewModel.pendingHarmonyEditorRequest)
-        XCTAssertEqual(request.time, 1.5, accuracy: 0.0001)
-        XCTAssertGreaterThan(abs(request.time - viewModel.playbackMarkerTime), 0.0001)
+        XCTAssertEqual(request.time, 1.26, accuracy: 0.0001)
+        XCTAssertLessThan(abs(request.time - viewModel.playbackMarkerTime), 0.0001)
         XCTAssertGreaterThan(abs(request.time - viewModel.currentTime), 0.0001)
     }
 
@@ -1533,23 +1532,31 @@ final class ViewModelLifecycleTests: XCTestCase {
     }
 
     @MainActor
-    func testSelectingNotationBeatDoesNotMarkProjectModifiedAndClearsMeasureSelection() throws {
+    func testSelectingNotationItemDoesNotMarkProjectModifiedAndClearsMeasureSelection() throws {
         let viewModel = try loadedNotationViewModel(duration: 8)
         let measure = try notationMeasure(1, in: viewModel)
+        let item = try XCTUnwrap(measure.notationItems.first)
 
         viewModel.selectNotationMeasure(measure)
-        viewModel.selectNotationBeat(NotationBeatSelection(measure: measure, offsetInQuarterNotes: 2))
+        viewModel.selectNotationItem(NotationItemSelection(measure: measure, item: item))
 
         XCTAssertTrue(viewModel.selectedNotationMeasures.isEmpty)
-        XCTAssertEqual(viewModel.selectedNotationBeat?.measureNumber, 1)
-        XCTAssertEqual(viewModel.selectedNotationBeat?.offsetInQuarterNotes, 2)
+        XCTAssertEqual(viewModel.selectedNotationItem?.measureNumber, 1)
+        XCTAssertEqual(viewModel.selectedNotationItem?.offsetInQuarterNotes, 0)
         XCTAssertFalse(viewModel.isProjectModified)
     }
 
     @MainActor
-    func testRequestEditSelectedNotationBeatUsesExactBeatOffsetAndExistingHarmony() throws {
+    func testRequestEditSelectedNotationItemUsesExactItemOffsetAndExistingHarmony() throws {
         let viewModel = try loadedNotationViewModel(duration: 8)
         let measure = try notationMeasure(1, in: viewModel)
+        let item = NotationMeasureItem(
+            measureNumber: measure.number,
+            measureStartTime: measure.startTime,
+            offsetInQuarterNotes: 1,
+            durationInQuarterNotes: 1,
+            displayDuration: NotationDuration(denominator: 4)
+        )
         let harmony = HarmonySymbol(
             time: NotationMeasureTiming.time(forQuarterOffset: 1, in: measure),
             measureNumber: measure.number,
@@ -1557,12 +1564,14 @@ final class ViewModelLifecycleTests: XCTestCase {
             rawText: "Fmaj7"
         )
         viewModel.harmonySymbols = [harmony]
-        viewModel.setHarmonyInputResolutionDenominator(1)
+        viewModel.notationItems = [item]
         viewModel.markProjectClean()
 
-        viewModel.selectNotationBeat(NotationBeatSelection(measure: measure, offsetInQuarterNotes: 1))
+        let updatedMeasure = try notationMeasure(1, in: viewModel)
+        let updatedItem = try XCTUnwrap(updatedMeasure.notationItems.first { $0.offsetInQuarterNotes == 1 })
+        viewModel.selectNotationItem(NotationItemSelection(measure: updatedMeasure, item: updatedItem))
 
-        XCTAssertTrue(viewModel.requestEditSelectedNotationBeat())
+        XCTAssertTrue(viewModel.requestEditSelectedNotationItem())
         let request = try XCTUnwrap(viewModel.pendingHarmonyEditorRequest)
         XCTAssertEqual(request.time, harmony.time, accuracy: 0.0001)
         XCTAssertEqual(viewModel.selectedHarmonySymbolID, harmony.id)
@@ -1570,27 +1579,65 @@ final class ViewModelLifecycleTests: XCTestCase {
     }
 
     @MainActor
-    func testNotationBeatSelectionClearsForTempoMapAndUndoChanges() throws {
+    func testNotationItemSelectionClearsForTempoMapAndUndoChanges() throws {
         let viewModel = try loadedNotationViewModel(duration: 8)
         let firstMeasure = try notationMeasure(1, in: viewModel)
+        let firstItem = try XCTUnwrap(firstMeasure.notationItems.first)
 
-        viewModel.selectNotationBeat(NotationBeatSelection(measure: firstMeasure, offsetInQuarterNotes: 1))
+        viewModel.selectNotationItem(NotationItemSelection(measure: firstMeasure, item: firstItem))
         viewModel.setTimeSignature(beatsPerBar: 3, beatUnit: 4)
 
-        XCTAssertNil(viewModel.selectedNotationBeat)
+        XCTAssertNil(viewModel.selectedNotationItem)
 
         let undoManager = UndoManager()
         viewModel.undoManager = undoManager
         let updatedMeasure = try notationMeasure(1, in: viewModel)
+        let updatedItem = try XCTUnwrap(updatedMeasure.notationItems.first)
         viewModel.markProjectClean()
-        viewModel.selectNotationBeat(NotationBeatSelection(measure: updatedMeasure, offsetInQuarterNotes: 1))
+        viewModel.selectNotationItem(NotationItemSelection(measure: updatedMeasure, item: updatedItem))
         viewModel.addNote(at: 0.5)
 
-        XCTAssertNotNil(viewModel.selectedNotationBeat)
+        XCTAssertNotNil(viewModel.selectedNotationItem)
 
         viewModel.undoLastEdit()
 
-        XCTAssertNil(viewModel.selectedNotationBeat)
+        XCTAssertNil(viewModel.selectedNotationItem)
+    }
+
+    @MainActor
+    func testChangingSelectedWholeRestToQuarterCreatesTwoQuartersAndHalfInFourFour() throws {
+        let viewModel = try loadedNotationViewModel(duration: 8)
+        let measure = try notationMeasure(1, in: viewModel)
+        let item = try XCTUnwrap(measure.notationItems.first)
+        viewModel.markProjectClean()
+
+        viewModel.selectNotationItem(NotationItemSelection(measure: measure, item: item))
+        viewModel.setNotationDurationDenominator(4)
+
+        let updatedMeasure = try notationMeasure(1, in: viewModel)
+        XCTAssertEqual(updatedMeasure.notationItems.map(\.displayDuration.denominator), [4, 4, 2])
+        XCTAssertEqual(updatedMeasure.notationItems.map(\.offsetInQuarterNotes), [0, 1, 2])
+        XCTAssertEqual(updatedMeasure.notationItems.map(\.durationInQuarterNotes), [1, 1, 2])
+        XCTAssertEqual(viewModel.selectedNotationItem?.offsetInQuarterNotes, 0)
+        XCTAssertTrue(viewModel.isProjectModified)
+    }
+
+    @MainActor
+    func testChangingSelectedWholeRestToHalfInThreeFourCreatesHalfAndQuarter() throws {
+        let viewModel = try loadedNotationViewModel(duration: 6)
+        viewModel.setTimeSignature(beatsPerBar: 3, beatUnit: 4)
+        let measure = try notationMeasure(1, in: viewModel)
+        let item = try XCTUnwrap(measure.notationItems.first)
+        viewModel.markProjectClean()
+
+        viewModel.selectNotationItem(NotationItemSelection(measure: measure, item: item))
+        viewModel.setNotationDurationDenominator(2)
+
+        let updatedMeasure = try notationMeasure(1, in: viewModel)
+        XCTAssertEqual(updatedMeasure.notationItems.map(\.displayDuration.denominator), [2, 4])
+        XCTAssertEqual(updatedMeasure.notationItems.map(\.offsetInQuarterNotes), [0, 2])
+        XCTAssertEqual(updatedMeasure.notationItems.map(\.durationInQuarterNotes), [2, 1])
+        XCTAssertTrue(viewModel.isProjectModified)
     }
 
     @MainActor
@@ -1992,6 +2039,7 @@ final class ViewModelLifecycleTests: XCTestCase {
             playbackMarkerTime: viewModel.playbackMarkerTime,
             isPlaying: viewModel.playbackState == .playing,
             keyName: viewModel.effectiveKeyName,
+            notationItems: viewModel.notationItems,
             harmonySymbols: viewModel.harmonySymbols,
             notes: viewModel.notes
         )
