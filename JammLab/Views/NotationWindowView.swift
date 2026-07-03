@@ -54,12 +54,12 @@ struct NotationWindowView: View {
 
     private var header: some View {
         HStack(spacing: AppTheme.Spacing.md) {
-            NotationResolutionControl(
+            NotationDurationControl(
                 denominator: Binding(
-                    get: { viewModel.harmonyInputResolutionDenominator },
-                    set: { viewModel.setHarmonyInputResolutionDenominator($0) }
+                    get: { viewModel.notationDurationDenominator },
+                    set: { viewModel.setNotationDurationDenominator($0) }
                 ),
-                isEnabled: viewModel.canShowNotationWindow
+                isEnabled: viewModel.canShowNotationWindow && viewModel.canEditSelectedNotationItem
             )
 
             Spacer(minLength: AppTheme.Spacing.md)
@@ -94,11 +94,8 @@ struct NotationWindowView: View {
                                 state: system.viewportState,
                                 selectedHarmonySymbolID: viewModel.selectedHarmonySymbolID,
                                 selectedMeasures: viewModel.selectedNotationMeasures,
-                                selectedBeat: viewModel.selectedNotationBeat,
+                                selectedItem: viewModel.selectedNotationItem,
                                 pendingEditorRequest: viewModel.pendingHarmonyEditorRequest,
-                                inputResolution: HarmonyInputResolution(
-                                    denominator: viewModel.harmonyInputResolutionDenominator
-                                ),
                                 actions: notationActions,
                                 cornerRadius: AppTheme.Spacing.none
                             )
@@ -148,6 +145,7 @@ struct NotationWindowView: View {
             playbackMarkerTime: viewModel.playbackMarkerTime,
             isPlaying: viewModel.playbackState == .playing,
             keyName: viewModel.effectiveKeyName,
+            notationItems: viewModel.notationItems,
             harmonySymbols: viewModel.harmonySymbols,
             notes: viewModel.notes
         )
@@ -157,7 +155,7 @@ struct NotationWindowView: View {
         NotationTrackActions(
             selectHarmony: { viewModel.selectHarmonySymbol(id: $0) },
             selectMeasure: { viewModel.selectNotationMeasure($0, extendingSelection: $1) },
-            selectBeat: { viewModel.selectNotationBeat($0) },
+            selectItem: { viewModel.selectNotationItem($0) },
             saveHarmony: { viewModel.saveHarmonySymbol($0) },
             deleteHarmony: { viewModel.deleteHarmonySymbol(id: $0) },
             adjacentHarmonyPlacement: { viewModel.adjacentHarmonyPlacement(from: $0, direction: $1) }
@@ -175,8 +173,8 @@ struct NotationWindowView: View {
         if viewModel.hasSelectedNotationMeasures {
             hotkeys.insert(.clearNotationMeasureSelection)
         }
-        if viewModel.canEditSelectedNotationBeat {
-            hotkeys.insert(.editHarmonyAtSelectedBeat)
+        if viewModel.canEditSelectedNotationItem {
+            hotkeys.insert(.editHarmonyAtSelectedNotationItem)
         }
         return hotkeys
     }
@@ -194,8 +192,8 @@ struct NotationWindowView: View {
         case .clearNotationMeasureSelection:
             viewModel.clearNotationMeasureSelection()
             return true
-        case .editHarmonyAtSelectedBeat:
-            return viewModel.requestEditSelectedNotationBeat()
+        case .editHarmonyAtSelectedNotationItem:
+            return viewModel.requestEditSelectedNotationItem()
         default:
             return false
         }
@@ -287,40 +285,40 @@ struct NotationWindowView: View {
     }
 }
 
-private struct NotationResolutionControl: View {
+private struct NotationDurationControl: View {
     @Binding var denominator: Int
     let isEnabled: Bool
     @Environment(\.appColors) private var appColors
 
-    private var options: [NotationResolutionOption] {
-        HarmonyInputResolution.allowedDenominators
+    private var options: [NotationDurationOption] {
+        NotationDuration.allowedDenominators
             .reversed()
-            .compactMap(NotationResolutionOption.init)
+            .compactMap(NotationDurationOption.init)
     }
 
     var body: some View {
         HStack(spacing: AppTheme.Spacing.xs) {
             ForEach(options) { option in
-                resolutionButton(for: option)
+                durationButton(for: option)
             }
         }
-        .frame(height: AppTheme.ControlSize.notationResolutionControlHeight)
+        .frame(height: AppTheme.ControlSize.notationDurationControlHeight)
     }
 
-    private func resolutionButton(for option: NotationResolutionOption) -> some View {
-        let isSelected = HarmonyInputResolution.normalizedDenominator(denominator) == option.denominator
-        let helpText = "Set \(ControlHelpText.harmonyInputResolution.lowercased()) to \(option.resolutionName)"
+    private func durationButton(for option: NotationDurationOption) -> some View {
+        let isSelected = NotationDuration.normalizedDenominator(denominator) == option.denominator
+        let helpText = "Set \(ControlHelpText.notationDuration.lowercased()) to \(option.durationName)"
 
         return Button {
             denominator = option.denominator
         } label: {
-            NotationResolutionIcon(
+            NotationDurationIcon(
                 kind: option.iconKind,
                 color: iconColor(isSelected: isSelected)
             )
                 .frame(
-                    width: AppTheme.ControlSize.notationResolutionButtonWidth,
-                    height: AppTheme.ControlSize.notationResolutionControlHeight
+                    width: AppTheme.ControlSize.notationDurationButtonWidth,
+                    height: AppTheme.ControlSize.notationDurationControlHeight
                 )
                 .background(backgroundColor(isSelected: isSelected))
                 .clipShape(RoundedRectangle(cornerRadius: AppTheme.Radius.small, style: .continuous))
@@ -333,7 +331,7 @@ private struct NotationResolutionControl: View {
         .buttonStyle(.plain)
         .disabled(!isEnabled)
         .help(helpText)
-        .accessibilityLabel("Harmony input resolution: \(option.resolutionName)")
+        .accessibilityLabel("Notation duration: \(option.durationName)")
         .accessibilityValue(isSelected ? "Selected" : "Not selected")
         .accessibilityAddTraits(isSelected ? [.isSelected] : [])
     }
@@ -352,10 +350,10 @@ private struct NotationResolutionControl: View {
     }
 }
 
-private struct NotationResolutionOption: Identifiable {
+private struct NotationDurationOption: Identifiable {
     let denominator: Int
-    let iconKind: NotationResolutionIcon.Kind
-    let resolutionName: String
+    let iconKind: NotationDurationIcon.Kind
+    let durationName: String
 
     var id: Int { denominator }
 
@@ -365,23 +363,23 @@ private struct NotationResolutionOption: Identifiable {
         switch denominator {
         case 8:
             iconKind = .eighth
-            resolutionName = "eighth notes"
+            durationName = "eighth notes"
         case 4:
             iconKind = .quarter
-            resolutionName = "quarter notes"
+            durationName = "quarter notes"
         case 2:
             iconKind = .half
-            resolutionName = "half notes"
+            durationName = "half notes"
         case 1:
             iconKind = .whole
-            resolutionName = "whole notes"
+            durationName = "whole notes"
         default:
             return nil
         }
     }
 }
 
-private struct NotationResolutionIcon: View {
+private struct NotationDurationIcon: View {
     enum Kind {
         case eighth
         case quarter

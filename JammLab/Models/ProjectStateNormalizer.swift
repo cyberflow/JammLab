@@ -118,6 +118,50 @@ struct ProjectStateNormalizer {
             }
     }
 
+    static func normalizedNotationItems(
+        _ items: [NotationMeasureItem],
+        duration: TimeInterval
+    ) -> [NotationMeasureItem] {
+        let duration = normalizedDuration(duration)
+        return items
+            .filter { item in
+                !item.isSynthesized
+                    && item.measureStartTime.isFinite
+                    && item.measureStartTime >= 0
+                    && item.measureStartTime <= duration
+                    && item.offsetInQuarterNotes.isFinite
+                    && item.durationInQuarterNotes.isFinite
+                    && item.durationInQuarterNotes > 0
+            }
+            .map { item in
+                NotationMeasureItem(
+                    id: item.id,
+                    kind: item.kind,
+                    measureNumber: max(1, item.measureNumber),
+                    measureStartTime: min(max(0, finiteTime(item.measureStartTime)), duration),
+                    offsetInQuarterNotes: max(0, finiteTime(item.offsetInQuarterNotes)),
+                    durationInQuarterNotes: max(0, finiteTime(item.durationInQuarterNotes)),
+                    displayDuration: item.displayDuration,
+                    isSynthesized: false
+                )
+            }
+            .sorted {
+                if $0.measureNumber != $1.measureNumber {
+                    return $0.measureNumber < $1.measureNumber
+                }
+
+                if abs($0.measureStartTime - $1.measureStartTime) > 0.000_001 {
+                    return $0.measureStartTime < $1.measureStartTime
+                }
+
+                if abs($0.offsetInQuarterNotes - $1.offsetInQuarterNotes) > 0.000_001 {
+                    return $0.offsetInQuarterNotes < $1.offsetInQuarterNotes
+                }
+
+                return $0.id < $1.id
+            }
+    }
+
     static func normalizedNote(_ note: TimecodedNote, duration: TimeInterval) -> TimecodedNote {
         let title = normalizedTitle(note.title, fallback: note.isRegion ? "Region" : "Marker")
 

@@ -182,6 +182,13 @@ struct NotationMeasureLayout {
         max(AppTheme.Spacing.xs, staffTop - max(0, elementHeight) - max(0, gap))
     }
 
+    static func wholeRestVisualCenterY(
+        staffTop: CGFloat,
+        lineSpacing: CGFloat = AppTheme.Timeline.notationStaffLineSpacing
+    ) -> CGFloat {
+        staffTop + lineSpacing * 1.5
+    }
+
     static func regionLabelY(
         staffTop: CGFloat,
         labelHeight: CGFloat = AppTheme.Timeline.notationRegionLabelHeight,
@@ -473,7 +480,7 @@ struct NotationMeasureLayout {
         geometry: NotationMeasureCanvasGeometry,
         offsetInQuarterNotes: Double,
         timeSignature: TimeSignature,
-        anchorInset: CGFloat = AppTheme.Timeline.notationBeatAnchorInset
+        anchorInset: CGFloat = AppTheme.Timeline.notationItemAnchorInset
     ) -> CGFloat {
         let quarterLength = quarterLength(for: timeSignature)
         guard quarterLength > 0 else { return geometry.contentStartX }
@@ -488,7 +495,7 @@ struct NotationMeasureLayout {
     static func notationAnchorProgress(
         atX x: CGFloat,
         geometry: NotationMeasureCanvasGeometry,
-        anchorInset: CGFloat = AppTheme.Timeline.notationBeatAnchorInset
+        anchorInset: CGFloat = AppTheme.Timeline.notationItemAnchorInset
     ) -> Double {
         let contentWidth = max(0, geometry.contentEndX - geometry.contentStartX)
         guard contentWidth > 0 else { return 0 }
@@ -510,6 +517,37 @@ struct NotationMeasureLayout {
         )
     }
 
+    static func notationItemX(
+        geometry: NotationMeasureCanvasGeometry,
+        measure: ScoreMeasure,
+        item: NotationMeasureItem
+    ) -> CGFloat {
+        guard centersSingleFullMeasureWholeRest(measure: measure, item: item) else {
+            return harmonyX(
+                geometry: geometry,
+                offsetInQuarterNotes: item.offsetInQuarterNotes,
+                timeSignature: measure.attributes.timeSignature
+            )
+        }
+
+        return (geometry.contentStartX + geometry.contentEndX) / 2
+    }
+
+    private static func centersSingleFullMeasureWholeRest(
+        measure: ScoreMeasure,
+        item: NotationMeasureItem,
+        tolerance: Double = 0.0001
+    ) -> Bool {
+        guard measure.notationItems.count == 1 else { return false }
+        guard measure.notationItems.first?.id == item.id else { return false }
+        guard item.kind == .rest else { return false }
+        guard item.displayDuration.denominator == 1 else { return false }
+        guard abs(item.offsetInQuarterNotes) <= tolerance else { return false }
+
+        let measureQuarterLength = quarterLength(for: measure.attributes.timeSignature)
+        return abs(item.durationInQuarterNotes - measureQuarterLength) <= tolerance
+    }
+
     static func harmonyLabelX(
         geometry: NotationMeasureCanvasGeometry,
         offsetInQuarterNotes: Double,
@@ -525,18 +563,6 @@ struct NotationMeasureLayout {
         let upperBound = max(lowerBound, geometry.contentEndX)
         let rawX = anchorX - max(0, leadingOffset)
         return min(max(rawX, lowerBound), upperBound)
-    }
-
-    static func snappedHarmonyOffset(
-        _ offset: Double,
-        timeSignature: TimeSignature,
-        resolution: HarmonyInputResolution
-    ) -> Double {
-        let step = resolution.stepInQuarterNotes
-        guard step > 0 else { return 0 }
-        let maximumOffset = maximumHarmonyOffset(timeSignature: timeSignature, resolution: resolution)
-        let snapped = (offset / step).rounded() * step
-        return max(0, min(snapped, maximumOffset))
     }
 
     static func time(forHarmonyOffset offset: Double, in measure: ScoreMeasure) -> TimeInterval {
@@ -687,14 +713,4 @@ struct NotationMeasureLayout {
         return widths
     }
 
-    private static func maximumHarmonyOffset(
-        timeSignature: TimeSignature,
-        resolution: HarmonyInputResolution
-    ) -> Double {
-        let length = quarterLength(for: timeSignature)
-        let step = resolution.stepInQuarterNotes
-        guard length > 0, step > 0 else { return 0 }
-        let slots = max(0, Int(floor((length - 0.000_001) / step)))
-        return Double(slots) * step
-    }
 }

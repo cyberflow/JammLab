@@ -610,13 +610,13 @@ final class TimelineProjectLogicTests: XCTestCase {
         )
     }
 
-    func testAppHotkeyExposesSelectedBeatHarmonyShortcutMetadata() {
-        XCTAssertTrue(AppHotkey.allCases.contains(.editHarmonyAtSelectedBeat))
-        XCTAssertEqual(AppHotkey.editHarmonyAtSelectedBeat.key, "Cmd+K")
-        XCTAssertEqual(AppHotkey.editHarmonyAtSelectedBeat.title, "Edit Harmony")
+    func testAppHotkeyExposesSelectedNotationItemHarmonyShortcutMetadata() {
+        XCTAssertTrue(AppHotkey.allCases.contains(.editHarmonyAtSelectedNotationItem))
+        XCTAssertEqual(AppHotkey.editHarmonyAtSelectedNotationItem.key, "Cmd+K")
+        XCTAssertEqual(AppHotkey.editHarmonyAtSelectedNotationItem.title, "Edit Harmony")
         XCTAssertEqual(
-            AppHotkey.editHarmonyAtSelectedBeat.detail,
-            "Open harmony entry for the selected notation beat."
+            AppHotkey.editHarmonyAtSelectedNotationItem.detail,
+            "Open harmony entry for the selected notation item."
         )
     }
 
@@ -685,7 +685,7 @@ final class TimelineProjectLogicTests: XCTestCase {
         XCTAssertNil(AppHotkey(event: aEvent))
         XCTAssertNil(AppHotkey(event: hEvent))
         XCTAssertNil(AppHotkey(event: commandAEvent))
-        XCTAssertEqual(AppHotkey(event: commandKEvent), .editHarmonyAtSelectedBeat)
+        XCTAssertEqual(AppHotkey(event: commandKEvent), .editHarmonyAtSelectedNotationItem)
         XCTAssertNil(AppHotkey(event: shiftAEvent))
     }
 
@@ -913,9 +913,9 @@ final class TimelineProjectLogicTests: XCTestCase {
                 for: editHarmonyEvent,
                 attachedWindowNumber: 42,
                 firstResponder: nil,
-                allowedHotkeys: [.editHarmonyAtSelectedBeat]
+                allowedHotkeys: [.editHarmonyAtSelectedNotationItem]
             ),
-            .editHarmonyAtSelectedBeat
+            .editHarmonyAtSelectedNotationItem
         )
         XCTAssertNil(
             AppHotkeyEventFilter.hotkey(
@@ -930,7 +930,7 @@ final class TimelineProjectLogicTests: XCTestCase {
                 for: editHarmonyEvent,
                 attachedWindowNumber: 42,
                 firstResponder: NSTextView(),
-                allowedHotkeys: [.editHarmonyAtSelectedBeat]
+                allowedHotkeys: [.editHarmonyAtSelectedNotationItem]
             )
         )
         XCTAssertNil(
@@ -938,7 +938,7 @@ final class TimelineProjectLogicTests: XCTestCase {
                 for: editHarmonyEvent,
                 attachedWindowNumber: 42,
                 firstResponder: AbletonNumberFieldNSView(),
-                allowedHotkeys: [.editHarmonyAtSelectedBeat]
+                allowedHotkeys: [.editHarmonyAtSelectedNotationItem]
             )
         )
         XCTAssertNil(
@@ -946,7 +946,7 @@ final class TimelineProjectLogicTests: XCTestCase {
                 for: repeatEditHarmonyEvent,
                 attachedWindowNumber: 42,
                 firstResponder: nil,
-                allowedHotkeys: [.editHarmonyAtSelectedBeat]
+                allowedHotkeys: [.editHarmonyAtSelectedNotationItem]
             )
         )
     }

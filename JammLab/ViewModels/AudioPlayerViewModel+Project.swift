@@ -112,13 +112,14 @@ extension AudioPlayerViewModel {
         shouldAcceptAnalyzedTempo = true
         notes = []
         harmonySymbols = []
+        notationItems = []
         projectKeySelection = nil
         selectedRegionID = nil
         selectedHarmonySymbolID = nil
         clearNotationMeasureSelectionAndClipboard()
         pendingHarmonyEditorRequest = nil
         activeLoopRegionID = nil
-        harmonyInputResolutionDenominator = HarmonyInputResolution.defaultDenominator
+        notationDurationDenominator = NotationDuration.defaultDenominator
         loopRegion = .empty
         timelineVisibleRange = 0...0
         userTimelineVisibleRange = 0...0
@@ -174,12 +175,13 @@ extension AudioPlayerViewModel {
         shouldAcceptAnalyzedTempo = true
         notes = []
         harmonySymbols = []
+        notationItems = []
         projectKeySelection = nil
         selectedRegionID = nil
         selectedHarmonySymbolID = nil
         clearNotationMeasureSelectionAndClipboard()
         pendingHarmonyEditorRequest = nil
-        harmonyInputResolutionDenominator = HarmonyInputResolution.defaultDenominator
+        notationDurationDenominator = NotationDuration.defaultDenominator
         activeLoopRegionID = nil
         loopRegion = LoopRegion(start: 0, end: file.duration).clamped(to: file.duration)
         timelineVisibleRange = 0...file.duration
@@ -251,12 +253,16 @@ extension AudioPlayerViewModel {
                 project.harmonySymbols,
                 duration: resolvedProjectDuration
             )
+            notationItems = ProjectStateNormalizer.normalizedNotationItems(
+                project.notationItems,
+                duration: resolvedProjectDuration
+            )
             projectKeySelection = project.projectKeySelection
             selectedRegionID = nil
             selectedHarmonySymbolID = nil
             clearNotationMeasureSelectionAndClipboard()
             pendingHarmonyEditorRequest = nil
-            harmonyInputResolutionDenominator = HarmonyInputResolution.defaultDenominator
+            notationDurationDenominator = NotationDuration.defaultDenominator
             activeLoopRegionID = nil
             loopRegion = ProjectStateNormalizer.normalizedLoopRegion(
                 start: project.loopStart,
@@ -380,6 +386,7 @@ extension AudioPlayerViewModel {
             duration: duration,
             notes: notes,
             harmonySymbols: harmonySymbols,
+            notationItems: notationItems,
             projectKeySelection: projectKeySelection,
             loopRegion: loopRegion,
             loopMinimumLength: activeRangeMinimumLength,

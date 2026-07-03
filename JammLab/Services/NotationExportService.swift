@@ -163,12 +163,41 @@ final class MusicXMLNotationExportRenderer: NotationExportRenderer {
                 measureElement.addChild(direction(for: regionLabel))
             }
 
-            for harmony in measure.harmonies {
-                let chord = try MusicXMLChordParser.parse(harmony.rawText, measureNumber: measure.number)
-                measureElement.addChild(harmonyElement(for: chord, offsetInQuarterNotes: harmony.offsetInQuarterNotes))
+            let sortedHarmonies = measure.harmonies.sorted {
+                if abs($0.offsetInQuarterNotes - $1.offsetInQuarterNotes) > NotationMeasureTiming.timelineTolerance {
+                    return $0.offsetInQuarterNotes < $1.offsetInQuarterNotes
+                }
+
+                return $0.id.uuidString < $1.id.uuidString
+            }
+            var harmonyIndex = sortedHarmonies.startIndex
+            let sortedItems = measure.notationItems.sorted {
+                if abs($0.offsetInQuarterNotes - $1.offsetInQuarterNotes) > NotationMeasureTiming.timelineTolerance {
+                    return $0.offsetInQuarterNotes < $1.offsetInQuarterNotes
+                }
+
+                return $0.id < $1.id
             }
 
-            measureElement.addChild(measureRest(for: measure.attributes.timeSignature))
+            for item in sortedItems {
+                while harmonyIndex < sortedHarmonies.endIndex,
+                      sortedHarmonies[harmonyIndex].offsetInQuarterNotes <= item.offsetInQuarterNotes + NotationMeasureTiming.timelineTolerance {
+                    let harmony = sortedHarmonies[harmonyIndex]
+                    let chord = try MusicXMLChordParser.parse(harmony.rawText, measureNumber: measure.number)
+                    measureElement.addChild(harmonyElement(for: chord, offsetInQuarterNotes: harmony.offsetInQuarterNotes))
+                    harmonyIndex = sortedHarmonies.index(after: harmonyIndex)
+                }
+
+                measureElement.addChild(restNote(for: item, isOnlyItem: sortedItems.count == 1))
+            }
+
+            while harmonyIndex < sortedHarmonies.endIndex {
+                let harmony = sortedHarmonies[harmonyIndex]
+                let chord = try MusicXMLChordParser.parse(harmony.rawText, measureNumber: measure.number)
+                measureElement.addChild(harmonyElement(for: chord, offsetInQuarterNotes: harmony.offsetInQuarterNotes))
+                harmonyIndex = sortedHarmonies.index(after: harmonyIndex)
+            }
+
             part.addChild(measureElement)
             previousAttributes = measure.attributes
         }
@@ -256,16 +285,13 @@ final class MusicXMLNotationExportRenderer: NotationExportRenderer {
         return pitchElement
     }
 
-    private func measureRest(for timeSignature: TimeSignature) -> XMLElement {
+    private func restNote(for item: NotationMeasureItem, isOnlyItem: Bool) -> XMLElement {
         let note = element("note")
-        note.addChild(element("rest", attributes: ["measure": "yes"]))
-        note.addChild(element("duration", stringValue: "\(measureDurationValue(for: timeSignature))"))
+        let isMeasureRest = isOnlyItem && item.isSynthesized && item.offsetInQuarterNotes == 0
+        note.addChild(element("rest", attributes: isMeasureRest ? ["measure": "yes"] : [:]))
+        note.addChild(element("duration", stringValue: "\(durationValue(forQuarterOffset: item.durationInQuarterNotes))"))
         note.addChild(element("voice", stringValue: "1"))
         return note
-    }
-
-    private func measureDurationValue(for timeSignature: TimeSignature) -> Int {
-        durationValue(forQuarterOffset: NotationMeasureTiming.quarterLength(for: timeSignature))
     }
 
     private func durationValue(forQuarterOffset offset: Double) -> Int {

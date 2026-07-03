@@ -23,6 +23,7 @@ struct JammLabProject: Codable {
     var mediaKind: ImportedMediaKind?
     var notes: [TimecodedNote]
     var harmonySymbols: [HarmonySymbol]
+    var notationItems: [NotationMeasureItem]
     var projectKeySelection: ProjectKeySelection?
     var loopStart: TimeInterval
     var loopEnd: TimeInterval
@@ -51,6 +52,7 @@ struct JammLabProject: Codable {
         mediaKind: ImportedMediaKind? = nil,
         notes: [TimecodedNote],
         harmonySymbols: [HarmonySymbol] = [],
+        notationItems: [NotationMeasureItem] = [],
         projectKeySelection: ProjectKeySelection? = nil,
         loopStart: TimeInterval,
         loopEnd: TimeInterval,
@@ -78,6 +80,7 @@ struct JammLabProject: Codable {
         self.mediaKind = mediaKind
         self.notes = notes
         self.harmonySymbols = harmonySymbols
+        self.notationItems = notationItems
         self.projectKeySelection = projectKeySelection
         self.loopStart = loopStart
         self.loopEnd = loopEnd
@@ -107,6 +110,7 @@ struct JammLabProject: Codable {
         case mediaKind
         case notes
         case harmonySymbols
+        case notationItems
         case projectKeySelection
         case loopStart
         case loopEnd
@@ -137,6 +141,7 @@ struct JammLabProject: Codable {
         mediaKind = try container.decodeIfPresent(ImportedMediaKind.self, forKey: .mediaKind)
         notes = try container.decode([TimecodedNote].self, forKey: .notes)
         harmonySymbols = try container.decodeIfPresent([HarmonySymbol].self, forKey: .harmonySymbols) ?? []
+        notationItems = try container.decodeIfPresent([NotationMeasureItem].self, forKey: .notationItems) ?? []
         projectKeySelection = try container.decodeIfPresent(ProjectKeySelection.self, forKey: .projectKeySelection)
         loopStart = try container.decode(TimeInterval.self, forKey: .loopStart)
         loopEnd = try container.decode(TimeInterval.self, forKey: .loopEnd)
@@ -167,6 +172,7 @@ struct JammLabProject: Codable {
         try container.encodeIfPresent(mediaKind, forKey: .mediaKind)
         try container.encode(notes, forKey: .notes)
         try container.encode(harmonySymbols, forKey: .harmonySymbols)
+        try container.encode(notationItems, forKey: .notationItems)
         try container.encodeIfPresent(projectKeySelection, forKey: .projectKeySelection)
         try container.encode(loopStart, forKey: .loopStart)
         try container.encode(loopEnd, forKey: .loopEnd)

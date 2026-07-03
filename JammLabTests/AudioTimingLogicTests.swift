@@ -33,6 +33,123 @@ final class AudioTimingLogicTests: XCTestCase {
         XCTAssertEqual(BeatGridSettings(bpm: 120, timeSignature: TimeSignature(beatsPerBar: 9, beatUnit: 16)).clamped(to: 10).timeSignature.displayText, "7/4")
     }
 
+    func testNotationSMuFLRestSymbolsMapDurationsToCodepoints() throws {
+        let whole = try XCTUnwrap(NotationSMuFLSymbol(duration: NotationDuration(denominator: 1)))
+        let half = try XCTUnwrap(NotationSMuFLSymbol(duration: NotationDuration(denominator: 2)))
+        let quarter = try XCTUnwrap(NotationSMuFLSymbol(duration: NotationDuration(denominator: 4)))
+        let eighth = try XCTUnwrap(NotationSMuFLSymbol(duration: NotationDuration(denominator: 8)))
+
+        XCTAssertEqual(whole, .restWhole)
+        XCTAssertEqual(whole.codepoint, 0xE4E3)
+        XCTAssertEqual(half, .restHalf)
+        XCTAssertEqual(half.codepoint, 0xE4E4)
+        XCTAssertEqual(quarter, .restQuarter)
+        XCTAssertEqual(quarter.codepoint, 0xE4E5)
+        XCTAssertEqual(eighth, .rest8th)
+        XCTAssertEqual(eighth.codepoint, 0xE4E6)
+        XCTAssertEqual(quarter.glyph.unicodeScalars.first?.value, 0xE4E5)
+    }
+
+    func testNotationRestItemFactoryUsesGreedyAllowedDurationDecomposition() {
+        let segments = NotationRestItemFactory.greedySegments(startOffset: 0, remaining: 3.5)
+
+        XCTAssertEqual(segments.map(\.displayDuration.denominator), [2, 4, 8])
+        XCTAssertEqual(segments.map(\.offsetInQuarterNotes), [0, 2, 3])
+        XCTAssertEqual(segments.map(\.durationInQuarterNotes), [2, 1, 0.5])
+        XCTAssertEqual(segments.map(\.isTail), [false, false, false])
+    }
+
+    func testNotationRestItemFactoryUsesTimelineToleranceForMinimumDuration() {
+        let tolerance = NotationMeasureTiming.timelineTolerance
+
+        let withinTolerance = NotationRestItemFactory.greedySegments(
+            startOffset: 1,
+            remaining: 0.5 - tolerance / 2
+        )
+        let outsideTolerance = NotationRestItemFactory.greedySegments(
+            startOffset: 1,
+            remaining: 0.5 - tolerance * 2
+        )
+
+        XCTAssertEqual(withinTolerance.map(\.displayDuration.denominator), [8])
+        XCTAssertEqual(withinTolerance.map(\.offsetInQuarterNotes), [1])
+        XCTAssertTrue(outsideTolerance.isEmpty)
+    }
+
+    func testNotationRestItemFactoryLetsCallerControlIDsAndSynthesizedState() throws {
+        let synthesized = NotationRestItemFactory.restItems(
+            measureNumber: 2,
+            measureStartTime: 4,
+            startOffset: 1,
+            remaining: 1,
+            isSynthesized: true
+        ) { segment in
+            "rest-\(segment.offsetInQuarterNotes)-\(segment.displayDuration.denominator)"
+        }
+        let persisted = NotationRestItemFactory.restItems(
+            measureNumber: 2,
+            measureStartTime: 4,
+            startOffset: 1,
+            remaining: 1
+        )
+
+        XCTAssertEqual(synthesized.map(\.id), ["rest-1.0-4"])
+        XCTAssertEqual(synthesized.map(\.isSynthesized), [true])
+        XCTAssertEqual(persisted.map(\.isSynthesized), [false])
+        XCTAssertNotNil(UUID(uuidString: try XCTUnwrap(persisted.first?.id)))
+    }
+
+    func testNotationViewportFactoryDefaultWholeRestKeepsSynthesizedFieldsAndID() throws {
+        let measure = ScoreMeasure(
+            number: 1,
+            startTime: 0,
+            endTime: 1.5,
+            attributes: MeasureAttributes(
+                keySignature: .cMajor,
+                timeSignature: TimeSignature(beatsPerBar: 3, beatUnit: 4),
+                clef: .treble
+            )
+        )
+
+        let item = try XCTUnwrap(NotationViewportFactory.notationItems(for: measure, from: []).first)
+
+        XCTAssertEqual(item.id, "default-rest-1-0.0-1.5")
+        XCTAssertEqual(item.kind, .rest)
+        XCTAssertEqual(item.measureNumber, 1)
+        XCTAssertEqual(item.measureStartTime, 0)
+        XCTAssertEqual(item.offsetInQuarterNotes, 0)
+        XCTAssertEqual(item.durationInQuarterNotes, 3)
+        XCTAssertEqual(item.displayDuration.denominator, 1)
+        XCTAssertTrue(item.isSynthesized)
+    }
+
+    func testLelandFontResourceIsBundledAndRegistered() throws {
+        let url = try XCTUnwrap(Bundle.main.url(forResource: "Leland", withExtension: "otf"))
+
+        XCTAssertTrue(FileManager.default.fileExists(atPath: url.path))
+        XCTAssertEqual(NotationMusicFontRegistry.fontName, "Leland")
+    }
+
+    func testLelandWholeRestGlyphPathHasBounds() throws {
+        let glyphPath = try XCTUnwrap(NotationMusicFontRegistry.glyphPath(
+            for: .restWhole,
+            fontSize: 32.5
+        ))
+
+        XCTAssertFalse(glyphPath.path.isEmpty)
+        XCTAssertGreaterThan(glyphPath.bounds.width, 0)
+        XCTAssertGreaterThan(glyphPath.bounds.height, 0)
+    }
+
+    func testWholeRestVisualCenterUsesStandardStaffPosition() {
+        let y = NotationMeasureLayout.wholeRestVisualCenterY(
+            staffTop: 10,
+            lineSpacing: 8
+        )
+
+        XCTAssertEqual(y, 22, accuracy: 0.0001)
+    }
+
     func testBeatGridUsesEditableBeatsPerBarForBarStarts() {
         let settings = BeatGridSettings(bpm: 120, timeSignature: TimeSignature(beatsPerBar: 3, beatUnit: 4))
         let markers = BeatGridCalculator().markers(settings: settings, visibleStartTime: 0, visibleEndTime: 4.5)
@@ -830,6 +947,55 @@ final class AudioTimingLogicTests: XCTestCase {
         }
     }
 
+    func testMusicXMLExportIncludesSplitNotationRests() throws {
+        let state = NotationViewportFactory().scoreState(
+            tempoMap: fourFourTempoMap(duration: 4),
+            duration: 4,
+            currentTime: 0,
+            playbackMarkerTime: 0,
+            isPlaying: false,
+            keyName: "C major",
+            notationItems: [
+                NotationMeasureItem(
+                    measureNumber: 1,
+                    measureStartTime: 0,
+                    offsetInQuarterNotes: 0,
+                    durationInQuarterNotes: 1,
+                    displayDuration: NotationDuration(denominator: 4)
+                ),
+                NotationMeasureItem(
+                    measureNumber: 1,
+                    measureStartTime: 0,
+                    offsetInQuarterNotes: 1,
+                    durationInQuarterNotes: 1,
+                    displayDuration: NotationDuration(denominator: 4)
+                ),
+                NotationMeasureItem(
+                    measureNumber: 1,
+                    measureStartTime: 0,
+                    offsetInQuarterNotes: 2,
+                    durationInQuarterNotes: 2,
+                    displayDuration: NotationDuration(denominator: 2)
+                )
+            ]
+        )
+
+        let data = try NotationExportService().export(
+            NotationExportRequest(displayName: "Song", score: state),
+            format: .musicXML
+        )
+        let document = try XMLDocument(data: data)
+        let part = try XCTUnwrap(document.rootElement()?.elements(forName: "part").first)
+        let firstMeasure = try XCTUnwrap(part.elements(forName: "measure").first)
+        let notes = firstMeasure.elements(forName: "note")
+
+        XCTAssertEqual(notes.count, 3)
+        XCTAssertEqual(notes.map { $0.elements(forName: "duration").first?.stringValue }, ["480", "480", "960"])
+        XCTAssertTrue(notes.allSatisfy { note in
+            note.elements(forName: "rest").first?.attribute(forName: "measure") == nil
+        })
+    }
+
     private func firstXMLChild(
         named name: String,
         in element: XMLElement,
@@ -918,41 +1084,62 @@ final class AudioTimingLogicTests: XCTestCase {
         XCTAssertEqual(state.keySignature.fifths, 2)
     }
 
-    func testHarmonyPlacementSnapsToResolutionAndNavigatesAcrossMeasures() throws {
+    func testHarmonyPlacementUsesExactTimeAndNavigatesAcrossNotationItems() throws {
         let factory = NotationViewportFactory()
         let tempoMap = fourFourTempoMap(duration: 8)
-        let resolution = HarmonyInputResolution(denominator: 4)
+        let notationItems = [
+            NotationMeasureItem(
+                measureNumber: 1,
+                measureStartTime: 0,
+                offsetInQuarterNotes: 0,
+                durationInQuarterNotes: 1,
+                displayDuration: NotationDuration(denominator: 4)
+            ),
+            NotationMeasureItem(
+                measureNumber: 1,
+                measureStartTime: 0,
+                offsetInQuarterNotes: 1,
+                durationInQuarterNotes: 1,
+                displayDuration: NotationDuration(denominator: 4)
+            ),
+            NotationMeasureItem(
+                measureNumber: 2,
+                measureStartTime: 2,
+                offsetInQuarterNotes: 0,
+                durationInQuarterNotes: 4,
+                displayDuration: NotationDuration(denominator: 1)
+            )
+        ]
 
         let placement = try XCTUnwrap(factory.harmonyPlacement(
             for: 0.87,
             tempoMap: tempoMap,
-            duration: 8,
-            resolution: resolution
+            duration: 8
         ))
         let nextMeasure = try XCTUnwrap(factory.adjacentHarmonyPlacement(
-            from: 1.5,
+            from: 0,
             direction: .next,
             tempoMap: tempoMap,
             duration: 8,
-            resolution: resolution
+            notationItems: notationItems
         ))
         let previousMeasure = try XCTUnwrap(factory.adjacentHarmonyPlacement(
             from: 2,
             direction: .previous,
             tempoMap: tempoMap,
             duration: 8,
-            resolution: resolution
+            notationItems: notationItems
         ))
 
         XCTAssertEqual(placement.measureNumber, 1)
-        XCTAssertEqual(placement.offsetInQuarterNotes, 2, accuracy: 0.0001)
-        XCTAssertEqual(placement.time, 1, accuracy: 0.0001)
-        XCTAssertEqual(nextMeasure.measureNumber, 2)
-        XCTAssertEqual(nextMeasure.offsetInQuarterNotes, 0, accuracy: 0.0001)
-        XCTAssertEqual(nextMeasure.time, 2, accuracy: 0.0001)
+        XCTAssertEqual(placement.offsetInQuarterNotes, 1.74, accuracy: 0.0001)
+        XCTAssertEqual(placement.time, 0.87, accuracy: 0.0001)
+        XCTAssertEqual(nextMeasure.measureNumber, 1)
+        XCTAssertEqual(nextMeasure.offsetInQuarterNotes, 1, accuracy: 0.0001)
+        XCTAssertEqual(nextMeasure.time, 0.5, accuracy: 0.0001)
         XCTAssertEqual(previousMeasure.measureNumber, 1)
-        XCTAssertEqual(previousMeasure.offsetInQuarterNotes, 3, accuracy: 0.0001)
-        XCTAssertEqual(previousMeasure.time, 1.5, accuracy: 0.0001)
+        XCTAssertEqual(previousMeasure.offsetInQuarterNotes, 2, accuracy: 0.0001)
+        XCTAssertEqual(previousMeasure.time, 1, accuracy: 0.0001)
     }
 
     func testNotationKeySignatureParsingSupportsCommonDetectedKeysAndFallback() {
@@ -1620,17 +1807,17 @@ final class AudioTimingLogicTests: XCTestCase {
         XCTAssertEqual(centers.count, 3)
         XCTAssertEqual(
             centers[0],
-            geometry.contentStartX + AppTheme.Timeline.notationBeatAnchorInset,
+            geometry.contentStartX + AppTheme.Timeline.notationItemAnchorInset,
             accuracy: 0.0001
         )
         XCTAssertEqual(
             centers[1],
-            geometry.contentStartX + AppTheme.Timeline.notationBeatAnchorInset + beatSpacing,
+            geometry.contentStartX + AppTheme.Timeline.notationItemAnchorInset + beatSpacing,
             accuracy: 0.0001
         )
         XCTAssertEqual(
             centers[2],
-            geometry.contentStartX + AppTheme.Timeline.notationBeatAnchorInset + beatSpacing * 2,
+            geometry.contentStartX + AppTheme.Timeline.notationItemAnchorInset + beatSpacing * 2,
             accuracy: 0.0001
         )
     }
@@ -1778,6 +1965,144 @@ final class AudioTimingLogicTests: XCTestCase {
 
         XCTAssertEqual(endX, geometry.contentEndX, accuracy: 0.0001)
         XCTAssertEqual(outOfRangeX, geometry.contentEndX, accuracy: 0.0001)
+    }
+
+    func testNotationMeasureLayoutCentersSingleFullMeasureWholeRest() {
+        let geometry = NotationMeasureCanvasGeometry(
+            measureIndex: 0,
+            cellStartX: 0,
+            cellEndX: 200,
+            contentStartX: 20,
+            contentEndX: 180,
+            staffStartX: 0,
+            staffEndX: 200
+        )
+        let item = NotationMeasureItem(
+            id: "whole-rest",
+            measureNumber: 1,
+            measureStartTime: 0,
+            offsetInQuarterNotes: 0,
+            durationInQuarterNotes: 3,
+            displayDuration: NotationDuration(denominator: 1)
+        )
+        let measure = ScoreMeasure(
+            number: 1,
+            startTime: 0,
+            endTime: 1.5,
+            attributes: MeasureAttributes(
+                keySignature: .cMajor,
+                timeSignature: TimeSignature(beatsPerBar: 3, beatUnit: 4),
+                clef: .treble
+            ),
+            notationItems: [item]
+        )
+
+        let x = NotationMeasureLayout.notationItemX(
+            geometry: geometry,
+            measure: measure,
+            item: item
+        )
+
+        XCTAssertEqual(x, 100, accuracy: 0.0001)
+    }
+
+    func testNotationMeasureLayoutDoesNotCenterNonFullMeasureWholeRestCases() {
+        let geometry = NotationMeasureCanvasGeometry(
+            measureIndex: 0,
+            cellStartX: 0,
+            cellEndX: 200,
+            contentStartX: 20,
+            contentEndX: 180,
+            staffStartX: 0,
+            staffEndX: 200
+        )
+        let partialItem = NotationMeasureItem(
+            id: "partial",
+            measureNumber: 1,
+            measureStartTime: 0,
+            offsetInQuarterNotes: 0,
+            durationInQuarterNotes: 2,
+            displayDuration: NotationDuration(denominator: 1)
+        )
+        let offsetItem = NotationMeasureItem(
+            id: "offset",
+            measureNumber: 1,
+            measureStartTime: 0,
+            offsetInQuarterNotes: 1,
+            durationInQuarterNotes: 4,
+            displayDuration: NotationDuration(denominator: 1)
+        )
+        let quarterItem = NotationMeasureItem(
+            id: "quarter",
+            measureNumber: 1,
+            measureStartTime: 0,
+            offsetInQuarterNotes: 0,
+            durationInQuarterNotes: 1,
+            displayDuration: NotationDuration(denominator: 4)
+        )
+
+        for item in [partialItem, offsetItem, quarterItem] {
+            let measure = ScoreMeasure(
+                number: 1,
+                startTime: 0,
+                endTime: 2,
+                attributes: .defaultTreble,
+                notationItems: [item]
+            )
+            let expectedX = NotationMeasureLayout.harmonyX(
+                geometry: geometry,
+                offsetInQuarterNotes: item.offsetInQuarterNotes,
+                timeSignature: measure.attributes.timeSignature
+            )
+
+            XCTAssertEqual(
+                NotationMeasureLayout.notationItemX(
+                    geometry: geometry,
+                    measure: measure,
+                    item: item
+                ),
+                expectedX,
+                accuracy: 0.0001
+            )
+        }
+
+        let firstSplitItem = NotationMeasureItem(
+            id: "split-a",
+            measureNumber: 1,
+            measureStartTime: 0,
+            offsetInQuarterNotes: 0,
+            durationInQuarterNotes: 2,
+            displayDuration: NotationDuration(denominator: 1)
+        )
+        let secondSplitItem = NotationMeasureItem(
+            id: "split-b",
+            measureNumber: 1,
+            measureStartTime: 0,
+            offsetInQuarterNotes: 2,
+            durationInQuarterNotes: 2,
+            displayDuration: NotationDuration(denominator: 2)
+        )
+        let splitMeasure = ScoreMeasure(
+            number: 1,
+            startTime: 0,
+            endTime: 2,
+            attributes: .defaultTreble,
+            notationItems: [firstSplitItem, secondSplitItem]
+        )
+
+        XCTAssertEqual(
+            NotationMeasureLayout.notationItemX(
+                geometry: geometry,
+                measure: splitMeasure,
+                item: firstSplitItem
+            ),
+            NotationMeasureLayout.harmonyX(
+                geometry: geometry,
+                offsetInQuarterNotes: firstSplitItem.offsetInQuarterNotes,
+                timeSignature: splitMeasure.attributes.timeSignature
+            ),
+            accuracy: 0.0001
+        )
     }
 
     func testNotationMeasureTimingUsesHalfOpenMeasureBoundaries() {
@@ -2129,19 +2454,13 @@ final class AudioTimingLogicTests: XCTestCase {
             offsetInQuarterNotes: 0,
             timeSignature: attributes.timeSignature
         )
-        let snappedEndOffset = NotationMeasureLayout.snappedHarmonyOffset(
-            7,
-            timeSignature: attributes.timeSignature,
-            resolution: HarmonyInputResolution(denominator: 4)
-        )
 
         XCTAssertEqual(
             harmonyStartX,
-            geometry.contentStartX + AppTheme.Timeline.notationBeatAnchorInset,
+            geometry.contentStartX + AppTheme.Timeline.notationItemAnchorInset,
             accuracy: 0.0001
         )
         XCTAssertGreaterThan(harmonyStartX, geometry.cellStartX)
-        XCTAssertEqual(snappedEndOffset, 6, accuracy: 0.0001)
     }
 
     func testBeatGridCalculatorUsesTempoMapSegmentsWithoutBoundaryDuplicates() throws {
