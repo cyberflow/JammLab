@@ -54,6 +54,7 @@
 		9FEA01062D70000100112233 /* ProjectKeySelection.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9FEA00062D70000100112233 /* ProjectKeySelection.swift */; };
 		9FEE01012D90000100112233 /* NotationExportService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9FEE00012D90000100112233 /* NotationExportService.swift */; };
 		9FEE01022D90000100112233 /* AudioPlayerViewModel+NotationExport.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9FEE00022D90000100112233 /* AudioPlayerViewModel+NotationExport.swift */; };
+		9FD100012E00000100112233 /* NotationTrackLayoutItems.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9FD100002E00000100112233 /* NotationTrackLayoutItems.swift */; };
 		9FCB01072D80000100112233 /* NotationHarmonyInlineTextField.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9FCB00072D80000100112233 /* NotationHarmonyInlineTextField.swift */; };
 		9FEC01012D71000100112233 /* NotationWindowView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9FEC00012D71000100112233 /* NotationWindowView.swift */; };
 		9F8B01062C10000100112233 /* TestSupport.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9F8B00072C10000100112233 /* TestSupport.swift */; };
@@ -121,9 +122,11 @@
 		9FB200022D30000100112233 /* AudioPlayerViewModel+Playback.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9FB201022D30000100112233 /* AudioPlayerViewModel+Playback.swift */; };
 		9FB200032D30000100112233 /* AudioPlayerViewModel+Stems.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9FB201032D30000100112233 /* AudioPlayerViewModel+Stems.swift */; };
 		9FB200042D30000100112233 /* AudioPlayerViewModel+Timeline.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9FB201042D30000100112233 /* AudioPlayerViewModel+Timeline.swift */; };
-		9FB200052D30000100112233 /* AudioPlayerViewModel+Notes.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9FB201052D30000100112233 /* AudioPlayerViewModel+Notes.swift */; };
+		9FB200052D30000100112233 /* AudioPlayerViewModel+Notation.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9FB201052D30000100112233 /* AudioPlayerViewModel+Notation.swift */; };
 		9FB200062D30000100112233 /* AudioPlayerViewModel+Video.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9FB201062D30000100112233 /* AudioPlayerViewModel+Video.swift */; };
 		9FB200072D30000100112233 /* AudioPlayerViewModel+UndoDirty.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9FB201072D30000100112233 /* AudioPlayerViewModel+UndoDirty.swift */; };
+		9FB200082D30000100112233 /* AudioPlayerViewModel+Markers.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9FB201082D30000100112233 /* AudioPlayerViewModel+Markers.swift */; };
+		9FB200092D30000100112233 /* AudioPlayerViewModel+LoopEditing.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9FB201092D30000100112233 /* AudioPlayerViewModel+LoopEditing.swift */; };
 		9FB202012D31000100112233 /* ProjectPersistenceCoordinator.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9FB202002D31000100112233 /* ProjectPersistenceCoordinator.swift */; };
 		9FB204012D32000100112233 /* CachedPeakformProvider.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9FB204002D32000100112233 /* CachedPeakformProvider.swift */; };
 		9FB204032D32000100112233 /* PeakformGenerator.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9FB204022D32000100112233 /* PeakformGenerator.swift */; };
@@ -226,6 +229,7 @@
 		9FEA00062D70000100112233 /* ProjectKeySelection.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProjectKeySelection.swift; sourceTree = "<group>"; };
 		9FEE00012D90000100112233 /* NotationExportService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotationExportService.swift; sourceTree = "<group>"; };
 		9FEE00022D90000100112233 /* AudioPlayerViewModel+NotationExport.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "AudioPlayerViewModel+NotationExport.swift"; sourceTree = "<group>"; };
+		9FD100002E00000100112233 /* NotationTrackLayoutItems.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotationTrackLayoutItems.swift; sourceTree = "<group>"; };
 		9FCB00072D80000100112233 /* NotationHarmonyInlineTextField.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotationHarmonyInlineTextField.swift; sourceTree = "<group>"; };
 		9FEC00012D71000100112233 /* NotationWindowView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotationWindowView.swift; sourceTree = "<group>"; };
 		9F8B00062C10000100112233 /* JammLabTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = JammLabTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -288,9 +292,11 @@
 		9FB201022D30000100112233 /* AudioPlayerViewModel+Playback.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "AudioPlayerViewModel+Playback.swift"; sourceTree = "<group>"; };
 		9FB201032D30000100112233 /* AudioPlayerViewModel+Stems.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "AudioPlayerViewModel+Stems.swift"; sourceTree = "<group>"; };
 		9FB201042D30000100112233 /* AudioPlayerViewModel+Timeline.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "AudioPlayerViewModel+Timeline.swift"; sourceTree = "<group>"; };
-		9FB201052D30000100112233 /* AudioPlayerViewModel+Notes.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "AudioPlayerViewModel+Notes.swift"; sourceTree = "<group>"; };
+		9FB201052D30000100112233 /* AudioPlayerViewModel+Notation.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "AudioPlayerViewModel+Notation.swift"; sourceTree = "<group>"; };
 		9FB201062D30000100112233 /* AudioPlayerViewModel+Video.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "AudioPlayerViewModel+Video.swift"; sourceTree = "<group>"; };
 		9FB201072D30000100112233 /* AudioPlayerViewModel+UndoDirty.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "AudioPlayerViewModel+UndoDirty.swift"; sourceTree = "<group>"; };
+		9FB201082D30000100112233 /* AudioPlayerViewModel+Markers.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "AudioPlayerViewModel+Markers.swift"; sourceTree = "<group>"; };
+		9FB201092D30000100112233 /* AudioPlayerViewModel+LoopEditing.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "AudioPlayerViewModel+LoopEditing.swift"; sourceTree = "<group>"; };
 		9FB202002D31000100112233 /* ProjectPersistenceCoordinator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProjectPersistenceCoordinator.swift; sourceTree = "<group>"; };
 		9FB204002D32000100112233 /* CachedPeakformProvider.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CachedPeakformProvider.swift; sourceTree = "<group>"; };
 		9FB204022D32000100112233 /* PeakformGenerator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PeakformGenerator.swift; sourceTree = "<group>"; };
@@ -462,7 +468,9 @@
 				9FB201022D30000100112233 /* AudioPlayerViewModel+Playback.swift */,
 				9FB201032D30000100112233 /* AudioPlayerViewModel+Stems.swift */,
 				9FB201042D30000100112233 /* AudioPlayerViewModel+Timeline.swift */,
-				9FB201052D30000100112233 /* AudioPlayerViewModel+Notes.swift */,
+				9FB201082D30000100112233 /* AudioPlayerViewModel+Markers.swift */,
+				9FB201092D30000100112233 /* AudioPlayerViewModel+LoopEditing.swift */,
+				9FB201052D30000100112233 /* AudioPlayerViewModel+Notation.swift */,
 				9FEE00022D90000100112233 /* AudioPlayerViewModel+NotationExport.swift */,
 				9FB201062D30000100112233 /* AudioPlayerViewModel+Video.swift */,
 				9FB201072D30000100112233 /* AudioPlayerViewModel+UndoDirty.swift */,
@@ -478,6 +486,7 @@
 				9F8C00062C20000100112233 /* MainWorkspacePanels.swift */,
 				9FDD00042D60000100112233 /* NoteColorPresentation.swift */,
 				9FCB00072D80000100112233 /* NotationHarmonyInlineTextField.swift */,
+				9FD100002E00000100112233 /* NotationTrackLayoutItems.swift */,
 				9FEA00042D70000100112233 /* NotationTrackView.swift */,
 				9FEC00012D71000100112233 /* NotationWindowView.swift */,
 				9F8B00032C10000100112233 /* PeakformTimelineView.swift */,
@@ -793,7 +802,9 @@
 				9FB200022D30000100112233 /* AudioPlayerViewModel+Playback.swift in Sources */,
 				9FB200032D30000100112233 /* AudioPlayerViewModel+Stems.swift in Sources */,
 				9FB200042D30000100112233 /* AudioPlayerViewModel+Timeline.swift in Sources */,
-				9FB200052D30000100112233 /* AudioPlayerViewModel+Notes.swift in Sources */,
+				9FB200082D30000100112233 /* AudioPlayerViewModel+Markers.swift in Sources */,
+				9FB200092D30000100112233 /* AudioPlayerViewModel+LoopEditing.swift in Sources */,
+				9FB200052D30000100112233 /* AudioPlayerViewModel+Notation.swift in Sources */,
 				9FEE01022D90000100112233 /* AudioPlayerViewModel+NotationExport.swift in Sources */,
 				9FB200062D30000100112233 /* AudioPlayerViewModel+Video.swift in Sources */,
 				9FB200072D30000100112233 /* AudioPlayerViewModel+UndoDirty.swift in Sources */,
@@ -826,6 +837,7 @@
 				9F8C01052C20000100112233 /* NoteRowView.swift in Sources */,
 				9FEA01042D70000100112233 /* NotationTrackView.swift in Sources */,
 				9FCB01072D80000100112233 /* NotationHarmonyInlineTextField.swift in Sources */,
+				9FD100012E00000100112233 /* NotationTrackLayoutItems.swift in Sources */,
 				9FEC01012D71000100112233 /* NotationWindowView.swift in Sources */,
 				9F8A010D2C00000100112233 /* AppHotkey.swift in Sources */,
 				9FCB01062D80000100112233 /* NotationMeasureLayout.swift in Sources */,

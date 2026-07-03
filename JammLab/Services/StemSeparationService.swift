@@ -221,7 +221,11 @@ final class StemSeparationService {
             method: method
         )
 
-        defer { activeJobDirectory = nil }
+        defer {
+            if activeJobDirectory == jobDirectory {
+                activeJobDirectory = nil
+            }
+        }
         let result = try await waitForJob(
             jobDirectory: jobDirectory,
             originalDuration: originalDuration,

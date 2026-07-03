@@ -88,10 +88,6 @@ final class RecentProjectsStore: ObservableObject {
         save()
     }
 
-    func reload() {
-        load()
-    }
-
     func pruneInvalidEntries() {
         let prunedEntries = storedEntries.filter { isValidProjectEntry($0) }
         guard prunedEntries != storedEntries else { return }

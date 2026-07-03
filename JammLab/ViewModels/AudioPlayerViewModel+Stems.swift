@@ -17,6 +17,8 @@ extension AudioPlayerViewModel {
 
         guard stemSeparationTask == nil else { return }
 
+        let runID = UUID()
+        stemSeparationRunID = runID
         clearStemPeakforms()
 
         stemSeparationTask = Task { [weak self] in
@@ -29,6 +31,7 @@ extension AudioPlayerViewModel {
                     method: method
                 ) { [weak self] progress in
                     Task { @MainActor in
+                        guard self?.stemSeparationRunID == runID else { return }
                         self?.stemSeparationState = StemSeparationViewState(
                             phase: progress.phase,
                             progress: progress.progress,
@@ -38,37 +41,59 @@ extension AudioPlayerViewModel {
                 }
 
                 guard !Task.isCancelled else { throw StemSeparationError.cancelled }
+                guard stemSeparationRunID == runID else { return }
                 let persistedMetadata = try persistStemArtifactsIfNeeded(metadata)
+                guard stemSeparationRunID == runID else { return }
                 registerStemMetadata(persistedMetadata, activatePlayback: true)
                 refreshProjectModifiedState()
-                stemSeparationTask = nil
+                finishStemSeparationRun(runID)
             } catch {
+                guard stemSeparationRunID == runID else { return }
                 let message = error.localizedDescription
                 let diagnostics = (error as? StemSeparationError)?.diagnostics
+                let isCancellation = isStemSeparationCancellation(error)
                 stemSeparationState = StemSeparationViewState(
-                    phase: error is CancellationError ? .cancelled : .failed(message),
+                    phase: isCancellation ? .cancelled : .failed(message),
                     progress: nil,
-                    status: message,
+                    status: isCancellation ? "Stem separation cancelled" : message,
                     diagnostics: diagnostics
                 )
-                if !(error is CancellationError) {
+                if !isCancellation {
                     errorMessage = message
                 }
-                stemSeparationTask = nil
+                finishStemSeparationRun(runID)
             }
         }
     }
 
     func cancelStemSeparation() {
         stemSeparationTask?.cancel()
-        stemSeparationTask = nil
         clearStemPeakforms()
         stemSeparationService.cancel()
         stemSeparationState = StemSeparationViewState(
-            phase: .cancelled,
+            phase: .processing,
             progress: nil,
-            status: "Stem separation cancelled"
+            status: "Cancelling stem separation"
         )
+    }
+
+    private func finishStemSeparationRun(_ runID: UUID) {
+        guard stemSeparationRunID == runID else { return }
+        stemSeparationRunID = nil
+        stemSeparationTask = nil
+    }
+
+    private func isStemSeparationCancellation(_ error: Error) -> Bool {
+        if error is CancellationError {
+            return true
+        }
+
+        if let stemError = error as? StemSeparationError,
+           case .cancelled = stemError {
+            return true
+        }
+
+        return false
     }
 
     func retryStemSeparation() {
