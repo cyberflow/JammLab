@@ -316,6 +316,7 @@ extension AudioPlayerViewModel {
         waveformTask = nil
         stemSeparationTask?.cancel()
         stemSeparationTask = nil
+        stemSeparationRunID = nil
         stemPeakformTask?.cancel()
         stemPeakformTask = nil
         stemSeparationService.cancel()

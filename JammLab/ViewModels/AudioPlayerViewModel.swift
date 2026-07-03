@@ -95,6 +95,7 @@ final class AudioPlayerViewModel: ObservableObject {
     var waveformTask: Task<Void, Never>?
     var notationMeasureSelectionAnchor: NotationMeasureSelection?
     var stemSeparationTask: Task<Void, Never>?
+    var stemSeparationRunID: UUID?
     var stemPeakformTask: Task<Void, Never>?
     var stemCacheMetadata: StemCacheMetadata?
     var shouldAcceptAnalyzedTempo = true

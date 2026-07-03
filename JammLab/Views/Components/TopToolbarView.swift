@@ -243,16 +243,4 @@ struct TopToolbarView: View {
         Divider()
             .frame(height: AppTheme.ControlSize.dividerHeight)
     }
-
-    private func readOnlyField(_ value: String, width: CGFloat) -> some View {
-        Text(value)
-            .font(AppTheme.Typography.bodyMonospaced)
-            .foregroundStyle(appColors.secondaryText)
-            .lineLimit(1)
-            .frame(width: width, alignment: .leading)
-            .padding(.horizontal, AppTheme.Spacing.md)
-            .padding(.vertical, AppTheme.Spacing.xs)
-            .background(appColors.controlBackground)
-            .clipShape(RoundedRectangle(cornerRadius: AppTheme.Radius.small))
-    }
 }
