@@ -54,9 +54,13 @@ struct NotationWindowView: View {
 
     private var header: some View {
         HStack(spacing: AppTheme.Spacing.md) {
-            Text("Notation")
-                .font(AppTheme.Typography.sectionTitle)
-                .foregroundStyle(appColors.primaryText)
+            NotationResolutionControl(
+                denominator: Binding(
+                    get: { viewModel.harmonyInputResolutionDenominator },
+                    set: { viewModel.setHarmonyInputResolutionDenominator($0) }
+                ),
+                isEnabled: viewModel.canShowNotationWindow
+            )
 
             Spacer(minLength: AppTheme.Spacing.md)
 
@@ -71,31 +75,6 @@ struct NotationWindowView: View {
             .disabled(!viewModel.canExportNotation)
             .help(ControlHelpText.exportNotationMusicXML)
             .accessibilityLabel(ControlHelpText.exportNotationMusicXML)
-
-            HStack(spacing: AppTheme.Spacing.xxs) {
-                Text("1/")
-                    .font(AppTheme.Typography.captionMonospaced)
-                    .foregroundStyle(appColors.secondaryText)
-
-                AbletonNumberField(
-                    value: Binding(
-                        get: { Double(viewModel.harmonyInputResolutionDenominator) },
-                        set: { viewModel.setHarmonyInputResolutionDenominator(Int($0.rounded())) }
-                    ),
-                    minValue: 1,
-                    maxValue: 8,
-                    defaultValue: Double(HarmonyInputResolution.defaultDenominator),
-                    step: 1,
-                    precision: 0,
-                    accessibilityLabel: "Harmony Input Resolution"
-                )
-                .frame(
-                    width: AppTheme.ControlSize.toolbarTimeSignatureNumberFieldWidth,
-                    height: AppTheme.ControlSize.abletonNumberFieldHeight
-                )
-                .disabled(!viewModel.canShowNotationWindow)
-                .help(ControlHelpText.harmonyInputResolution)
-            }
         }
         .padding(.horizontal, AppTheme.Spacing.panelPadding)
         .padding(.vertical, AppTheme.Spacing.md)
@@ -305,6 +284,210 @@ struct NotationWindowView: View {
                 isUserNavigating = false
             }
         }
+    }
+}
+
+private struct NotationResolutionControl: View {
+    @Binding var denominator: Int
+    let isEnabled: Bool
+    @Environment(\.appColors) private var appColors
+
+    private var options: [NotationResolutionOption] {
+        HarmonyInputResolution.allowedDenominators
+            .reversed()
+            .compactMap(NotationResolutionOption.init)
+    }
+
+    var body: some View {
+        HStack(spacing: AppTheme.Spacing.xs) {
+            ForEach(options) { option in
+                resolutionButton(for: option)
+            }
+        }
+        .frame(height: AppTheme.ControlSize.notationResolutionControlHeight)
+    }
+
+    private func resolutionButton(for option: NotationResolutionOption) -> some View {
+        let isSelected = HarmonyInputResolution.normalizedDenominator(denominator) == option.denominator
+        let helpText = "Set \(ControlHelpText.harmonyInputResolution.lowercased()) to \(option.resolutionName)"
+
+        return Button {
+            denominator = option.denominator
+        } label: {
+            NotationResolutionIcon(
+                kind: option.iconKind,
+                color: iconColor(isSelected: isSelected)
+            )
+                .frame(
+                    width: AppTheme.ControlSize.notationResolutionButtonWidth,
+                    height: AppTheme.ControlSize.notationResolutionControlHeight
+                )
+                .background(backgroundColor(isSelected: isSelected))
+                .clipShape(RoundedRectangle(cornerRadius: AppTheme.Radius.small, style: .continuous))
+                .overlay {
+                    RoundedRectangle(cornerRadius: AppTheme.Radius.small, style: .continuous)
+                        .stroke(borderColor(isSelected: isSelected), lineWidth: AppTheme.Stroke.thin)
+                }
+                .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .disabled(!isEnabled)
+        .help(helpText)
+        .accessibilityLabel("Harmony input resolution: \(option.resolutionName)")
+        .accessibilityValue(isSelected ? "Selected" : "Not selected")
+        .accessibilityAddTraits(isSelected ? [.isSelected] : [])
+    }
+
+    private func iconColor(isSelected: Bool) -> Color {
+        guard isEnabled else { return appColors.disabledText }
+        return isSelected ? appColors.accent : appColors.secondaryText
+    }
+
+    private func backgroundColor(isSelected: Bool) -> Color {
+        isEnabled && isSelected ? appColors.controlActive : Color.clear
+    }
+
+    private func borderColor(isSelected: Bool) -> Color {
+        isEnabled && isSelected ? appColors.accent : Color.clear
+    }
+}
+
+private struct NotationResolutionOption: Identifiable {
+    let denominator: Int
+    let iconKind: NotationResolutionIcon.Kind
+    let resolutionName: String
+
+    var id: Int { denominator }
+
+    init?(denominator: Int) {
+        self.denominator = denominator
+
+        switch denominator {
+        case 8:
+            iconKind = .eighth
+            resolutionName = "eighth notes"
+        case 4:
+            iconKind = .quarter
+            resolutionName = "quarter notes"
+        case 2:
+            iconKind = .half
+            resolutionName = "half notes"
+        case 1:
+            iconKind = .whole
+            resolutionName = "whole notes"
+        default:
+            return nil
+        }
+    }
+}
+
+private struct NotationResolutionIcon: View {
+    enum Kind {
+        case eighth
+        case quarter
+        case half
+        case whole
+    }
+
+    let kind: Kind
+    let color: Color
+
+    var body: some View {
+        Canvas { context, size in
+            let strokeStyle = StrokeStyle(lineWidth: 1.6, lineCap: .round, lineJoin: .round)
+
+            switch kind {
+            case .eighth:
+                drawNote(
+                    in: &context,
+                    size: size,
+                    color: color,
+                    filledHead: true,
+                    hasStem: true,
+                    hasFlag: true,
+                    strokeStyle: strokeStyle
+                )
+            case .quarter:
+                drawNote(
+                    in: &context,
+                    size: size,
+                    color: color,
+                    filledHead: true,
+                    hasStem: true,
+                    hasFlag: false,
+                    strokeStyle: strokeStyle
+                )
+            case .half:
+                drawNote(
+                    in: &context,
+                    size: size,
+                    color: color,
+                    filledHead: false,
+                    hasStem: true,
+                    hasFlag: false,
+                    strokeStyle: strokeStyle
+                )
+            case .whole:
+                drawWholeNote(in: &context, size: size, color: color, strokeStyle: strokeStyle)
+            }
+        }
+        .accessibilityHidden(true)
+    }
+
+    private func drawNote(
+        in context: inout GraphicsContext,
+        size: CGSize,
+        color: Color,
+        filledHead: Bool,
+        hasStem: Bool,
+        hasFlag: Bool,
+        strokeStyle: StrokeStyle
+    ) {
+        let headRect = CGRect(
+            x: size.width * 0.24,
+            y: size.height * 0.56,
+            width: size.width * 0.27,
+            height: size.height * 0.22
+        )
+        let head = Path(ellipseIn: headRect)
+        if filledHead {
+            context.fill(head, with: .color(color))
+        } else {
+            context.stroke(head, with: .color(color), style: strokeStyle)
+        }
+
+        guard hasStem else { return }
+
+        var stem = Path()
+        stem.move(to: CGPoint(x: headRect.maxX, y: headRect.midY))
+        stem.addLine(to: CGPoint(x: headRect.maxX, y: size.height * 0.18))
+        context.stroke(stem, with: .color(color), style: strokeStyle)
+
+        guard hasFlag else { return }
+
+        var flag = Path()
+        flag.move(to: CGPoint(x: headRect.maxX, y: size.height * 0.18))
+        flag.addCurve(
+            to: CGPoint(x: size.width * 0.66, y: size.height * 0.42),
+            control1: CGPoint(x: size.width * 0.64, y: size.height * 0.23),
+            control2: CGPoint(x: size.width * 0.71, y: size.height * 0.34)
+        )
+        context.stroke(flag, with: .color(color), style: strokeStyle)
+    }
+
+    private func drawWholeNote(
+        in context: inout GraphicsContext,
+        size: CGSize,
+        color: Color,
+        strokeStyle: StrokeStyle
+    ) {
+        let headRect = CGRect(
+            x: size.width * 0.35,
+            y: size.height * 0.58,
+            width: size.width * 0.28,
+            height: size.height * 0.17
+        )
+        context.stroke(Path(ellipseIn: headRect), with: .color(color), style: strokeStyle)
     }
 }
 
