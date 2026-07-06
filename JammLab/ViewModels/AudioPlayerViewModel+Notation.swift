@@ -10,17 +10,6 @@ extension AudioPlayerViewModel {
         changeSelectedNotationItemDuration(to: NotationDuration(denominator: notationDurationDenominator))
     }
 
-    func requestAddHarmony(at time: TimeInterval) {
-        guard duration > 0,
-              let placement = harmonyPlacement(for: time)
-        else {
-            return
-        }
-
-        selectedHarmonySymbolID = harmonySymbolID(at: placement.time)
-        pendingHarmonyEditorRequest = HarmonyEditorRequest(time: placement.time)
-    }
-
     @discardableResult
     func requestEditSelectedNotationItem() -> Bool {
         guard duration > 0,
