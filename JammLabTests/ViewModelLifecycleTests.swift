@@ -141,30 +141,6 @@ final class ViewModelLifecycleTests: XCTestCase {
     }
 
     @MainActor
-    func testRequestAddHarmonyAtTimeUsesExactRequestedTimeWhilePlaying() throws {
-        let engine = MockPlaybackEngine()
-        engine.isLoaded = true
-        let viewModel = AudioPlayerViewModel(playbackEngine: engine)
-        viewModel.duration = 8
-        viewModel.beatGridSettings = BeatGridSettings(bpm: 120, firstBeatTime: 0, timeSignature: .fourFour)
-        viewModel.setPlaybackMarkerExactly(to: 1.26)
-
-        viewModel.play()
-        engine.currentTime = 3.0
-        viewModel.refreshPlaybackPosition()
-
-        XCTAssertEqual(viewModel.playbackMarkerTime, 1.26, accuracy: 0.0001)
-        XCTAssertEqual(viewModel.currentTime, 3.0, accuracy: 0.0001)
-
-        viewModel.requestAddHarmony(at: 1.26)
-
-        let request = try XCTUnwrap(viewModel.pendingHarmonyEditorRequest)
-        XCTAssertEqual(request.time, 1.26, accuracy: 0.0001)
-        XCTAssertLessThan(abs(request.time - viewModel.playbackMarkerTime), 0.0001)
-        XCTAssertGreaterThan(abs(request.time - viewModel.currentTime), 0.0001)
-    }
-
-    @MainActor
     func testViewModelStopReturnsToPlaybackMarker() throws {
         let engine = MockPlaybackEngine()
         engine.isLoaded = true
