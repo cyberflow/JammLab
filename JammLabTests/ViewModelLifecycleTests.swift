@@ -2030,6 +2030,8 @@ final class ViewModelLifecycleTests: XCTestCase {
         let viewModel = try loadedNotationViewModel(duration: 8)
         let undoManager = UndoManager()
         viewModel.undoManager = undoManager
+        viewModel.tempoBPM = 132.5
+        viewModel.beatGridSettings.bpm = 132.5
         viewModel.harmonySymbols = [
             HarmonySymbol(time: 0, measureNumber: 1, offsetInQuarterNotes: 0, rawText: "Cmaj7")
         ]
@@ -2050,6 +2052,7 @@ final class ViewModelLifecycleTests: XCTestCase {
         let xml = try String(contentsOf: outputURL, encoding: .utf8)
         XCTAssertTrue(xml.contains("<score-partwise version=\"4.0\">"))
         XCTAssertTrue(xml.contains("<kind text=\"Cmaj7\">major-seventh</kind>"))
+        XCTAssertTrue(xml.contains("<per-minute>132.5</per-minute>"))
 
         viewModel.setLooping(true)
         XCTAssertTrue(viewModel.isProjectModified)

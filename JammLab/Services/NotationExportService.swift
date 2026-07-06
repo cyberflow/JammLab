@@ -23,6 +23,7 @@ enum NotationExportFormat {
 struct NotationExportRequest {
     var displayName: String
     var score: NotationScoreState
+    var tempoBPM: Double? = nil
 }
 
 protocol NotationExportRenderer {
@@ -98,6 +99,11 @@ final class MusicXMLNotationExportRenderer: NotationExportRenderer {
 
     private let divisions = 480
     private let partID = "P1"
+    private let appVersionProvider: () -> String?
+
+    init(appVersionProvider: @escaping () -> String? = MusicXMLNotationExportRenderer.bundledAppVersion) {
+        self.appVersionProvider = appVersionProvider
+    }
 
     func render(_ request: NotationExportRequest) throws -> Data {
         guard request.score.isReady, !request.score.measures.isEmpty else {
@@ -105,9 +111,10 @@ final class MusicXMLNotationExportRenderer: NotationExportRenderer {
         }
 
         let root = element("score-partwise", attributes: ["version": "4.0"])
+        root.addChild(identification())
         root.addChild(titleCredit(title: request.displayName))
         root.addChild(partList(title: request.displayName))
-        root.addChild(try part(measures: request.score.measures))
+        root.addChild(try part(measures: request.score.measures, tempoBPM: request.tempoBPM))
 
         let document = XMLDocument(rootElement: root)
         document.version = "1.0"
@@ -122,6 +129,29 @@ final class MusicXMLNotationExportRenderer: NotationExportRenderer {
             throw NotationExportError.invalidXML
         }
         return data
+    }
+
+    private static func bundledAppVersion() -> String? {
+        guard let version = Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String else {
+            return nil
+        }
+
+        return normalizedAppVersion(version)
+    }
+
+    private func identification() -> XMLElement {
+        let identification = element("identification")
+        let encoding = element("encoding")
+        let softwareName = Self.normalizedAppVersion(appVersionProvider()).map { "JammLab \($0)" } ?? "JammLab"
+        encoding.addChild(element("software", stringValue: softwareName))
+        identification.addChild(encoding)
+        return identification
+    }
+
+    private static func normalizedAppVersion(_ version: String?) -> String? {
+        guard let version else { return nil }
+        let trimmedVersion = version.trimmingCharacters(in: .whitespacesAndNewlines)
+        return trimmedVersion.isEmpty ? nil : trimmedVersion
     }
 
     private func partList(title: String) -> XMLElement {
@@ -149,18 +179,22 @@ final class MusicXMLNotationExportRenderer: NotationExportRenderer {
         return credit
     }
 
-    private func part(measures: [ScoreMeasure]) throws -> XMLElement {
+    private func part(measures: [ScoreMeasure], tempoBPM: Double?) throws -> XMLElement {
         let part = element("part", attributes: ["id": partID])
         var previousAttributes: MeasureAttributes?
 
-        for measure in measures {
+        for (measureIndex, measure) in measures.enumerated() {
             let measureElement = element("measure", attributes: ["number": "\(measure.number)"])
             if previousAttributes == nil || previousAttributes != measure.attributes {
                 measureElement.addChild(attributes(for: measure.attributes, includeDivisions: previousAttributes == nil))
             }
 
+            if measureIndex == 0, let metronomeDirection = metronomeDirection(forBPM: tempoBPM) {
+                measureElement.addChild(metronomeDirection)
+            }
+
             for regionLabel in measure.regionLabels {
-                measureElement.addChild(direction(for: regionLabel))
+                measureElement.addChild(regionDirection(for: regionLabel))
             }
 
             let sortedHarmonies = measure.harmonies.sorted(by: isHarmonyOrderedByNotationPosition)
@@ -268,12 +302,37 @@ final class MusicXMLNotationExportRenderer: NotationExportRenderer {
         return attributes
     }
 
-    private func direction(for label: NotationRegionLabel) -> XMLElement {
+    private func metronomeDirection(forBPM bpm: Double?) -> XMLElement? {
+        guard let bpm, bpm.isFinite, bpm > 0 else { return nil }
+
+        let metronome = element("metronome")
+        metronome.addChild(element("beat-unit", stringValue: "quarter"))
+        metronome.addChild(element("per-minute", stringValue: TempoTimeSignatureMarkerPayload.formatBPM(bpm)))
+        return direction(typeChild: metronome)
+    }
+
+    private func regionDirection(for label: NotationRegionLabel) -> XMLElement {
+        direction(
+            typeChild: element(
+                "words",
+                stringValue: label.title,
+                attributes: [
+                    "enclosure": "rectangle",
+                    "font-weight": "bold"
+                ]
+            ),
+            offsetInQuarterNotes: label.offsetInQuarterNotes
+        )
+    }
+
+    private func direction(typeChild: XMLElement, offsetInQuarterNotes: Double? = nil) -> XMLElement {
         let direction = element("direction", attributes: ["placement": "above"])
         let directionType = element("direction-type")
-        directionType.addChild(element("words", stringValue: label.title))
+        directionType.addChild(typeChild)
         direction.addChild(directionType)
-        direction.addChild(element("offset", stringValue: "\(durationValue(forQuarterOffset: label.offsetInQuarterNotes))"))
+        if let offsetInQuarterNotes {
+            direction.addChild(element("offset", stringValue: "\(durationValue(forQuarterOffset: offsetInQuarterNotes))"))
+        }
         return direction
     }
 

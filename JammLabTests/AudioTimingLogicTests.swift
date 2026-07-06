@@ -826,8 +826,10 @@ final class AudioTimingLogicTests: XCTestCase {
                 TimecodedNote(id: regionID, kind: .region, time: 2, duration: 2, title: "Verse")
             ]
         )
-        let data = try NotationExportService().export(
-            NotationExportRequest(displayName: "Song", score: state),
+        let data = try NotationExportService(renderers: [
+            MusicXMLNotationExportRenderer(appVersionProvider: { "9.8.7" })
+        ]).export(
+            NotationExportRequest(displayName: "Song", score: state, tempoBPM: 120),
             format: .musicXML
         )
         let xml = try XCTUnwrap(String(data: data, encoding: .utf8))
@@ -835,8 +837,11 @@ final class AudioTimingLogicTests: XCTestCase {
         let root = try XCTUnwrap(document.rootElement())
         let rootElements = childElements(in: root)
         let childNames = rootElements.compactMap(\.name)
+        let identification = try XCTUnwrap(rootElements.first { $0.name == "identification" })
         let credit = try XCTUnwrap(rootElements.first { $0.name == "credit" })
         let partList = try XCTUnwrap(rootElements.first { $0.name == "part-list" })
+        let encoding = try firstXMLChild(named: "encoding", in: identification)
+        let software = try firstXMLChild(named: "software", in: encoding)
         let scorePart = try firstXMLChild(named: "score-part", in: partList)
         let partName = try firstXMLChild(named: "part-name", in: scorePart)
         let creditWords = try firstXMLChild(named: "credit-words", in: credit)
@@ -870,6 +875,12 @@ final class AudioTimingLogicTests: XCTestCase {
                 }
                 return directionType.elements(forName: "words").first?.stringValue == "Verse"
             })
+        let metronomeDirection = try XCTUnwrap(firstMeasure.elements(forName: "direction").first { direction in
+            guard let directionType = direction.elements(forName: "direction-type").first else {
+                return false
+            }
+            return !directionType.elements(forName: "metronome").isEmpty
+        })
         let firstMeasureRest = try XCTUnwrap(firstMeasure.elements(forName: "note").first { note in
             note.elements(forName: "rest").first?.attribute(forName: "measure")?.stringValue == "yes"
         })
@@ -877,9 +888,15 @@ final class AudioTimingLogicTests: XCTestCase {
         XCTAssertTrue(xml.contains("<!DOCTYPE score-partwise PUBLIC \"-//Recordare//DTD MusicXML 4.0 Partwise//EN\" \"http://www.musicxml.org/dtds/partwise.dtd\">"))
         XCTAssertEqual(root.name, "score-partwise")
         XCTAssertEqual(root.attribute(forName: "version")?.stringValue, "4.0")
+        XCTAssertEqual(software.stringValue, "JammLab 9.8.7")
+        try assertXMLChild(identification, precedes: credit, in: root)
         XCTAssertLessThan(
             try XCTUnwrap(childNames.firstIndex(of: "credit")),
             try XCTUnwrap(childNames.firstIndex(of: "part-list"))
+        )
+        XCTAssertLessThan(
+            try XCTUnwrap(childNames.firstIndex(of: "part-list")),
+            try XCTUnwrap(childNames.firstIndex(of: "part"))
         )
         XCTAssertEqual(credit.attribute(forName: "page")?.stringValue, "1")
         XCTAssertEqual(credit.elements(forName: "credit-type").first?.stringValue, "title")
@@ -894,8 +911,13 @@ final class AudioTimingLogicTests: XCTestCase {
         XCTAssertEqual(firstMeasure.attribute(forName: "number")?.stringValue, "1")
 
         let firstMeasureAttributes = try firstXMLChild(named: "attributes", in: firstMeasure)
+        let metronomeDirectionType = try firstXMLChild(named: "direction-type", in: metronomeDirection)
+        let metronome = try firstXMLChild(named: "metronome", in: metronomeDirectionType)
         let firstMeasureKey = try firstXMLChild(named: "key", in: firstMeasureAttributes)
         XCTAssertEqual(try firstXMLChild(named: "fifths", in: firstMeasureKey).stringValue, "1")
+        XCTAssertEqual(try firstXMLChild(named: "beat-unit", in: metronome).stringValue, "quarter")
+        XCTAssertEqual(try firstXMLChild(named: "per-minute", in: metronome).stringValue, "120")
+        try assertXMLChild(firstMeasureAttributes, precedes: metronomeDirection, in: firstMeasure)
 
         let changedTimeSignatureAttributes = try firstXMLChild(named: "attributes", in: changedTimeSignatureMeasure)
         let changedTimeSignature = try firstXMLChild(named: "time", in: changedTimeSignatureAttributes)
@@ -921,7 +943,10 @@ final class AudioTimingLogicTests: XCTestCase {
         try assertXMLChild(alteredHarmony, precedes: firstMeasureRest, in: firstMeasure)
 
         let regionDirectionType = try firstXMLChild(named: "direction-type", in: regionDirection)
-        XCTAssertEqual(try firstXMLChild(named: "words", in: regionDirectionType).stringValue, "Verse")
+        let regionWords = try firstXMLChild(named: "words", in: regionDirectionType)
+        XCTAssertEqual(regionWords.stringValue, "Verse")
+        XCTAssertEqual(regionWords.attribute(forName: "enclosure")?.stringValue, "rectangle")
+        XCTAssertEqual(regionWords.attribute(forName: "font-weight")?.stringValue, "bold")
         let rest = try firstXMLChild(named: "rest", in: firstMeasureRest)
         XCTAssertEqual(rest.attribute(forName: "measure")?.stringValue, "yes")
         XCTAssertEqual(try firstXMLChild(named: "type", in: firstMeasureRest).stringValue, "whole")
