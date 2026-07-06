@@ -9,6 +9,7 @@ development artifact builds use `vMAJOR.MINOR.PATCH-dev.N`.
 ## Unreleased
 
 - Added selectable Notation rest durations with persisted measure layouts and split-rest MusicXML export.
+- Added MusicXML export metadata, project tempo marking, and boxed bold Region labels.
 - Fixed MusicXML export so harmony offsets are relative to the current notation position and exported notes include type values.
 - Added MusicXML export for Notation from the File menu and Notation window.
 - Added a collapsible Notation track in the main timeline, collapsed by default and saved per project.

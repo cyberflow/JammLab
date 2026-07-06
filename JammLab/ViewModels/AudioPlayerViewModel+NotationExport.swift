@@ -66,7 +66,8 @@ extension AudioPlayerViewModel {
 
         return NotationExportRequest(
             displayName: notationExportDisplayName,
-            score: score
+            score: score,
+            tempoBPM: beatGridSettings.bpm
         )
     }
 
