@@ -111,6 +111,8 @@
 		9FAB01062CE0000100112233 /* StemHelperProcessControllerTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9FAB00062CE0000100112233 /* StemHelperProcessControllerTests.swift */; };
 		9FAB01072CE0000100112233 /* SettingsAndControlLogicTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9FAB00072CE0000100112233 /* SettingsAndControlLogicTests.swift */; };
 		9FAB01082CE0000100112233 /* ClickRenderStateTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9FAB00082CE0000100112233 /* ClickRenderStateTests.swift */; };
+		9FAB01092CE0000100112233 /* MetronomeClickSchedulerTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9FAB00092CE0000100112233 /* MetronomeClickSchedulerTests.swift */; };
+		9FAB010A2CE0000100112233 /* TempoGridCalculatorTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9FAB000A2CE0000100112233 /* TempoGridCalculatorTests.swift */; };
 		9FAC01012CF0000100112233 /* ProjectEditableState.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9FAC00012CF0000100112233 /* ProjectEditableState.swift */; };
 		9FAE01012D01000100112233 /* VideoAudioExtractionService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9FAE00012D01000100112233 /* VideoAudioExtractionService.swift */; };
 		9FAE01022D01000100112233 /* VideoFollowerController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9FAE00022D01000100112233 /* VideoFollowerController.swift */; };
@@ -282,6 +284,8 @@
 		9FAB00062CE0000100112233 /* StemHelperProcessControllerTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StemHelperProcessControllerTests.swift; sourceTree = "<group>"; };
 		9FAB00072CE0000100112233 /* SettingsAndControlLogicTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsAndControlLogicTests.swift; sourceTree = "<group>"; };
 		9FAB00082CE0000100112233 /* ClickRenderStateTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ClickRenderStateTests.swift; sourceTree = "<group>"; };
+		9FAB00092CE0000100112233 /* MetronomeClickSchedulerTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MetronomeClickSchedulerTests.swift; sourceTree = "<group>"; };
+		9FAB000A2CE0000100112233 /* TempoGridCalculatorTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TempoGridCalculatorTests.swift; sourceTree = "<group>"; };
 		9FAC00012CF0000100112233 /* ProjectEditableState.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProjectEditableState.swift; sourceTree = "<group>"; };
 		9FAE00012D01000100112233 /* VideoAudioExtractionService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VideoAudioExtractionService.swift; sourceTree = "<group>"; };
 		9FAE00022D01000100112233 /* VideoFollowerController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VideoFollowerController.swift; sourceTree = "<group>"; };
@@ -538,6 +542,8 @@
 				9FAB00062CE0000100112233 /* StemHelperProcessControllerTests.swift */,
 				9FAB00072CE0000100112233 /* SettingsAndControlLogicTests.swift */,
 				9FAB00082CE0000100112233 /* ClickRenderStateTests.swift */,
+				9FAB00092CE0000100112233 /* MetronomeClickSchedulerTests.swift */,
+				9FAB000A2CE0000100112233 /* TempoGridCalculatorTests.swift */,
 				9F8B00072C10000100112233 /* TestSupport.swift */,
 			);
 			path = JammLabTests;
@@ -915,6 +921,8 @@
 				9FAB01062CE0000100112233 /* StemHelperProcessControllerTests.swift in Sources */,
 				9FAB01072CE0000100112233 /* SettingsAndControlLogicTests.swift in Sources */,
 				9FAB01082CE0000100112233 /* ClickRenderStateTests.swift in Sources */,
+				9FAB01092CE0000100112233 /* MetronomeClickSchedulerTests.swift in Sources */,
+				9FAB010A2CE0000100112233 /* TempoGridCalculatorTests.swift in Sources */,
 				9F8B01062C10000100112233 /* TestSupport.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
