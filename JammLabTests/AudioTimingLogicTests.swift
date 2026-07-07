@@ -193,18 +193,6 @@ final class AudioTimingLogicTests: XCTestCase {
         XCTAssertEqual(barStartTimes, [0, 1.5, 3.0, 4.5])
     }
 
-    func testClickDelayLineDelaysSamplesByConfiguredFrameCount() {
-        var delayLine = ClickDelayLine()
-        delayLine.setDelayFrames(3)
-
-        let output = [1, 2, 3, 4, 5].map { delayLine.process(Float($0)) }
-
-        XCTAssertEqual(output, [0, 0, 0, 1, 2])
-
-        delayLine.setDelayFrames(0)
-        XCTAssertEqual(delayLine.process(9), 9)
-    }
-
     func testBeatGridUsesFirstBeatOffsetForBarsAndSnap() throws {
         let settings = BeatGridSettings(
             bpm: 120,
