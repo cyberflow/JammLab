@@ -124,6 +124,7 @@
 		9FAB01062CE0000100112233 /* StemHelperProcessControllerTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9FAB00062CE0000100112233 /* StemHelperProcessControllerTests.swift */; };
 		9FAB01072CE0000100112233 /* SettingsAndControlLogicTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9FAB00072CE0000100112233 /* SettingsAndControlLogicTests.swift */; };
 		9FAB012D2CE0000100112233 /* ControlLogicTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9FAB002D2CE0000100112233 /* ControlLogicTests.swift */; };
+		9FAB012E2CE0000100112233 /* RecentProjectsStoreTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9FAB002E2CE0000100112233 /* RecentProjectsStoreTests.swift */; };
 		9FAB01082CE0000100112233 /* ClickRenderStateTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9FAB00082CE0000100112233 /* ClickRenderStateTests.swift */; };
 		9FAB01092CE0000100112233 /* MetronomeClickSchedulerTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9FAB00092CE0000100112233 /* MetronomeClickSchedulerTests.swift */; };
 		9FAB010A2CE0000100112233 /* TempoGridCalculatorTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9FAB000A2CE0000100112233 /* TempoGridCalculatorTests.swift */; };
@@ -331,6 +332,7 @@
 		9FAB00062CE0000100112233 /* StemHelperProcessControllerTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StemHelperProcessControllerTests.swift; sourceTree = "<group>"; };
 		9FAB00072CE0000100112233 /* SettingsAndControlLogicTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsAndControlLogicTests.swift; sourceTree = "<group>"; };
 		9FAB002D2CE0000100112233 /* ControlLogicTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ControlLogicTests.swift; sourceTree = "<group>"; };
+		9FAB002E2CE0000100112233 /* RecentProjectsStoreTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RecentProjectsStoreTests.swift; sourceTree = "<group>"; };
 		9FAB00082CE0000100112233 /* ClickRenderStateTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ClickRenderStateTests.swift; sourceTree = "<group>"; };
 		9FAB00092CE0000100112233 /* MetronomeClickSchedulerTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MetronomeClickSchedulerTests.swift; sourceTree = "<group>"; };
 		9FAB000A2CE0000100112233 /* TempoGridCalculatorTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TempoGridCalculatorTests.swift; sourceTree = "<group>"; };
@@ -623,6 +625,7 @@
 				9FAB00062CE0000100112233 /* StemHelperProcessControllerTests.swift */,
 				9FAB00072CE0000100112233 /* SettingsAndControlLogicTests.swift */,
 				9FAB002D2CE0000100112233 /* ControlLogicTests.swift */,
+				9FAB002E2CE0000100112233 /* RecentProjectsStoreTests.swift */,
 				9FAB00082CE0000100112233 /* ClickRenderStateTests.swift */,
 				9FAB00092CE0000100112233 /* MetronomeClickSchedulerTests.swift */,
 				9FAB000A2CE0000100112233 /* TempoGridCalculatorTests.swift */,
@@ -1036,6 +1039,7 @@
 				9FAB01062CE0000100112233 /* StemHelperProcessControllerTests.swift in Sources */,
 				9FAB01072CE0000100112233 /* SettingsAndControlLogicTests.swift in Sources */,
 				9FAB012D2CE0000100112233 /* ControlLogicTests.swift in Sources */,
+				9FAB012E2CE0000100112233 /* RecentProjectsStoreTests.swift in Sources */,
 				9FAB01082CE0000100112233 /* ClickRenderStateTests.swift in Sources */,
 				9FAB01092CE0000100112233 /* MetronomeClickSchedulerTests.swift in Sources */,
 				9FAB010A2CE0000100112233 /* TempoGridCalculatorTests.swift in Sources */,
