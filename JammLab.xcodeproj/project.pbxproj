@@ -116,6 +116,8 @@
 		9FAB010B2CE0000100112233 /* BeatGridAndTempoMapTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9FAB000B2CE0000100112233 /* BeatGridAndTempoMapTests.swift */; };
 		9FAB010C2CE0000100112233 /* NotationPrimitivesTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9FAB000C2CE0000100112233 /* NotationPrimitivesTests.swift */; };
 		9FAB010D2CE0000100112233 /* NotationMusicXMLTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9FAB000D2CE0000100112233 /* NotationMusicXMLTests.swift */; };
+		9FAB010E2CE0000100112233 /* NotationKeySignatureTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9FAB000E2CE0000100112233 /* NotationKeySignatureTests.swift */; };
+		9FAB010F2CE0000100112233 /* NotationAttributeDisplayTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9FAB000F2CE0000100112233 /* NotationAttributeDisplayTests.swift */; };
 		9FAC01012CF0000100112233 /* ProjectEditableState.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9FAC00012CF0000100112233 /* ProjectEditableState.swift */; };
 		9FAE01012D01000100112233 /* VideoAudioExtractionService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9FAE00012D01000100112233 /* VideoAudioExtractionService.swift */; };
 		9FAE01022D01000100112233 /* VideoFollowerController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9FAE00022D01000100112233 /* VideoFollowerController.swift */; };
@@ -292,6 +294,8 @@
 		9FAB000B2CE0000100112233 /* BeatGridAndTempoMapTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BeatGridAndTempoMapTests.swift; sourceTree = "<group>"; };
 		9FAB000C2CE0000100112233 /* NotationPrimitivesTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotationPrimitivesTests.swift; sourceTree = "<group>"; };
 		9FAB000D2CE0000100112233 /* NotationMusicXMLTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotationMusicXMLTests.swift; sourceTree = "<group>"; };
+		9FAB000E2CE0000100112233 /* NotationKeySignatureTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotationKeySignatureTests.swift; sourceTree = "<group>"; };
+		9FAB000F2CE0000100112233 /* NotationAttributeDisplayTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotationAttributeDisplayTests.swift; sourceTree = "<group>"; };
 		9FAC00012CF0000100112233 /* ProjectEditableState.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProjectEditableState.swift; sourceTree = "<group>"; };
 		9FAE00012D01000100112233 /* VideoAudioExtractionService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VideoAudioExtractionService.swift; sourceTree = "<group>"; };
 		9FAE00022D01000100112233 /* VideoFollowerController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VideoFollowerController.swift; sourceTree = "<group>"; };
@@ -553,6 +557,8 @@
 				9FAB000B2CE0000100112233 /* BeatGridAndTempoMapTests.swift */,
 				9FAB000C2CE0000100112233 /* NotationPrimitivesTests.swift */,
 				9FAB000D2CE0000100112233 /* NotationMusicXMLTests.swift */,
+				9FAB000E2CE0000100112233 /* NotationKeySignatureTests.swift */,
+				9FAB000F2CE0000100112233 /* NotationAttributeDisplayTests.swift */,
 				9F8B00072C10000100112233 /* TestSupport.swift */,
 			);
 			path = JammLabTests;
@@ -935,6 +941,8 @@
 				9FAB010B2CE0000100112233 /* BeatGridAndTempoMapTests.swift in Sources */,
 				9FAB010C2CE0000100112233 /* NotationPrimitivesTests.swift in Sources */,
 				9FAB010D2CE0000100112233 /* NotationMusicXMLTests.swift in Sources */,
+				9FAB010E2CE0000100112233 /* NotationKeySignatureTests.swift in Sources */,
+				9FAB010F2CE0000100112233 /* NotationAttributeDisplayTests.swift in Sources */,
 				9F8B01062C10000100112233 /* TestSupport.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
