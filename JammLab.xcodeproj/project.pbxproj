@@ -106,7 +106,6 @@
 		9FAB01012CE0000100112233 /* AudioFileImporterDurationTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9FAB00012CE0000100112233 /* AudioFileImporterDurationTests.swift */; };
 		9FAB01022CE0000100112233 /* PeakformLogicTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9FAB00022CE0000100112233 /* PeakformLogicTests.swift */; };
 		9FAB01032CE0000100112233 /* TimelineProjectLogicTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9FAB00032CE0000100112233 /* TimelineProjectLogicTests.swift */; };
-		9FAB01042CE0000100112233 /* ViewModelLifecycleTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9FAB00042CE0000100112233 /* ViewModelLifecycleTests.swift */; };
 		9FAB011F2CE0000100112233 /* ViewModelResetTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9FAB001F2CE0000100112233 /* ViewModelResetTests.swift */; };
 		9FAB01202CE0000100112233 /* ViewModelPlaybackStateTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9FAB00202CE0000100112233 /* ViewModelPlaybackStateTests.swift */; };
 		9FAB01212CE0000100112233 /* ViewModelStemPlaybackTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9FAB00212CE0000100112233 /* ViewModelStemPlaybackTests.swift */; };
@@ -313,7 +312,6 @@
 		9FAB00012CE0000100112233 /* AudioFileImporterDurationTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AudioFileImporterDurationTests.swift; sourceTree = "<group>"; };
 		9FAB00022CE0000100112233 /* PeakformLogicTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PeakformLogicTests.swift; sourceTree = "<group>"; };
 		9FAB00032CE0000100112233 /* TimelineProjectLogicTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TimelineProjectLogicTests.swift; sourceTree = "<group>"; };
-		9FAB00042CE0000100112233 /* ViewModelLifecycleTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ViewModelLifecycleTests.swift; sourceTree = "<group>"; };
 		9FAB001F2CE0000100112233 /* ViewModelResetTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ViewModelResetTests.swift; sourceTree = "<group>"; };
 		9FAB00202CE0000100112233 /* ViewModelPlaybackStateTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ViewModelPlaybackStateTests.swift; sourceTree = "<group>"; };
 		9FAB00212CE0000100112233 /* ViewModelStemPlaybackTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ViewModelStemPlaybackTests.swift; sourceTree = "<group>"; };
@@ -605,7 +603,6 @@
 				9FAB00022CE0000100112233 /* PeakformLogicTests.swift */,
 				9FBA00052D40000100112233 /* PitchDetectionTests.swift */,
 				9FAB00032CE0000100112233 /* TimelineProjectLogicTests.swift */,
-				9FAB00042CE0000100112233 /* ViewModelLifecycleTests.swift */,
 				9FAB001F2CE0000100112233 /* ViewModelResetTests.swift */,
 				9FAB00202CE0000100112233 /* ViewModelPlaybackStateTests.swift */,
 				9FAB00212CE0000100112233 /* ViewModelStemPlaybackTests.swift */,
@@ -1018,7 +1015,6 @@
 				9FAB01022CE0000100112233 /* PeakformLogicTests.swift in Sources */,
 				9FBA01052D40000100112233 /* PitchDetectionTests.swift in Sources */,
 				9FAB01032CE0000100112233 /* TimelineProjectLogicTests.swift in Sources */,
-				9FAB01042CE0000100112233 /* ViewModelLifecycleTests.swift in Sources */,
 				9FAB011F2CE0000100112233 /* ViewModelResetTests.swift in Sources */,
 				9FAB01202CE0000100112233 /* ViewModelPlaybackStateTests.swift in Sources */,
 				9FAB01212CE0000100112233 /* ViewModelStemPlaybackTests.swift in Sources */,

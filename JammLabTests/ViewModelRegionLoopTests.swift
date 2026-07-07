@@ -3,6 +3,55 @@ import XCTest
 
 final class ViewModelRegionLoopTests: XCTestCase {
     @MainActor
+    func testSelectionOnlyRegionFocusDoesNotMarkProjectModified() async throws {
+        let audioURL = try temporaryAudioFile(duration: 2)
+        let projectURL = temporaryDirectory().appendingPathComponent("selection.jammlab")
+        try FileManager.default.createDirectory(at: projectURL.deletingLastPathComponent(), withIntermediateDirectories: true)
+        defer {
+            try? FileManager.default.removeItem(at: audioURL)
+            try? FileManager.default.removeItem(at: projectURL.deletingLastPathComponent())
+        }
+
+        let projectService = ProjectDocumentService()
+        let region = TimecodedNote(kind: .region, time: 0.25, duration: 0.5, title: "Region")
+        let project = JammLabProject(
+            audioBookmarkData: try projectService.bookmarkData(for: audioURL),
+            audioDisplayName: audioURL.lastPathComponent,
+            audioDuration: 2,
+            notes: [region],
+            loopStart: 0,
+            loopEnd: 2,
+            isLoopEnabled: false,
+            playbackRate: AppSliderDefaults.playbackRate,
+            pitchShiftSemitones: AppSliderDefaults.pitchShiftSemitones,
+            tempoBPM: AppDefaults.defaultTempoBPM,
+            beatGridSettings: BeatGridSettings(bpm: AppDefaults.defaultTempoBPM)
+        )
+        try projectService.save(project, to: projectURL)
+        let entry = RecentProjectEntry(
+            displayName: "selection",
+            bookmarkData: try projectService.bookmarkData(for: projectURL)
+        )
+        let viewModel = AudioPlayerViewModel(
+            analyzer: MockAnalyzer(),
+            peakformProvider: MockPeakformProvider(),
+            playbackEngine: MockPlaybackEngine(),
+            projectService: projectService,
+            recentProjectsStore: RecentProjectsStore(defaults: try temporaryUserDefaults()),
+            isSandboxed: { false }
+        )
+
+        await viewModel.openRecentProject(entry)
+
+        XCTAssertFalse(viewModel.isProjectModified)
+
+        viewModel.focusRegion(id: region.id)
+
+        XCTAssertEqual(viewModel.selectedRegionID, region.id)
+        XCTAssertFalse(viewModel.isProjectModified)
+    }
+
+    @MainActor
     func testLocateRegionStartSelectsRegionAndMovesPlaybackMarkerWithoutActivatingLoop() throws {
         let audioURL = try temporaryAudioFile(duration: 6)
         defer { try? FileManager.default.removeItem(at: audioURL) }
