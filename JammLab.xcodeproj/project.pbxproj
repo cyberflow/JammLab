@@ -97,9 +97,7 @@
 		9F9201022C80000100112233 /* JammLabStemHelper in Embed Stem Helper */ = {isa = PBXBuildFile; fileRef = 9F8E00022C40000100112233 /* JammLabStemHelper */; settings = {ATTRIBUTES = (CodeSignOnCopy, ); }; };
 		9F9301012C90000100112233 /* StemBackendResolver.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9F9300012C90000100112233 /* StemBackendResolver.swift */; };
 		9F9301022C90000100112233 /* StemBackendResolver.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9F9300012C90000100112233 /* StemBackendResolver.swift */; };
-		9F9301032C90000100112233 /* StemBackendResolver.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9F9300012C90000100112233 /* StemBackendResolver.swift */; };
 		9F9401012CA0000100112233 /* AppSettingsStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9F9400012CA0000100112233 /* AppSettingsStore.swift */; };
-		9F9401022CA0000100112233 /* AppSettingsStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9F9400012CA0000100112233 /* AppSettingsStore.swift */; };
 		9F9401032CA0000100112233 /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9F9400022CA0000100112233 /* SettingsView.swift */; };
 		9F9501012CB0000100112233 /* AbletonNumberField.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9F9500012CB0000100112233 /* AbletonNumberField.swift */; };
 		9F9601012CC0000100112233 /* JammValueSlider.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9F9600012CC0000100112233 /* JammValueSlider.swift */; };
@@ -914,8 +912,6 @@
 				9FAB01062CE0000100112233 /* StemHelperProcessControllerTests.swift in Sources */,
 				9FAB01072CE0000100112233 /* SettingsAndControlLogicTests.swift in Sources */,
 				9F8B01062C10000100112233 /* TestSupport.swift in Sources */,
-				9F9401022CA0000100112233 /* AppSettingsStore.swift in Sources */,
-				9F9301032C90000100112233 /* StemBackendResolver.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

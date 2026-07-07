@@ -114,12 +114,7 @@ extension AudioPlayerViewModel {
         harmonySymbols = []
         notationItems = []
         projectKeySelection = nil
-        selectedRegionID = nil
-        selectedHarmonySymbolID = nil
-        clearNotationMeasureSelectionAndClipboard()
-        pendingHarmonyEditorRequest = nil
-        activeLoopRegionID = nil
-        notationDurationDenominator = NotationDuration.defaultDenominator
+        clearTransientEditingState()
         loopRegion = .empty
         timelineVisibleRange = 0...0
         userTimelineVisibleRange = 0...0
@@ -177,12 +172,7 @@ extension AudioPlayerViewModel {
         harmonySymbols = []
         notationItems = []
         projectKeySelection = nil
-        selectedRegionID = nil
-        selectedHarmonySymbolID = nil
-        clearNotationMeasureSelectionAndClipboard()
-        pendingHarmonyEditorRequest = nil
-        notationDurationDenominator = NotationDuration.defaultDenominator
-        activeLoopRegionID = nil
+        clearTransientEditingState()
         loopRegion = LoopRegion(start: 0, end: file.duration).clamped(to: file.duration)
         timelineVisibleRange = 0...file.duration
         userTimelineVisibleRange = timelineVisibleRange
@@ -258,12 +248,7 @@ extension AudioPlayerViewModel {
                 duration: resolvedProjectDuration
             )
             projectKeySelection = project.projectKeySelection
-            selectedRegionID = nil
-            selectedHarmonySymbolID = nil
-            clearNotationMeasureSelectionAndClipboard()
-            pendingHarmonyEditorRequest = nil
-            notationDurationDenominator = NotationDuration.defaultDenominator
-            activeLoopRegionID = nil
+            clearTransientEditingState()
             loopRegion = ProjectStateNormalizer.normalizedLoopRegion(
                 start: project.loopStart,
                 end: project.loopEnd,
@@ -307,6 +292,15 @@ extension AudioPlayerViewModel {
             }
             errorMessage = "Project open failed: \(error.localizedDescription)"
         }
+    }
+
+    private func clearTransientEditingState() {
+        selectedRegionID = nil
+        selectedHarmonySymbolID = nil
+        clearNotationMeasureSelectionAndClipboard()
+        pendingHarmonyEditorRequest = nil
+        notationDurationDenominator = NotationDuration.defaultDenominator
+        activeLoopRegionID = nil
     }
 
     func cancelBackgroundWork() {
