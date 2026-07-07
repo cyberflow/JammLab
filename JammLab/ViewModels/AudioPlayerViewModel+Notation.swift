@@ -5,6 +5,10 @@ extension AudioPlayerViewModel {
         duration > 0
     }
 
+    var canChangeNotationDuration: Bool {
+        canEditSelectedNotationItem
+    }
+
     func setNotationDurationDenominator(_ denominator: Int) {
         notationDurationDenominator = NotationDuration.normalizedDenominator(denominator)
         changeSelectedNotationItemDuration(to: NotationDuration(denominator: notationDurationDenominator))

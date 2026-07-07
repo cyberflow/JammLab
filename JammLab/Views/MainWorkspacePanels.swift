@@ -139,6 +139,8 @@ extension ContentView {
             selectedRegionID: viewModel.selectedRegionID,
             beatGrid: beatGrid,
             notationViewport: notationViewportState(availableWidth: notationTrackContentWidth),
+            notationDurationDenominator: viewModel.notationDurationDenominator,
+            canChangeNotationDuration: viewModel.canChangeNotationDuration,
             isNotationTrackCollapsed: viewModel.isNotationTrackCollapsed,
             isLoadingPeakform: viewModel.isBuildingWaveform,
             mainTrackVolume: viewModel.mainTrackVolume,
@@ -212,6 +214,7 @@ extension ContentView {
             timelineScroll: { viewModel.handleTimelineScroll(deltaX: $0, deltaY: $1, anchorTime: $2) },
             mainTrackVolumeChanged: { viewModel.setMainTrackVolume($0) },
             notationTrackCollapsedChanged: { viewModel.setNotationTrackCollapsed($0) },
+            notationDurationChanged: { viewModel.setNotationDurationDenominator($0) },
             showNotationWindow: { openWindow(id: AppWindowID.notation) }
         )
     }
