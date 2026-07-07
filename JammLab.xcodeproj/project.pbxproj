@@ -114,6 +114,7 @@
 		9FAB01232CE0000100112233 /* ViewModelSettingsTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9FAB00232CE0000100112233 /* ViewModelSettingsTests.swift */; };
 		9FAB01242CE0000100112233 /* ViewModelProjectKeyPersistenceTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9FAB00242CE0000100112233 /* ViewModelProjectKeyPersistenceTests.swift */; };
 		9FAB01252CE0000100112233 /* ViewModelProjectRestoreTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9FAB00252CE0000100112233 /* ViewModelProjectRestoreTests.swift */; };
+		9FAB01262CE0000100112233 /* ViewModelEditingStateTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9FAB00262CE0000100112233 /* ViewModelEditingStateTests.swift */; };
 		9FAB01052CE0000100112233 /* StemWorkflowLogicTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9FAB00052CE0000100112233 /* StemWorkflowLogicTests.swift */; };
 		9FAB01062CE0000100112233 /* StemHelperProcessControllerTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9FAB00062CE0000100112233 /* StemHelperProcessControllerTests.swift */; };
 		9FAB01072CE0000100112233 /* SettingsAndControlLogicTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9FAB00072CE0000100112233 /* SettingsAndControlLogicTests.swift */; };
@@ -314,6 +315,7 @@
 		9FAB00232CE0000100112233 /* ViewModelSettingsTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ViewModelSettingsTests.swift; sourceTree = "<group>"; };
 		9FAB00242CE0000100112233 /* ViewModelProjectKeyPersistenceTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ViewModelProjectKeyPersistenceTests.swift; sourceTree = "<group>"; };
 		9FAB00252CE0000100112233 /* ViewModelProjectRestoreTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ViewModelProjectRestoreTests.swift; sourceTree = "<group>"; };
+		9FAB00262CE0000100112233 /* ViewModelEditingStateTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ViewModelEditingStateTests.swift; sourceTree = "<group>"; };
 		9FAB00052CE0000100112233 /* StemWorkflowLogicTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StemWorkflowLogicTests.swift; sourceTree = "<group>"; };
 		9FAB00062CE0000100112233 /* StemHelperProcessControllerTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StemHelperProcessControllerTests.swift; sourceTree = "<group>"; };
 		9FAB00072CE0000100112233 /* SettingsAndControlLogicTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsAndControlLogicTests.swift; sourceTree = "<group>"; };
@@ -599,6 +601,7 @@
 				9FAB00232CE0000100112233 /* ViewModelSettingsTests.swift */,
 				9FAB00242CE0000100112233 /* ViewModelProjectKeyPersistenceTests.swift */,
 				9FAB00252CE0000100112233 /* ViewModelProjectRestoreTests.swift */,
+				9FAB00262CE0000100112233 /* ViewModelEditingStateTests.swift */,
 				9FAB00052CE0000100112233 /* StemWorkflowLogicTests.swift */,
 				9FAB00062CE0000100112233 /* StemHelperProcessControllerTests.swift */,
 				9FAB00072CE0000100112233 /* SettingsAndControlLogicTests.swift */,
@@ -1005,6 +1008,7 @@
 				9FAB01232CE0000100112233 /* ViewModelSettingsTests.swift in Sources */,
 				9FAB01242CE0000100112233 /* ViewModelProjectKeyPersistenceTests.swift in Sources */,
 				9FAB01252CE0000100112233 /* ViewModelProjectRestoreTests.swift in Sources */,
+				9FAB01262CE0000100112233 /* ViewModelEditingStateTests.swift in Sources */,
 				9FAB01052CE0000100112233 /* StemWorkflowLogicTests.swift in Sources */,
 				9FAB01062CE0000100112233 /* StemHelperProcessControllerTests.swift in Sources */,
 				9FAB01072CE0000100112233 /* SettingsAndControlLogicTests.swift in Sources */,
