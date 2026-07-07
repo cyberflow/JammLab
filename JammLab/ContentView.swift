@@ -188,6 +188,9 @@ struct ContentView: View {
         if !viewModel.canEditSelectedNotationItem {
             hotkeys.remove(.editHarmonyAtSelectedNotationItem)
         }
+        if !viewModel.canChangeNotationDuration {
+            hotkeys.subtract(AppHotkey.notationDurationHotkeys)
+        }
         return hotkeys
     }
 
@@ -239,6 +242,13 @@ struct ContentView: View {
             return true
         case .editHarmonyAtSelectedNotationItem:
             return viewModel.requestEditSelectedNotationItem()
+        case .setNotationDurationEighth,
+                .setNotationDurationQuarter,
+                .setNotationDurationHalf,
+                .setNotationDurationWhole:
+            guard let denominator = hotkey.notationDurationDenominator else { return false }
+            viewModel.setNotationDurationDenominator(denominator)
+            return true
         }
     }
 

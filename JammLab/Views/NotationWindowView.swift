@@ -59,7 +59,7 @@ struct NotationWindowView: View {
                     get: { viewModel.notationDurationDenominator },
                     set: { viewModel.setNotationDurationDenominator($0) }
                 ),
-                isEnabled: viewModel.canShowNotationWindow && viewModel.canEditSelectedNotationItem
+                isEnabled: viewModel.canChangeNotationDuration
             )
 
             Spacer(minLength: AppTheme.Spacing.md)
@@ -176,6 +176,9 @@ struct NotationWindowView: View {
         if viewModel.canEditSelectedNotationItem {
             hotkeys.insert(.editHarmonyAtSelectedNotationItem)
         }
+        if viewModel.canChangeNotationDuration {
+            hotkeys.formUnion(AppHotkey.notationDurationHotkeys)
+        }
         return hotkeys
     }
 
@@ -194,6 +197,13 @@ struct NotationWindowView: View {
             return true
         case .editHarmonyAtSelectedNotationItem:
             return viewModel.requestEditSelectedNotationItem()
+        case .setNotationDurationEighth,
+                .setNotationDurationQuarter,
+                .setNotationDurationHalf,
+                .setNotationDurationWhole:
+            guard let denominator = hotkey.notationDurationDenominator else { return false }
+            viewModel.setNotationDurationDenominator(denominator)
+            return true
         default:
             return false
         }
@@ -282,210 +292,6 @@ struct NotationWindowView: View {
                 isUserNavigating = false
             }
         }
-    }
-}
-
-private struct NotationDurationControl: View {
-    @Binding var denominator: Int
-    let isEnabled: Bool
-    @Environment(\.appColors) private var appColors
-
-    private var options: [NotationDurationOption] {
-        NotationDuration.allowedDenominators
-            .reversed()
-            .compactMap(NotationDurationOption.init)
-    }
-
-    var body: some View {
-        HStack(spacing: AppTheme.Spacing.xs) {
-            ForEach(options) { option in
-                durationButton(for: option)
-            }
-        }
-        .frame(height: AppTheme.ControlSize.notationDurationControlHeight)
-    }
-
-    private func durationButton(for option: NotationDurationOption) -> some View {
-        let isSelected = NotationDuration.normalizedDenominator(denominator) == option.denominator
-        let helpText = "Set \(ControlHelpText.notationDuration.lowercased()) to \(option.durationName)"
-
-        return Button {
-            denominator = option.denominator
-        } label: {
-            NotationDurationIcon(
-                kind: option.iconKind,
-                color: iconColor(isSelected: isSelected)
-            )
-                .frame(
-                    width: AppTheme.ControlSize.notationDurationButtonWidth,
-                    height: AppTheme.ControlSize.notationDurationControlHeight
-                )
-                .background(backgroundColor(isSelected: isSelected))
-                .clipShape(RoundedRectangle(cornerRadius: AppTheme.Radius.small, style: .continuous))
-                .overlay {
-                    RoundedRectangle(cornerRadius: AppTheme.Radius.small, style: .continuous)
-                        .stroke(borderColor(isSelected: isSelected), lineWidth: AppTheme.Stroke.thin)
-                }
-                .contentShape(Rectangle())
-        }
-        .buttonStyle(.plain)
-        .disabled(!isEnabled)
-        .help(helpText)
-        .accessibilityLabel("Notation duration: \(option.durationName)")
-        .accessibilityValue(isSelected ? "Selected" : "Not selected")
-        .accessibilityAddTraits(isSelected ? [.isSelected] : [])
-    }
-
-    private func iconColor(isSelected: Bool) -> Color {
-        guard isEnabled else { return appColors.disabledText }
-        return isSelected ? appColors.accent : appColors.secondaryText
-    }
-
-    private func backgroundColor(isSelected: Bool) -> Color {
-        isEnabled && isSelected ? appColors.controlActive : Color.clear
-    }
-
-    private func borderColor(isSelected: Bool) -> Color {
-        isEnabled && isSelected ? appColors.accent : Color.clear
-    }
-}
-
-private struct NotationDurationOption: Identifiable {
-    let denominator: Int
-    let iconKind: NotationDurationIcon.Kind
-    let durationName: String
-
-    var id: Int { denominator }
-
-    init?(denominator: Int) {
-        self.denominator = denominator
-
-        switch denominator {
-        case 8:
-            iconKind = .eighth
-            durationName = "eighth notes"
-        case 4:
-            iconKind = .quarter
-            durationName = "quarter notes"
-        case 2:
-            iconKind = .half
-            durationName = "half notes"
-        case 1:
-            iconKind = .whole
-            durationName = "whole notes"
-        default:
-            return nil
-        }
-    }
-}
-
-private struct NotationDurationIcon: View {
-    enum Kind {
-        case eighth
-        case quarter
-        case half
-        case whole
-    }
-
-    let kind: Kind
-    let color: Color
-
-    var body: some View {
-        Canvas { context, size in
-            let strokeStyle = StrokeStyle(lineWidth: 1.6, lineCap: .round, lineJoin: .round)
-
-            switch kind {
-            case .eighth:
-                drawNote(
-                    in: &context,
-                    size: size,
-                    color: color,
-                    filledHead: true,
-                    hasStem: true,
-                    hasFlag: true,
-                    strokeStyle: strokeStyle
-                )
-            case .quarter:
-                drawNote(
-                    in: &context,
-                    size: size,
-                    color: color,
-                    filledHead: true,
-                    hasStem: true,
-                    hasFlag: false,
-                    strokeStyle: strokeStyle
-                )
-            case .half:
-                drawNote(
-                    in: &context,
-                    size: size,
-                    color: color,
-                    filledHead: false,
-                    hasStem: true,
-                    hasFlag: false,
-                    strokeStyle: strokeStyle
-                )
-            case .whole:
-                drawWholeNote(in: &context, size: size, color: color, strokeStyle: strokeStyle)
-            }
-        }
-        .accessibilityHidden(true)
-    }
-
-    private func drawNote(
-        in context: inout GraphicsContext,
-        size: CGSize,
-        color: Color,
-        filledHead: Bool,
-        hasStem: Bool,
-        hasFlag: Bool,
-        strokeStyle: StrokeStyle
-    ) {
-        let headRect = CGRect(
-            x: size.width * 0.24,
-            y: size.height * 0.56,
-            width: size.width * 0.27,
-            height: size.height * 0.22
-        )
-        let head = Path(ellipseIn: headRect)
-        if filledHead {
-            context.fill(head, with: .color(color))
-        } else {
-            context.stroke(head, with: .color(color), style: strokeStyle)
-        }
-
-        guard hasStem else { return }
-
-        var stem = Path()
-        stem.move(to: CGPoint(x: headRect.maxX, y: headRect.midY))
-        stem.addLine(to: CGPoint(x: headRect.maxX, y: size.height * 0.18))
-        context.stroke(stem, with: .color(color), style: strokeStyle)
-
-        guard hasFlag else { return }
-
-        var flag = Path()
-        flag.move(to: CGPoint(x: headRect.maxX, y: size.height * 0.18))
-        flag.addCurve(
-            to: CGPoint(x: size.width * 0.66, y: size.height * 0.42),
-            control1: CGPoint(x: size.width * 0.64, y: size.height * 0.23),
-            control2: CGPoint(x: size.width * 0.71, y: size.height * 0.34)
-        )
-        context.stroke(flag, with: .color(color), style: strokeStyle)
-    }
-
-    private func drawWholeNote(
-        in context: inout GraphicsContext,
-        size: CGSize,
-        color: Color,
-        strokeStyle: StrokeStyle
-    ) {
-        let headRect = CGRect(
-            x: size.width * 0.35,
-            y: size.height * 0.58,
-            width: size.width * 0.28,
-            height: size.height * 0.17
-        )
-        context.stroke(Path(ellipseIn: headRect), with: .color(color), style: strokeStyle)
     }
 }
 

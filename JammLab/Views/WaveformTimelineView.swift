@@ -31,6 +31,8 @@ struct TimelineViewState: Equatable {
     var selectedRegionID: TimecodedNote.ID?
     var beatGrid: BeatGridConfiguration
     var notationViewport: NotationViewportState
+    var notationDurationDenominator: Int
+    var canChangeNotationDuration: Bool
     var isNotationTrackCollapsed: Bool
     var isLoadingPeakform: Bool
     var mainTrackVolume: Float
@@ -67,6 +69,7 @@ struct TimelineViewActions {
     var timelineScroll: (Double, Double, TimeInterval?) -> Void
     var mainTrackVolumeChanged: (Float) -> Void
     var notationTrackCollapsedChanged: (Bool) -> Void
+    var notationDurationChanged: (Int) -> Void
     var showNotationWindow: () -> Void
 }
 
@@ -291,8 +294,18 @@ struct WaveformTimelineView: View {
     }
 
     private var notationTrackControls: some View {
-        VStack(alignment: .leading, spacing: AppTheme.Spacing.none) {
+        VStack(alignment: .leading, spacing: AppTheme.Spacing.sm) {
             notationTrackHeader
+
+            if !state.isNotationTrackCollapsed {
+                NotationDurationControl(
+                    denominator: Binding(
+                        get: { state.notationDurationDenominator },
+                        set: { actions.notationDurationChanged($0) }
+                    ),
+                    isEnabled: state.canChangeNotationDuration
+                )
+            }
         }
         .padding(.horizontal, AppTheme.Spacing.md)
         .padding(.vertical, AppTheme.Spacing.sm)

@@ -17,6 +17,17 @@ enum AppHotkey: CaseIterable, Hashable {
     case pasteMeasure
     case clearNotationMeasureSelection
     case editHarmonyAtSelectedNotationItem
+    case setNotationDurationEighth
+    case setNotationDurationQuarter
+    case setNotationDurationHalf
+    case setNotationDurationWhole
+
+    static let notationDurationHotkeys: Set<AppHotkey> = [
+        .setNotationDurationEighth,
+        .setNotationDurationQuarter,
+        .setNotationDurationHalf,
+        .setNotationDurationWhole
+    ]
 
     // Keep this enum as the single source of truth for keyboard shortcuts.
     // When adding a new handled hotkey, add a case here with its help metadata
@@ -66,6 +77,14 @@ enum AppHotkey: CaseIterable, Hashable {
             self = .setBeatOne
         case 8:
             self = .toggleClick
+        case 21:
+            self = .setNotationDurationEighth
+        case 23:
+            self = .setNotationDurationQuarter
+        case 22:
+            self = .setNotationDurationHalf
+        case 26:
+            self = .setNotationDurationWhole
         case 53:
             self = .clearNotationMeasureSelection
         default:
@@ -105,6 +124,14 @@ enum AppHotkey: CaseIterable, Hashable {
             return "Esc"
         case .editHarmonyAtSelectedNotationItem:
             return "Cmd+K"
+        case .setNotationDurationEighth:
+            return "4"
+        case .setNotationDurationQuarter:
+            return "5"
+        case .setNotationDurationHalf:
+            return "6"
+        case .setNotationDurationWhole:
+            return "7"
         }
     }
 
@@ -140,6 +167,14 @@ enum AppHotkey: CaseIterable, Hashable {
             return "Clear Measure Selection"
         case .editHarmonyAtSelectedNotationItem:
             return "Edit Harmony"
+        case .setNotationDurationEighth:
+            return "Set Eighth Note Duration"
+        case .setNotationDurationQuarter:
+            return "Set Quarter Note Duration"
+        case .setNotationDurationHalf:
+            return "Set Half Note Duration"
+        case .setNotationDurationWhole:
+            return "Set Whole Note Duration"
         }
     }
 
@@ -175,6 +210,29 @@ enum AppHotkey: CaseIterable, Hashable {
             return "Clear the selected notation measure or measure range."
         case .editHarmonyAtSelectedNotationItem:
             return "Open harmony entry for the selected notation item."
+        case .setNotationDurationEighth:
+            return "Set notation duration to eighth notes for the selected notation item."
+        case .setNotationDurationQuarter:
+            return "Set notation duration to quarter notes for the selected notation item."
+        case .setNotationDurationHalf:
+            return "Set notation duration to half notes for the selected notation item."
+        case .setNotationDurationWhole:
+            return "Set notation duration to whole notes for the selected notation item."
+        }
+    }
+
+    var notationDurationDenominator: Int? {
+        switch self {
+        case .setNotationDurationEighth:
+            return 8
+        case .setNotationDurationQuarter:
+            return 4
+        case .setNotationDurationHalf:
+            return 2
+        case .setNotationDurationWhole:
+            return 1
+        default:
+            return nil
         }
     }
 }

@@ -42,6 +42,46 @@ enum NotationSMuFLSymbol: Equatable {
     }
 }
 
+enum NotationDurationControlSymbol: Equatable {
+    case whole
+    case half
+    case quarter
+    case eighth
+
+    init?(duration: NotationDuration) {
+        switch duration.denominator {
+        case 1:
+            self = .whole
+        case 2:
+            self = .half
+        case 4:
+            self = .quarter
+        case 8:
+            self = .eighth
+        default:
+            return nil
+        }
+    }
+
+    var codepoint: UInt32 {
+        switch self {
+        case .whole:
+            return 0xECA2
+        case .half:
+            return 0xECA3
+        case .quarter:
+            return 0xECA5
+        case .eighth:
+            return 0xECA7
+        }
+    }
+
+    var glyph: String {
+        guard let scalar = UnicodeScalar(codepoint) else { return "" }
+        return String(Character(scalar))
+    }
+}
+
 enum NotationMusicFontRegistry {
     static let fallbackFontName = "Leland"
 
@@ -65,7 +105,18 @@ enum NotationMusicFontRegistry {
     }
 
     static func glyphPath(for symbol: NotationSMuFLSymbol, fontSize: CGFloat) -> NotationSMuFLGlyphPath? {
-        guard let character = UniChar(exactly: symbol.codepoint) else { return nil }
+        glyphPath(forCodepoint: symbol.codepoint, fontSize: fontSize)
+    }
+
+    static func glyphPath(
+        for symbol: NotationDurationControlSymbol,
+        fontSize: CGFloat
+    ) -> NotationSMuFLGlyphPath? {
+        glyphPath(forCodepoint: symbol.codepoint, fontSize: fontSize)
+    }
+
+    private static func glyphPath(forCodepoint codepoint: UInt32, fontSize: CGFloat) -> NotationSMuFLGlyphPath? {
+        guard let character = UniChar(exactly: codepoint) else { return nil }
 
         let font = CTFontCreateWithName(fontName as CFString, fontSize, nil)
         var characters = [character]

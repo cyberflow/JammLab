@@ -50,6 +50,23 @@ final class AudioTimingLogicTests: XCTestCase {
         XCTAssertEqual(quarter.glyph.unicodeScalars.first?.value, 0xE4E5)
     }
 
+    func testNotationSMuFLDurationControlSymbolsMapDurationsToLelandMetNoteCodepoints() throws {
+        let whole = try XCTUnwrap(NotationDurationControlSymbol(duration: NotationDuration(denominator: 1)))
+        let half = try XCTUnwrap(NotationDurationControlSymbol(duration: NotationDuration(denominator: 2)))
+        let quarter = try XCTUnwrap(NotationDurationControlSymbol(duration: NotationDuration(denominator: 4)))
+        let eighth = try XCTUnwrap(NotationDurationControlSymbol(duration: NotationDuration(denominator: 8)))
+
+        XCTAssertEqual(whole, .whole)
+        XCTAssertEqual(whole.codepoint, 0xECA2)
+        XCTAssertEqual(half, .half)
+        XCTAssertEqual(half.codepoint, 0xECA3)
+        XCTAssertEqual(quarter, .quarter)
+        XCTAssertEqual(quarter.codepoint, 0xECA5)
+        XCTAssertEqual(eighth, .eighth)
+        XCTAssertEqual(eighth.codepoint, 0xECA7)
+        XCTAssertEqual(eighth.glyph.unicodeScalars.first?.value, 0xECA7)
+    }
+
     func testNotationRestItemFactoryUsesGreedyAllowedDurationDecomposition() {
         let segments = NotationRestItemFactory.greedySegments(startOffset: 0, remaining: 3.5)
 
@@ -139,6 +156,24 @@ final class AudioTimingLogicTests: XCTestCase {
         XCTAssertFalse(glyphPath.path.isEmpty)
         XCTAssertGreaterThan(glyphPath.bounds.width, 0)
         XCTAssertGreaterThan(glyphPath.bounds.height, 0)
+    }
+
+    func testLelandDurationControlGlyphPathsHaveBounds() throws {
+        for symbol in [
+            NotationDurationControlSymbol.whole,
+            .half,
+            .quarter,
+            .eighth
+        ] {
+            let glyphPath = try XCTUnwrap(NotationMusicFontRegistry.glyphPath(
+                for: symbol,
+                fontSize: AppTheme.ControlSize.notationDurationGlyphSize
+            ))
+
+            XCTAssertFalse(glyphPath.path.isEmpty)
+            XCTAssertGreaterThan(glyphPath.bounds.width, 0)
+            XCTAssertGreaterThan(glyphPath.bounds.height, 0)
+        }
     }
 
     func testWholeRestVisualCenterUsesStandardStaffPosition() {

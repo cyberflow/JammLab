@@ -620,6 +620,47 @@ final class TimelineProjectLogicTests: XCTestCase {
         )
     }
 
+    func testAppHotkeyRecognizesNotationDurationNumberKeys() throws {
+        let expectations: [(key: String, keyCode: UInt16, hotkey: AppHotkey, denominator: Int)] = [
+            ("4", 21, .setNotationDurationEighth, 8),
+            ("5", 23, .setNotationDurationQuarter, 4),
+            ("6", 22, .setNotationDurationHalf, 2),
+            ("7", 26, .setNotationDurationWhole, 1)
+        ]
+
+        for expectation in expectations {
+            let event = try XCTUnwrap(NSEvent.keyEvent(
+                with: .keyDown,
+                location: .zero,
+                modifierFlags: [],
+                timestamp: 0,
+                windowNumber: 0,
+                context: nil,
+                characters: expectation.key,
+                charactersIgnoringModifiers: expectation.key,
+                isARepeat: false,
+                keyCode: expectation.keyCode
+            ))
+
+            XCTAssertEqual(AppHotkey(event: event), expectation.hotkey)
+            XCTAssertEqual(expectation.hotkey.key, expectation.key)
+            XCTAssertEqual(expectation.hotkey.notationDurationDenominator, expectation.denominator)
+            XCTAssertTrue(AppHotkey.notationDurationHotkeys.contains(expectation.hotkey))
+        }
+
+        XCTAssertEqual(AppHotkey.setNotationDurationEighth.title, "Set Eighth Note Duration")
+        XCTAssertEqual(
+            AppHotkey.setNotationDurationEighth.detail,
+            "Set notation duration to eighth notes for the selected notation item."
+        )
+        XCTAssertTrue(AppHotkey.allCases.contains(.setNotationDurationWhole))
+    }
+
+    func testAppHotkeyMappingsDoNotContainDuplicateKeyLabels() {
+        let keys = AppHotkey.allCases.map(\.key)
+        XCTAssertEqual(keys.count, Set(keys).count)
+    }
+
     func testAppHotkeyRecognizesCmdKButNotOldHarmonyKeys() throws {
         let aEvent = try XCTUnwrap(NSEvent.keyEvent(
             with: .keyDown,
@@ -947,6 +988,75 @@ final class TimelineProjectLogicTests: XCTestCase {
                 attachedWindowNumber: 42,
                 firstResponder: nil,
                 allowedHotkeys: [.editHarmonyAtSelectedNotationItem]
+            )
+        )
+    }
+
+    func testAppHotkeyEventFilterDoesNotStealNotationDurationKeysFromTextRespondersOrUnavailableScopes() throws {
+        let durationEvent = try XCTUnwrap(NSEvent.keyEvent(
+            with: .keyDown,
+            location: .zero,
+            modifierFlags: [],
+            timestamp: 0,
+            windowNumber: 42,
+            context: nil,
+            characters: "4",
+            charactersIgnoringModifiers: "4",
+            isARepeat: false,
+            keyCode: 21
+        ))
+        let repeatDurationEvent = try XCTUnwrap(NSEvent.keyEvent(
+            with: .keyDown,
+            location: .zero,
+            modifierFlags: [],
+            timestamp: 0,
+            windowNumber: 42,
+            context: nil,
+            characters: "4",
+            charactersIgnoringModifiers: "4",
+            isARepeat: true,
+            keyCode: 21
+        ))
+
+        XCTAssertEqual(
+            AppHotkeyEventFilter.hotkey(
+                for: durationEvent,
+                attachedWindowNumber: 42,
+                firstResponder: nil,
+                allowedHotkeys: AppHotkey.notationDurationHotkeys
+            ),
+            .setNotationDurationEighth
+        )
+        XCTAssertNil(
+            AppHotkeyEventFilter.hotkey(
+                for: durationEvent,
+                attachedWindowNumber: 42,
+                firstResponder: nil,
+                allowedHotkeys: [.playPause]
+            )
+        )
+        XCTAssertNil(
+            AppHotkeyEventFilter.hotkey(
+                for: durationEvent,
+                attachedWindowNumber: 42,
+                firstResponder: NSTextView(),
+                allowedHotkeys: AppHotkey.notationDurationHotkeys
+            )
+        )
+        XCTAssertNil(
+            AppHotkeyEventFilter.hotkey(
+                for: durationEvent,
+                attachedWindowNumber: 42,
+                firstResponder: AbletonNumberFieldNSView(),
+                allowedHotkeys: AppHotkey.notationDurationHotkeys
+            )
+        )
+        XCTAssertNil(
+            AppHotkeyEventFilter.hotkey(
+                for: repeatDurationEvent,
+                attachedWindowNumber: 42,
+                firstResponder: nil,
+                allowedHotkeys: AppHotkey.notationDurationHotkeys
             )
         )
     }
