@@ -107,6 +107,8 @@
 		9FAB01022CE0000100112233 /* PeakformLogicTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9FAB00022CE0000100112233 /* PeakformLogicTests.swift */; };
 		9FAB01032CE0000100112233 /* TimelineProjectLogicTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9FAB00032CE0000100112233 /* TimelineProjectLogicTests.swift */; };
 		9FAB01042CE0000100112233 /* ViewModelLifecycleTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9FAB00042CE0000100112233 /* ViewModelLifecycleTests.swift */; };
+		9FAB011F2CE0000100112233 /* ViewModelResetTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9FAB001F2CE0000100112233 /* ViewModelResetTests.swift */; };
+		9FAB01202CE0000100112233 /* ViewModelPlaybackStateTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9FAB00202CE0000100112233 /* ViewModelPlaybackStateTests.swift */; };
 		9FAB01052CE0000100112233 /* StemWorkflowLogicTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9FAB00052CE0000100112233 /* StemWorkflowLogicTests.swift */; };
 		9FAB01062CE0000100112233 /* StemHelperProcessControllerTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9FAB00062CE0000100112233 /* StemHelperProcessControllerTests.swift */; };
 		9FAB01072CE0000100112233 /* SettingsAndControlLogicTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9FAB00072CE0000100112233 /* SettingsAndControlLogicTests.swift */; };
@@ -300,6 +302,8 @@
 		9FAB00022CE0000100112233 /* PeakformLogicTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PeakformLogicTests.swift; sourceTree = "<group>"; };
 		9FAB00032CE0000100112233 /* TimelineProjectLogicTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TimelineProjectLogicTests.swift; sourceTree = "<group>"; };
 		9FAB00042CE0000100112233 /* ViewModelLifecycleTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ViewModelLifecycleTests.swift; sourceTree = "<group>"; };
+		9FAB001F2CE0000100112233 /* ViewModelResetTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ViewModelResetTests.swift; sourceTree = "<group>"; };
+		9FAB00202CE0000100112233 /* ViewModelPlaybackStateTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ViewModelPlaybackStateTests.swift; sourceTree = "<group>"; };
 		9FAB00052CE0000100112233 /* StemWorkflowLogicTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StemWorkflowLogicTests.swift; sourceTree = "<group>"; };
 		9FAB00062CE0000100112233 /* StemHelperProcessControllerTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StemHelperProcessControllerTests.swift; sourceTree = "<group>"; };
 		9FAB00072CE0000100112233 /* SettingsAndControlLogicTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsAndControlLogicTests.swift; sourceTree = "<group>"; };
@@ -578,6 +582,8 @@
 				9FBA00052D40000100112233 /* PitchDetectionTests.swift */,
 				9FAB00032CE0000100112233 /* TimelineProjectLogicTests.swift */,
 				9FAB00042CE0000100112233 /* ViewModelLifecycleTests.swift */,
+				9FAB001F2CE0000100112233 /* ViewModelResetTests.swift */,
+				9FAB00202CE0000100112233 /* ViewModelPlaybackStateTests.swift */,
 				9FAB00052CE0000100112233 /* StemWorkflowLogicTests.swift */,
 				9FAB00062CE0000100112233 /* StemHelperProcessControllerTests.swift */,
 				9FAB00072CE0000100112233 /* SettingsAndControlLogicTests.swift */,
@@ -977,6 +983,8 @@
 				9FBA01052D40000100112233 /* PitchDetectionTests.swift in Sources */,
 				9FAB01032CE0000100112233 /* TimelineProjectLogicTests.swift in Sources */,
 				9FAB01042CE0000100112233 /* ViewModelLifecycleTests.swift in Sources */,
+				9FAB011F2CE0000100112233 /* ViewModelResetTests.swift in Sources */,
+				9FAB01202CE0000100112233 /* ViewModelPlaybackStateTests.swift in Sources */,
 				9FAB01052CE0000100112233 /* StemWorkflowLogicTests.swift in Sources */,
 				9FAB01062CE0000100112233 /* StemHelperProcessControllerTests.swift in Sources */,
 				9FAB01072CE0000100112233 /* SettingsAndControlLogicTests.swift in Sources */,
