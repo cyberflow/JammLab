@@ -127,6 +127,7 @@
 		9FAB01162CE0000100112233 /* NotationMeasureGeometryTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9FAB00162CE0000100112233 /* NotationMeasureGeometryTests.swift */; };
 		9FAB01172CE0000100112233 /* NotationSelectionOverlayLayoutTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9FAB00172CE0000100112233 /* NotationSelectionOverlayLayoutTests.swift */; };
 		9FAB01182CE0000100112233 /* NotationSlashBeatLayoutTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9FAB00182CE0000100112233 /* NotationSlashBeatLayoutTests.swift */; };
+		9FAB01192CE0000100112233 /* NotationHarmonyLabelLayoutTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9FAB00192CE0000100112233 /* NotationHarmonyLabelLayoutTests.swift */; };
 		9FAC01012CF0000100112233 /* ProjectEditableState.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9FAC00012CF0000100112233 /* ProjectEditableState.swift */; };
 		9FAE01012D01000100112233 /* VideoAudioExtractionService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9FAE00012D01000100112233 /* VideoAudioExtractionService.swift */; };
 		9FAE01022D01000100112233 /* VideoFollowerController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9FAE00022D01000100112233 /* VideoFollowerController.swift */; };
@@ -314,6 +315,7 @@
 		9FAB00162CE0000100112233 /* NotationMeasureGeometryTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotationMeasureGeometryTests.swift; sourceTree = "<group>"; };
 		9FAB00172CE0000100112233 /* NotationSelectionOverlayLayoutTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotationSelectionOverlayLayoutTests.swift; sourceTree = "<group>"; };
 		9FAB00182CE0000100112233 /* NotationSlashBeatLayoutTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotationSlashBeatLayoutTests.swift; sourceTree = "<group>"; };
+		9FAB00192CE0000100112233 /* NotationHarmonyLabelLayoutTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotationHarmonyLabelLayoutTests.swift; sourceTree = "<group>"; };
 		9FAC00012CF0000100112233 /* ProjectEditableState.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProjectEditableState.swift; sourceTree = "<group>"; };
 		9FAE00012D01000100112233 /* VideoAudioExtractionService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VideoAudioExtractionService.swift; sourceTree = "<group>"; };
 		9FAE00022D01000100112233 /* VideoFollowerController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VideoFollowerController.swift; sourceTree = "<group>"; };
@@ -586,6 +588,7 @@
 				9FAB00162CE0000100112233 /* NotationMeasureGeometryTests.swift */,
 				9FAB00172CE0000100112233 /* NotationSelectionOverlayLayoutTests.swift */,
 				9FAB00182CE0000100112233 /* NotationSlashBeatLayoutTests.swift */,
+				9FAB00192CE0000100112233 /* NotationHarmonyLabelLayoutTests.swift */,
 				9F8B00072C10000100112233 /* TestSupport.swift */,
 			);
 			path = JammLabTests;
@@ -979,6 +982,7 @@
 				9FAB01162CE0000100112233 /* NotationMeasureGeometryTests.swift in Sources */,
 				9FAB01172CE0000100112233 /* NotationSelectionOverlayLayoutTests.swift in Sources */,
 				9FAB01182CE0000100112233 /* NotationSlashBeatLayoutTests.swift in Sources */,
+				9FAB01192CE0000100112233 /* NotationHarmonyLabelLayoutTests.swift in Sources */,
 				9F8B01062C10000100112233 /* TestSupport.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
