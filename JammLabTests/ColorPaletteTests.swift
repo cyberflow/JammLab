@@ -1,3 +1,4 @@
+import AppKit
 import XCTest
 @testable import JammLab
 
@@ -101,5 +102,17 @@ final class ColorPaletteTests: XCTestCase {
 
         XCTAssertNil(values["accentText"])
         XCTAssertEqual(values.count, AppColorRole.allCases.count)
+    }
+
+    func testNSColorHexHelpersParseAndFormatRGBColors() throws {
+        let color = try XCTUnwrap(NSColor(hexString: "abcdef"))
+
+        XCTAssertEqual(color.hexString, "#ABCDEF")
+        XCTAssertNil(NSColor(hexString: "#12GG34"))
+        XCTAssertEqual(
+            NSColor(srgbRed: 1, green: 128.0 / 255.0, blue: 0, alpha: 1)
+                .hexString(using: .deviceRGB, fallsBackToOriginalColor: true),
+            "#FF8000"
+        )
     }
 }

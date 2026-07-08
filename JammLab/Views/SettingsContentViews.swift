@@ -37,11 +37,7 @@ struct ThemeColorsSettingsContentView: View {
 
     private static func hexString(from color: Color) -> String {
         let nsColor = NSColor(color)
-        let rgbColor = nsColor.usingColorSpace(.deviceRGB) ?? nsColor
-        let red = Int((rgbColor.redComponent * 255).rounded())
-        let green = Int((rgbColor.greenComponent * 255).rounded())
-        let blue = Int((rgbColor.blueComponent * 255).rounded())
-        return String(format: "#%02X%02X%02X", red, green, blue)
+        return nsColor.hexString(using: .deviceRGB, fallsBackToOriginalColor: true) ?? "#000000"
     }
 }
 
