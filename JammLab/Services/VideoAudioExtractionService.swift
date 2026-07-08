@@ -75,7 +75,7 @@ final class VideoAudioExtractionService {
     static func cacheKey(for mediaURL: URL) -> String {
         let identity = mediaIdentity(for: mediaURL)
         let digest = SHA256.hash(data: Data(identity.utf8))
-        return digest.map { String(format: "%02x", $0) }.joined()
+        return digest.lowercaseHexString
     }
 
     static func mediaIdentity(for mediaURL: URL) -> String {

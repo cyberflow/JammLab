@@ -28,15 +28,20 @@ struct JammValueSliderConfiguration: Equatable {
 
 enum JammValueSliderLogic {
     static func clamp(_ value: Double, configuration: JammValueSliderConfiguration) -> Double {
-        guard value.isFinite else { return configuration.minValue }
-        return min(configuration.maxValue, max(configuration.minValue, value))
+        NumericControlLogic.clamp(
+            value,
+            minValue: configuration.minValue,
+            maxValue: configuration.maxValue
+        )
     }
 
     static func snapToStep(_ value: Double, configuration: JammValueSliderConfiguration) -> Double {
-        let clampedValue = clamp(value, configuration: configuration)
-        let steps = ((clampedValue - configuration.minValue) / configuration.step).rounded()
-        let snappedValue = configuration.minValue + steps * configuration.step
-        return clamp(snappedValue, configuration: configuration)
+        NumericControlLogic.snapToStep(
+            value,
+            minValue: configuration.minValue,
+            maxValue: configuration.maxValue,
+            step: configuration.step
+        )
     }
 
     static func resetValue(configuration: JammValueSliderConfiguration) -> Double {
@@ -51,7 +56,7 @@ enum JammValueSliderLogic {
 
     static func format(_ value: Double, configuration: JammValueSliderConfiguration) -> String {
         let snappedValue = snapToStep(value, configuration: configuration)
-        return String(format: "%.\(configuration.precision)f", snappedValue)
+        return NumericControlLogic.format(snappedValue, precision: configuration.precision)
     }
 
     static func dragValue(

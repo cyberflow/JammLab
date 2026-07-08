@@ -1,6 +1,12 @@
 import CryptoKit
 import Foundation
 
+extension SHA256.Digest {
+    var lowercaseHexString: String {
+        map { String(format: "%02x", $0) }.joined()
+    }
+}
+
 final class CachedPeakformProvider: PeakformProvider {
     let samplesPerPeakLevels: [Int]
 
@@ -72,6 +78,6 @@ final class CachedPeakformProvider: PeakformProvider {
             return true
         }) {}
 
-        return hasher.finalize().map { String(format: "%02x", $0) }.joined()
+        return hasher.finalize().lowercaseHexString
     }
 }

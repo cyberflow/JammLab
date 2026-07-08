@@ -156,7 +156,7 @@ extension AudioPlayerViewModel {
     }
 
     func applyClickVolume(_ volume: Float, shouldPersist: Bool) {
-        clickVolume = min(1, max(0, volume))
+        clickVolume = clampedVolume(volume)
         playbackEngine.setClickVolume(clickVolume)
         guard shouldPersist else { return }
         UserDefaults.standard.set(clickVolume, forKey: "metronome.volume")
@@ -164,7 +164,7 @@ extension AudioPlayerViewModel {
 
     func setMainTrackVolume(_ volume: Float) {
         performUndoableEdit("Change Main Volume") {
-            mainTrackVolume = min(1, max(0, volume))
+            mainTrackVolume = clampedVolume(volume)
             playbackEngine.setMainVolume(mainTrackVolume)
         }
     }

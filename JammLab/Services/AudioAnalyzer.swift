@@ -5,16 +5,6 @@ protocol AudioAnalyzing {
     func analyze(url: URL, includesTempo: Bool, includesKey: Bool) async throws -> AnalysisResult
 }
 
-extension AudioAnalyzing {
-    func analyze(url: URL) async throws -> AnalysisResult {
-        try await analyze(url: url, includesTempo: true, includesKey: true)
-    }
-
-    func analyze(url: URL, includesTempo: Bool) async throws -> AnalysisResult {
-        try await analyze(url: url, includesTempo: includesTempo, includesKey: true)
-    }
-}
-
 enum AudioAnalyzerError: LocalizedError {
     case unsupportedBuffer
     case emptyAudio
@@ -68,19 +58,8 @@ final class AudioAnalyzer: AudioAnalyzing {
 
         try file.read(into: buffer, frameCount: AVAudioFrameCount(framesToRead))
 
-        guard let channels = buffer.floatChannelData else {
+        guard let mono = AudioSampleConverter.monoFloatSamples(from: buffer) else {
             throw AudioAnalyzerError.unsupportedBuffer
-        }
-
-        let frameLength = Int(buffer.frameLength)
-        let channelCount = Int(format.channelCount)
-        var mono = Array(repeating: Float(0), count: frameLength)
-
-        for channel in 0..<channelCount {
-            let data = channels[channel]
-            for index in 0..<frameLength {
-                mono[index] += data[index] / Float(channelCount)
-            }
         }
 
         guard mono.contains(where: { abs($0) > 0.0001 }) else {

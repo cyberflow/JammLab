@@ -28,15 +28,20 @@ struct AbletonNumberFieldConfiguration: Equatable {
 
 enum AbletonNumberFieldLogic {
     static func clamp(_ value: Double, configuration: AbletonNumberFieldConfiguration) -> Double {
-        guard value.isFinite else { return configuration.minValue }
-        return min(configuration.maxValue, max(configuration.minValue, value))
+        NumericControlLogic.clamp(
+            value,
+            minValue: configuration.minValue,
+            maxValue: configuration.maxValue
+        )
     }
 
     static func snapToStep(_ value: Double, configuration: AbletonNumberFieldConfiguration) -> Double {
-        let clampedValue = clamp(value, configuration: configuration)
-        let steps = ((clampedValue - configuration.minValue) / configuration.step).rounded()
-        let snapped = configuration.minValue + steps * configuration.step
-        return clamp(snapped, configuration: configuration)
+        NumericControlLogic.snapToStep(
+            value,
+            minValue: configuration.minValue,
+            maxValue: configuration.maxValue,
+            step: configuration.step
+        )
     }
 
     static func resetValue(configuration: AbletonNumberFieldConfiguration) -> Double {
@@ -45,7 +50,7 @@ enum AbletonNumberFieldLogic {
 
     static func format(_ value: Double, configuration: AbletonNumberFieldConfiguration) -> String {
         let snappedValue = snapToStep(value, configuration: configuration)
-        return String(format: "%.\(configuration.precision)f", snappedValue)
+        return NumericControlLogic.format(snappedValue, precision: configuration.precision)
     }
 
     static func parse(_ text: String, configuration: AbletonNumberFieldConfiguration) -> Double? {

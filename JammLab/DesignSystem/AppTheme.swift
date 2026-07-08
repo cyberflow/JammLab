@@ -65,6 +65,37 @@ struct AppThemeColors: Equatable {
     }
 }
 
+extension NSColor {
+    convenience init?(hexString: String) {
+        let trimmed = hexString.trimmingCharacters(in: .whitespacesAndNewlines).uppercased()
+        let normalized = trimmed.hasPrefix("#") ? trimmed : "#\(trimmed)"
+        let digits = String(normalized.dropFirst())
+        guard normalized.count == 7, let value = Int(digits, radix: 16) else { return nil }
+
+        let red = CGFloat((value >> 16) & 0xFF) / 255
+        let green = CGFloat((value >> 8) & 0xFF) / 255
+        let blue = CGFloat(value & 0xFF) / 255
+
+        self.init(srgbRed: red, green: green, blue: blue, alpha: 1)
+    }
+
+    var hexString: String? {
+        hexString(using: .sRGB)
+    }
+
+    func hexString(using colorSpace: NSColorSpace, fallsBackToOriginalColor: Bool = false) -> String? {
+        guard let rgbColor = usingColorSpace(colorSpace) ?? (fallsBackToOriginalColor ? self : nil) else {
+            return nil
+        }
+
+        let red = Int((rgbColor.redComponent * 255).rounded())
+        let green = Int((rgbColor.greenComponent * 255).rounded())
+        let blue = Int((rgbColor.blueComponent * 255).rounded())
+
+        return String(format: "#%02X%02X%02X", red, green, blue)
+    }
+}
+
 private struct AppThemeColorsKey: EnvironmentKey {
     static let defaultValue = AppThemeColors.default
 }

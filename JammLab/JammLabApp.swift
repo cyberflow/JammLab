@@ -68,6 +68,14 @@ struct JammLabCommands: Commands {
     @ObservedObject var recentProjectsStore: RecentProjectsStore
 
     var body: some Commands {
+        fileCommands
+        editCommands
+        windowCommands
+        toolsCommands
+        helpCommands
+    }
+
+    private var fileCommands: some Commands {
         CommandGroup(replacing: .newItem) {
             Button("New Project") {
                 viewModel.newProject()
@@ -134,7 +142,9 @@ struct JammLabCommands: Commands {
             }
             .disabled(!viewModel.canExportNotation)
         }
+    }
 
+    private var editCommands: some Commands {
         CommandGroup(replacing: .undoRedo) {
             Button("Undo") {
                 viewModel.undoLastEdit()
@@ -148,7 +158,9 @@ struct JammLabCommands: Commands {
             .keyboardShortcut("z", modifiers: [.command, .shift])
             .disabled(!viewModel.canRedo)
         }
+    }
 
+    private var windowCommands: some Commands {
         CommandGroup(after: .toolbar) {
             Button("Show Notation Window") {
                 openWindow(id: AppWindowID.notation)
@@ -160,13 +172,17 @@ struct JammLabCommands: Commands {
             }
             .disabled(!viewModel.canToggleVideoWindow)
         }
+    }
 
+    private var toolsCommands: some Commands {
         CommandMenu("Tools") {
             Button("Tuner") {
                 openWindow(id: "tuner")
             }
         }
+    }
 
+    private var helpCommands: some Commands {
         CommandGroup(replacing: .help) {
             Button("Keyboard Shortcuts") {
                 openWindow(id: "hotkeys-help")
