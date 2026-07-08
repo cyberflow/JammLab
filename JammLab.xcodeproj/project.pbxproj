@@ -113,6 +113,7 @@
 		9FAB014D2CE0000100112233 /* AppHotkeyNotationMappingTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9FAB004D2CE0000100112233 /* AppHotkeyNotationMappingTests.swift */; };
 		9FAB013A2CE0000100112233 /* AppHotkeyEventFilterTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9FAB003A2CE0000100112233 /* AppHotkeyEventFilterTests.swift */; };
 		9FAB01452CE0000100112233 /* AppHotkeyNotationEventFilterTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9FAB00452CE0000100112233 /* AppHotkeyNotationEventFilterTests.swift */; };
+		9FAB01602CE0000100112233 /* AppHotkeyNotationDurationEventFilterTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9FAB00602CE0000100112233 /* AppHotkeyNotationDurationEventFilterTests.swift */; };
 		9FAB011F2CE0000100112233 /* ViewModelResetTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9FAB001F2CE0000100112233 /* ViewModelResetTests.swift */; };
 		9FAB01202CE0000100112233 /* ViewModelPlaybackStateTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9FAB00202CE0000100112233 /* ViewModelPlaybackStateTests.swift */; };
 		9FAB01542CE0000100112233 /* ViewModelPlaybackTimelineTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9FAB00542CE0000100112233 /* ViewModelPlaybackTimelineTests.swift */; };
@@ -363,6 +364,7 @@
 		9FAB004D2CE0000100112233 /* AppHotkeyNotationMappingTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppHotkeyNotationMappingTests.swift; sourceTree = "<group>"; };
 		9FAB003A2CE0000100112233 /* AppHotkeyEventFilterTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppHotkeyEventFilterTests.swift; sourceTree = "<group>"; };
 		9FAB00452CE0000100112233 /* AppHotkeyNotationEventFilterTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppHotkeyNotationEventFilterTests.swift; sourceTree = "<group>"; };
+		9FAB00602CE0000100112233 /* AppHotkeyNotationDurationEventFilterTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppHotkeyNotationDurationEventFilterTests.swift; sourceTree = "<group>"; };
 		9FAB001F2CE0000100112233 /* ViewModelResetTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ViewModelResetTests.swift; sourceTree = "<group>"; };
 		9FAB00202CE0000100112233 /* ViewModelPlaybackStateTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ViewModelPlaybackStateTests.swift; sourceTree = "<group>"; };
 		9FAB00542CE0000100112233 /* ViewModelPlaybackTimelineTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ViewModelPlaybackTimelineTests.swift; sourceTree = "<group>"; };
@@ -699,6 +701,7 @@
 				9FAB004D2CE0000100112233 /* AppHotkeyNotationMappingTests.swift */,
 				9FAB003A2CE0000100112233 /* AppHotkeyEventFilterTests.swift */,
 				9FAB00452CE0000100112233 /* AppHotkeyNotationEventFilterTests.swift */,
+				9FAB00602CE0000100112233 /* AppHotkeyNotationDurationEventFilterTests.swift */,
 				9FAB001F2CE0000100112233 /* ViewModelResetTests.swift */,
 				9FAB00202CE0000100112233 /* ViewModelPlaybackStateTests.swift */,
 				9FAB00542CE0000100112233 /* ViewModelPlaybackTimelineTests.swift */,
@@ -1155,6 +1158,7 @@
 				9FAB014D2CE0000100112233 /* AppHotkeyNotationMappingTests.swift in Sources */,
 				9FAB013A2CE0000100112233 /* AppHotkeyEventFilterTests.swift in Sources */,
 				9FAB01452CE0000100112233 /* AppHotkeyNotationEventFilterTests.swift in Sources */,
+				9FAB01602CE0000100112233 /* AppHotkeyNotationDurationEventFilterTests.swift in Sources */,
 				9FAB011F2CE0000100112233 /* ViewModelResetTests.swift in Sources */,
 				9FAB01202CE0000100112233 /* ViewModelPlaybackStateTests.swift in Sources */,
 				9FAB01542CE0000100112233 /* ViewModelPlaybackTimelineTests.swift in Sources */,
