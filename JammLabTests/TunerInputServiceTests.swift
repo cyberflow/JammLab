@@ -3,7 +3,7 @@ import CoreAudio
 import XCTest
 @testable import JammLab
 
-final class SettingsAndControlLogicTests: XCTestCase {
+final class TunerInputServiceTests: XCTestCase {
     func testTunerInputServiceErrorNamesInvalidElementStatusForUsers() {
         XCTAssertEqual(
             TunerInputServiceError.inputDeviceSwitchFailed(-10877).localizedDescription,
