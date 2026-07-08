@@ -153,6 +153,7 @@
 		9FAB014F2CE0000100112233 /* TunerInputServiceAnalysisTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9FAB004F2CE0000100112233 /* TunerInputServiceAnalysisTests.swift */; };
 		9FAB013B2CE0000100112233 /* TunerInputServiceNoteHoldTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9FAB003B2CE0000100112233 /* TunerInputServiceNoteHoldTests.swift */; };
 		9FAB012D2CE0000100112233 /* ControlLogicTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9FAB002D2CE0000100112233 /* ControlLogicTests.swift */; };
+		9FAB01632CE0000100112233 /* JammValueSliderLogicTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9FAB00632CE0000100112233 /* JammValueSliderLogicTests.swift */; };
 		9FAB012E2CE0000100112233 /* RecentProjectsStoreTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9FAB002E2CE0000100112233 /* RecentProjectsStoreTests.swift */; };
 		9FAB012F2CE0000100112233 /* ColorPaletteTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9FAB002F2CE0000100112233 /* ColorPaletteTests.swift */; };
 		9FAB01302CE0000100112233 /* ClickSoundSettingsTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9FAB00302CE0000100112233 /* ClickSoundSettingsTests.swift */; };
@@ -406,6 +407,7 @@
 		9FAB004F2CE0000100112233 /* TunerInputServiceAnalysisTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TunerInputServiceAnalysisTests.swift; sourceTree = "<group>"; };
 		9FAB003B2CE0000100112233 /* TunerInputServiceNoteHoldTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TunerInputServiceNoteHoldTests.swift; sourceTree = "<group>"; };
 		9FAB002D2CE0000100112233 /* ControlLogicTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ControlLogicTests.swift; sourceTree = "<group>"; };
+		9FAB00632CE0000100112233 /* JammValueSliderLogicTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = JammValueSliderLogicTests.swift; sourceTree = "<group>"; };
 		9FAB002E2CE0000100112233 /* RecentProjectsStoreTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RecentProjectsStoreTests.swift; sourceTree = "<group>"; };
 		9FAB002F2CE0000100112233 /* ColorPaletteTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ColorPaletteTests.swift; sourceTree = "<group>"; };
 		9FAB00302CE0000100112233 /* ClickSoundSettingsTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ClickSoundSettingsTests.swift; sourceTree = "<group>"; };
@@ -745,6 +747,7 @@
 				9FAB004F2CE0000100112233 /* TunerInputServiceAnalysisTests.swift */,
 				9FAB003B2CE0000100112233 /* TunerInputServiceNoteHoldTests.swift */,
 				9FAB002D2CE0000100112233 /* ControlLogicTests.swift */,
+				9FAB00632CE0000100112233 /* JammValueSliderLogicTests.swift */,
 				9FAB002E2CE0000100112233 /* RecentProjectsStoreTests.swift */,
 				9FAB002F2CE0000100112233 /* ColorPaletteTests.swift */,
 				9FAB00302CE0000100112233 /* ClickSoundSettingsTests.swift */,
@@ -1204,6 +1207,7 @@
 				9FAB014F2CE0000100112233 /* TunerInputServiceAnalysisTests.swift in Sources */,
 				9FAB013B2CE0000100112233 /* TunerInputServiceNoteHoldTests.swift in Sources */,
 				9FAB012D2CE0000100112233 /* ControlLogicTests.swift in Sources */,
+				9FAB01632CE0000100112233 /* JammValueSliderLogicTests.swift in Sources */,
 				9FAB012E2CE0000100112233 /* RecentProjectsStoreTests.swift in Sources */,
 				9FAB012F2CE0000100112233 /* ColorPaletteTests.swift in Sources */,
 				9FAB01302CE0000100112233 /* ClickSoundSettingsTests.swift in Sources */,
