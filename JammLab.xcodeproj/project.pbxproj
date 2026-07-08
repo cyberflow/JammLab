@@ -129,6 +129,9 @@
 		9FAB012B2CE0000100112233 /* ViewModelVideoProjectPersistenceTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9FAB002B2CE0000100112233 /* ViewModelVideoProjectPersistenceTests.swift */; };
 		9FAB012C2CE0000100112233 /* ViewModelProjectSaveCloseTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9FAB002C2CE0000100112233 /* ViewModelProjectSaveCloseTests.swift */; };
 		9FAB01052CE0000100112233 /* StemWorkflowLogicTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9FAB00052CE0000100112233 /* StemWorkflowLogicTests.swift */; };
+		9FAB01492CE0000100112233 /* StemWorkflowPersistenceTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9FAB00492CE0000100112233 /* StemWorkflowPersistenceTests.swift */; };
+		9FAB014A2CE0000100112233 /* MediaImportLogicTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9FAB004A2CE0000100112233 /* MediaImportLogicTests.swift */; };
+		9FAB014B2CE0000100112233 /* StemBackendResolverTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9FAB004B2CE0000100112233 /* StemBackendResolverTests.swift */; };
 		9FAB013C2CE0000100112233 /* StemJobWorkflowTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9FAB003C2CE0000100112233 /* StemJobWorkflowTests.swift */; };
 		9FAB01392CE0000100112233 /* ProjectArtifactStoreTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9FAB00392CE0000100112233 /* ProjectArtifactStoreTests.swift */; };
 		9FAB01412CE0000100112233 /* ProjectPersistenceCoordinatorArtifactTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9FAB00412CE0000100112233 /* ProjectPersistenceCoordinatorArtifactTests.swift */; };
@@ -363,6 +366,9 @@
 		9FAB002B2CE0000100112233 /* ViewModelVideoProjectPersistenceTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ViewModelVideoProjectPersistenceTests.swift; sourceTree = "<group>"; };
 		9FAB002C2CE0000100112233 /* ViewModelProjectSaveCloseTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ViewModelProjectSaveCloseTests.swift; sourceTree = "<group>"; };
 		9FAB00052CE0000100112233 /* StemWorkflowLogicTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StemWorkflowLogicTests.swift; sourceTree = "<group>"; };
+		9FAB00492CE0000100112233 /* StemWorkflowPersistenceTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StemWorkflowPersistenceTests.swift; sourceTree = "<group>"; };
+		9FAB004A2CE0000100112233 /* MediaImportLogicTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MediaImportLogicTests.swift; sourceTree = "<group>"; };
+		9FAB004B2CE0000100112233 /* StemBackendResolverTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StemBackendResolverTests.swift; sourceTree = "<group>"; };
 		9FAB003C2CE0000100112233 /* StemJobWorkflowTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StemJobWorkflowTests.swift; sourceTree = "<group>"; };
 		9FAB00392CE0000100112233 /* ProjectArtifactStoreTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProjectArtifactStoreTests.swift; sourceTree = "<group>"; };
 		9FAB00412CE0000100112233 /* ProjectPersistenceCoordinatorArtifactTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProjectPersistenceCoordinatorArtifactTests.swift; sourceTree = "<group>"; };
@@ -682,6 +688,9 @@
 				9FAB002B2CE0000100112233 /* ViewModelVideoProjectPersistenceTests.swift */,
 				9FAB002C2CE0000100112233 /* ViewModelProjectSaveCloseTests.swift */,
 				9FAB00052CE0000100112233 /* StemWorkflowLogicTests.swift */,
+				9FAB00492CE0000100112233 /* StemWorkflowPersistenceTests.swift */,
+				9FAB004A2CE0000100112233 /* MediaImportLogicTests.swift */,
+				9FAB004B2CE0000100112233 /* StemBackendResolverTests.swift */,
 				9FAB003C2CE0000100112233 /* StemJobWorkflowTests.swift */,
 				9FAB00392CE0000100112233 /* ProjectArtifactStoreTests.swift */,
 				9FAB00412CE0000100112233 /* ProjectPersistenceCoordinatorArtifactTests.swift */,
@@ -1122,6 +1131,9 @@
 				9FAB012B2CE0000100112233 /* ViewModelVideoProjectPersistenceTests.swift in Sources */,
 				9FAB012C2CE0000100112233 /* ViewModelProjectSaveCloseTests.swift in Sources */,
 				9FAB01052CE0000100112233 /* StemWorkflowLogicTests.swift in Sources */,
+				9FAB01492CE0000100112233 /* StemWorkflowPersistenceTests.swift in Sources */,
+				9FAB014A2CE0000100112233 /* MediaImportLogicTests.swift in Sources */,
+				9FAB014B2CE0000100112233 /* StemBackendResolverTests.swift in Sources */,
 				9FAB013C2CE0000100112233 /* StemJobWorkflowTests.swift in Sources */,
 				9FAB01392CE0000100112233 /* ProjectArtifactStoreTests.swift in Sources */,
 				9FAB01412CE0000100112233 /* ProjectPersistenceCoordinatorArtifactTests.swift in Sources */,
