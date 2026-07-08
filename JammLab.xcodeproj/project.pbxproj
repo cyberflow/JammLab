@@ -126,6 +126,8 @@
 		9FAB012D2CE0000100112233 /* ControlLogicTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9FAB002D2CE0000100112233 /* ControlLogicTests.swift */; };
 		9FAB012E2CE0000100112233 /* RecentProjectsStoreTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9FAB002E2CE0000100112233 /* RecentProjectsStoreTests.swift */; };
 		9FAB012F2CE0000100112233 /* ColorPaletteTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9FAB002F2CE0000100112233 /* ColorPaletteTests.swift */; };
+		9FAB01302CE0000100112233 /* ClickSoundSettingsTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9FAB00302CE0000100112233 /* ClickSoundSettingsTests.swift */; };
+		9FAB01312CE0000100112233 /* AppSettingsStoreTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9FAB00312CE0000100112233 /* AppSettingsStoreTests.swift */; };
 		9FAB01082CE0000100112233 /* ClickRenderStateTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9FAB00082CE0000100112233 /* ClickRenderStateTests.swift */; };
 		9FAB01092CE0000100112233 /* MetronomeClickSchedulerTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9FAB00092CE0000100112233 /* MetronomeClickSchedulerTests.swift */; };
 		9FAB010A2CE0000100112233 /* TempoGridCalculatorTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9FAB000A2CE0000100112233 /* TempoGridCalculatorTests.swift */; };
@@ -335,6 +337,8 @@
 		9FAB002D2CE0000100112233 /* ControlLogicTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ControlLogicTests.swift; sourceTree = "<group>"; };
 		9FAB002E2CE0000100112233 /* RecentProjectsStoreTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RecentProjectsStoreTests.swift; sourceTree = "<group>"; };
 		9FAB002F2CE0000100112233 /* ColorPaletteTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ColorPaletteTests.swift; sourceTree = "<group>"; };
+		9FAB00302CE0000100112233 /* ClickSoundSettingsTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ClickSoundSettingsTests.swift; sourceTree = "<group>"; };
+		9FAB00312CE0000100112233 /* AppSettingsStoreTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppSettingsStoreTests.swift; sourceTree = "<group>"; };
 		9FAB00082CE0000100112233 /* ClickRenderStateTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ClickRenderStateTests.swift; sourceTree = "<group>"; };
 		9FAB00092CE0000100112233 /* MetronomeClickSchedulerTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MetronomeClickSchedulerTests.swift; sourceTree = "<group>"; };
 		9FAB000A2CE0000100112233 /* TempoGridCalculatorTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TempoGridCalculatorTests.swift; sourceTree = "<group>"; };
@@ -629,6 +633,8 @@
 				9FAB002D2CE0000100112233 /* ControlLogicTests.swift */,
 				9FAB002E2CE0000100112233 /* RecentProjectsStoreTests.swift */,
 				9FAB002F2CE0000100112233 /* ColorPaletteTests.swift */,
+				9FAB00302CE0000100112233 /* ClickSoundSettingsTests.swift */,
+				9FAB00312CE0000100112233 /* AppSettingsStoreTests.swift */,
 				9FAB00082CE0000100112233 /* ClickRenderStateTests.swift */,
 				9FAB00092CE0000100112233 /* MetronomeClickSchedulerTests.swift */,
 				9FAB000A2CE0000100112233 /* TempoGridCalculatorTests.swift */,
@@ -1044,6 +1050,8 @@
 				9FAB012D2CE0000100112233 /* ControlLogicTests.swift in Sources */,
 				9FAB012E2CE0000100112233 /* RecentProjectsStoreTests.swift in Sources */,
 				9FAB012F2CE0000100112233 /* ColorPaletteTests.swift in Sources */,
+				9FAB01302CE0000100112233 /* ClickSoundSettingsTests.swift in Sources */,
+				9FAB01312CE0000100112233 /* AppSettingsStoreTests.swift in Sources */,
 				9FAB01082CE0000100112233 /* ClickRenderStateTests.swift in Sources */,
 				9FAB01092CE0000100112233 /* MetronomeClickSchedulerTests.swift in Sources */,
 				9FAB010A2CE0000100112233 /* TempoGridCalculatorTests.swift in Sources */,
