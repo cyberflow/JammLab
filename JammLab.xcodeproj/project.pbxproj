@@ -181,6 +181,7 @@
 		9FAB01462CE0000100112233 /* NotationViewportTempoMapTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9FAB00462CE0000100112233 /* NotationViewportTempoMapTests.swift */; };
 		9FAB01162CE0000100112233 /* NotationMeasureGeometryTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9FAB00162CE0000100112233 /* NotationMeasureGeometryTests.swift */; };
 		9FAB01432CE0000100112233 /* NotationAttributeGeometryTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9FAB00432CE0000100112233 /* NotationAttributeGeometryTests.swift */; };
+		9FAB01612CE0000100112233 /* NotationAttributeStaffInsetTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9FAB00612CE0000100112233 /* NotationAttributeStaffInsetTests.swift */; };
 		9FAB013F2CE0000100112233 /* NotationFallbackGeometryTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9FAB003F2CE0000100112233 /* NotationFallbackGeometryTests.swift */; };
 		9FAB01172CE0000100112233 /* NotationSelectionOverlayLayoutTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9FAB00172CE0000100112233 /* NotationSelectionOverlayLayoutTests.swift */; };
 		9FAB01182CE0000100112233 /* NotationSlashBeatLayoutTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9FAB00182CE0000100112233 /* NotationSlashBeatLayoutTests.swift */; };
@@ -432,6 +433,7 @@
 		9FAB00462CE0000100112233 /* NotationViewportTempoMapTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotationViewportTempoMapTests.swift; sourceTree = "<group>"; };
 		9FAB00162CE0000100112233 /* NotationMeasureGeometryTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotationMeasureGeometryTests.swift; sourceTree = "<group>"; };
 		9FAB00432CE0000100112233 /* NotationAttributeGeometryTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotationAttributeGeometryTests.swift; sourceTree = "<group>"; };
+		9FAB00612CE0000100112233 /* NotationAttributeStaffInsetTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotationAttributeStaffInsetTests.swift; sourceTree = "<group>"; };
 		9FAB003F2CE0000100112233 /* NotationFallbackGeometryTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotationFallbackGeometryTests.swift; sourceTree = "<group>"; };
 		9FAB00172CE0000100112233 /* NotationSelectionOverlayLayoutTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotationSelectionOverlayLayoutTests.swift; sourceTree = "<group>"; };
 		9FAB00182CE0000100112233 /* NotationSlashBeatLayoutTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotationSlashBeatLayoutTests.swift; sourceTree = "<group>"; };
@@ -769,6 +771,7 @@
 				9FAB00462CE0000100112233 /* NotationViewportTempoMapTests.swift */,
 				9FAB00162CE0000100112233 /* NotationMeasureGeometryTests.swift */,
 				9FAB00432CE0000100112233 /* NotationAttributeGeometryTests.swift */,
+				9FAB00612CE0000100112233 /* NotationAttributeStaffInsetTests.swift */,
 				9FAB003F2CE0000100112233 /* NotationFallbackGeometryTests.swift */,
 				9FAB00172CE0000100112233 /* NotationSelectionOverlayLayoutTests.swift */,
 				9FAB00182CE0000100112233 /* NotationSlashBeatLayoutTests.swift */,
@@ -1226,6 +1229,7 @@
 				9FAB01462CE0000100112233 /* NotationViewportTempoMapTests.swift in Sources */,
 				9FAB01162CE0000100112233 /* NotationMeasureGeometryTests.swift in Sources */,
 				9FAB01432CE0000100112233 /* NotationAttributeGeometryTests.swift in Sources */,
+				9FAB01612CE0000100112233 /* NotationAttributeStaffInsetTests.swift in Sources */,
 				9FAB013F2CE0000100112233 /* NotationFallbackGeometryTests.swift in Sources */,
 				9FAB01172CE0000100112233 /* NotationSelectionOverlayLayoutTests.swift in Sources */,
 				9FAB01182CE0000100112233 /* NotationSlashBeatLayoutTests.swift in Sources */,
