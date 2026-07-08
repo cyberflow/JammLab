@@ -141,6 +141,7 @@
 		9FAB01062CE0000100112233 /* StemHelperProcessControllerTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9FAB00062CE0000100112233 /* StemHelperProcessControllerTests.swift */; };
 		9FAB01072CE0000100112233 /* TunerInputServiceTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9FAB00072CE0000100112233 /* TunerInputServiceTests.swift */; };
 		9FAB013E2CE0000100112233 /* TunerInputServiceSignalTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9FAB003E2CE0000100112233 /* TunerInputServiceSignalTests.swift */; };
+		9FAB014F2CE0000100112233 /* TunerInputServiceAnalysisTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9FAB004F2CE0000100112233 /* TunerInputServiceAnalysisTests.swift */; };
 		9FAB013B2CE0000100112233 /* TunerInputServiceNoteHoldTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9FAB003B2CE0000100112233 /* TunerInputServiceNoteHoldTests.swift */; };
 		9FAB012D2CE0000100112233 /* ControlLogicTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9FAB002D2CE0000100112233 /* ControlLogicTests.swift */; };
 		9FAB012E2CE0000100112233 /* RecentProjectsStoreTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9FAB002E2CE0000100112233 /* RecentProjectsStoreTests.swift */; };
@@ -382,6 +383,7 @@
 		9FAB00062CE0000100112233 /* StemHelperProcessControllerTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StemHelperProcessControllerTests.swift; sourceTree = "<group>"; };
 		9FAB00072CE0000100112233 /* TunerInputServiceTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TunerInputServiceTests.swift; sourceTree = "<group>"; };
 		9FAB003E2CE0000100112233 /* TunerInputServiceSignalTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TunerInputServiceSignalTests.swift; sourceTree = "<group>"; };
+		9FAB004F2CE0000100112233 /* TunerInputServiceAnalysisTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TunerInputServiceAnalysisTests.swift; sourceTree = "<group>"; };
 		9FAB003B2CE0000100112233 /* TunerInputServiceNoteHoldTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TunerInputServiceNoteHoldTests.swift; sourceTree = "<group>"; };
 		9FAB002D2CE0000100112233 /* ControlLogicTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ControlLogicTests.swift; sourceTree = "<group>"; };
 		9FAB002E2CE0000100112233 /* RecentProjectsStoreTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RecentProjectsStoreTests.swift; sourceTree = "<group>"; };
@@ -709,6 +711,7 @@
 				9FAB00062CE0000100112233 /* StemHelperProcessControllerTests.swift */,
 				9FAB00072CE0000100112233 /* TunerInputServiceTests.swift */,
 				9FAB003E2CE0000100112233 /* TunerInputServiceSignalTests.swift */,
+				9FAB004F2CE0000100112233 /* TunerInputServiceAnalysisTests.swift */,
 				9FAB003B2CE0000100112233 /* TunerInputServiceNoteHoldTests.swift */,
 				9FAB002D2CE0000100112233 /* ControlLogicTests.swift */,
 				9FAB002E2CE0000100112233 /* RecentProjectsStoreTests.swift */,
@@ -1156,6 +1159,7 @@
 				9FAB01062CE0000100112233 /* StemHelperProcessControllerTests.swift in Sources */,
 				9FAB01072CE0000100112233 /* TunerInputServiceTests.swift in Sources */,
 				9FAB013E2CE0000100112233 /* TunerInputServiceSignalTests.swift in Sources */,
+				9FAB014F2CE0000100112233 /* TunerInputServiceAnalysisTests.swift in Sources */,
 				9FAB013B2CE0000100112233 /* TunerInputServiceNoteHoldTests.swift in Sources */,
 				9FAB012D2CE0000100112233 /* ControlLogicTests.swift in Sources */,
 				9FAB012E2CE0000100112233 /* RecentProjectsStoreTests.swift in Sources */,
