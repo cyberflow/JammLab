@@ -40,6 +40,24 @@ enum AppKitDragThreshold {
     }
 }
 
+enum NumericControlLogic {
+    static func clamp(_ value: Double, minValue: Double, maxValue: Double) -> Double {
+        guard value.isFinite else { return minValue }
+        return min(maxValue, max(minValue, value))
+    }
+
+    static func snapToStep(_ value: Double, minValue: Double, maxValue: Double, step: Double) -> Double {
+        let clampedValue = clamp(value, minValue: minValue, maxValue: maxValue)
+        let steps = ((clampedValue - minValue) / step).rounded()
+        let snappedValue = minValue + steps * step
+        return clamp(snappedValue, minValue: minValue, maxValue: maxValue)
+    }
+
+    static func format(_ value: Double, precision: Int) -> String {
+        String(format: "%.\(precision)f", value)
+    }
+}
+
 extension NSView {
     func configureCompactVerticalControlSizing() {
         setContentHuggingPriority(.required, for: .vertical)
