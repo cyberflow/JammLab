@@ -106,6 +106,7 @@
 		9FAB01012CE0000100112233 /* AudioFileImporterDurationTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9FAB00012CE0000100112233 /* AudioFileImporterDurationTests.swift */; };
 		9FAB01022CE0000100112233 /* PeakformLogicTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9FAB00022CE0000100112233 /* PeakformLogicTests.swift */; };
 		9FAB01032CE0000100112233 /* TimelineProjectLogicTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9FAB00032CE0000100112233 /* TimelineProjectLogicTests.swift */; };
+		9FAB01422CE0000100112233 /* TimecodedNoteColorTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9FAB00422CE0000100112233 /* TimecodedNoteColorTests.swift */; };
 		9FAB01372CE0000100112233 /* TimelineViewportLogicTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9FAB00372CE0000100112233 /* TimelineViewportLogicTests.swift */; };
 		9FAB01382CE0000100112233 /* AppHotkeyTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9FAB00382CE0000100112233 /* AppHotkeyTests.swift */; };
 		9FAB013A2CE0000100112233 /* AppHotkeyEventFilterTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9FAB003A2CE0000100112233 /* AppHotkeyEventFilterTests.swift */; };
@@ -127,6 +128,7 @@
 		9FAB01052CE0000100112233 /* StemWorkflowLogicTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9FAB00052CE0000100112233 /* StemWorkflowLogicTests.swift */; };
 		9FAB013C2CE0000100112233 /* StemJobWorkflowTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9FAB003C2CE0000100112233 /* StemJobWorkflowTests.swift */; };
 		9FAB01392CE0000100112233 /* ProjectArtifactStoreTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9FAB00392CE0000100112233 /* ProjectArtifactStoreTests.swift */; };
+		9FAB01412CE0000100112233 /* ProjectPersistenceCoordinatorArtifactTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9FAB00412CE0000100112233 /* ProjectPersistenceCoordinatorArtifactTests.swift */; };
 		9FAB01062CE0000100112233 /* StemHelperProcessControllerTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9FAB00062CE0000100112233 /* StemHelperProcessControllerTests.swift */; };
 		9FAB01072CE0000100112233 /* TunerInputServiceTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9FAB00072CE0000100112233 /* TunerInputServiceTests.swift */; };
 		9FAB013E2CE0000100112233 /* TunerInputServiceSignalTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9FAB003E2CE0000100112233 /* TunerInputServiceSignalTests.swift */; };
@@ -147,6 +149,7 @@
 		9FAB010B2CE0000100112233 /* BeatGridAndTempoMapTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9FAB000B2CE0000100112233 /* BeatGridAndTempoMapTests.swift */; };
 		9FAB010C2CE0000100112233 /* NotationPrimitivesTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9FAB000C2CE0000100112233 /* NotationPrimitivesTests.swift */; };
 		9FAB010D2CE0000100112233 /* NotationMusicXMLTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9FAB000D2CE0000100112233 /* NotationMusicXMLTests.swift */; };
+		9FAB01402CE0000100112233 /* NotationMusicXMLChordParserTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9FAB00402CE0000100112233 /* NotationMusicXMLChordParserTests.swift */; };
 		9FAB010E2CE0000100112233 /* NotationKeySignatureTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9FAB000E2CE0000100112233 /* NotationKeySignatureTests.swift */; };
 		9FAB010F2CE0000100112233 /* NotationAttributeDisplayTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9FAB000F2CE0000100112233 /* NotationAttributeDisplayTests.swift */; };
 		9FAB01102CE0000100112233 /* NotationRegionLabelTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9FAB00102CE0000100112233 /* NotationRegionLabelTests.swift */; };
@@ -331,6 +334,7 @@
 		9FAB00012CE0000100112233 /* AudioFileImporterDurationTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AudioFileImporterDurationTests.swift; sourceTree = "<group>"; };
 		9FAB00022CE0000100112233 /* PeakformLogicTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PeakformLogicTests.swift; sourceTree = "<group>"; };
 		9FAB00032CE0000100112233 /* TimelineProjectLogicTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TimelineProjectLogicTests.swift; sourceTree = "<group>"; };
+		9FAB00422CE0000100112233 /* TimecodedNoteColorTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TimecodedNoteColorTests.swift; sourceTree = "<group>"; };
 		9FAB00372CE0000100112233 /* TimelineViewportLogicTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TimelineViewportLogicTests.swift; sourceTree = "<group>"; };
 		9FAB00382CE0000100112233 /* AppHotkeyTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppHotkeyTests.swift; sourceTree = "<group>"; };
 		9FAB003A2CE0000100112233 /* AppHotkeyEventFilterTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppHotkeyEventFilterTests.swift; sourceTree = "<group>"; };
@@ -352,6 +356,7 @@
 		9FAB00052CE0000100112233 /* StemWorkflowLogicTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StemWorkflowLogicTests.swift; sourceTree = "<group>"; };
 		9FAB003C2CE0000100112233 /* StemJobWorkflowTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StemJobWorkflowTests.swift; sourceTree = "<group>"; };
 		9FAB00392CE0000100112233 /* ProjectArtifactStoreTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProjectArtifactStoreTests.swift; sourceTree = "<group>"; };
+		9FAB00412CE0000100112233 /* ProjectPersistenceCoordinatorArtifactTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProjectPersistenceCoordinatorArtifactTests.swift; sourceTree = "<group>"; };
 		9FAB00062CE0000100112233 /* StemHelperProcessControllerTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StemHelperProcessControllerTests.swift; sourceTree = "<group>"; };
 		9FAB00072CE0000100112233 /* TunerInputServiceTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TunerInputServiceTests.swift; sourceTree = "<group>"; };
 		9FAB003E2CE0000100112233 /* TunerInputServiceSignalTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TunerInputServiceSignalTests.swift; sourceTree = "<group>"; };
@@ -372,6 +377,7 @@
 		9FAB000B2CE0000100112233 /* BeatGridAndTempoMapTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BeatGridAndTempoMapTests.swift; sourceTree = "<group>"; };
 		9FAB000C2CE0000100112233 /* NotationPrimitivesTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotationPrimitivesTests.swift; sourceTree = "<group>"; };
 		9FAB000D2CE0000100112233 /* NotationMusicXMLTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotationMusicXMLTests.swift; sourceTree = "<group>"; };
+		9FAB00402CE0000100112233 /* NotationMusicXMLChordParserTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotationMusicXMLChordParserTests.swift; sourceTree = "<group>"; };
 		9FAB000E2CE0000100112233 /* NotationKeySignatureTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotationKeySignatureTests.swift; sourceTree = "<group>"; };
 		9FAB000F2CE0000100112233 /* NotationAttributeDisplayTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotationAttributeDisplayTests.swift; sourceTree = "<group>"; };
 		9FAB00102CE0000100112233 /* NotationRegionLabelTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotationRegionLabelTests.swift; sourceTree = "<group>"; };
@@ -641,6 +647,7 @@
 				9FAB00022CE0000100112233 /* PeakformLogicTests.swift */,
 				9FBA00052D40000100112233 /* PitchDetectionTests.swift */,
 				9FAB00032CE0000100112233 /* TimelineProjectLogicTests.swift */,
+				9FAB00422CE0000100112233 /* TimecodedNoteColorTests.swift */,
 				9FAB00372CE0000100112233 /* TimelineViewportLogicTests.swift */,
 				9FAB00382CE0000100112233 /* AppHotkeyTests.swift */,
 				9FAB003A2CE0000100112233 /* AppHotkeyEventFilterTests.swift */,
@@ -662,6 +669,7 @@
 				9FAB00052CE0000100112233 /* StemWorkflowLogicTests.swift */,
 				9FAB003C2CE0000100112233 /* StemJobWorkflowTests.swift */,
 				9FAB00392CE0000100112233 /* ProjectArtifactStoreTests.swift */,
+				9FAB00412CE0000100112233 /* ProjectPersistenceCoordinatorArtifactTests.swift */,
 				9FAB00062CE0000100112233 /* StemHelperProcessControllerTests.swift */,
 				9FAB00072CE0000100112233 /* TunerInputServiceTests.swift */,
 				9FAB003E2CE0000100112233 /* TunerInputServiceSignalTests.swift */,
@@ -682,6 +690,7 @@
 				9FAB000B2CE0000100112233 /* BeatGridAndTempoMapTests.swift */,
 				9FAB000C2CE0000100112233 /* NotationPrimitivesTests.swift */,
 				9FAB000D2CE0000100112233 /* NotationMusicXMLTests.swift */,
+				9FAB00402CE0000100112233 /* NotationMusicXMLChordParserTests.swift */,
 				9FAB000E2CE0000100112233 /* NotationKeySignatureTests.swift */,
 				9FAB000F2CE0000100112233 /* NotationAttributeDisplayTests.swift */,
 				9FAB00102CE0000100112233 /* NotationRegionLabelTests.swift */,
@@ -1072,6 +1081,7 @@
 				9FAB01022CE0000100112233 /* PeakformLogicTests.swift in Sources */,
 				9FBA01052D40000100112233 /* PitchDetectionTests.swift in Sources */,
 				9FAB01032CE0000100112233 /* TimelineProjectLogicTests.swift in Sources */,
+				9FAB01422CE0000100112233 /* TimecodedNoteColorTests.swift in Sources */,
 				9FAB01372CE0000100112233 /* TimelineViewportLogicTests.swift in Sources */,
 				9FAB01382CE0000100112233 /* AppHotkeyTests.swift in Sources */,
 				9FAB013A2CE0000100112233 /* AppHotkeyEventFilterTests.swift in Sources */,
@@ -1093,6 +1103,7 @@
 				9FAB01052CE0000100112233 /* StemWorkflowLogicTests.swift in Sources */,
 				9FAB013C2CE0000100112233 /* StemJobWorkflowTests.swift in Sources */,
 				9FAB01392CE0000100112233 /* ProjectArtifactStoreTests.swift in Sources */,
+				9FAB01412CE0000100112233 /* ProjectPersistenceCoordinatorArtifactTests.swift in Sources */,
 				9FAB01062CE0000100112233 /* StemHelperProcessControllerTests.swift in Sources */,
 				9FAB01072CE0000100112233 /* TunerInputServiceTests.swift in Sources */,
 				9FAB013E2CE0000100112233 /* TunerInputServiceSignalTests.swift in Sources */,
@@ -1113,6 +1124,7 @@
 				9FAB010B2CE0000100112233 /* BeatGridAndTempoMapTests.swift in Sources */,
 				9FAB010C2CE0000100112233 /* NotationPrimitivesTests.swift in Sources */,
 				9FAB010D2CE0000100112233 /* NotationMusicXMLTests.swift in Sources */,
+				9FAB01402CE0000100112233 /* NotationMusicXMLChordParserTests.swift in Sources */,
 				9FAB010E2CE0000100112233 /* NotationKeySignatureTests.swift in Sources */,
 				9FAB010F2CE0000100112233 /* NotationAttributeDisplayTests.swift in Sources */,
 				9FAB01102CE0000100112233 /* NotationRegionLabelTests.swift in Sources */,
