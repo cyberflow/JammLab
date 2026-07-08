@@ -204,6 +204,7 @@
 		9FBA01032D40000100112233 /* TunerInputService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9FBA00032D40000100112233 /* TunerInputService.swift */; };
 		9FBA01042D40000100112233 /* TunerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9FBA00042D40000100112233 /* TunerView.swift */; };
 		9FBA01052D40000100112233 /* PitchDetectionTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9FBA00052D40000100112233 /* PitchDetectionTests.swift */; };
+		9FBA01062D40000100112233 /* AudioSampleConverterTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9FBA00062D40000100112233 /* AudioSampleConverterTests.swift */; };
 		9FD001012D20000100112233 /* ControlHelpText.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9FD001002D20000100112233 /* ControlHelpText.swift */; };
 /* End PBXBuildFile section */
 
@@ -442,6 +443,7 @@
 		9FBA00032D40000100112233 /* TunerInputService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TunerInputService.swift; sourceTree = "<group>"; };
 		9FBA00042D40000100112233 /* TunerView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TunerView.swift; sourceTree = "<group>"; };
 		9FBA00052D40000100112233 /* PitchDetectionTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PitchDetectionTests.swift; sourceTree = "<group>"; };
+		9FBA00062D40000100112233 /* AudioSampleConverterTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AudioSampleConverterTests.swift; sourceTree = "<group>"; };
 		9FC100012D10000100112233 /* Base.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = Base.xcconfig; sourceTree = "<group>"; };
 		9FC100022D10000100112233 /* Debug.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = Debug.xcconfig; sourceTree = "<group>"; };
 		9FC100032D10000100112233 /* Release.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = Release.xcconfig; sourceTree = "<group>"; };
@@ -666,6 +668,7 @@
 				9FAB00012CE0000100112233 /* AudioFileImporterDurationTests.swift */,
 				9FAB00022CE0000100112233 /* PeakformLogicTests.swift */,
 				9FBA00052D40000100112233 /* PitchDetectionTests.swift */,
+				9FBA00062D40000100112233 /* AudioSampleConverterTests.swift */,
 				9FAB00032CE0000100112233 /* TimelineProjectLogicTests.swift */,
 				9FAB00422CE0000100112233 /* TimecodedNoteColorTests.swift */,
 				9FAB00372CE0000100112233 /* TimelineViewportLogicTests.swift */,
@@ -1110,6 +1113,7 @@
 				9FAB01012CE0000100112233 /* AudioFileImporterDurationTests.swift in Sources */,
 				9FAB01022CE0000100112233 /* PeakformLogicTests.swift in Sources */,
 				9FBA01052D40000100112233 /* PitchDetectionTests.swift in Sources */,
+				9FBA01062D40000100112233 /* AudioSampleConverterTests.swift in Sources */,
 				9FAB01032CE0000100112233 /* TimelineProjectLogicTests.swift in Sources */,
 				9FAB01422CE0000100112233 /* TimecodedNoteColorTests.swift in Sources */,
 				9FAB01372CE0000100112233 /* TimelineViewportLogicTests.swift in Sources */,
