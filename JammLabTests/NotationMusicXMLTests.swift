@@ -149,29 +149,6 @@ final class NotationMusicXMLTests: XCTestCase {
         XCTAssertEqual(try firstXMLChild(named: "type", in: firstMeasureRest).stringValue, "whole")
     }
 
-    func testMusicXMLExportFailsForUnsupportedHarmony() throws {
-        let state = NotationViewportFactory().scoreState(
-            tempoMap: fourFourTempoMap(duration: 4),
-            duration: 4,
-            currentTime: 0,
-            playbackMarkerTime: 0,
-            isPlaying: false,
-            keyName: "C major",
-            harmonySymbols: [
-                HarmonySymbol(time: 0, measureNumber: 1, offsetInQuarterNotes: 0, rawText: "G7alt")
-            ]
-        )
-
-        XCTAssertThrowsError(
-            try NotationExportService().export(
-                NotationExportRequest(displayName: "Song", score: state),
-                format: .musicXML
-            )
-        ) { error in
-            XCTAssertEqual(error as? NotationExportError, .unsupportedChord(rawText: "G7alt", measureNumber: 1))
-        }
-    }
-
     private func childElements(in element: XMLElement) -> [XMLElement] {
         (element.children ?? []).compactMap { $0 as? XMLElement }
     }

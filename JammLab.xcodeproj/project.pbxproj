@@ -163,6 +163,7 @@
 		9FAB010D2CE0000100112233 /* NotationMusicXMLTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9FAB000D2CE0000100112233 /* NotationMusicXMLTests.swift */; };
 		9FAB01402CE0000100112233 /* NotationMusicXMLChordParserTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9FAB00402CE0000100112233 /* NotationMusicXMLChordParserTests.swift */; };
 		9FAB01472CE0000100112233 /* NotationMusicXMLRestExportTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9FAB00472CE0000100112233 /* NotationMusicXMLRestExportTests.swift */; };
+		9FAB01522CE0000100112233 /* NotationMusicXMLErrorTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9FAB00522CE0000100112233 /* NotationMusicXMLErrorTests.swift */; };
 		9FAB010E2CE0000100112233 /* NotationKeySignatureTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9FAB000E2CE0000100112233 /* NotationKeySignatureTests.swift */; };
 		9FAB010F2CE0000100112233 /* NotationAttributeDisplayTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9FAB000F2CE0000100112233 /* NotationAttributeDisplayTests.swift */; };
 		9FAB01102CE0000100112233 /* NotationRegionLabelTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9FAB00102CE0000100112233 /* NotationRegionLabelTests.swift */; };
@@ -407,6 +408,7 @@
 		9FAB000D2CE0000100112233 /* NotationMusicXMLTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotationMusicXMLTests.swift; sourceTree = "<group>"; };
 		9FAB00402CE0000100112233 /* NotationMusicXMLChordParserTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotationMusicXMLChordParserTests.swift; sourceTree = "<group>"; };
 		9FAB00472CE0000100112233 /* NotationMusicXMLRestExportTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotationMusicXMLRestExportTests.swift; sourceTree = "<group>"; };
+		9FAB00522CE0000100112233 /* NotationMusicXMLErrorTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotationMusicXMLErrorTests.swift; sourceTree = "<group>"; };
 		9FAB000E2CE0000100112233 /* NotationKeySignatureTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotationKeySignatureTests.swift; sourceTree = "<group>"; };
 		9FAB000F2CE0000100112233 /* NotationAttributeDisplayTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotationAttributeDisplayTests.swift; sourceTree = "<group>"; };
 		9FAB00102CE0000100112233 /* NotationRegionLabelTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotationRegionLabelTests.swift; sourceTree = "<group>"; };
@@ -737,6 +739,7 @@
 				9FAB000D2CE0000100112233 /* NotationMusicXMLTests.swift */,
 				9FAB00402CE0000100112233 /* NotationMusicXMLChordParserTests.swift */,
 				9FAB00472CE0000100112233 /* NotationMusicXMLRestExportTests.swift */,
+				9FAB00522CE0000100112233 /* NotationMusicXMLErrorTests.swift */,
 				9FAB000E2CE0000100112233 /* NotationKeySignatureTests.swift */,
 				9FAB000F2CE0000100112233 /* NotationAttributeDisplayTests.swift */,
 				9FAB00102CE0000100112233 /* NotationRegionLabelTests.swift */,
@@ -1187,6 +1190,7 @@
 				9FAB010D2CE0000100112233 /* NotationMusicXMLTests.swift in Sources */,
 				9FAB01402CE0000100112233 /* NotationMusicXMLChordParserTests.swift in Sources */,
 				9FAB01472CE0000100112233 /* NotationMusicXMLRestExportTests.swift in Sources */,
+				9FAB01522CE0000100112233 /* NotationMusicXMLErrorTests.swift in Sources */,
 				9FAB010E2CE0000100112233 /* NotationKeySignatureTests.swift in Sources */,
 				9FAB010F2CE0000100112233 /* NotationAttributeDisplayTests.swift in Sources */,
 				9FAB01102CE0000100112233 /* NotationRegionLabelTests.swift in Sources */,
