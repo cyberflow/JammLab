@@ -106,6 +106,7 @@
 		9FAB01012CE0000100112233 /* AudioFileImporterDurationTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9FAB00012CE0000100112233 /* AudioFileImporterDurationTests.swift */; };
 		9FAB01022CE0000100112233 /* PeakformLogicTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9FAB00022CE0000100112233 /* PeakformLogicTests.swift */; };
 		9FAB01032CE0000100112233 /* TimelineProjectLogicTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9FAB00032CE0000100112233 /* TimelineProjectLogicTests.swift */; };
+		9FAB01552CE0000100112233 /* ProjectSaveDestinationTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9FAB00552CE0000100112233 /* ProjectSaveDestinationTests.swift */; };
 		9FAB01422CE0000100112233 /* TimecodedNoteColorTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9FAB00422CE0000100112233 /* TimecodedNoteColorTests.swift */; };
 		9FAB01372CE0000100112233 /* TimelineViewportLogicTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9FAB00372CE0000100112233 /* TimelineViewportLogicTests.swift */; };
 		9FAB01382CE0000100112233 /* AppHotkeyTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9FAB00382CE0000100112233 /* AppHotkeyTests.swift */; };
@@ -353,6 +354,7 @@
 		9FAB00012CE0000100112233 /* AudioFileImporterDurationTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AudioFileImporterDurationTests.swift; sourceTree = "<group>"; };
 		9FAB00022CE0000100112233 /* PeakformLogicTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PeakformLogicTests.swift; sourceTree = "<group>"; };
 		9FAB00032CE0000100112233 /* TimelineProjectLogicTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TimelineProjectLogicTests.swift; sourceTree = "<group>"; };
+		9FAB00552CE0000100112233 /* ProjectSaveDestinationTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProjectSaveDestinationTests.swift; sourceTree = "<group>"; };
 		9FAB00422CE0000100112233 /* TimecodedNoteColorTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TimecodedNoteColorTests.swift; sourceTree = "<group>"; };
 		9FAB00372CE0000100112233 /* TimelineViewportLogicTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TimelineViewportLogicTests.swift; sourceTree = "<group>"; };
 		9FAB00382CE0000100112233 /* AppHotkeyTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppHotkeyTests.swift; sourceTree = "<group>"; };
@@ -686,6 +688,7 @@
 				9FBA00052D40000100112233 /* PitchDetectionTests.swift */,
 				9FBA00062D40000100112233 /* AudioSampleConverterTests.swift */,
 				9FAB00032CE0000100112233 /* TimelineProjectLogicTests.swift */,
+				9FAB00552CE0000100112233 /* ProjectSaveDestinationTests.swift */,
 				9FAB00422CE0000100112233 /* TimecodedNoteColorTests.swift */,
 				9FAB00372CE0000100112233 /* TimelineViewportLogicTests.swift */,
 				9FAB00382CE0000100112233 /* AppHotkeyTests.swift */,
@@ -1139,6 +1142,7 @@
 				9FBA01052D40000100112233 /* PitchDetectionTests.swift in Sources */,
 				9FBA01062D40000100112233 /* AudioSampleConverterTests.swift in Sources */,
 				9FAB01032CE0000100112233 /* TimelineProjectLogicTests.swift in Sources */,
+				9FAB01552CE0000100112233 /* ProjectSaveDestinationTests.swift in Sources */,
 				9FAB01422CE0000100112233 /* TimecodedNoteColorTests.swift in Sources */,
 				9FAB01372CE0000100112233 /* TimelineViewportLogicTests.swift in Sources */,
 				9FAB01382CE0000100112233 /* AppHotkeyTests.swift in Sources */,
