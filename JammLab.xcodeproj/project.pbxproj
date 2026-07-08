@@ -156,6 +156,7 @@
 		9FAB01142CE0000100112233 /* NotationMeasureTimingTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9FAB00142CE0000100112233 /* NotationMeasureTimingTests.swift */; };
 		9FAB01152CE0000100112233 /* NotationViewportTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9FAB00152CE0000100112233 /* NotationViewportTests.swift */; };
 		9FAB01162CE0000100112233 /* NotationMeasureGeometryTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9FAB00162CE0000100112233 /* NotationMeasureGeometryTests.swift */; };
+		9FAB013F2CE0000100112233 /* NotationFallbackGeometryTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9FAB003F2CE0000100112233 /* NotationFallbackGeometryTests.swift */; };
 		9FAB01172CE0000100112233 /* NotationSelectionOverlayLayoutTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9FAB00172CE0000100112233 /* NotationSelectionOverlayLayoutTests.swift */; };
 		9FAB01182CE0000100112233 /* NotationSlashBeatLayoutTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9FAB00182CE0000100112233 /* NotationSlashBeatLayoutTests.swift */; };
 		9FAB01192CE0000100112233 /* NotationHarmonyLabelLayoutTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9FAB00192CE0000100112233 /* NotationHarmonyLabelLayoutTests.swift */; };
@@ -380,6 +381,7 @@
 		9FAB00142CE0000100112233 /* NotationMeasureTimingTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotationMeasureTimingTests.swift; sourceTree = "<group>"; };
 		9FAB00152CE0000100112233 /* NotationViewportTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotationViewportTests.swift; sourceTree = "<group>"; };
 		9FAB00162CE0000100112233 /* NotationMeasureGeometryTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotationMeasureGeometryTests.swift; sourceTree = "<group>"; };
+		9FAB003F2CE0000100112233 /* NotationFallbackGeometryTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotationFallbackGeometryTests.swift; sourceTree = "<group>"; };
 		9FAB00172CE0000100112233 /* NotationSelectionOverlayLayoutTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotationSelectionOverlayLayoutTests.swift; sourceTree = "<group>"; };
 		9FAB00182CE0000100112233 /* NotationSlashBeatLayoutTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotationSlashBeatLayoutTests.swift; sourceTree = "<group>"; };
 		9FAB00192CE0000100112233 /* NotationHarmonyLabelLayoutTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotationHarmonyLabelLayoutTests.swift; sourceTree = "<group>"; };
@@ -689,6 +691,7 @@
 				9FAB00142CE0000100112233 /* NotationMeasureTimingTests.swift */,
 				9FAB00152CE0000100112233 /* NotationViewportTests.swift */,
 				9FAB00162CE0000100112233 /* NotationMeasureGeometryTests.swift */,
+				9FAB003F2CE0000100112233 /* NotationFallbackGeometryTests.swift */,
 				9FAB00172CE0000100112233 /* NotationSelectionOverlayLayoutTests.swift */,
 				9FAB00182CE0000100112233 /* NotationSlashBeatLayoutTests.swift */,
 				9FAB00192CE0000100112233 /* NotationHarmonyLabelLayoutTests.swift */,
@@ -1119,6 +1122,7 @@
 				9FAB01142CE0000100112233 /* NotationMeasureTimingTests.swift in Sources */,
 				9FAB01152CE0000100112233 /* NotationViewportTests.swift in Sources */,
 				9FAB01162CE0000100112233 /* NotationMeasureGeometryTests.swift in Sources */,
+				9FAB013F2CE0000100112233 /* NotationFallbackGeometryTests.swift in Sources */,
 				9FAB01172CE0000100112233 /* NotationSelectionOverlayLayoutTests.swift in Sources */,
 				9FAB01182CE0000100112233 /* NotationSlashBeatLayoutTests.swift in Sources */,
 				9FAB01192CE0000100112233 /* NotationHarmonyLabelLayoutTests.swift in Sources */,
