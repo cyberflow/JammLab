@@ -131,6 +131,7 @@
 		9FAB01322CE0000100112233 /* AudioDeviceTestDoubles.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9FAB00322CE0000100112233 /* AudioDeviceTestDoubles.swift */; };
 		9FAB01332CE0000100112233 /* AudioSettingsDeviceTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9FAB00332CE0000100112233 /* AudioSettingsDeviceTests.swift */; };
 		9FAB01342CE0000100112233 /* TunerInputDeviceResolverTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9FAB00342CE0000100112233 /* TunerInputDeviceResolverTests.swift */; };
+		9FAB01352CE0000100112233 /* TunerInputLogicTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9FAB00352CE0000100112233 /* TunerInputLogicTests.swift */; };
 		9FAB01082CE0000100112233 /* ClickRenderStateTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9FAB00082CE0000100112233 /* ClickRenderStateTests.swift */; };
 		9FAB01092CE0000100112233 /* MetronomeClickSchedulerTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9FAB00092CE0000100112233 /* MetronomeClickSchedulerTests.swift */; };
 		9FAB010A2CE0000100112233 /* TempoGridCalculatorTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9FAB000A2CE0000100112233 /* TempoGridCalculatorTests.swift */; };
@@ -345,6 +346,7 @@
 		9FAB00322CE0000100112233 /* AudioDeviceTestDoubles.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AudioDeviceTestDoubles.swift; sourceTree = "<group>"; };
 		9FAB00332CE0000100112233 /* AudioSettingsDeviceTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AudioSettingsDeviceTests.swift; sourceTree = "<group>"; };
 		9FAB00342CE0000100112233 /* TunerInputDeviceResolverTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TunerInputDeviceResolverTests.swift; sourceTree = "<group>"; };
+		9FAB00352CE0000100112233 /* TunerInputLogicTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TunerInputLogicTests.swift; sourceTree = "<group>"; };
 		9FAB00082CE0000100112233 /* ClickRenderStateTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ClickRenderStateTests.swift; sourceTree = "<group>"; };
 		9FAB00092CE0000100112233 /* MetronomeClickSchedulerTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MetronomeClickSchedulerTests.swift; sourceTree = "<group>"; };
 		9FAB000A2CE0000100112233 /* TempoGridCalculatorTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TempoGridCalculatorTests.swift; sourceTree = "<group>"; };
@@ -644,6 +646,7 @@
 				9FAB00322CE0000100112233 /* AudioDeviceTestDoubles.swift */,
 				9FAB00332CE0000100112233 /* AudioSettingsDeviceTests.swift */,
 				9FAB00342CE0000100112233 /* TunerInputDeviceResolverTests.swift */,
+				9FAB00352CE0000100112233 /* TunerInputLogicTests.swift */,
 				9FAB00082CE0000100112233 /* ClickRenderStateTests.swift */,
 				9FAB00092CE0000100112233 /* MetronomeClickSchedulerTests.swift */,
 				9FAB000A2CE0000100112233 /* TempoGridCalculatorTests.swift */,
@@ -1064,6 +1067,7 @@
 				9FAB01322CE0000100112233 /* AudioDeviceTestDoubles.swift in Sources */,
 				9FAB01332CE0000100112233 /* AudioSettingsDeviceTests.swift in Sources */,
 				9FAB01342CE0000100112233 /* TunerInputDeviceResolverTests.swift in Sources */,
+				9FAB01352CE0000100112233 /* TunerInputLogicTests.swift in Sources */,
 				9FAB01082CE0000100112233 /* ClickRenderStateTests.swift in Sources */,
 				9FAB01092CE0000100112233 /* MetronomeClickSchedulerTests.swift in Sources */,
 				9FAB010A2CE0000100112233 /* TempoGridCalculatorTests.swift in Sources */,
