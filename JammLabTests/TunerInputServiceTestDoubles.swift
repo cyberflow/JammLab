@@ -185,3 +185,84 @@ final class QueuedPitchDetector: PitchDetecting {
         return results.removeFirst()
     }
 }
+
+extension XCTestCase {
+    func tunerDrainMainQueue() async {
+        await withCheckedContinuation { continuation in
+            DispatchQueue.main.async {
+                continuation.resume()
+            }
+        }
+    }
+
+    func tunerSineWave(
+        frequency: Double,
+        duration: Double,
+        sampleRate: Double = 44_100,
+        amplitude: Float = 0.5
+    ) -> [Float] {
+        let count = Int(duration * sampleRate)
+        return (0..<count).map { index in
+            let phase = 2 * Double.pi * frequency * Double(index) / sampleRate
+            return amplitude * Float(sin(phase))
+        }
+    }
+
+    func tunerMarkerSamples(_ marker: Float) -> [Float] {
+        Array(repeating: marker, count: 128)
+    }
+
+    @MainActor
+    func waitForTunerMainActorCondition(
+        timeout: TimeInterval = 2,
+        condition: @escaping () -> Bool
+    ) async -> Bool {
+        let deadline = Date().addingTimeInterval(timeout)
+        while Date() < deadline {
+            if condition() {
+                return true
+            }
+            try? await Task.sleep(nanoseconds: 20_000_000)
+        }
+        return condition()
+    }
+
+    func makeTunerInt16Buffer(samples: [Int16], sampleRate: Double = 44_100) throws -> AVAudioPCMBuffer {
+        let format = try XCTUnwrap(AVAudioFormat(
+            commonFormat: .pcmFormatInt16,
+            sampleRate: sampleRate,
+            channels: 1,
+            interleaved: false
+        ))
+        let buffer = try XCTUnwrap(AVAudioPCMBuffer(
+            pcmFormat: format,
+            frameCapacity: AVAudioFrameCount(max(samples.count, 1))
+        ))
+        buffer.frameLength = AVAudioFrameCount(samples.count)
+        if let channel = buffer.int16ChannelData?[0] {
+            for (index, sample) in samples.enumerated() {
+                channel[index] = sample
+            }
+        }
+        return buffer
+    }
+}
+
+extension PitchDetectionResult {
+    static func result(
+        noteName: String,
+        octave: Int,
+        frequencyHz: Double,
+        midiNote: Int
+    ) -> PitchDetectionResult {
+        PitchDetectionResult(
+            frequencyHz: frequencyHz,
+            midiNote: midiNote,
+            noteName: noteName,
+            octave: octave,
+            centsOffset: 0,
+            confidence: 1,
+            rms: 1
+        )
+    }
+}

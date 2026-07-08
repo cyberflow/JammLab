@@ -1,4 +1,3 @@
-import AVFoundation
 import CoreAudio
 import XCTest
 @testable import JammLab
@@ -105,7 +104,7 @@ final class TunerInputServiceTests: XCTestCase {
         XCTAssertEqual(engine.startDeviceIDs, [42])
 
         settingsStore.updateAudioOutputDeviceUID("output-1")
-        await drainMainQueue()
+        await tunerDrainMainQueue()
 
         XCTAssertEqual(engine.startDeviceIDs, [42])
     }
@@ -127,9 +126,9 @@ final class TunerInputServiceTests: XCTestCase {
 
         await service.start()
         settingsStore.updateAudioInputDeviceUID("input-2")
-        await drainMainQueue()
+        await tunerDrainMainQueue()
         await Task.yield()
-        await drainMainQueue()
+        await tunerDrainMainQueue()
 
         XCTAssertEqual(engine.startDeviceIDs, [42, 84])
         XCTAssertGreaterThanOrEqual(engine.stopCallCount, 2)
@@ -208,9 +207,9 @@ final class TunerInputServiceTests: XCTestCase {
         )
 
         await service.start()
-        await drainMainQueue()
+        await tunerDrainMainQueue()
         await Task.yield()
-        await drainMainQueue()
+        await tunerDrainMainQueue()
 
         XCTAssertGreaterThan(service.inputSignalLevel, 0)
         XCTAssertNil(service.currentResult)
@@ -240,7 +239,7 @@ final class TunerInputServiceTests: XCTestCase {
         await service.start()
         service.stop()
         engine.sendAudioBuffer(samples: [0.5, -0.5, 0.5, -0.5])
-        await drainMainQueue()
+        await tunerDrainMainQueue()
 
         XCTAssertEqual(service.inputSignalLevel, 0)
     }
@@ -261,7 +260,7 @@ final class TunerInputServiceTests: XCTestCase {
 
         await service.start()
         engine.sendAudioBuffer(samples: [])
-        await drainMainQueue()
+        await tunerDrainMainQueue()
 
         XCTAssertEqual(service.inputSignalLevel, 0)
         XCTAssertNil(service.currentResult)
@@ -283,8 +282,8 @@ final class TunerInputServiceTests: XCTestCase {
         )
 
         await service.start()
-        engine.sendAudioBuffer(try makeInt16Buffer(samples: [1000, -1000, 1000, -1000]))
-        await drainMainQueue()
+        engine.sendAudioBuffer(try makeTunerInt16Buffer(samples: [1000, -1000, 1000, -1000]))
+        await tunerDrainMainQueue()
 
         XCTAssertEqual(service.inputSignalLevel, 0)
         XCTAssertNil(service.currentResult)
@@ -308,14 +307,14 @@ final class TunerInputServiceTests: XCTestCase {
 
         await service.start()
         settingsStore.updateAudioInputDeviceUID("input-2")
-        await drainMainQueue()
+        await tunerDrainMainQueue()
         await Task.yield()
-        await drainMainQueue()
+        await tunerDrainMainQueue()
 
         XCTAssertEqual(engine.startDeviceIDs, [42, 84])
 
         engine.sendAudioBuffer(samples: [0.5, -0.5, 0.5, -0.5], toStartAt: 0)
-        await drainMainQueue()
+        await tunerDrainMainQueue()
 
         XCTAssertEqual(service.inputSignalLevel, 0)
         XCTAssertEqual(service.inputDebugSnapshot.tapCallbackCount, 0)
@@ -329,7 +328,7 @@ final class TunerInputServiceTests: XCTestCase {
         provider.deviceIDs["input-1"] = 42
         let engine = MockTunerInputEngine()
         engine.audioBuffers = [
-            MockAudioBuffer(samples: sineWave(frequency: 440, duration: 0.4), sampleRate: 44_100)
+            MockAudioBuffer(samples: tunerSineWave(frequency: 440, duration: 0.4), sampleRate: 44_100)
         ]
         let service = TunerInputService(
             appSettingsStore: settingsStore,
@@ -339,7 +338,7 @@ final class TunerInputServiceTests: XCTestCase {
         )
 
         await service.start()
-        await drainMainQueue()
+        await tunerDrainMainQueue()
 
         XCTAssertGreaterThan(service.inputSignalLevel, 0)
         XCTAssertNil(service.errorMessage)
@@ -362,14 +361,14 @@ final class TunerInputServiceTests: XCTestCase {
         )
 
         await service.start()
-        engine.sendAudioBuffer(samples: markerSamples(1))
+        engine.sendAudioBuffer(samples: tunerMarkerSamples(1))
         await fulfillment(of: [detector.firstDetectionStarted], timeout: 2)
 
-        engine.sendAudioBuffer(samples: markerSamples(2))
-        engine.sendAudioBuffer(samples: markerSamples(3))
+        engine.sendAudioBuffer(samples: tunerMarkerSamples(2))
+        engine.sendAudioBuffer(samples: tunerMarkerSamples(3))
         detector.releaseFirstDetection()
 
-        let didPublishLatestResult = await waitForMainActorCondition { service.currentResult?.noteName == "C" }
+        let didPublishLatestResult = await waitForTunerMainActorCondition { service.currentResult?.noteName == "C" }
         XCTAssertTrue(didPublishLatestResult)
         XCTAssertEqual(detector.detectedMarkers, [1, 3])
     }
@@ -391,14 +390,14 @@ final class TunerInputServiceTests: XCTestCase {
         )
 
         await service.start()
-        engine.sendAudioBuffer(samples: markerSamples(1))
+        engine.sendAudioBuffer(samples: tunerMarkerSamples(1))
         await fulfillment(of: [detector.firstDetectionStarted], timeout: 2)
 
         service.stop()
         detector.releaseFirstDetection()
-        await drainMainQueue()
+        await tunerDrainMainQueue()
         await Task.yield()
-        await drainMainQueue()
+        await tunerDrainMainQueue()
 
         XCTAssertNil(service.currentResult)
     }
@@ -420,9 +419,9 @@ final class TunerInputServiceTests: XCTestCase {
         )
 
         await service.start()
-        engine.sendAudioBuffer(samples: markerSamples(1), sampleRate: 48_000)
+        engine.sendAudioBuffer(samples: tunerMarkerSamples(1), sampleRate: 48_000)
 
-        let didRecordSampleRate = await waitForMainActorCondition { detector.sampleRates == [48_000] }
+        let didRecordSampleRate = await waitForTunerMainActorCondition { detector.sampleRates == [48_000] }
         XCTAssertTrue(didRecordSampleRate)
     }
 
@@ -447,12 +446,12 @@ final class TunerInputServiceTests: XCTestCase {
         )
 
         await service.start()
-        engine.sendAudioBuffer(samples: markerSamples(1))
-        let didPublishDetectedNote = await waitForMainActorCondition { service.currentResult?.noteName == "A" }
+        engine.sendAudioBuffer(samples: tunerMarkerSamples(1))
+        let didPublishDetectedNote = await waitForTunerMainActorCondition { service.currentResult?.noteName == "A" }
         XCTAssertTrue(didPublishDetectedNote)
 
-        engine.sendAudioBuffer(samples: markerSamples(2))
-        let didProcessMissingResult = await waitForMainActorCondition { detector.detectCallCount == 2 }
+        engine.sendAudioBuffer(samples: tunerMarkerSamples(2))
+        let didProcessMissingResult = await waitForTunerMainActorCondition { detector.detectCallCount == 2 }
         XCTAssertTrue(didProcessMissingResult)
 
         XCTAssertEqual(service.currentResult?.noteName, "A")
@@ -480,14 +479,14 @@ final class TunerInputServiceTests: XCTestCase {
         )
 
         await service.start()
-        engine.sendAudioBuffer(samples: markerSamples(1))
-        let didPublishDetectedNote = await waitForMainActorCondition { service.currentResult?.noteName == "A" }
+        engine.sendAudioBuffer(samples: tunerMarkerSamples(1))
+        let didPublishDetectedNote = await waitForTunerMainActorCondition { service.currentResult?.noteName == "A" }
         XCTAssertTrue(didPublishDetectedNote)
 
-        engine.sendAudioBuffer(samples: markerSamples(2))
-        let didProcessMissingResult = await waitForMainActorCondition { detector.detectCallCount == 2 }
+        engine.sendAudioBuffer(samples: tunerMarkerSamples(2))
+        let didProcessMissingResult = await waitForTunerMainActorCondition { detector.detectCallCount == 2 }
         XCTAssertTrue(didProcessMissingResult)
-        let didClearHeldNote = await waitForMainActorCondition { service.currentResult == nil }
+        let didClearHeldNote = await waitForTunerMainActorCondition { service.currentResult == nil }
         XCTAssertTrue(didClearHeldNote)
     }
 
@@ -512,12 +511,12 @@ final class TunerInputServiceTests: XCTestCase {
         )
 
         await service.start()
-        engine.sendAudioBuffer(samples: markerSamples(1))
-        let didPublishFirstNote = await waitForMainActorCondition { service.currentResult?.noteName == "A" }
+        engine.sendAudioBuffer(samples: tunerMarkerSamples(1))
+        let didPublishFirstNote = await waitForTunerMainActorCondition { service.currentResult?.noteName == "A" }
         XCTAssertTrue(didPublishFirstNote)
 
-        engine.sendAudioBuffer(samples: markerSamples(2))
-        let didPublishReplacementNote = await waitForMainActorCondition { service.currentResult?.noteName == "C" }
+        engine.sendAudioBuffer(samples: tunerMarkerSamples(2))
+        let didPublishReplacementNote = await waitForTunerMainActorCondition { service.currentResult?.noteName == "C" }
         XCTAssertTrue(didPublishReplacementNote)
         XCTAssertEqual(service.currentResult?.octave, 5)
     }
@@ -543,12 +542,12 @@ final class TunerInputServiceTests: XCTestCase {
         )
 
         await service.start()
-        engine.sendAudioBuffer(samples: markerSamples(1))
-        let didPublishDetectedNote = await waitForMainActorCondition { service.currentResult?.noteName == "A" }
+        engine.sendAudioBuffer(samples: tunerMarkerSamples(1))
+        let didPublishDetectedNote = await waitForTunerMainActorCondition { service.currentResult?.noteName == "A" }
         XCTAssertTrue(didPublishDetectedNote)
 
-        engine.sendAudioBuffer(samples: markerSamples(2))
-        let didProcessMissingResult = await waitForMainActorCondition { detector.detectCallCount == 2 }
+        engine.sendAudioBuffer(samples: tunerMarkerSamples(2))
+        let didProcessMissingResult = await waitForTunerMainActorCondition { detector.detectCallCount == 2 }
         XCTAssertTrue(didProcessMissingResult)
         service.stop()
 
@@ -557,83 +556,4 @@ final class TunerInputServiceTests: XCTestCase {
         XCTAssertNil(service.currentResult)
     }
 
-    private func drainMainQueue() async {
-        await withCheckedContinuation { continuation in
-            DispatchQueue.main.async {
-                continuation.resume()
-            }
-        }
-    }
-
-    private func sineWave(
-        frequency: Double,
-        duration: Double,
-        sampleRate: Double = 44_100,
-        amplitude: Float = 0.5
-    ) -> [Float] {
-        let count = Int(duration * sampleRate)
-        return (0..<count).map { index in
-            let phase = 2 * Double.pi * frequency * Double(index) / sampleRate
-            return amplitude * Float(sin(phase))
-        }
-    }
-
-    private func markerSamples(_ marker: Float) -> [Float] {
-        Array(repeating: marker, count: 128)
-    }
-
-    @MainActor
-    private func waitForMainActorCondition(
-        timeout: TimeInterval = 2,
-        condition: @escaping () -> Bool
-    ) async -> Bool {
-        let deadline = Date().addingTimeInterval(timeout)
-        while Date() < deadline {
-            if condition() {
-                return true
-            }
-            try? await Task.sleep(nanoseconds: 20_000_000)
-        }
-        return condition()
-    }
-
-    private func makeInt16Buffer(samples: [Int16], sampleRate: Double = 44_100) throws -> AVAudioPCMBuffer {
-        let format = try XCTUnwrap(AVAudioFormat(
-            commonFormat: .pcmFormatInt16,
-            sampleRate: sampleRate,
-            channels: 1,
-            interleaved: false
-        ))
-        let buffer = try XCTUnwrap(AVAudioPCMBuffer(
-            pcmFormat: format,
-            frameCapacity: AVAudioFrameCount(max(samples.count, 1))
-        ))
-        buffer.frameLength = AVAudioFrameCount(samples.count)
-        if let channel = buffer.int16ChannelData?[0] {
-            for (index, sample) in samples.enumerated() {
-                channel[index] = sample
-            }
-        }
-        return buffer
-    }
-
-}
-
-private extension PitchDetectionResult {
-    static func result(
-        noteName: String,
-        octave: Int,
-        frequencyHz: Double,
-        midiNote: Int
-    ) -> PitchDetectionResult {
-        PitchDetectionResult(
-            frequencyHz: frequencyHz,
-            midiNote: midiNote,
-            noteName: noteName,
-            octave: octave,
-            centsOffset: 0,
-            confidence: 1,
-            rms: 1
-        )
-    }
 }
