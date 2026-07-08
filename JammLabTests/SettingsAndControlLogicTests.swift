@@ -4,69 +4,6 @@ import XCTest
 @testable import JammLab
 
 final class SettingsAndControlLogicTests: XCTestCase {
-    func testAudioSettingsDeviceLoaderDoesNotReadInputDevicesBeforePermission() async {
-        let provider = MockAudioDeviceProvider()
-        provider.inputDevicesResult = [
-            AudioDeviceInfo(uid: "input-1", name: "Input 1", kind: .input, isDefault: true)
-        ]
-        provider.outputDevicesResult = [
-            AudioDeviceInfo(uid: "output-1", name: "Output 1", kind: .output, isDefault: true)
-        ]
-        let permission = MockAudioInputPermissionProvider(status: .notDetermined)
-        let loader = AudioSettingsDeviceLoader(deviceProvider: provider, inputPermissionProvider: permission)
-
-        let result = await loader.refreshDevices()
-
-        XCTAssertEqual(provider.inputDevicesCallCount, 0)
-        XCTAssertEqual(provider.outputDevicesCallCount, 1)
-        XCTAssertEqual(result.inputDevices, [])
-        XCTAssertEqual(result.outputDevices.map(\.uid), ["output-1"])
-        XCTAssertEqual(result.inputPermissionStatus, .notDetermined)
-        XCTAssertEqual(permission.requestAccessCount, 0)
-    }
-
-    func testAudioSettingsDeviceLoaderReadsInputDevicesAfterPermission() async {
-        let provider = MockAudioDeviceProvider()
-        provider.inputDevicesResult = [
-            AudioDeviceInfo(uid: "input-1", name: "Input 1", kind: .input, isDefault: true)
-        ]
-        provider.outputDevicesResult = [
-            AudioDeviceInfo(uid: "output-1", name: "Output 1", kind: .output, isDefault: true)
-        ]
-        let permission = MockAudioInputPermissionProvider(status: .authorized)
-        let loader = AudioSettingsDeviceLoader(deviceProvider: provider, inputPermissionProvider: permission)
-
-        let result = await loader.refreshDevices()
-
-        XCTAssertEqual(provider.inputDevicesCallCount, 1)
-        XCTAssertEqual(provider.outputDevicesCallCount, 1)
-        XCTAssertEqual(result.inputDevices.map(\.uid), ["input-1"])
-        XCTAssertEqual(result.outputDevices.map(\.uid), ["output-1"])
-        XCTAssertEqual(permission.requestAccessCount, 0)
-    }
-
-    func testAudioSettingsDevicePickerShowsSystemDefaultForUnavailableSavedUID() {
-        let devices = [
-            AudioDeviceInfo(uid: "input-1", name: "Input 1", kind: .input, isDefault: true)
-        ]
-
-        XCTAssertNil(AudioSettingsDevicePickerSelection.visibleUID(
-            selectedUID: "missing-input",
-            devices: devices
-        ))
-    }
-
-    func testAudioSettingsDevicePickerUsesSavedUIDWhenAvailable() {
-        let devices = [
-            AudioDeviceInfo(uid: "input-1", name: "Input 1", kind: .input, isDefault: true)
-        ]
-
-        XCTAssertEqual(
-            AudioSettingsDevicePickerSelection.visibleUID(selectedUID: "input-1", devices: devices),
-            "input-1"
-        )
-    }
-
     func testTunerInputDeviceResolverUsesSavedInputDevice() throws {
         let provider = MockAudioDeviceProvider()
         provider.inputDevicesResult = [
@@ -737,61 +674,6 @@ final class SettingsAndControlLogicTests: XCTestCase {
         return buffer
     }
 
-}
-
-private final class MockAudioDeviceProvider: AudioDeviceProviding {
-    var inputDevicesResult: [AudioDeviceInfo] = []
-    var outputDevicesResult: [AudioDeviceInfo] = []
-    var deviceIDs: [String: AudioDeviceID] = [:]
-    var defaultInputDeviceID = AudioDeviceID(1)
-    var defaultOutputDeviceID = AudioDeviceID(2)
-    var inputDevicesCallCount = 0
-    var outputDevicesCallCount = 0
-    var defaultDeviceCallKinds: [AudioDeviceKind] = []
-
-    func inputDevices() throws -> [AudioDeviceInfo] {
-        inputDevicesCallCount += 1
-        return inputDevicesResult
-    }
-
-    func outputDevices() throws -> [AudioDeviceInfo] {
-        outputDevicesCallCount += 1
-        return outputDevicesResult
-    }
-
-    func deviceID(forUID uid: String, kind: AudioDeviceKind) throws -> AudioDeviceID {
-        guard let deviceID = deviceIDs[uid] else {
-            throw AudioDeviceServiceError.deviceNotFound(uid)
-        }
-        return deviceID
-    }
-
-    func defaultDeviceID(kind: AudioDeviceKind) throws -> AudioDeviceID {
-        defaultDeviceCallKinds.append(kind)
-        switch kind {
-        case .input:
-            return defaultInputDeviceID
-        case .output:
-            return defaultOutputDeviceID
-        }
-    }
-}
-
-private final class MockAudioInputPermissionProvider: AudioInputPermissionProviding {
-    var authorizationStatus: AudioInputPermissionStatus
-    var requestAccessCount = 0
-    var requestResult: Bool
-
-    init(status: AudioInputPermissionStatus, requestResult: Bool = false) {
-        self.authorizationStatus = status
-        self.requestResult = requestResult
-    }
-
-    func requestAccess() async -> Bool {
-        requestAccessCount += 1
-        authorizationStatus = requestResult ? .authorized : .denied
-        return requestResult
-    }
 }
 
 private struct MockAudioBuffer {
