@@ -109,6 +109,7 @@
 		9FAB01422CE0000100112233 /* TimecodedNoteColorTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9FAB00422CE0000100112233 /* TimecodedNoteColorTests.swift */; };
 		9FAB01372CE0000100112233 /* TimelineViewportLogicTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9FAB00372CE0000100112233 /* TimelineViewportLogicTests.swift */; };
 		9FAB01382CE0000100112233 /* AppHotkeyTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9FAB00382CE0000100112233 /* AppHotkeyTests.swift */; };
+		9FAB014D2CE0000100112233 /* AppHotkeyNotationMappingTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9FAB004D2CE0000100112233 /* AppHotkeyNotationMappingTests.swift */; };
 		9FAB013A2CE0000100112233 /* AppHotkeyEventFilterTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9FAB003A2CE0000100112233 /* AppHotkeyEventFilterTests.swift */; };
 		9FAB01452CE0000100112233 /* AppHotkeyNotationEventFilterTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9FAB00452CE0000100112233 /* AppHotkeyNotationEventFilterTests.swift */; };
 		9FAB011F2CE0000100112233 /* ViewModelResetTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9FAB001F2CE0000100112233 /* ViewModelResetTests.swift */; };
@@ -348,6 +349,7 @@
 		9FAB00422CE0000100112233 /* TimecodedNoteColorTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TimecodedNoteColorTests.swift; sourceTree = "<group>"; };
 		9FAB00372CE0000100112233 /* TimelineViewportLogicTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TimelineViewportLogicTests.swift; sourceTree = "<group>"; };
 		9FAB00382CE0000100112233 /* AppHotkeyTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppHotkeyTests.swift; sourceTree = "<group>"; };
+		9FAB004D2CE0000100112233 /* AppHotkeyNotationMappingTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppHotkeyNotationMappingTests.swift; sourceTree = "<group>"; };
 		9FAB003A2CE0000100112233 /* AppHotkeyEventFilterTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppHotkeyEventFilterTests.swift; sourceTree = "<group>"; };
 		9FAB00452CE0000100112233 /* AppHotkeyNotationEventFilterTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppHotkeyNotationEventFilterTests.swift; sourceTree = "<group>"; };
 		9FAB001F2CE0000100112233 /* ViewModelResetTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ViewModelResetTests.swift; sourceTree = "<group>"; };
@@ -673,6 +675,7 @@
 				9FAB00422CE0000100112233 /* TimecodedNoteColorTests.swift */,
 				9FAB00372CE0000100112233 /* TimelineViewportLogicTests.swift */,
 				9FAB00382CE0000100112233 /* AppHotkeyTests.swift */,
+				9FAB004D2CE0000100112233 /* AppHotkeyNotationMappingTests.swift */,
 				9FAB003A2CE0000100112233 /* AppHotkeyEventFilterTests.swift */,
 				9FAB00452CE0000100112233 /* AppHotkeyNotationEventFilterTests.swift */,
 				9FAB001F2CE0000100112233 /* ViewModelResetTests.swift */,
@@ -1118,6 +1121,7 @@
 				9FAB01422CE0000100112233 /* TimecodedNoteColorTests.swift in Sources */,
 				9FAB01372CE0000100112233 /* TimelineViewportLogicTests.swift in Sources */,
 				9FAB01382CE0000100112233 /* AppHotkeyTests.swift in Sources */,
+				9FAB014D2CE0000100112233 /* AppHotkeyNotationMappingTests.swift in Sources */,
 				9FAB013A2CE0000100112233 /* AppHotkeyEventFilterTests.swift in Sources */,
 				9FAB01452CE0000100112233 /* AppHotkeyNotationEventFilterTests.swift in Sources */,
 				9FAB011F2CE0000100112233 /* ViewModelResetTests.swift in Sources */,
