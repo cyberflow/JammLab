@@ -125,6 +125,7 @@
 		9FAB01282CE0000100112233 /* ViewModelRegionLoopTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9FAB00282CE0000100112233 /* ViewModelRegionLoopTests.swift */; };
 		9FAB01482CE0000100112233 /* ViewModelRegionActivationTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9FAB00482CE0000100112233 /* ViewModelRegionActivationTests.swift */; };
 		9FAB01292CE0000100112233 /* ViewModelNotationSelectionTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9FAB00292CE0000100112233 /* ViewModelNotationSelectionTests.swift */; };
+		9FAB014E2CE0000100112233 /* ViewModelNotationExportTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9FAB004E2CE0000100112233 /* ViewModelNotationExportTests.swift */; };
 		9FAB013D2CE0000100112233 /* ViewModelNotationClipboardTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9FAB003D2CE0000100112233 /* ViewModelNotationClipboardTests.swift */; };
 		9FAB014C2CE0000100112233 /* ViewModelNotationPasteTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9FAB004C2CE0000100112233 /* ViewModelNotationPasteTests.swift */; };
 		9FAB012A2CE0000100112233 /* ViewModelNotationTrackCollapseTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9FAB002A2CE0000100112233 /* ViewModelNotationTrackCollapseTests.swift */; };
@@ -365,6 +366,7 @@
 		9FAB00282CE0000100112233 /* ViewModelRegionLoopTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ViewModelRegionLoopTests.swift; sourceTree = "<group>"; };
 		9FAB00482CE0000100112233 /* ViewModelRegionActivationTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ViewModelRegionActivationTests.swift; sourceTree = "<group>"; };
 		9FAB00292CE0000100112233 /* ViewModelNotationSelectionTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ViewModelNotationSelectionTests.swift; sourceTree = "<group>"; };
+		9FAB004E2CE0000100112233 /* ViewModelNotationExportTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ViewModelNotationExportTests.swift; sourceTree = "<group>"; };
 		9FAB003D2CE0000100112233 /* ViewModelNotationClipboardTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ViewModelNotationClipboardTests.swift; sourceTree = "<group>"; };
 		9FAB004C2CE0000100112233 /* ViewModelNotationPasteTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ViewModelNotationPasteTests.swift; sourceTree = "<group>"; };
 		9FAB002A2CE0000100112233 /* ViewModelNotationTrackCollapseTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ViewModelNotationTrackCollapseTests.swift; sourceTree = "<group>"; };
@@ -691,6 +693,7 @@
 				9FAB00282CE0000100112233 /* ViewModelRegionLoopTests.swift */,
 				9FAB00482CE0000100112233 /* ViewModelRegionActivationTests.swift */,
 				9FAB00292CE0000100112233 /* ViewModelNotationSelectionTests.swift */,
+				9FAB004E2CE0000100112233 /* ViewModelNotationExportTests.swift */,
 				9FAB003D2CE0000100112233 /* ViewModelNotationClipboardTests.swift */,
 				9FAB004C2CE0000100112233 /* ViewModelNotationPasteTests.swift */,
 				9FAB002A2CE0000100112233 /* ViewModelNotationTrackCollapseTests.swift */,
@@ -1137,6 +1140,7 @@
 				9FAB01282CE0000100112233 /* ViewModelRegionLoopTests.swift in Sources */,
 				9FAB01482CE0000100112233 /* ViewModelRegionActivationTests.swift in Sources */,
 				9FAB01292CE0000100112233 /* ViewModelNotationSelectionTests.swift in Sources */,
+				9FAB014E2CE0000100112233 /* ViewModelNotationExportTests.swift in Sources */,
 				9FAB013D2CE0000100112233 /* ViewModelNotationClipboardTests.swift in Sources */,
 				9FAB014C2CE0000100112233 /* ViewModelNotationPasteTests.swift in Sources */,
 				9FAB012A2CE0000100112233 /* ViewModelNotationTrackCollapseTests.swift in Sources */,
