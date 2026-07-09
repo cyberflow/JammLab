@@ -170,6 +170,44 @@ final class NotationPrimitivesTests: XCTestCase {
         }
     }
 
+    func testNotationDurationControlHelpTextIncludesNameAndShortcuts() {
+        let expectations: [(denominator: Int, tooltip: String)] = [
+            (
+                1,
+                "Whole (semibreve) note (7; Num7)\nSet duration: whole (semibreve) note"
+            ),
+            (
+                2,
+                "Half (minim) note (6; Num6)\nSet duration: half (minim) note"
+            ),
+            (
+                4,
+                "Quarter (crotchet) note (5; Num5)\nSet duration: quarter (crotchet) note"
+            ),
+            (
+                8,
+                "Eighth (quaver) note (4; Num4)\nSet duration: eighth (quaver) note"
+            )
+        ]
+
+        for expectation in expectations {
+            XCTAssertEqual(
+                NotationDurationControlHelpText.tooltip(for: NotationDuration(denominator: expectation.denominator)),
+                expectation.tooltip
+            )
+        }
+
+        let quarter = NotationDuration(denominator: 4)
+        XCTAssertEqual(
+            NotationDurationControlHelpText.accessibilityLabel(for: quarter),
+            "Quarter note duration"
+        )
+        XCTAssertEqual(
+            NotationDurationControlHelpText.accessibilityHint(for: quarter),
+            "Sets notation duration to quarter note"
+        )
+    }
+
     func testWholeRestVisualCenterUsesStandardStaffPosition() {
         let y = NotationMeasureLayout.wholeRestVisualCenterY(
             staffTop: 10,

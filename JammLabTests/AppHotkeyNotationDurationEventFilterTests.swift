@@ -38,6 +38,29 @@ final class AppHotkeyNotationDurationEventFilterTests: XCTestCase {
             ),
             .setNotationDurationEighth
         )
+
+        let numpadDurationEvent = try XCTUnwrap(NSEvent.keyEvent(
+            with: .keyDown,
+            location: .zero,
+            modifierFlags: [.numericPad],
+            timestamp: 0,
+            windowNumber: 42,
+            context: nil,
+            characters: "4",
+            charactersIgnoringModifiers: "4",
+            isARepeat: false,
+            keyCode: 86
+        ))
+        XCTAssertEqual(
+            AppHotkeyEventFilter.hotkey(
+                for: numpadDurationEvent,
+                attachedWindowNumber: 42,
+                firstResponder: nil,
+                allowedHotkeys: AppHotkey.notationDurationHotkeys
+            ),
+            .setNotationDurationEighth
+        )
+
         XCTAssertNil(
             AppHotkeyEventFilter.hotkey(
                 for: durationEvent,

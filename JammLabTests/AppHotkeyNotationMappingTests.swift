@@ -49,6 +49,51 @@ final class AppHotkeyNotationMappingTests: XCTestCase {
         XCTAssertTrue(AppHotkey.allCases.contains(.setNotationDurationWhole))
     }
 
+    func testAppHotkeyRecognizesNotationDurationNumpadKeys() throws {
+        let expectations: [(key: String, keyCode: UInt16, hotkey: AppHotkey, denominator: Int)] = [
+            ("4", 86, .setNotationDurationEighth, 8),
+            ("5", 87, .setNotationDurationQuarter, 4),
+            ("6", 88, .setNotationDurationHalf, 2),
+            ("7", 89, .setNotationDurationWhole, 1)
+        ]
+
+        for expectation in expectations {
+            let event = try XCTUnwrap(NSEvent.keyEvent(
+                with: .keyDown,
+                location: .zero,
+                modifierFlags: [],
+                timestamp: 0,
+                windowNumber: 0,
+                context: nil,
+                characters: expectation.key,
+                charactersIgnoringModifiers: expectation.key,
+                isARepeat: false,
+                keyCode: expectation.keyCode
+            ))
+
+            XCTAssertEqual(AppHotkey(event: event), expectation.hotkey)
+            XCTAssertEqual(expectation.hotkey.notationDurationDenominator, expectation.denominator)
+        }
+    }
+
+    func testAppHotkeyNotationDurationShortcutTextUsesPrimaryAndNumpadKeys() {
+        let expectations: [(denominator: Int, shortcutText: String)] = [
+            (8, "4; Num4"),
+            (4, "5; Num5"),
+            (2, "6; Num6"),
+            (1, "7; Num7")
+        ]
+
+        for expectation in expectations {
+            XCTAssertEqual(
+                AppHotkey.notationDurationShortcutText(for: expectation.denominator),
+                expectation.shortcutText
+            )
+        }
+
+        XCTAssertNil(AppHotkey.notationDurationShortcutText(for: 16))
+    }
+
     func testAppHotkeyRecognizesCmdKButNotOldHarmonyKeys() throws {
         let aEvent = try XCTUnwrap(NSEvent.keyEvent(
             with: .keyDown,
