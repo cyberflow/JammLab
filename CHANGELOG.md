@@ -8,6 +8,8 @@ development artifact builds use `vMAJOR.MINOR.PATCH-dev.N`.
 
 ## Unreleased
 
+- Added clearer hover tooltips and numpad shortcuts for Notation duration buttons.
+
 ## 1.1.0
 
 ### New Features

@@ -38,7 +38,7 @@ struct NotationDurationControl: View {
 
     private func durationButton(for option: NotationDurationOption) -> some View {
         let isSelected = NotationDuration.normalizedDenominator(denominator) == option.denominator
-        let helpText = "Set \(ControlHelpText.notationDuration.lowercased()) to \(option.durationName)"
+        let helpText = NotationDurationControlHelpText.tooltip(for: option.duration)
 
         return Button {
             denominator = option.denominator
@@ -62,8 +62,9 @@ struct NotationDurationControl: View {
         }
         .buttonStyle(.plain)
         .disabled(!isEnabled)
-        .help(helpText)
-        .accessibilityLabel("Notation duration: \(option.durationName)")
+        .help(Text(helpText))
+        .accessibilityLabel(NotationDurationControlHelpText.accessibilityLabel(for: option.duration))
+        .accessibilityHint(NotationDurationControlHelpText.accessibilityHint(for: option.duration))
         .accessibilityValue(isSelected ? "Selected" : "Not selected")
         .accessibilityAddTraits(isSelected ? [.isSelected] : [])
     }
@@ -112,7 +113,7 @@ private struct NotationDurationGlyphView: View {
 
 private struct NotationDurationOption: Identifiable {
     let denominator: Int
-    let durationName: String
+    let duration: NotationDuration
     let symbol: NotationDurationControlSymbol
 
     var id: Int { denominator }
@@ -124,7 +125,47 @@ private struct NotationDurationOption: Identifiable {
         }
 
         self.denominator = duration.denominator
-        self.durationName = duration.pluralDisplayName
+        self.duration = duration
         self.symbol = symbol
+    }
+}
+
+enum NotationDurationControlHelpText {
+    static func tooltip(for duration: NotationDuration) -> String {
+        let title = title(for: duration)
+        let shortcut = AppHotkey.notationDurationShortcutText(for: duration.denominator)
+        let firstLine = shortcut.map { "\(title) (\($0))" } ?? title
+        return "\(firstLine)\nSet duration: \(lowercaseTitle(for: duration))"
+    }
+
+    static func accessibilityLabel(for duration: NotationDuration) -> String {
+        "\(duration.displayName.capitalized) note duration"
+    }
+
+    static func accessibilityHint(for duration: NotationDuration) -> String {
+        "Sets notation duration to \(duration.displayName) note"
+    }
+
+    private static func title(for duration: NotationDuration) -> String {
+        "\(duration.displayName.capitalized) (\(traditionalName(for: duration))) note"
+    }
+
+    private static func lowercaseTitle(for duration: NotationDuration) -> String {
+        "\(duration.displayName) (\(traditionalName(for: duration))) note"
+    }
+
+    private static func traditionalName(for duration: NotationDuration) -> String {
+        switch duration.denominator {
+        case 1:
+            return "semibreve"
+        case 2:
+            return "minim"
+        case 4:
+            return "crotchet"
+        case 8:
+            return "quaver"
+        default:
+            return duration.displayName
+        }
     }
 }

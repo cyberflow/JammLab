@@ -77,13 +77,13 @@ enum AppHotkey: CaseIterable, Hashable {
             self = .setBeatOne
         case 8:
             self = .toggleClick
-        case 21:
+        case 21, 86:
             self = .setNotationDurationEighth
-        case 23:
+        case 23, 87:
             self = .setNotationDurationQuarter
-        case 22:
+        case 22, 88:
             self = .setNotationDurationHalf
-        case 26:
+        case 26, 89:
             self = .setNotationDurationWhole
         case 53:
             self = .clearNotationMeasureSelection
@@ -234,5 +234,13 @@ enum AppHotkey: CaseIterable, Hashable {
         default:
             return nil
         }
+    }
+
+    static func notationDurationShortcutText(for denominator: Int) -> String? {
+        guard let hotkey = allCases.first(where: {
+            notationDurationHotkeys.contains($0)
+                && $0.notationDurationDenominator == denominator
+        }) else { return nil }
+        return "\(hotkey.key); Num\(hotkey.key)"
     }
 }
