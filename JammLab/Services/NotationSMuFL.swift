@@ -137,4 +137,16 @@ enum NotationMusicFontRegistry {
 struct NotationSMuFLGlyphPath {
     var path: CGPath
     var bounds: CGRect
+
+    func centeredTransform(in size: CGSize) -> CGAffineTransform {
+        // CoreText glyph paths use a y-up coordinate space; SwiftUI Canvas draws y-down.
+        CGAffineTransform(
+            a: 1,
+            b: 0,
+            c: 0,
+            d: -1,
+            tx: size.width / 2 - bounds.midX,
+            ty: size.height / 2 + bounds.midY
+        )
+    }
 }

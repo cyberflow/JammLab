@@ -145,6 +145,31 @@ final class NotationPrimitivesTests: XCTestCase {
         }
     }
 
+    func testLelandDurationControlGlyphPathsCenterInsideButtonFrame() throws {
+        let buttonSize = CGSize(
+            width: AppTheme.ControlSize.notationDurationButtonWidth,
+            height: AppTheme.ControlSize.notationDurationControlHeight
+        )
+
+        for symbol in [
+            NotationDurationControlSymbol.whole,
+            .half,
+            .quarter,
+            .eighth
+        ] {
+            let glyphPath = try XCTUnwrap(NotationMusicFontRegistry.glyphPath(
+                for: symbol,
+                fontSize: AppTheme.ControlSize.notationDurationGlyphSize
+            ))
+            let centeredBounds = glyphPath.bounds.applying(glyphPath.centeredTransform(in: buttonSize))
+
+            XCTAssertEqual(centeredBounds.midX, buttonSize.width / 2, accuracy: 0.0001)
+            XCTAssertEqual(centeredBounds.midY, buttonSize.height / 2, accuracy: 0.0001)
+            XCTAssertLessThanOrEqual(centeredBounds.width, buttonSize.width)
+            XCTAssertLessThanOrEqual(centeredBounds.height, buttonSize.height)
+        }
+    }
+
     func testWholeRestVisualCenterUsesStandardStaffPosition() {
         let y = NotationMeasureLayout.wholeRestVisualCenterY(
             staffTop: 10,
