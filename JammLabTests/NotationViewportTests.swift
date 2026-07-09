@@ -121,6 +121,67 @@ final class NotationViewportTests: XCTestCase {
         XCTAssertTrue(threeCountState.visibleMeasures.map(\.number).contains(try XCTUnwrap(threeCountState.activeMeasureNumber)))
     }
 
+    func testCachedNotationContentMatchesDirectViewportState() {
+        let tempoMap = fourFourTempoMap(duration: 120)
+        let harmony = HarmonySymbol(time: 8, measureNumber: 5, offsetInQuarterNotes: 0, rawText: "Cmaj7")
+        let region = TimecodedNote(kind: .region, time: 6, duration: 8, title: "Verse")
+        let factory = NotationViewportFactory()
+        let content = factory.scoreContent(
+            tempoMap: tempoMap,
+            duration: tempoMap.duration,
+            keyName: "C major",
+            harmonySymbols: [harmony],
+            notes: [region]
+        )
+
+        let direct = factory.viewportState(
+            tempoMap: tempoMap,
+            duration: tempoMap.duration,
+            currentTime: 8.1,
+            playbackMarkerTime: 0,
+            isPlaying: true,
+            keyName: "C major",
+            visibleMeasureCount: 8,
+            harmonySymbols: [harmony],
+            notes: [region]
+        )
+        let cached = factory.viewportState(
+            content: content,
+            duration: tempoMap.duration,
+            currentTime: 8.1,
+            playbackMarkerTime: 0,
+            isPlaying: true,
+            visibleMeasureCount: 8
+        )
+
+        XCTAssertEqual(cached, direct)
+    }
+
+    func testNotationProjectionCacheReusesEquivalentInputs() {
+        let tempoMap = fourFourTempoMap(duration: 120)
+        let cache = NotationProjectionCache()
+
+        let first = cache.content(
+            tempoMap: tempoMap,
+            duration: tempoMap.duration,
+            keyName: "C major",
+            notationItems: [],
+            harmonySymbols: [],
+            notes: []
+        )
+        let second = cache.content(
+            tempoMap: tempoMap,
+            duration: tempoMap.duration,
+            keyName: "C major",
+            notationItems: [],
+            harmonySymbols: [],
+            notes: []
+        )
+
+        XCTAssertEqual(second, first)
+        XCTAssertTrue(second.isReady)
+    }
+
     private func fourFourTempoMap(
         duration: TimeInterval,
         firstBeatTime: TimeInterval = 0,

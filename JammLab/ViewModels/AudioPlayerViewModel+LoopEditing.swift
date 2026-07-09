@@ -19,6 +19,7 @@ extension AudioPlayerViewModel {
             loopRegion.start = min(max(0, snappedStart), maximumStart)
             loopRegion = loopRegion.clamped(to: duration, minimumLength: minimumLength)
             applyLoopConfiguration()
+            updatePlaybackDisplayState()
         }
     }
 
@@ -32,6 +33,7 @@ extension AudioPlayerViewModel {
             loopRegion.end = max(min(snappedEnd, duration), minimumEnd)
             loopRegion = loopRegion.clamped(to: duration, minimumLength: minimumLength)
             applyLoopConfiguration()
+            updatePlaybackDisplayState()
         }
     }
 
@@ -46,6 +48,7 @@ extension AudioPlayerViewModel {
             let upper = min(duration, max(snappedStart, snappedEnd))
             loopRegion = LoopRegion(start: lower, end: upper).clamped(to: duration, minimumLength: minimumLength)
             applyLoopConfiguration()
+            updatePlaybackDisplayState()
         }
     }
 }

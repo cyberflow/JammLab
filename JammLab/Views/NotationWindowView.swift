@@ -9,6 +9,7 @@ struct NotationWindowView: View {
     @State private var isUserNavigating = false
     @State private var lastAutoScrolledSystemID: NotationSystemState.ID?
     @State private var resumeAutoScrollTask: Task<Void, Never>?
+    @State private var notationProjectionCache = NotationProjectionCache()
 
     var body: some View {
         GeometryReader { proxy in
@@ -92,6 +93,7 @@ struct NotationWindowView: View {
                         ForEach(systems) { system in
                             NotationTrackView(
                                 state: system.viewportState,
+                                playbackDisplayState: viewModel.playbackDisplayState,
                                 selectedHarmonySymbolID: viewModel.selectedHarmonySymbolID,
                                 selectedMeasures: viewModel.selectedNotationMeasures,
                                 selectedItem: viewModel.selectedNotationItem,
@@ -138,16 +140,20 @@ struct NotationWindowView: View {
     }
 
     private var notationScoreState: NotationScoreState {
-        NotationViewportFactory().scoreState(
+        let content = notationProjectionCache.content(
             tempoMap: viewModel.tempoMap,
             duration: viewModel.duration,
-            currentTime: viewModel.currentTime,
-            playbackMarkerTime: viewModel.playbackMarkerTime,
-            isPlaying: viewModel.playbackState == .playing,
             keyName: viewModel.effectiveKeyName,
             notationItems: viewModel.notationItems,
             harmonySymbols: viewModel.harmonySymbols,
             notes: viewModel.notes
+        )
+        return NotationViewportFactory().scoreState(
+            content: content,
+            duration: viewModel.duration,
+            currentTime: viewModel.currentTime,
+            playbackMarkerTime: viewModel.playbackMarkerTime,
+            isPlaying: viewModel.playbackState == .playing
         )
     }
 

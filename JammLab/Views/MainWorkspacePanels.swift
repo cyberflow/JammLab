@@ -129,6 +129,7 @@ extension ContentView {
             duration: viewModel.duration,
             currentTime: viewModel.currentTime,
             playbackMarkerTime: viewModel.playbackMarkerTime,
+            playbackDisplayState: viewModel.playbackDisplayState,
             loopStart: viewModel.loopRegion.start,
             loopEnd: viewModel.loopRegion.end,
             notes: viewModel.notes,
@@ -138,7 +139,12 @@ extension ContentView {
             pendingHarmonyEditorRequest: viewModel.pendingHarmonyEditorRequest,
             selectedRegionID: viewModel.selectedRegionID,
             beatGrid: beatGrid,
-            notationViewport: notationViewportState(availableWidth: notationTrackContentWidth),
+            notationViewport: viewModel.isNotationTrackCollapsed
+                ? .pending(
+                    visibleMeasureCount: 1,
+                    keySignature: KeySignature.normalized(from: viewModel.effectiveKeyName)
+                )
+                : notationViewportState(availableWidth: notationTrackContentWidth),
             notationDurationDenominator: viewModel.notationDurationDenominator,
             canChangeNotationDuration: viewModel.canChangeNotationDuration,
             isNotationTrackCollapsed: viewModel.isNotationTrackCollapsed,
@@ -154,36 +160,36 @@ extension ContentView {
 
     func notationViewportState(availableWidth: CGFloat) -> NotationViewportState {
         let factory = NotationViewportFactory()
+        let content = notationProjectionCache.content(
+            tempoMap: viewModel.tempoMap,
+            duration: viewModel.duration,
+            keyName: viewModel.effectiveKeyName,
+            notationItems: viewModel.notationItems,
+            harmonySymbols: viewModel.harmonySymbols,
+            notes: viewModel.notes
+        )
         let maximumMeasureCount = AppTheme.Timeline.notationMaximumVisibleMeasureCount
         let fittedMeasureCount = NotationVisibleMeasureFitter.fittedMeasureCount(
             availableWidth: availableWidth,
             maximumMeasureCount: maximumMeasureCount
         ) { measureCount in
             factory.viewportState(
-                tempoMap: viewModel.tempoMap,
+                content: content,
                 duration: viewModel.duration,
                 currentTime: viewModel.currentTime,
                 playbackMarkerTime: viewModel.playbackMarkerTime,
                 isPlaying: viewModel.playbackState == .playing,
-                keyName: viewModel.effectiveKeyName,
-                visibleMeasureCount: measureCount,
-                notationItems: viewModel.notationItems,
-                harmonySymbols: viewModel.harmonySymbols,
-                notes: viewModel.notes
+                visibleMeasureCount: measureCount
             )
         }
 
         return factory.viewportState(
-            tempoMap: viewModel.tempoMap,
+            content: content,
             duration: viewModel.duration,
             currentTime: viewModel.currentTime,
             playbackMarkerTime: viewModel.playbackMarkerTime,
             isPlaying: viewModel.playbackState == .playing,
-            keyName: viewModel.effectiveKeyName,
-            visibleMeasureCount: fittedMeasureCount,
-            notationItems: viewModel.notationItems,
-            harmonySymbols: viewModel.harmonySymbols,
-            notes: viewModel.notes
+            visibleMeasureCount: fittedMeasureCount
         )
     }
 

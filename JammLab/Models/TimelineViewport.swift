@@ -129,3 +129,48 @@ struct TimelineViewport: Equatable {
     private static let playbackFollowRightEdgeRatio: TimeInterval = 0.92
     private static let playbackFollowComparisonTolerance: TimeInterval = 0.000001
 }
+
+struct PlaybackDisplayState: Equatable {
+    var sampledTime: TimeInterval
+    var sampleDate: Date
+    var playbackRate: Float
+    var duration: TimeInterval
+    var isPlaying: Bool
+    var isLooping: Bool
+    var loopRegion: LoopRegion
+
+    static let idle = PlaybackDisplayState(
+        sampledTime: 0,
+        sampleDate: Date(timeIntervalSinceReferenceDate: 0),
+        playbackRate: AppSliderDefaults.playbackRate,
+        duration: 0,
+        isPlaying: false,
+        isLooping: false,
+        loopRegion: .empty
+    )
+
+    func displayTime(at date: Date = Date()) -> TimeInterval {
+        let safeDuration = max(0, duration)
+        guard safeDuration > 0 else { return 0 }
+
+        let clampedSample = max(0, min(sampledTime, safeDuration))
+        guard isPlaying else { return clampedSample }
+
+        let elapsed = max(0, date.timeIntervalSince(sampleDate)) * Double(ProjectStateNormalizer.normalizedPlaybackRate(playbackRate))
+        let rawTime = clampedSample + elapsed
+
+        if isLooping {
+            let loop = loopRegion.clamped(to: safeDuration)
+            let loopLength = loop.end - loop.start
+            if loopLength > 0,
+               clampedSample >= loop.start,
+               clampedSample <= loop.end,
+               rawTime > loop.end {
+                let loopOffset = (rawTime - loop.start).truncatingRemainder(dividingBy: loopLength)
+                return loop.start + max(0, loopOffset)
+            }
+        }
+
+        return max(0, min(rawTime, safeDuration))
+    }
+}

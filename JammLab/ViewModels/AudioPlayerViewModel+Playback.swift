@@ -27,6 +27,8 @@ extension AudioPlayerViewModel {
             try activePlaybackEngine.play()
             videoFollower.play(rate: playbackRate)
             playbackState = .playing
+            updatePlaybackDisplayState(sampledTime: currentTime)
+            startPlaybackClock()
         } catch {
             errorMessage = "Playback failed: \(error.localizedDescription)"
         }
@@ -34,22 +36,26 @@ extension AudioPlayerViewModel {
 
     func pause() {
         guard canPlay else { return }
+        stopPlaybackClock()
         activePlaybackEngine.pause()
         videoFollower.pause()
         let targetTime = ProjectStateNormalizer.normalizedTimelineTime(activePlaybackEngine.currentTime, duration: duration)
         playbackMarkerTime = targetTime
         currentTime = targetTime
         playbackState = .paused
+        updatePlaybackDisplayState(sampledTime: targetTime)
         refreshProjectModifiedState()
     }
 
     func stop() {
         guard canPlay else { return }
+        stopPlaybackClock()
         activePlaybackEngine.stop()
         videoFollower.stop()
         seekExactly(to: playbackMarkerTime)
         showPlaybackMarkerInTimeline()
         playbackState = .stopped
+        updatePlaybackDisplayState(sampledTime: currentTime)
     }
 
     func togglePlayStop() {
@@ -72,6 +78,7 @@ extension AudioPlayerViewModel {
         activePlaybackEngine.seek(to: targetTime)
         videoFollower.seek(to: targetTime)
         currentTime = targetTime
+        updatePlaybackDisplayState(sampledTime: targetTime)
     }
 
     func locatePlaybackMarker(to time: TimeInterval) {
@@ -81,6 +88,7 @@ extension AudioPlayerViewModel {
         activePlaybackEngine.seek(to: targetTime)
         videoFollower.seek(to: targetTime)
         currentTime = targetTime
+        updatePlaybackDisplayState(sampledTime: targetTime)
         refreshProjectModifiedState()
     }
 
@@ -110,6 +118,7 @@ extension AudioPlayerViewModel {
         performUndoableEdit("Toggle Loop") {
             isLooping = isEnabled
             applyLoopConfiguration()
+            updatePlaybackDisplayState()
         }
     }
 
@@ -118,6 +127,7 @@ extension AudioPlayerViewModel {
             playbackRate = ProjectStateNormalizer.normalizedPlaybackRate(rate)
             playbackEngine.setPlaybackRate(playbackRate)
             videoFollower.setPlaybackRate(playbackRate)
+            updatePlaybackDisplayState()
         }
     }
 
@@ -183,6 +193,7 @@ extension AudioPlayerViewModel {
     }
 
     func startPlaybackClock() {
+        guard playbackState == .playing else { return }
         guard clockTask == nil else { return }
 
         clockTask = Task { [weak self] in
@@ -294,22 +305,31 @@ extension AudioPlayerViewModel {
     func refreshPlaybackPosition() {
         guard canPlay else { return }
 
-        currentTime = activePlaybackEngine.currentTime
-        videoFollower.sync(to: currentTime, isPlaying: playbackState == .playing, rate: playbackRate)
+        let engineTime = ProjectStateNormalizer.normalizedTimelineTime(activePlaybackEngine.currentTime, duration: duration)
+        if abs(currentTime - engineTime) > Self.playbackTimePublishTolerance {
+            currentTime = engineTime
+        }
+        updatePlaybackDisplayState(sampledTime: engineTime)
+        videoFollower.sync(to: engineTime, isPlaying: playbackState == .playing, rate: playbackRate)
 
-        if playbackState == .playing, (!activePlaybackEngine.isPlaying || currentTime >= duration), currentTime >= duration - 0.02 {
+        if playbackState == .playing, (!activePlaybackEngine.isPlaying || engineTime >= duration), engineTime >= duration - 0.02 {
+            stopPlaybackClock()
             playbackState = .stopped
             activePlaybackEngine.stop()
             videoFollower.stop()
             seekExactly(to: playbackMarkerTime)
             showPlaybackMarkerInTimeline()
+            updatePlaybackDisplayState(sampledTime: currentTime)
             return
         }
 
-        if playbackState == .playing, timelineViewport.shouldFollowPlaybackTime(currentTime) {
-            timelineVisibleRange = timelineViewport
-                .positionedWithTimeNearLeadingEdge(currentTime)
+        if playbackState == .playing, timelineViewport.shouldFollowPlaybackTime(engineTime) {
+            let nextRange = timelineViewport
+                .positionedWithTimeNearLeadingEdge(engineTime)
                 .clampedRange
+            if nextRange != timelineVisibleRange {
+                timelineVisibleRange = nextRange
+            }
         }
     }
 
@@ -324,6 +344,7 @@ extension AudioPlayerViewModel {
         activePlaybackEngine.seek(to: targetTime)
         videoFollower.seek(to: targetTime)
         currentTime = targetTime
+        updatePlaybackDisplayState(sampledTime: targetTime)
     }
 
     func setPlaybackMarkerExactly(to time: TimeInterval, shouldSeek: Bool = true) {
@@ -334,6 +355,7 @@ extension AudioPlayerViewModel {
             videoFollower.seek(to: targetTime)
             currentTime = targetTime
         }
+        updatePlaybackDisplayState(sampledTime: shouldSeek ? currentTime : playbackDisplayState.sampledTime)
     }
 
     func showPlaybackMarkerInTimeline() {
@@ -345,4 +367,22 @@ extension AudioPlayerViewModel {
     var activePlaybackEngine: AudioPlaybackControlling {
         return playbackEngine
     }
+
+    func updatePlaybackDisplayState(sampledTime: TimeInterval? = nil) {
+        let nextState = PlaybackDisplayState(
+            sampledTime: ProjectStateNormalizer.normalizedTimelineTime(sampledTime ?? currentTime, duration: duration),
+            sampleDate: Date(),
+            playbackRate: playbackRate,
+            duration: duration,
+            isPlaying: playbackState == .playing,
+            isLooping: isLooping,
+            loopRegion: loopRegion
+        )
+
+        if nextState != playbackDisplayState {
+            playbackDisplayState = nextState
+        }
+    }
+
+    private static let playbackTimePublishTolerance: TimeInterval = 0.000_5
 }

@@ -178,4 +178,53 @@ final class ViewModelPlaybackStateTests: XCTestCase {
         XCTAssertFalse(viewModel.isProjectModified)
     }
 
+    @MainActor
+    func testPlaybackClockDoesNotStartWhileIdle() {
+        let engine = MockPlaybackEngine()
+        engine.isLoaded = true
+        let viewModel = AudioPlayerViewModel(playbackEngine: engine)
+        viewModel.duration = 20
+        viewModel.playbackState = .stopped
+
+        viewModel.startPlaybackClock()
+
+        XCTAssertNil(viewModel.clockTask)
+    }
+
+    @MainActor
+    func testPlayAndPauseOwnPlaybackClockLifecycle() {
+        let engine = MockPlaybackEngine()
+        engine.isLoaded = true
+        let viewModel = AudioPlayerViewModel(playbackEngine: engine)
+        viewModel.duration = 20
+        viewModel.setPlaybackMarkerExactly(to: 4)
+
+        viewModel.play()
+
+        XCTAssertNotNil(viewModel.clockTask)
+        XCTAssertTrue(viewModel.playbackDisplayState.isPlaying)
+
+        viewModel.pause()
+
+        XCTAssertNil(viewModel.clockTask)
+        XCTAssertFalse(viewModel.playbackDisplayState.isPlaying)
+        XCTAssertEqual(viewModel.playbackDisplayState.sampledTime, 4, accuracy: 0.0001)
+    }
+
+    @MainActor
+    func testStopCancelsPlaybackClock() {
+        let engine = MockPlaybackEngine()
+        engine.isLoaded = true
+        let viewModel = AudioPlayerViewModel(playbackEngine: engine)
+        viewModel.duration = 20
+        viewModel.setPlaybackMarkerExactly(to: 3)
+        viewModel.play()
+
+        viewModel.stop()
+
+        XCTAssertNil(viewModel.clockTask)
+        XCTAssertFalse(viewModel.playbackDisplayState.isPlaying)
+        XCTAssertEqual(viewModel.currentTime, 3, accuracy: 0.0001)
+    }
+
 }

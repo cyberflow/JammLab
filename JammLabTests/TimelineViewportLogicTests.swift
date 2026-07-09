@@ -126,4 +126,61 @@ final class TimelineViewportLogicTests: XCTestCase {
         XCTAssertEqual(metrics.range(draggedBy: 50).lowerBound, 0, accuracy: 0.0001)
         XCTAssertEqual(metrics.range(draggedBy: 50).upperBound, 0, accuracy: 0.0001)
     }
+
+    func testPlaybackDisplayStateInterpolatesPlayingTime() {
+        let start = Date(timeIntervalSinceReferenceDate: 100)
+        let state = PlaybackDisplayState(
+            sampledTime: 4,
+            sampleDate: start,
+            playbackRate: 1,
+            duration: 20,
+            isPlaying: true,
+            isLooping: false,
+            loopRegion: .empty
+        )
+
+        XCTAssertEqual(
+            state.displayTime(at: start.addingTimeInterval(2)),
+            6,
+            accuracy: 0.0001
+        )
+    }
+
+    func testPlaybackDisplayStateDoesNotInterpolateWhenPaused() {
+        let start = Date(timeIntervalSinceReferenceDate: 100)
+        let state = PlaybackDisplayState(
+            sampledTime: 4,
+            sampleDate: start,
+            playbackRate: 1.5,
+            duration: 20,
+            isPlaying: false,
+            isLooping: false,
+            loopRegion: .empty
+        )
+
+        XCTAssertEqual(
+            state.displayTime(at: start.addingTimeInterval(2)),
+            4,
+            accuracy: 0.0001
+        )
+    }
+
+    func testPlaybackDisplayStateWrapsInsideActiveLoop() {
+        let start = Date(timeIntervalSinceReferenceDate: 100)
+        let state = PlaybackDisplayState(
+            sampledTime: 8,
+            sampleDate: start,
+            playbackRate: 1,
+            duration: 20,
+            isPlaying: true,
+            isLooping: true,
+            loopRegion: LoopRegion(start: 5, end: 10)
+        )
+
+        XCTAssertEqual(
+            state.displayTime(at: start.addingTimeInterval(4)),
+            7,
+            accuracy: 0.0001
+        )
+    }
 }

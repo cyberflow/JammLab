@@ -14,6 +14,7 @@ struct ContentView: View {
     @State var editingTempoTimeSignatureBeatsPerBar: Double = Double(TimeSignature.fourFour.beatsPerBar)
     @State var editingTempoTimeSignatureSetsNewFirstBeat = false
     @State var notesFilter: NotesFilter = .notes
+    @State var notationProjectionCache = NotationProjectionCache()
     @Environment(\.appColors) var appColors
     @Environment(\.openWindow) var openWindow
     @Environment(\.undoManager) private var undoManager
@@ -45,11 +46,9 @@ struct ContentView: View {
                 onHotkeyShouldConsume: handleHotkey
             )
         )
-        .task {
-            viewModel.startPlaybackClock()
-        }
         .onAppear {
             viewModel.undoManager = undoManager
+            viewModel.startPlaybackClock()
             clearKeyboardFocus()
         }
         .onDisappear {

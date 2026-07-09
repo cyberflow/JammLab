@@ -21,6 +21,7 @@ struct TimelineViewState: Equatable {
     var duration: TimeInterval
     var currentTime: TimeInterval
     var playbackMarkerTime: TimeInterval
+    var playbackDisplayState: PlaybackDisplayState
     var loopStart: TimeInterval
     var loopEnd: TimeInterval
     var notes: [TimecodedNote]
@@ -264,6 +265,7 @@ struct WaveformTimelineView: View {
         if !state.isNotationTrackCollapsed {
             NotationTrackView(
                 state: state.notationViewport,
+                playbackDisplayState: state.playbackDisplayState,
                 selectedHarmonySymbolID: state.selectedHarmonySymbolID,
                 selectedMeasures: state.selectedNotationMeasures,
                 selectedItem: state.selectedNotationItem,
@@ -386,6 +388,7 @@ struct WaveformTimelineView: View {
                     duration: timelineDuration,
                     currentTime: state.currentTime,
                     playbackMarkerTime: state.playbackMarkerTime,
+                    playbackDisplayState: state.playbackDisplayState,
                     loopStart: state.loopStart,
                     loopEnd: state.loopEnd,
                     notes: state.notes,

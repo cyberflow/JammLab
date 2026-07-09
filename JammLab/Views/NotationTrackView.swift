@@ -13,6 +13,7 @@ struct NotationTrackActions {
 
 struct NotationTrackView: View {
     let state: NotationViewportState
+    let playbackDisplayState: PlaybackDisplayState?
     let selectedHarmonySymbolID: HarmonySymbol.ID?
     let selectedMeasures: [NotationMeasureSelection]
     let selectedItem: NotationItemSelection?
@@ -26,6 +27,7 @@ struct NotationTrackView: View {
 
     init(
         state: NotationViewportState,
+        playbackDisplayState: PlaybackDisplayState? = nil,
         selectedHarmonySymbolID: HarmonySymbol.ID? = nil,
         selectedMeasures: [NotationMeasureSelection] = [],
         selectedItem: NotationItemSelection? = nil,
@@ -34,6 +36,7 @@ struct NotationTrackView: View {
         cornerRadius: CGFloat = AppTheme.Radius.small
     ) {
         self.state = state
+        self.playbackDisplayState = playbackDisplayState
         self.selectedHarmonySymbolID = selectedHarmonySymbolID
         self.selectedMeasures = selectedMeasures
         self.selectedItem = selectedItem
@@ -793,7 +796,33 @@ struct NotationTrackView: View {
         height: CGFloat,
         attributeDisplays: [NotationAttributeDisplay]
     ) -> some View {
-        if let activeMeasureIndex {
+        if let playbackDisplayState {
+            TimelineView(.animation(minimumInterval: 1.0 / 30.0, paused: !playbackDisplayState.isPlaying)) { context in
+                playheadIndicator(
+                    anchorTime: playbackDisplayState.displayTime(at: context.date),
+                    width: width,
+                    height: height,
+                    attributeDisplays: attributeDisplays
+                )
+            }
+        } else {
+            playheadIndicator(
+                anchorTime: state.anchorTime,
+                width: width,
+                height: height,
+                attributeDisplays: attributeDisplays
+            )
+        }
+    }
+
+    @ViewBuilder
+    private func playheadIndicator(
+        anchorTime: TimeInterval,
+        width: CGFloat,
+        height: CGFloat,
+        attributeDisplays: [NotationAttributeDisplay]
+    ) -> some View {
+        if let activeMeasureIndex = activeMeasureIndex(for: anchorTime) {
             let geometries = measureCanvasGeometries(
                 measureCount: renderedMeasureCount,
                 width: width,
@@ -801,7 +830,7 @@ struct NotationTrackView: View {
             )
             let measure = state.visibleMeasures[activeMeasureIndex]
             let progress = measure.duration > 0
-                ? max(0, min((state.anchorTime - measure.startTime) / measure.duration, 1))
+                ? max(0, min((anchorTime - measure.startTime) / measure.duration, 1))
                 : 0
             let geometry = geometries.indices.contains(activeMeasureIndex)
                 ? geometries[activeMeasureIndex]
@@ -825,7 +854,7 @@ struct NotationTrackView: View {
         }
     }
 
-    private var activeMeasureIndex: Int? {
+    private func activeMeasureIndex(for anchorTime: TimeInterval) -> Int? {
         state.visibleMeasures.indices.first { index in
             let measure = state.visibleMeasures[index]
             let isLastVisibleMeasure = index == state.visibleMeasures.indices.upperBound - 1
