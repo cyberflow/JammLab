@@ -19,6 +19,7 @@ final class ViewModelNotationPasteTests: XCTestCase {
         XCTAssertTrue(viewModel.copySelectedNotationMeasure())
         viewModel.selectNotationMeasure(targetMeasure)
         let beforePaste = viewModel.harmonySymbols
+        viewModel.markProjectClean()
 
         XCTAssertTrue(viewModel.pasteNotationMeasureClipboard())
 

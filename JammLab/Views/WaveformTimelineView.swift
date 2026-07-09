@@ -45,6 +45,7 @@ struct TimelineViewState: Equatable {
 
 struct TimelineViewActions {
     var locatePlaybackMarker: (TimeInterval) -> Void
+    var locatePlaybackMarkerExactly: (TimeInterval) -> Void
     var addNote: (TimeInterval) -> Void
     var selectHarmony: (HarmonySymbol.ID?) -> Void
     var selectNotationMeasure: (ScoreMeasure?, Bool) -> Void
@@ -271,6 +272,7 @@ struct WaveformTimelineView: View {
                     selectHarmony: actions.selectHarmony,
                     selectMeasure: actions.selectNotationMeasure,
                     selectItem: actions.selectNotationItem,
+                    locatePlaybackMarkerExactly: actions.locatePlaybackMarkerExactly,
                     saveHarmony: actions.saveHarmony,
                     deleteHarmony: actions.deleteHarmony,
                     adjacentHarmonyPlacement: actions.adjacentHarmonyPlacement

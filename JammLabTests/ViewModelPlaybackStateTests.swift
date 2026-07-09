@@ -96,6 +96,68 @@ final class ViewModelPlaybackStateTests: XCTestCase {
     }
 
     @MainActor
+    func testLocatingPlaybackMarkerExactlyBypassesSnapAndMarksProjectModified() throws {
+        let audioURL = try temporaryAudioFile(duration: 4)
+        defer { try? FileManager.default.removeItem(at: audioURL) }
+        let engine = MockPlaybackEngine()
+        let videoFollower = MockVideoFollower()
+        let viewModel = AudioPlayerViewModel(
+            analyzer: MockAnalyzer(),
+            peakformProvider: MockPeakformProvider(),
+            playbackEngine: engine,
+            videoFollower: videoFollower
+        )
+        let media = ImportedAudioFile(url: audioURL, displayName: "exact-marker.wav", duration: 4)
+        try viewModel.loadImportedAudio(media)
+        viewModel.isSnapEnabled = true
+        viewModel.beatGridSettings = BeatGridSettings(bpm: 120, firstBeatTime: 0, timeSignature: .fourFour)
+        viewModel.markProjectClean()
+
+        viewModel.locatePlaybackMarkerExactly(to: 0.74)
+
+        XCTAssertEqual(viewModel.playbackMarkerTime, 0.74, accuracy: 0.0001)
+        XCTAssertEqual(viewModel.currentTime, 0.74, accuracy: 0.0001)
+        XCTAssertEqual(engine.currentTime, 0.74, accuracy: 0.0001)
+        XCTAssertEqual(try XCTUnwrap(videoFollower.seekTimes.last), 0.74, accuracy: 0.0001)
+        XCTAssertTrue(viewModel.isProjectModified)
+    }
+
+    @MainActor
+    func testLocatingPlaybackMarkerExactlyClampsToTimelineBounds() throws {
+        let audioURL = try temporaryAudioFile(duration: 4)
+        defer { try? FileManager.default.removeItem(at: audioURL) }
+        let engine = MockPlaybackEngine()
+        let videoFollower = MockVideoFollower()
+        let viewModel = AudioPlayerViewModel(
+            analyzer: MockAnalyzer(),
+            peakformProvider: MockPeakformProvider(),
+            playbackEngine: engine,
+            videoFollower: videoFollower
+        )
+        let media = ImportedAudioFile(url: audioURL, displayName: "exact-marker-bounds.wav", duration: 4)
+        try viewModel.loadImportedAudio(media)
+
+        viewModel.setPlaybackMarkerExactly(to: 2)
+        viewModel.markProjectClean()
+        viewModel.locatePlaybackMarkerExactly(to: -1)
+
+        XCTAssertEqual(viewModel.playbackMarkerTime, 0, accuracy: 0.0001)
+        XCTAssertEqual(viewModel.currentTime, 0, accuracy: 0.0001)
+        XCTAssertEqual(engine.currentTime, 0, accuracy: 0.0001)
+        XCTAssertEqual(try XCTUnwrap(videoFollower.seekTimes.last), 0, accuracy: 0.0001)
+        XCTAssertTrue(viewModel.isProjectModified)
+
+        viewModel.markProjectClean()
+        viewModel.locatePlaybackMarkerExactly(to: 12)
+
+        XCTAssertEqual(viewModel.playbackMarkerTime, 4, accuracy: 0.0001)
+        XCTAssertEqual(viewModel.currentTime, 4, accuracy: 0.0001)
+        XCTAssertEqual(engine.currentTime, 4, accuracy: 0.0001)
+        XCTAssertEqual(try XCTUnwrap(videoFollower.seekTimes.last), 4, accuracy: 0.0001)
+        XCTAssertTrue(viewModel.isProjectModified)
+    }
+
+    @MainActor
     func testPlaybackClockMovementDoesNotMarkProjectModified() throws {
         let audioURL = try temporaryAudioFile(duration: 4)
         defer { try? FileManager.default.removeItem(at: audioURL) }

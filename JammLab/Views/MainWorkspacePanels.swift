@@ -190,6 +190,7 @@ extension ContentView {
     var timelineViewActions: TimelineViewActions {
         TimelineViewActions(
             locatePlaybackMarker: { viewModel.locatePlaybackMarker(to: $0) },
+            locatePlaybackMarkerExactly: { viewModel.locatePlaybackMarkerExactly(to: $0) },
             addNote: { viewModel.addNote(at: $0) },
             selectHarmony: { viewModel.selectHarmonySymbol(id: $0) },
             selectNotationMeasure: { viewModel.selectNotationMeasure($0, extendingSelection: $1) },

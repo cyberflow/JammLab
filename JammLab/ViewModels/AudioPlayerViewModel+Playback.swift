@@ -84,6 +84,11 @@ extension AudioPlayerViewModel {
         refreshProjectModifiedState()
     }
 
+    func locatePlaybackMarkerExactly(to time: TimeInterval) {
+        setPlaybackMarkerExactly(to: time)
+        refreshProjectModifiedState()
+    }
+
     func seekToStart() {
         setPlaybackMarkerExactly(to: 0)
         refreshProjectModifiedState()

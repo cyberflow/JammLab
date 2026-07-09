@@ -67,6 +67,22 @@ struct NotationBarlineGeometry: Equatable {
     let isOuterBoundary: Bool
 }
 
+struct NotationBarlineHitTarget: Equatable, Identifiable {
+    enum Boundary: Equatable {
+        case leading
+        case trailing
+    }
+
+    let measureIndex: Int
+    let boundary: Boundary
+    let x: CGFloat
+    let targetTime: TimeInterval
+
+    var id: String {
+        "\(measureIndex)-\(boundary)"
+    }
+}
+
 struct NotationSelectionOverlayRun: Equatable, Identifiable {
     let startMeasureIndex: Int
     let endMeasureIndex: Int
@@ -295,6 +311,35 @@ struct NotationMeasureLayout {
             )
         )
         return barlines
+    }
+
+    static func barlineHitTargets(
+        for geometries: [NotationMeasureCanvasGeometry],
+        measures: [ScoreMeasure]
+    ) -> [NotationBarlineHitTarget] {
+        let measureCount = min(geometries.count, measures.count)
+        guard measureCount > 0 else { return [] }
+
+        var targets: [NotationBarlineHitTarget] = []
+        for index in 0..<measureCount {
+            guard let x = geometries[index].leadingBarlineX else { continue }
+
+            targets.append(NotationBarlineHitTarget(
+                measureIndex: index,
+                boundary: .leading,
+                x: x,
+                targetTime: measures[index].startTime
+            ))
+        }
+
+        let lastIndex = measureCount - 1
+        targets.append(NotationBarlineHitTarget(
+            measureIndex: lastIndex,
+            boundary: .trailing,
+            x: geometries[lastIndex].staffEndX,
+            targetTime: measures[lastIndex].endTime
+        ))
+        return targets
     }
 
     static func selectionOverlayRuns(

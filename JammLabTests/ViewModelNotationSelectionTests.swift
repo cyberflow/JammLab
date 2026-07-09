@@ -3,15 +3,33 @@ import XCTest
 
 final class ViewModelNotationSelectionTests: XCTestCase {
     @MainActor
-    func testSelectingNotationMeasureDoesNotMarkProjectModified() throws {
+    func testSelectingNotationMeasureAtCurrentMarkerDoesNotMarkProjectModified() throws {
         let viewModel = try loadedNotationViewModel(duration: 8)
         let measure = try notationMeasure(1, in: viewModel)
 
         viewModel.selectNotationMeasure(measure)
 
         XCTAssertEqual(viewModel.selectedNotationMeasures.map(\.number), [1])
+        XCTAssertEqual(viewModel.playbackMarkerTime, measure.startTime, accuracy: 0.0001)
+        XCTAssertEqual(viewModel.currentTime, measure.startTime, accuracy: 0.0001)
         XCTAssertTrue(viewModel.canCopySelectedNotationMeasure)
         XCTAssertFalse(viewModel.isProjectModified)
+    }
+
+    @MainActor
+    func testSelectingNotationMeasureMovesPlaybackMarkerExactlyToMeasureStart() throws {
+        let engine = MockPlaybackEngine()
+        let viewModel = try loadedNotationViewModel(duration: 8, playbackEngine: engine)
+        viewModel.isSnapEnabled = true
+        let measure = try notationMeasure(2, in: viewModel)
+
+        viewModel.selectNotationMeasure(measure)
+
+        XCTAssertEqual(viewModel.selectedNotationMeasures.map(\.number), [2])
+        XCTAssertEqual(viewModel.playbackMarkerTime, measure.startTime, accuracy: 0.0001)
+        XCTAssertEqual(viewModel.currentTime, measure.startTime, accuracy: 0.0001)
+        XCTAssertEqual(engine.currentTime, measure.startTime, accuracy: 0.0001)
+        XCTAssertTrue(viewModel.isProjectModified)
     }
 
     @MainActor
@@ -89,18 +107,39 @@ final class ViewModelNotationSelectionTests: XCTestCase {
 
     @MainActor
     func testShiftSelectingNotationMeasuresBuildsContiguousRange() throws {
+        let engine = MockPlaybackEngine()
+        let viewModel = try loadedNotationViewModel(duration: 10, playbackEngine: engine)
+        let secondMeasure = try notationMeasure(2, in: viewModel)
+        let fourthMeasure = try notationMeasure(4, in: viewModel)
+
+        viewModel.selectNotationMeasure(secondMeasure)
+        viewModel.selectNotationMeasure(fourthMeasure, extendingSelection: true)
+
+        XCTAssertEqual(viewModel.selectedNotationMeasures.map(\.number), [2, 3, 4])
+        XCTAssertEqual(viewModel.playbackMarkerTime, secondMeasure.startTime, accuracy: 0.0001)
+        XCTAssertEqual(viewModel.currentTime, secondMeasure.startTime, accuracy: 0.0001)
+        XCTAssertEqual(engine.currentTime, secondMeasure.startTime, accuracy: 0.0001)
+
+        viewModel.selectNotationMeasure(secondMeasure, extendingSelection: true)
+
+        XCTAssertEqual(viewModel.selectedNotationMeasures.map(\.number), [2])
+    }
+
+    @MainActor
+    func testReverseShiftSelectingNotationMeasuresMovesMarkerToFirstSelectedMeasure() throws {
         let viewModel = try loadedNotationViewModel(duration: 8)
         let firstMeasure = try notationMeasure(1, in: viewModel)
         let thirdMeasure = try notationMeasure(3, in: viewModel)
 
-        viewModel.selectNotationMeasure(firstMeasure)
-        viewModel.selectNotationMeasure(thirdMeasure, extendingSelection: true)
+        viewModel.selectNotationMeasure(thirdMeasure)
 
-        XCTAssertEqual(viewModel.selectedNotationMeasures.map(\.number), [1, 2, 3])
+        XCTAssertEqual(viewModel.playbackMarkerTime, thirdMeasure.startTime, accuracy: 0.0001)
 
         viewModel.selectNotationMeasure(firstMeasure, extendingSelection: true)
 
-        XCTAssertEqual(viewModel.selectedNotationMeasures.map(\.number), [1])
+        XCTAssertEqual(viewModel.selectedNotationMeasures.map(\.number), [1, 2, 3])
+        XCTAssertEqual(viewModel.playbackMarkerTime, firstMeasure.startTime, accuracy: 0.0001)
+        XCTAssertEqual(viewModel.currentTime, firstMeasure.startTime, accuracy: 0.0001)
     }
 
     @MainActor
@@ -124,16 +163,35 @@ final class ViewModelNotationSelectionTests: XCTestCase {
         XCTAssertTrue(viewModel.selectedNotationMeasures.isEmpty)
     }
 
+    @MainActor
+    func testClearingNotationMeasureSelectionDoesNotMovePlaybackMarker() throws {
+        let viewModel = try loadedNotationViewModel(duration: 8)
+        let measure = try notationMeasure(2, in: viewModel)
+        viewModel.selectNotationMeasure(measure)
+        viewModel.markProjectClean()
+
+        viewModel.clearNotationMeasureSelection()
+
+        XCTAssertTrue(viewModel.selectedNotationMeasures.isEmpty)
+        XCTAssertEqual(viewModel.playbackMarkerTime, measure.startTime, accuracy: 0.0001)
+        XCTAssertEqual(viewModel.currentTime, measure.startTime, accuracy: 0.0001)
+        XCTAssertFalse(viewModel.isProjectModified)
+    }
+
 }
 
 extension XCTestCase {
     @MainActor
-    func loadedNotationViewModel(duration: TimeInterval) throws -> AudioPlayerViewModel {
+    func loadedNotationViewModel(
+        duration: TimeInterval,
+        playbackEngine: MockPlaybackEngine? = nil
+    ) throws -> AudioPlayerViewModel {
         let audioURL = try temporaryAudioFile(duration: duration)
+        let playbackEngine = playbackEngine ?? MockPlaybackEngine()
         let viewModel = AudioPlayerViewModel(
             analyzer: MockAnalyzer(),
             peakformProvider: MockPeakformProvider(),
-            playbackEngine: MockPlaybackEngine()
+            playbackEngine: playbackEngine
         )
         let media = ImportedAudioFile(url: audioURL, displayName: "notation.wav", duration: duration)
         try viewModel.loadImportedAudio(media)
