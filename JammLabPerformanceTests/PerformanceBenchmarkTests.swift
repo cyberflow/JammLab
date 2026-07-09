@@ -106,6 +106,56 @@ final class PerformanceBenchmarkTests: XCTestCase {
         try BenchmarkRecorder.shared.record(full)
     }
 
+    func testNotationCachedProjectionAcrossPlaybackTicks() throws {
+        let duration: TimeInterval = 900
+        let tempoMap = TempoMap(
+            baseSettings: BeatGridSettings(bpm: 128, firstBeatTime: 0.12),
+            markers: [],
+            duration: duration
+        )
+        let notes = BenchmarkFixtures.notes(markerCount: 400, regionCount: 80, duration: duration)
+        let harmonies = (0..<600).map { index in
+            HarmonySymbol(
+                id: UUID(uuidString: String(format: "20000000-0000-0000-0000-%012d", index + 1)) ?? UUID(),
+                time: duration * Double(index) / 600,
+                measureNumber: 1,
+                offsetInQuarterNotes: 0,
+                rawText: "C"
+            )
+        }
+        let factory = NotationViewportFactory()
+        let content = factory.scoreContent(
+            tempoMap: tempoMap,
+            duration: duration,
+            keyName: "C major",
+            harmonySymbols: harmonies,
+            notes: notes
+        )
+
+        let result = BenchmarkRunner.measure(
+            name: "notation_cached_projection_1000_playback_ticks",
+            iterations: 100
+        ) {
+            var checksum = 0
+            for tick in 0..<1_000 {
+                let state = factory.viewportState(
+                    content: content,
+                    duration: duration,
+                    currentTime: Double(tick) * 0.08,
+                    playbackMarkerTime: 0,
+                    isPlaying: true,
+                    visibleMeasureCount: 8
+                )
+                checksum &+= state.activeMeasureNumber ?? 0
+                checksum &+= state.visibleMeasures.count
+            }
+            return checksum
+        }
+
+        XCTAssertGreaterThan(result.checksum, 0)
+        try BenchmarkRecorder.shared.record(result)
+    }
+
     func testTimelineViewportPanZoomCalculations() throws {
         let result = BenchmarkRunner.measure(
             name: "timeline_viewport_pan_zoom_10000_steps",

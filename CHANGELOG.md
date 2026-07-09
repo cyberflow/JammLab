@@ -8,6 +8,7 @@ development artifact builds use `vMAJOR.MINOR.PATCH-dev.N`.
 
 ## Unreleased
 
+- Improved timeline and Notation playback responsiveness and reduced idle CPU use in loaded projects.
 - Added Notation clicks for moving the playback position marker from measure selections and barlines in both the main track and Notation window.
 - Added Leland glyph duration controls to the Notation window and main Notation track, with 4/5/6/7 shortcuts for eighth, quarter, half, and whole notes.
 - Added selectable Notation rest durations with persisted measure layouts and split-rest MusicXML export.

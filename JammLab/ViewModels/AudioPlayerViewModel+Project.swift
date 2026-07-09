@@ -81,6 +81,7 @@ extension AudioPlayerViewModel {
     }
 
     func newProject() {
+        stopPlaybackClock()
         playbackEngine.unload()
         performWithoutVideoWindowDirtyTracking {
             videoFollower.unload()
@@ -104,6 +105,7 @@ extension AudioPlayerViewModel {
         playbackState = .idle
         currentTime = 0
         playbackMarkerTime = 0
+        playbackDisplayState = .idle
         duration = 0
         playbackRate = AppSliderDefaults.playbackRate
         pitchShiftSemitones = AppSliderDefaults.pitchShiftSemitones
@@ -177,6 +179,7 @@ extension AudioPlayerViewModel {
         timelineVisibleRange = 0...file.duration
         userTimelineVisibleRange = timelineVisibleRange
         playbackState = .stopped
+        updatePlaybackDisplayState(sampledTime: 0)
         isNotationTrackCollapsed = true
         resetStemState()
         isImporting = false
@@ -185,6 +188,7 @@ extension AudioPlayerViewModel {
     func openProject(at url: URL) async {
         errorMessage = nil
         isImporting = true
+        stopPlaybackClock()
         var didAdoptProject = false
 
         do {

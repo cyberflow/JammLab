@@ -5,6 +5,7 @@ struct PeakformTimelineView: View {
     let duration: TimeInterval
     let currentTime: TimeInterval
     let playbackMarkerTime: TimeInterval
+    let playbackDisplayState: PlaybackDisplayState
     let loopStart: TimeInterval
     let loopEnd: TimeInterval
     let notes: [TimecodedNote]
@@ -19,21 +20,30 @@ struct PeakformTimelineView: View {
 
     var body: some View {
         ZStack {
-            Canvas { context, size in
-                drawPreRollArea(in: &context, size: size)
-                PeakformRenderer.draw(
-                    peakformData: peakformData,
-                    viewport: viewport,
-                    in: &context,
-                    size: size,
-                    colors: appColors,
-                    waveformColor: resolvedWaveformColor
-                )
-                drawRegionEdgeLines(in: &context, size: size)
-                drawBeatGrid(in: &context, size: size)
-                drawLoopRegion(in: &context, size: size)
-                drawPlaybackOverlays(in: &context, size: size)
-            }
+            PeakformStaticCanvasView(
+                peakformData: peakformData,
+                duration: duration,
+                loopStart: loopStart,
+                loopEnd: loopEnd,
+                notes: notes,
+                selectedRegionID: selectedRegionID,
+                tempoMap: tempoMap,
+                visibleStartTime: visibleStartTime,
+                visibleEndTime: visibleEndTime,
+                waveformColor: resolvedWaveformColor
+            )
+
+            PlaybackOverlayView(
+                duration: duration,
+                currentTime: currentTime,
+                playbackMarkerTime: playbackMarkerTime,
+                playbackDisplayState: playbackDisplayState,
+                loopStart: loopStart,
+                loopEnd: loopEnd,
+                visibleStartTime: visibleStartTime,
+                visibleEndTime: visibleEndTime
+            )
+            .allowsHitTesting(false)
 
             if isLoading {
                 HStack(spacing: AppTheme.Spacing.md) {
@@ -70,6 +80,37 @@ struct PeakformTimelineView: View {
 
     private var resolvedWaveformColor: Color {
         waveformColor ?? appColors.waveformColor
+    }
+}
+
+private struct PeakformStaticCanvasView: View {
+    let peakformData: PeakformData?
+    let duration: TimeInterval
+    let loopStart: TimeInterval
+    let loopEnd: TimeInterval
+    let notes: [TimecodedNote]
+    let selectedRegionID: TimecodedNote.ID?
+    let tempoMap: TempoMap
+    let visibleStartTime: TimeInterval
+    let visibleEndTime: TimeInterval
+    let waveformColor: Color
+    @Environment(\.appColors) private var appColors
+
+    var body: some View {
+        Canvas { context, size in
+                drawPreRollArea(in: &context, size: size)
+                PeakformRenderer.draw(
+                    peakformData: peakformData,
+                    viewport: viewport,
+                    in: &context,
+                    size: size,
+                    colors: appColors,
+                    waveformColor: waveformColor
+                )
+                drawRegionEdgeLines(in: &context, size: size)
+                drawBeatGrid(in: &context, size: size)
+                drawLoopRegion(in: &context, size: size)
+        }
     }
 
     private func drawPreRollArea(in context: inout GraphicsContext, size: CGSize) {
@@ -157,15 +198,6 @@ struct PeakformTimelineView: View {
         }
     }
 
-    private func drawPlaybackOverlays(in context: inout GraphicsContext, size: CGSize) {
-        drawVerticalLine(time: loopStart, color: AppTheme.Timeline.loopIndicatorColor, lineWidth: AppTheme.Stroke.thick, in: &context, size: size)
-        drawVerticalLine(time: loopEnd, color: AppTheme.Timeline.loopIndicatorColor, lineWidth: AppTheme.Stroke.thick, in: &context, size: size)
-        if abs(playbackMarkerTime - currentTime) > 0.0001 {
-            drawVerticalLine(time: playbackMarkerTime, color: appColors.accent, lineWidth: AppTheme.Stroke.medium, in: &context, size: size)
-        }
-        drawVerticalLine(time: currentTime, color: AppTheme.Colors.playhead, lineWidth: AppTheme.Stroke.thick, in: &context, size: size)
-    }
-
     private func drawVerticalLine(
         time: TimeInterval,
         color: Color,
@@ -188,6 +220,63 @@ struct PeakformTimelineView: View {
         let startX = viewport.xPosition(for: range.lowerBound, width: size.width)
         let endX = viewport.xPosition(for: range.upperBound, width: size.width)
         return CGRect(x: startX, y: 0, width: max(endX - startX, AppTheme.Timeline.minRectWidth), height: size.height)
+    }
+
+    private var viewport: TimelineViewport {
+        TimelineViewport(duration: duration, visibleRange: visibleStartTime...visibleEndTime)
+    }
+}
+
+private struct PlaybackOverlayView: View {
+    let duration: TimeInterval
+    let currentTime: TimeInterval
+    let playbackMarkerTime: TimeInterval
+    let playbackDisplayState: PlaybackDisplayState
+    let loopStart: TimeInterval
+    let loopEnd: TimeInterval
+    let visibleStartTime: TimeInterval
+    let visibleEndTime: TimeInterval
+    @Environment(\.appColors) private var appColors
+
+    var body: some View {
+        TimelineView(.animation(minimumInterval: 1.0 / 30.0, paused: !playbackDisplayState.isPlaying)) { context in
+            Canvas { canvasContext, size in
+                drawPlaybackOverlays(
+                    currentDisplayTime: playbackDisplayState.displayTime(at: context.date),
+                    in: &canvasContext,
+                    size: size
+                )
+            }
+        }
+    }
+
+    private func drawPlaybackOverlays(
+        currentDisplayTime: TimeInterval,
+        in context: inout GraphicsContext,
+        size: CGSize
+    ) {
+        drawVerticalLine(time: loopStart, color: AppTheme.Timeline.loopIndicatorColor, lineWidth: AppTheme.Stroke.thick, in: &context, size: size)
+        drawVerticalLine(time: loopEnd, color: AppTheme.Timeline.loopIndicatorColor, lineWidth: AppTheme.Stroke.thick, in: &context, size: size)
+        if abs(playbackMarkerTime - currentTime) > 0.0001 {
+            drawVerticalLine(time: playbackMarkerTime, color: appColors.accent, lineWidth: AppTheme.Stroke.medium, in: &context, size: size)
+        }
+        drawVerticalLine(time: currentDisplayTime, color: AppTheme.Colors.playhead, lineWidth: AppTheme.Stroke.thick, in: &context, size: size)
+    }
+
+    private func drawVerticalLine(
+        time: TimeInterval,
+        color: Color,
+        lineWidth: CGFloat,
+        in context: inout GraphicsContext,
+        size: CGSize
+    ) {
+        guard viewport.contains(time) else { return }
+
+        let x = viewport.xPosition(for: time, width: size.width)
+        var path = Path()
+        path.move(to: CGPoint(x: x, y: 0))
+        path.addLine(to: CGPoint(x: x, y: size.height))
+        context.stroke(path, with: .color(color), lineWidth: lineWidth)
     }
 
     private var viewport: TimelineViewport {

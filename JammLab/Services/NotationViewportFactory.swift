@@ -12,21 +12,39 @@ struct NotationViewportFactory {
         harmonySymbols: [HarmonySymbol] = [],
         notes: [TimecodedNote] = []
     ) -> NotationScoreState {
+        let content = scoreContent(
+            tempoMap: tempoMap,
+            duration: duration,
+            keyName: keyName,
+            notationItems: notationItems,
+            harmonySymbols: harmonySymbols,
+            notes: notes
+        )
+
+        return scoreState(
+            content: content,
+            duration: duration,
+            currentTime: currentTime,
+            playbackMarkerTime: playbackMarkerTime,
+            isPlaying: isPlaying
+        )
+    }
+
+    func scoreContent(
+        tempoMap: TempoMap,
+        duration: TimeInterval,
+        keyName: String?,
+        notationItems: [NotationMeasureItem] = [],
+        harmonySymbols: [HarmonySymbol] = [],
+        notes: [TimecodedNote] = []
+    ) -> NotationScoreContent {
         let keySignature = KeySignature.normalized(from: keyName)
         guard duration > 0 else {
             return .pending(keySignature: keySignature)
         }
         let regionNotes = Self.regionLabelSourceNotes(from: notes)
 
-        let rawAnchorTime = Self.anchorTime(
-            currentTime: currentTime,
-            playbackMarkerTime: playbackMarkerTime,
-            isPlaying: isPlaying,
-            duration: duration
-        )
-
-        guard let activeMeasure = measure(containing: rawAnchorTime, tempoMap: tempoMap),
-              var cursor = measure(containing: 0, tempoMap: tempoMap)
+        guard var cursor = measure(containing: 0, tempoMap: tempoMap)
         else {
             return .pending(keySignature: keySignature)
         }
@@ -55,10 +73,40 @@ struct NotationViewportFactory {
             return .pending(keySignature: keySignature)
         }
 
-        return NotationScoreState(
+        return NotationScoreContent(
             availability: .ready,
             keySignature: keySignature,
-            measures: measures,
+            measures: measures
+        )
+    }
+
+    func scoreState(
+        content: NotationScoreContent,
+        duration: TimeInterval,
+        currentTime: TimeInterval,
+        playbackMarkerTime: TimeInterval,
+        isPlaying: Bool
+    ) -> NotationScoreState {
+        guard content.isReady else {
+            return .pending(keySignature: content.keySignature)
+        }
+
+        let rawAnchorTime = Self.anchorTime(
+            currentTime: currentTime,
+            playbackMarkerTime: playbackMarkerTime,
+            isPlaying: isPlaying,
+            duration: duration
+        )
+
+        guard let activeMeasureIndex = content.measureIndex(containing: rawAnchorTime) else {
+            return .pending(keySignature: content.keySignature)
+        }
+
+        let activeMeasure = content.measures[activeMeasureIndex]
+        return NotationScoreState(
+            availability: .ready,
+            keySignature: content.keySignature,
+            measures: content.measures,
             anchorTime: Self.viewportAnchorTime(rawAnchorTime, in: activeMeasure),
             activeMeasureNumber: activeMeasure.number
         )
@@ -76,12 +124,37 @@ struct NotationViewportFactory {
         harmonySymbols: [HarmonySymbol] = [],
         notes: [TimecodedNote] = []
     ) -> NotationViewportState {
+        let content = scoreContent(
+            tempoMap: tempoMap,
+            duration: duration,
+            keyName: keyName,
+            notationItems: notationItems,
+            harmonySymbols: harmonySymbols,
+            notes: notes
+        )
+
+        return viewportState(
+            content: content,
+            duration: duration,
+            currentTime: currentTime,
+            playbackMarkerTime: playbackMarkerTime,
+            isPlaying: isPlaying,
+            visibleMeasureCount: visibleMeasureCount
+        )
+    }
+
+    func viewportState(
+        content: NotationScoreContent,
+        duration: TimeInterval,
+        currentTime: TimeInterval,
+        playbackMarkerTime: TimeInterval,
+        isPlaying: Bool,
+        visibleMeasureCount: Int
+    ) -> NotationViewportState {
         let safeVisibleMeasureCount = max(1, visibleMeasureCount)
-        let keySignature = KeySignature.normalized(from: keyName)
-        guard duration > 0 else {
-            return .pending(visibleMeasureCount: safeVisibleMeasureCount, keySignature: keySignature)
+        guard content.isReady else {
+            return .pending(visibleMeasureCount: safeVisibleMeasureCount, keySignature: content.keySignature)
         }
-        let regionNotes = Self.regionLabelSourceNotes(from: notes)
 
         let rawAnchorTime = Self.anchorTime(
             currentTime: currentTime,
@@ -90,34 +163,22 @@ struct NotationViewportFactory {
             duration: duration
         )
 
-        guard let activeMeasure = measure(containing: rawAnchorTime, tempoMap: tempoMap),
-              let activeMeasureIndex = globalMeasureIndex(for: activeMeasure, tempoMap: tempoMap),
-              let firstMeasure = measure(atGlobalIndex: pageStartIndex(
-                forActiveMeasureIndex: activeMeasureIndex,
-                visibleMeasureCount: safeVisibleMeasureCount
-              ), tempoMap: tempoMap)
-        else {
-            return .pending(visibleMeasureCount: safeVisibleMeasureCount, keySignature: keySignature)
+        guard let activeMeasureIndex = content.measureIndex(containing: rawAnchorTime) else {
+            return .pending(visibleMeasureCount: safeVisibleMeasureCount, keySignature: content.keySignature)
         }
 
-        var visibleMeasures: [ScoreMeasure] = []
-        var cursor = firstMeasure
-        for _ in 0..<safeVisibleMeasureCount {
-            visibleMeasures.append(decoratedMeasure(
-                cursor,
-                keySignature: keySignature,
-                notationItems: notationItems,
-                harmonySymbols: harmonySymbols,
-                regionNotes: regionNotes
-            ))
-            guard let next = nextMeasure(after: cursor, tempoMap: tempoMap) else { break }
-            cursor = next
-        }
+        let pageStart = pageStartIndex(
+            forActiveMeasureIndex: activeMeasureIndex,
+            visibleMeasureCount: safeVisibleMeasureCount
+        )
+        let pageEnd = min(content.measures.count, pageStart + safeVisibleMeasureCount)
+        let visibleMeasures = Array(content.measures[pageStart..<pageEnd])
 
         guard let firstVisibleMeasure = visibleMeasures.first else {
-            return .pending(visibleMeasureCount: safeVisibleMeasureCount, keySignature: keySignature)
+            return .pending(visibleMeasureCount: safeVisibleMeasureCount, keySignature: content.keySignature)
         }
 
+        let activeMeasure = content.measures[activeMeasureIndex]
         return NotationViewportState(
             availability: .ready,
             clef: firstVisibleMeasure.attributes.clef,

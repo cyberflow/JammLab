@@ -30,6 +30,7 @@ final class AudioPlayerViewModel: ObservableObject {
     @Published var playbackState: PlaybackState = .idle
     @Published var currentTime: TimeInterval = 0
     @Published var playbackMarkerTime: TimeInterval = 0
+    @Published var playbackDisplayState: PlaybackDisplayState = .idle
     @Published var duration: TimeInterval = 0
     @Published var playbackRate: Float = AppSliderDefaults.playbackRate
     @Published var pitchShiftSemitones: Float = AppSliderDefaults.pitchShiftSemitones
