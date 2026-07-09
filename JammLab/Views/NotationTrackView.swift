@@ -5,6 +5,7 @@ struct NotationTrackActions {
     var selectHarmony: (HarmonySymbol.ID?) -> Void
     var selectMeasure: (ScoreMeasure?, Bool) -> Void
     var selectItem: (NotationItemSelection?) -> Void
+    var locatePlaybackMarkerExactly: (TimeInterval) -> Void
     var saveHarmony: (HarmonySymbol) -> Void
     var deleteHarmony: (HarmonySymbol.ID) -> Void
     var adjacentHarmonyPlacement: (TimeInterval, HarmonyNavigationDirection) -> HarmonyPlacement?
@@ -57,6 +58,11 @@ struct NotationTrackView: View {
                     attributeDisplays: attributeDisplays
                 )
                 measureSelectionHitLayer(
+                    width: contentWidth,
+                    height: proxy.size.height,
+                    attributeDisplays: attributeDisplays
+                )
+                barlineHitLayer(
                     width: contentWidth,
                     height: proxy.size.height,
                     attributeDisplays: attributeDisplays
@@ -480,6 +486,46 @@ struct NotationTrackView: View {
                             item: item.notationItem
                         ) == true ? "Selected" : ""
                     )
+            }
+        }
+    }
+
+    private func barlineHitLayer(
+        width: CGFloat,
+        height: CGFloat,
+        attributeDisplays: [NotationAttributeDisplay]
+    ) -> some View {
+        let geometries = measureCanvasGeometries(
+            measureCount: renderedMeasureCount,
+            width: width,
+            attributeDisplays: attributeDisplays
+        )
+        let targets = NotationMeasureLayout.barlineHitTargets(
+            for: geometries,
+            measures: state.visibleMeasures
+        )
+        let staffTop = staffTop(in: height)
+        let hitY = max(0, staffTop - AppTheme.Spacing.xs)
+        let hitHeight = AppTheme.Timeline.notationStaffLineSpacing * 4 + AppTheme.Spacing.sm
+        let hitWidth = AppTheme.Timeline.notationBarlineHitWidth
+
+        return ZStack(alignment: .topLeading) {
+            ForEach(targets) { target in
+                Rectangle()
+                    .fill(Color.clear)
+                    .contentShape(Rectangle())
+                    .frame(width: hitWidth, height: hitHeight)
+                    .offset(
+                        x: target.x - hitWidth / 2,
+                        y: hitY
+                    )
+                    .onTapGesture {
+                        isTrackFocused = true
+                        editingDraft = nil
+                        actions.locatePlaybackMarkerExactly(target.targetTime)
+                    }
+                    .accessibilityLabel(barlineAccessibilityLabel(for: target))
+                    .help(barlineAccessibilityLabel(for: target))
             }
         }
     }
@@ -1053,6 +1099,18 @@ struct NotationTrackView: View {
         return "Measures \(first.number) through \(last.number), \(state.keySignature.displayName), \(state.timeSignature.displayText)\(selectedMeasureText)"
     }
 
+    private func barlineAccessibilityLabel(for target: NotationBarlineHitTarget) -> String {
+        switch target.boundary {
+        case .leading:
+            guard state.visibleMeasures.indices.contains(target.measureIndex) else {
+                return "Move position marker to measure start"
+            }
+            return "Move position marker to measure \(state.visibleMeasures[target.measureIndex].number)"
+        case .trailing:
+            return "Move position marker to end of measure"
+        }
+    }
+
     private var isShiftClickActive: Bool {
         NSApp.currentEvent?.modifierFlags.contains(.shift) == true
     }
@@ -1128,6 +1186,7 @@ private extension NotationTrackActions {
         selectHarmony: { _ in },
         selectMeasure: { _, _ in },
         selectItem: { _ in },
+        locatePlaybackMarkerExactly: { _ in },
         saveHarmony: { _ in },
         deleteHarmony: { _ in },
         adjacentHarmonyPlacement: { _, _ in nil }

@@ -93,6 +93,7 @@ extension AudioPlayerViewModel {
         }
         selectedHarmonySymbolID = nil
         selectedNotationItem = nil
+        locatePlaybackMarkerAtFirstSelectedNotationMeasure()
     }
 
     func clearNotationMeasureSelection() {
@@ -562,6 +563,11 @@ extension AudioPlayerViewModel {
             harmonySymbols: harmonySymbols,
             notes: notes
         ).measures
+    }
+
+    private func locatePlaybackMarkerAtFirstSelectedNotationMeasure() {
+        guard let firstSelectedMeasure = currentSelectedNotationMeasures().first else { return }
+        locatePlaybackMarkerExactly(to: firstSelectedMeasure.startTime)
     }
 
 }

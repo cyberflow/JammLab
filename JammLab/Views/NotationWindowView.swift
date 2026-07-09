@@ -156,6 +156,7 @@ struct NotationWindowView: View {
             selectHarmony: { viewModel.selectHarmonySymbol(id: $0) },
             selectMeasure: { viewModel.selectNotationMeasure($0, extendingSelection: $1) },
             selectItem: { viewModel.selectNotationItem($0) },
+            locatePlaybackMarkerExactly: { viewModel.locatePlaybackMarkerExactly(to: $0) },
             saveHarmony: { viewModel.saveHarmonySymbol($0) },
             deleteHarmony: { viewModel.deleteHarmonySymbol(id: $0) },
             adjacentHarmonyPlacement: { viewModel.adjacentHarmonyPlacement(from: $0, direction: $1) }

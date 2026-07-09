@@ -317,6 +317,7 @@ enum AppTheme {
         static let notationRegionLabelFontSize: CGFloat = 10
         static let notationRegionLabelCornerRadius: CGFloat = 1.5
         static let notationRegionLabelGap: CGFloat = AppTheme.Spacing.xs
+        static let notationBarlineHitWidth: CGFloat = 8
         static let stemTrackHeight: CGFloat = 48
         static let defaultVisibleStemRows = 4
         static let trackSpacing: CGFloat = 6
