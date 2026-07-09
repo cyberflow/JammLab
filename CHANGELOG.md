@@ -8,24 +8,25 @@ development artifact builds use `vMAJOR.MINOR.PATCH-dev.N`.
 
 ## Unreleased
 
-- Improved timeline and Notation playback responsiveness and reduced idle CPU use in loaded projects.
+## 1.1.0
+
+### New Features
+
+- Added a MusicXML-ready Notation track with synced staff measures, persisted harmony editing, adaptive measure fitting, and editable project key/mode selectors backed by auto-detected tonal metadata.
+- Added a synced Notation window that opens from the View menu or Notation track context menu and shares harmony editing with the main timeline.
+- Added MusicXML export for Notation from the File menu and Notation window, including export metadata, project tempo markings, Region labels, harmony symbols, note types, and split-rest durations.
+- Added Notation measure range selection with Shift-click, Cmd+C/Cmd+V copy and replace-paste for harmony contents, and Esc to clear the selection.
 - Added Notation clicks for moving the playback position marker from measure selections and barlines in both the main track and Notation window.
-- Added Leland glyph duration controls to the Notation window and main Notation track, with 4/5/6/7 shortcuts for eighth, quarter, half, and whole notes.
-- Added selectable Notation rest durations with persisted measure layouts and split-rest MusicXML export.
-- Added MusicXML export metadata, project tempo marking, and boxed bold Region labels.
-- Fixed Notation duration button glyph alignment in the timeline and Notation window.
-- Fixed MusicXML export so harmony offsets are relative to the current notation position and exported notes include type values.
-- Added MusicXML export for Notation from the File menu and Notation window.
-- Added a collapsible Notation track in the main timeline, collapsed by default and saved per project.
-- Changed notation harmony entry so beat slashes are selectable and Cmd+K opens chord input for the selected beat.
-- Added notation measure range selection with Shift-click, Cmd+C/Cmd+V measure copy and replace-paste for harmony contents, and Esc to clear the selection.
-- Improved notation measure range selection so adjacent selected measures draw as one continuous frame.
-- Added boxed Region start labels to Notation in the timeline track and Notation window.
-- Added beat slash notation to Notation measures in the timeline track and Notation window.
-- Added a synced Notation window that opens from the View menu or the Notation track context menu, showing the full chart in a notebook-style layout while sharing harmony editing with the timeline track.
-- Added a MusicXML-ready notation track MVP with synced staff measures, persisted harmony editing, adaptive measure fitting, and editable project key/mode selectors backed by auto-detected tonal metadata.
-- Fixed Notation key and time signature alignment for keys without accidentals and removed gaps between Notation window systems.
-- Fixed key-signature accidentals on the Notation track so sharps and flats render on the correct staff positions.
+
+### Improvements
+
+- Improved timeline and Notation playback responsiveness and reduced idle CPU use in loaded projects.
+
+### Validation
+
+- Swift tests passed: `SKIP_BUNDLED_SEPARATOR_HELPER=1 xcodebuild test -quiet -project JammLab.xcodeproj -scheme JammLab -destination 'platform=macOS,arch=arm64' -derivedDataPath build CODE_SIGN_IDENTITY=- CODE_SIGN_STYLE=Manual DEVELOPMENT_TEAM= PROVISIONING_PROFILE_SPECIFIER= ONLY_ACTIVE_ARCH=YES ARCHS=arm64`.
+- Performance tests passed: `SKIP_BUNDLED_SEPARATOR_HELPER=1 xcodebuild test -quiet -project JammLab.xcodeproj -scheme JammLabPerformance -destination 'platform=macOS,arch=arm64' -derivedDataPath build CODE_SIGN_IDENTITY=- CODE_SIGN_STYLE=Manual DEVELOPMENT_TEAM= PROVISIONING_PROFILE_SPECIFIER= ONLY_ACTIVE_ARCH=YES ARCHS=arm64`.
+- Release metadata check passed: `scripts/derive_release_metadata.sh v1.1.0` returned stable release metadata with app version `1.1.0`.
 
 ## 1.0.1
 
