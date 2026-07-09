@@ -15,23 +15,22 @@ not require a server, paid API, cloud upload, or user-installed
 
 ## Features
 
-- Import local audio files: MP3 and WAV.
-- Import local video files: MP4, MOV, and M4V.
-- Extract video audio to M4A for the normal audio pipeline.
-- Open an optional muted Video Window from the View menu; audio playback remains
-  the source of truth.
-- DAW-style transport with play, pause, stop, seek, speed, and pitch controls.
-- Waveform timeline with dynamic beat grid, zoom/scroll controls, and playhead.
-- Synced Notation track and full Notation Window for lead-sheet harmony editing.
-- Notes, markers, and colored regions for section-based practice.
-- Loop region editing with audio-engine loop execution.
-- Click, Snap, and editable time signature controls.
-- Global Settings for theme colors, click sound, stem backend compute mode, and
-  audio input/output device preferences.
-- Local stem separation through bundled helper processes.
-- Project-local artifacts for saved projects: `stems/`, `peaks/`, and `media/`
-  live next to the `.jammlab` project file.
-- Undo/redo for project edits and modified-project save prompts.
+- Import local MP3/WAV audio and MP4/MOV/M4V video, with audio-first video
+  extraction and an optional muted sidecar Video Window.
+- Practice on a DAW-style timeline with waveform rendering, beat grid, notes,
+  markers, colored regions, loop editing, click, snap, speed, and pitch controls.
+- Edit lead-sheet harmony in the synced Notation track or full Notation Window,
+  measure selection, copy/paste, and playback-marker jumps.
+- Export notation as MusicXML with harmony, tempo marking, Region labels, and
+  note/rest duration data.
+- Separate stems locally through bundled helper processes, with no user-installed
+  Python, `audio-separator`, Demucs, FFmpeg, ONNX Runtime, Torch, or NumPy.
+- Save portable `.jammlab` projects with project-local `stems/`, `peaks/`, and
+  `media/` artifacts next to the project file.
+- Use lightweight local BPM/key analysis, a live tuner, editable theme colors,
+  click sound settings, and audio input/output device preferences.
+- Rely on undo/redo, modified-project save prompts, and local-only processing
+  without server, cloud upload, or paid API dependencies.
 
 ## Development
 
