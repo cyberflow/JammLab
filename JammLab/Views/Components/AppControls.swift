@@ -43,12 +43,10 @@ struct NotationDurationControl: View {
         return Button {
             denominator = option.denominator
         } label: {
-            Text(option.symbol.glyph)
-                .font(.custom(
-                    NotationMusicFontRegistry.fontName,
-                    size: AppTheme.ControlSize.notationDurationGlyphSize
-                ))
-                .foregroundStyle(iconColor(isSelected: isSelected))
+            NotationDurationGlyphView(
+                symbol: option.symbol,
+                color: iconColor(isSelected: isSelected)
+            )
                 .frame(
                     width: AppTheme.ControlSize.notationDurationButtonWidth,
                     height: AppTheme.ControlSize.notationDurationControlHeight
@@ -81,6 +79,34 @@ struct NotationDurationControl: View {
 
     private func borderColor(isSelected: Bool) -> Color {
         isEnabled && isSelected ? appColors.accent : Color.clear
+    }
+}
+
+private struct NotationDurationGlyphView: View {
+    let symbol: NotationDurationControlSymbol
+    let color: Color
+
+    var body: some View {
+        ZStack {
+            if let glyphPath = NotationMusicFontRegistry.glyphPath(
+                for: symbol,
+                fontSize: AppTheme.ControlSize.notationDurationGlyphSize
+            ) {
+                Canvas { context, size in
+                    context.fill(
+                        Path(glyphPath.path).applying(glyphPath.centeredTransform(in: size)),
+                        with: .color(color)
+                    )
+                }
+            } else {
+                Text(symbol.glyph)
+                    .font(.custom(
+                        NotationMusicFontRegistry.fontName,
+                        size: AppTheme.ControlSize.notationDurationGlyphSize
+                    ))
+                    .foregroundStyle(color)
+            }
+        }
     }
 }
 

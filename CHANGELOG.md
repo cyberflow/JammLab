@@ -12,6 +12,7 @@ development artifact builds use `vMAJOR.MINOR.PATCH-dev.N`.
 - Added Leland glyph duration controls to the Notation window and main Notation track, with 4/5/6/7 shortcuts for eighth, quarter, half, and whole notes.
 - Added selectable Notation rest durations with persisted measure layouts and split-rest MusicXML export.
 - Added MusicXML export metadata, project tempo marking, and boxed bold Region labels.
+- Fixed Notation duration button glyph alignment in the timeline and Notation window.
 - Fixed MusicXML export so harmony offsets are relative to the current notation position and exported notes include type values.
 - Added MusicXML export for Notation from the File menu and Notation window.
 - Added a collapsible Notation track in the main timeline, collapsed by default and saved per project.
