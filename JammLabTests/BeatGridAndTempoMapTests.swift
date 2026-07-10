@@ -121,6 +121,22 @@ final class BeatGridAndTempoMapTests: XCTestCase {
         XCTAssertEqual(tempoMap.segments[1].settings.timeSignature, TimeSignature(beatsPerBar: 3, beatUnit: 4))
     }
 
+    func testTempoMapSegmentLookupUsesExpectedBoundaries() throws {
+        let baseSettings = BeatGridSettings(bpm: 120, timeSignature: .fourFour)
+        let tempoMarker = TimecodedNote(
+            time: 2,
+            title: "3/4",
+            metadata: TempoTimeSignatureMarkerPayload(beatsPerBar: 3).metadata
+        )
+        let tempoMap = TempoMap(baseSettings: baseSettings, markers: [tempoMarker], duration: 6)
+
+        XCTAssertEqual(try XCTUnwrap(tempoMap.segment(at: -1)).startTime, 0, accuracy: 0.0001)
+        XCTAssertEqual(try XCTUnwrap(tempoMap.segment(at: 1.9999)).startTime, 0, accuracy: 0.0001)
+        XCTAssertEqual(try XCTUnwrap(tempoMap.segment(at: 2)).startTime, 2, accuracy: 0.0001)
+        XCTAssertEqual(try XCTUnwrap(tempoMap.segment(at: 6)).startTime, 2, accuracy: 0.0001)
+        XCTAssertEqual(try XCTUnwrap(tempoMap.segment(at: 10)).startTime, 2, accuracy: 0.0001)
+    }
+
     func testTempoMapRestartsBarNumberingWhenMarkerSetsNewFirstBeat() {
         let baseSettings = BeatGridSettings(bpm: 120, timeSignature: .fourFour)
         let tempoMarker = TimecodedNote(

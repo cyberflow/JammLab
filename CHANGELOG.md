@@ -9,6 +9,7 @@ development artifact builds use `vMAJOR.MINOR.PATCH-dev.N`.
 ## Unreleased
 
 - Added clearer hover tooltips and numpad shortcuts for Notation duration buttons.
+- Added a bar/beat position readout to the transport time display.
 
 ## 1.1.0
 

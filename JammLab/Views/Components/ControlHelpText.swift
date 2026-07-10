@@ -6,6 +6,7 @@ enum ControlHelpText {
     static let stop = "Stop and return to position marker"
     static let activateLoop = "Activate loop section"
     static let deactivateLoop = "Deactivate loop section"
+    static let transportPosition = "Playback position: bars.beats.subdivision / elapsed time"
 
     static let tempo = "Tempo"
     static let timeSignature = "Time signature"
