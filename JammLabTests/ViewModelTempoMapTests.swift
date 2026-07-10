@@ -35,6 +35,31 @@ final class ViewModelTempoMapTests: XCTestCase {
     }
 
     @MainActor
+    func testTransportPositionTextUsesCurrentTempoMap() throws {
+        let audioURL = try temporaryAudioFile(duration: 6)
+        defer { try? FileManager.default.removeItem(at: audioURL) }
+        let engine = MockPlaybackEngine()
+        let viewModel = AudioPlayerViewModel(
+            analyzer: MockAnalyzer(),
+            peakformProvider: MockPeakformProvider(),
+            playbackEngine: engine
+        )
+        let media = ImportedAudioFile(url: audioURL, displayName: "tempo.wav", duration: 6)
+        try viewModel.loadImportedAudio(media)
+
+        viewModel.setTempoBPM(120)
+        viewModel.addTempoTimeSignatureMarker(
+            at: 2,
+            bpm: 120,
+            beatsPerBar: 3,
+            setsNewFirstBeat: false
+        )
+        viewModel.currentTime = 3.5
+
+        XCTAssertEqual(viewModel.transportPositionText, "3.1.00 / 0:03.500")
+    }
+
+    @MainActor
     func testAddingNewFirstBeatOnlyMarkerUpdatesPlaybackTempoMap() throws {
         let audioURL = try temporaryAudioFile(duration: 6)
         defer { try? FileManager.default.removeItem(at: audioURL) }

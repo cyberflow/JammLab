@@ -273,7 +273,7 @@ extension ContentView {
             canPlay: viewModel.canPlay,
             isLooping: viewModel.isLooping,
             statusText: viewModel.transportStatusText,
-            currentTime: viewModel.currentTime,
+            transportPositionText: viewModel.transportPositionText,
             playbackRate: viewModel.playbackRate,
             pitchShiftSemitones: viewModel.pitchShiftSemitones,
             onGoToStart: { viewModel.seekToStart() },

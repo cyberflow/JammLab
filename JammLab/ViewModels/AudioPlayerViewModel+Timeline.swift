@@ -18,6 +18,10 @@ extension AudioPlayerViewModel {
         TempoMap(baseSettings: beatGridSettings, markers: notes, duration: duration)
     }
 
+    var transportPositionText: String {
+        TransportPositionDisplay.make(time: currentTime, tempoMap: tempoMap).displayText
+    }
+
     func applyTempoMapToPlaybackEngine() {
         playbackEngine.setClickSettings(beatGridSettings)
         playbackEngine.setTempoMap(tempoMap)

@@ -29,6 +29,7 @@
 		9F8A01152C00000100112233 /* BeatGridCalculator.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9F8A00172C00000100112233 /* BeatGridCalculator.swift */; };
 		9F8A01162C00000100112233 /* MetronomeClickScheduler.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9F8A00182C00000100112233 /* MetronomeClickScheduler.swift */; };
 		9F8A01192C00000100112233 /* ProjectArtifactStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9F8A00192C00000100112233 /* ProjectArtifactStore.swift */; };
+		9FBD01012F00000100112233 /* TransportPositionDisplay.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9FBD00012F00000100112233 /* TransportPositionDisplay.swift */; };
 		9F2701012EA0000100112233 /* NotationSMuFL.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9F2700012EA0000100112233 /* NotationSMuFL.swift */; };
 		9F2701022EA0000100112233 /* Leland.otf in Resources */ = {isa = PBXBuildFile; fileRef = 9F2700022EA0000100112233 /* Leland.otf */; };
 		9F2701032EA0000100112233 /* Leland-LICENSE.txt in Resources */ = {isa = PBXBuildFile; fileRef = 9F2700032EA0000100112233 /* Leland-LICENSE.txt */; };
@@ -172,6 +173,7 @@
 		9FAB01092CE0000100112233 /* MetronomeClickSchedulerTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9FAB00092CE0000100112233 /* MetronomeClickSchedulerTests.swift */; };
 		9FAB010A2CE0000100112233 /* TempoGridCalculatorTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9FAB000A2CE0000100112233 /* TempoGridCalculatorTests.swift */; };
 		9FAB010B2CE0000100112233 /* BeatGridAndTempoMapTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9FAB000B2CE0000100112233 /* BeatGridAndTempoMapTests.swift */; };
+		9FBD01022F00000100112233 /* TransportPositionDisplayTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9FBD00022F00000100112233 /* TransportPositionDisplayTests.swift */; };
 		9FAB010C2CE0000100112233 /* NotationPrimitivesTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9FAB000C2CE0000100112233 /* NotationPrimitivesTests.swift */; };
 		9FAB010D2CE0000100112233 /* NotationMusicXMLTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9FAB000D2CE0000100112233 /* NotationMusicXMLTests.swift */; };
 		9FAB01402CE0000100112233 /* NotationMusicXMLChordParserTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9FAB00402CE0000100112233 /* NotationMusicXMLChordParserTests.swift */; };
@@ -291,6 +293,7 @@
 		9F8A00172C00000100112233 /* BeatGridCalculator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BeatGridCalculator.swift; sourceTree = "<group>"; };
 		9F8A00182C00000100112233 /* MetronomeClickScheduler.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MetronomeClickScheduler.swift; sourceTree = "<group>"; };
 		9F8A00192C00000100112233 /* ProjectArtifactStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProjectArtifactStore.swift; sourceTree = "<group>"; };
+		9FBD00012F00000100112233 /* TransportPositionDisplay.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TransportPositionDisplay.swift; sourceTree = "<group>"; };
 		9F2700012EA0000100112233 /* NotationSMuFL.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotationSMuFL.swift; sourceTree = "<group>"; };
 		9F2700022EA0000100112233 /* Leland.otf */ = {isa = PBXFileReference; lastKnownFileType = file; path = Leland.otf; sourceTree = "<group>"; };
 		9F2700032EA0000100112233 /* Leland-LICENSE.txt */ = {isa = PBXFileReference; lastKnownFileType = text; path = "Leland-LICENSE.txt"; sourceTree = "<group>"; };
@@ -431,6 +434,7 @@
 		9FAB00092CE0000100112233 /* MetronomeClickSchedulerTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MetronomeClickSchedulerTests.swift; sourceTree = "<group>"; };
 		9FAB000A2CE0000100112233 /* TempoGridCalculatorTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TempoGridCalculatorTests.swift; sourceTree = "<group>"; };
 		9FAB000B2CE0000100112233 /* BeatGridAndTempoMapTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BeatGridAndTempoMapTests.swift; sourceTree = "<group>"; };
+		9FBD00022F00000100112233 /* TransportPositionDisplayTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TransportPositionDisplayTests.swift; sourceTree = "<group>"; };
 		9FAB000C2CE0000100112233 /* NotationPrimitivesTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotationPrimitivesTests.swift; sourceTree = "<group>"; };
 		9FAB000D2CE0000100112233 /* NotationMusicXMLTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotationMusicXMLTests.swift; sourceTree = "<group>"; };
 		9FAB00402CE0000100112233 /* NotationMusicXMLChordParserTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotationMusicXMLChordParserTests.swift; sourceTree = "<group>"; };
@@ -576,6 +580,7 @@
 				9F8E00012C40000100112233 /* StemSeparationJobModels.swift */,
 				9F8A00122C00000100112233 /* TimecodedNote.swift */,
 				9F8B00012C10000100112233 /* TimelineViewport.swift */,
+				9FBD00012F00000100112233 /* TransportPositionDisplay.swift */,
 			);
 			path = Models;
 			sourceTree = "<group>";
@@ -776,6 +781,7 @@
 				9FAB00092CE0000100112233 /* MetronomeClickSchedulerTests.swift */,
 				9FAB000A2CE0000100112233 /* TempoGridCalculatorTests.swift */,
 				9FAB000B2CE0000100112233 /* BeatGridAndTempoMapTests.swift */,
+				9FBD00022F00000100112233 /* TransportPositionDisplayTests.swift */,
 				9FAB000C2CE0000100112233 /* NotationPrimitivesTests.swift */,
 				9FAB000D2CE0000100112233 /* NotationMusicXMLTests.swift */,
 				9FAB00402CE0000100112233 /* NotationMusicXMLChordParserTests.swift */,
@@ -1148,6 +1154,7 @@
 				9F8C01092C20000100112233 /* TopToolbarView.swift in Sources */,
 				9FBA01022D40000100112233 /* TrackPitchAnalyzer.swift in Sources */,
 				9F8C01072C20000100112233 /* TransportBarView.swift in Sources */,
+				9FBD01012F00000100112233 /* TransportPositionDisplay.swift in Sources */,
 				9FCB01082D80000100112233 /* TransportButton.swift in Sources */,
 				9F9001012C60000100112233 /* TransportControlsView.swift in Sources */,
 				9FBA01032D40000100112233 /* TunerInputService.swift in Sources */,
@@ -1241,6 +1248,7 @@
 				9FAB01092CE0000100112233 /* MetronomeClickSchedulerTests.swift in Sources */,
 				9FAB010A2CE0000100112233 /* TempoGridCalculatorTests.swift in Sources */,
 				9FAB010B2CE0000100112233 /* BeatGridAndTempoMapTests.swift in Sources */,
+				9FBD01022F00000100112233 /* TransportPositionDisplayTests.swift in Sources */,
 				9FAB010C2CE0000100112233 /* NotationPrimitivesTests.swift in Sources */,
 				9FAB010D2CE0000100112233 /* NotationMusicXMLTests.swift in Sources */,
 				9FAB01402CE0000100112233 /* NotationMusicXMLChordParserTests.swift in Sources */,

@@ -5,7 +5,7 @@ struct TransportBarView: View {
     let canPlay: Bool
     let isLooping: Bool
     let statusText: String
-    let currentTime: TimeInterval
+    let transportPositionText: String
     let playbackRate: Float
     let pitchShiftSemitones: Float
     let onGoToStart: () -> Void
@@ -31,10 +31,14 @@ struct TransportBarView: View {
                         onLoopChanged: onLoopChanged
                     )
 
-                    Text(TimeFormatter.mmss(currentTime))
+                    Text(transportPositionText)
                         .font(AppTheme.Typography.bodyMonospaced)
                         .foregroundStyle(appColors.secondaryText)
-                        .frame(width: AppTheme.ControlSize.transportTimeWidth, alignment: .leading)
+                        .lineLimit(1)
+                        .frame(width: AppTheme.ControlSize.transportPositionReadoutWidth, alignment: .leading)
+                        .help(ControlHelpText.transportPosition)
+                        .accessibilityLabel("Playback position")
+                        .accessibilityValue(transportPositionText)
 
                     Spacer(minLength: 0)
 

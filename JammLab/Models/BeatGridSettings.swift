@@ -241,10 +241,13 @@ struct TempoMap: Equatable {
     }
 
     func settings(at time: TimeInterval) -> BeatGridSettings {
+        segment(at: time)?.settings ?? BeatGridSettings()
+    }
+
+    func segment(at time: TimeInterval) -> TempoMapSegment? {
         let clampedTime = max(0, min(time, duration))
-        return segments.last(where: { $0.startTime <= clampedTime && clampedTime < $0.endTime })?.settings
-            ?? segments.last?.settings
-            ?? BeatGridSettings()
+        return segments.last(where: { $0.startTime <= clampedTime && clampedTime < $0.endTime })
+            ?? segments.last
     }
 
     func nearestBeatTime(to time: TimeInterval) -> TimeInterval? {
