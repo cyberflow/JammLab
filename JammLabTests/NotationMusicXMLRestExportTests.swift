@@ -60,6 +60,48 @@ final class NotationMusicXMLRestExportTests: XCTestCase {
         try assertXMLChild(harmony, precedes: thirdRest, in: firstMeasure)
     }
 
+    func testMusicXMLExportIncludesPitchedNotationNoteWithoutBeam() throws {
+        let state = NotationViewportFactory().scoreState(
+            tempoMap: fourFourTempoMap(duration: 4),
+            duration: 4,
+            currentTime: 0,
+            playbackMarkerTime: 0,
+            isPlaying: false,
+            keyName: "G major",
+            notationItems: [
+                NotationMeasureItem(
+                    kind: .note,
+                    pitch: NotationPitch(step: .f, octave: 5, alter: 1),
+                    measureNumber: 1,
+                    measureStartTime: 0,
+                    offsetInQuarterNotes: 0,
+                    durationInQuarterNotes: 0.5,
+                    displayDuration: NotationDuration(denominator: 8)
+                ),
+                NotationMeasureItem(
+                    measureNumber: 1,
+                    measureStartTime: 0,
+                    offsetInQuarterNotes: 0.5,
+                    durationInQuarterNotes: 3.5,
+                    displayDuration: NotationDuration(denominator: 2)
+                )
+            ]
+        )
+
+        let document = try exportedMusicXMLDocument(for: state)
+        let part = try XCTUnwrap(document.rootElement()?.elements(forName: "part").first)
+        let firstMeasure = try XCTUnwrap(part.elements(forName: "measure").first)
+        let note = try XCTUnwrap(firstMeasure.elements(forName: "note").first)
+        let pitch = try firstXMLChild(named: "pitch", in: note)
+
+        XCTAssertEqual(try firstXMLChild(named: "step", in: pitch).stringValue, "F")
+        XCTAssertEqual(try firstXMLChild(named: "alter", in: pitch).stringValue, "1")
+        XCTAssertEqual(try firstXMLChild(named: "octave", in: pitch).stringValue, "5")
+        XCTAssertEqual(try firstXMLChild(named: "duration", in: note).stringValue, "240")
+        XCTAssertEqual(try firstXMLChild(named: "type", in: note).stringValue, "eighth")
+        XCTAssertTrue(note.elements(forName: "beam").isEmpty)
+    }
+
     private func exportedMusicXMLDocument(for state: NotationScoreState) throws -> XMLDocument {
         let data = try NotationExportService().export(
             NotationExportRequest(displayName: "Song", score: state),

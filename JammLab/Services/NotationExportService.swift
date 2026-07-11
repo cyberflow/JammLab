@@ -214,7 +214,7 @@ final class MusicXMLNotationExportRenderer: NotationExportRenderer {
                     includeBoundaryHarmony: false,
                     harmonyIndex: &harmonyIndex
                 )
-                measureElement.addChild(restNote(for: item, isOnlyItem: sortedItems.count == 1))
+                measureElement.addChild(notationNote(for: item, isOnlyItem: sortedItems.count == 1))
                 notationCursorOffsetInQuarterNotes = restEndOffsetInQuarterNotes
             }
 
@@ -383,10 +383,35 @@ final class MusicXMLNotationExportRenderer: NotationExportRenderer {
         return pitchElement
     }
 
+    private func notationNote(for item: NotationMeasureItem, isOnlyItem: Bool) -> XMLElement {
+        switch item.kind {
+        case .rest:
+            return restNote(for: item, isOnlyItem: isOnlyItem)
+        case .note:
+            return pitchNote(for: item)
+        }
+    }
+
     private func restNote(for item: NotationMeasureItem, isOnlyItem: Bool) -> XMLElement {
         let note = element("note")
         let isMeasureRest = isOnlyItem && item.isSynthesized && item.offsetInQuarterNotes == 0
         note.addChild(element("rest", attributes: isMeasureRest ? ["measure": "yes"] : [:]))
+        note.addChild(element("duration", stringValue: "\(durationValue(forQuarterOffset: item.durationInQuarterNotes))"))
+        note.addChild(element("voice", stringValue: "1"))
+        note.addChild(element("type", stringValue: item.displayDuration.displayName))
+        return note
+    }
+
+    private func pitchNote(for item: NotationMeasureItem) -> XMLElement {
+        let note = element("note")
+        let pitch = item.pitch ?? NotationPitch(step: .c, octave: 4)
+        let pitchElement = element("pitch")
+        pitchElement.addChild(element("step", stringValue: pitch.step.rawValue))
+        if pitch.alter != 0 {
+            pitchElement.addChild(element("alter", stringValue: "\(pitch.alter)"))
+        }
+        pitchElement.addChild(element("octave", stringValue: "\(pitch.octave)"))
+        note.addChild(pitchElement)
         note.addChild(element("duration", stringValue: "\(durationValue(forQuarterOffset: item.durationInQuarterNotes))"))
         note.addChild(element("voice", stringValue: "1"))
         note.addChild(element("type", stringValue: item.displayDuration.displayName))

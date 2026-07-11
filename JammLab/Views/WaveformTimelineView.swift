@@ -34,6 +34,7 @@ struct TimelineViewState: Equatable {
     var notationViewport: NotationViewportState
     var notationDurationDenominator: Int
     var canChangeNotationDuration: Bool
+    var isNotationNoteEntryModeEnabled: Bool
     var isNotationTrackCollapsed: Bool
     var isLoadingPeakform: Bool
     var mainTrackVolume: Float
@@ -50,7 +51,7 @@ struct TimelineViewActions {
     var addNote: (TimeInterval) -> Void
     var selectHarmony: (HarmonySymbol.ID?) -> Void
     var selectNotationMeasure: (ScoreMeasure?, Bool) -> Void
-    var selectNotationItem: (NotationItemSelection?) -> Void
+    var selectNotationItem: (NotationItemSelection?, Bool) -> Void
     var saveHarmony: (HarmonySymbol) -> Void
     var deleteHarmony: (HarmonySymbol.ID) -> Void
     var adjacentHarmonyPlacement: (TimeInterval, HarmonyNavigationDirection) -> HarmonyPlacement?
@@ -72,6 +73,11 @@ struct TimelineViewActions {
     var mainTrackVolumeChanged: (Float) -> Void
     var notationTrackCollapsedChanged: (Bool) -> Void
     var notationDurationChanged: (Int) -> Void
+    var notationNoteEntryModeToggled: () -> Void
+    var insertNotationNote: (NotationNotePlacement) -> Bool
+    var changeSelectedNotePitch: (NotationPitch, Bool) -> Bool
+    var auditionNotePitch: (NotationPitch) -> Void
+    var deleteSelectedNotationNote: () -> Bool
     var showNotationWindow: () -> Void
 }
 
@@ -269,11 +275,17 @@ struct WaveformTimelineView: View {
                 selectedHarmonySymbolID: state.selectedHarmonySymbolID,
                 selectedMeasures: state.selectedNotationMeasures,
                 selectedItem: state.selectedNotationItem,
+                selectedDuration: NotationDuration(denominator: state.notationDurationDenominator),
+                isNoteEntryModeEnabled: state.isNotationNoteEntryModeEnabled,
                 pendingEditorRequest: state.pendingHarmonyEditorRequest,
                 actions: NotationTrackActions(
                     selectHarmony: actions.selectHarmony,
                     selectMeasure: actions.selectNotationMeasure,
                     selectItem: actions.selectNotationItem,
+                    insertNotationNote: actions.insertNotationNote,
+                    changeSelectedNotePitch: actions.changeSelectedNotePitch,
+                    auditionNotePitch: actions.auditionNotePitch,
+                    deleteSelectedNotationNote: actions.deleteSelectedNotationNote,
                     locatePlaybackMarkerExactly: actions.locatePlaybackMarkerExactly,
                     saveHarmony: actions.saveHarmony,
                     deleteHarmony: actions.deleteHarmony,
@@ -309,6 +321,19 @@ struct WaveformTimelineView: View {
                     ),
                     isEnabled: state.canChangeNotationDuration
                 )
+
+                AppLetterToggleButton(
+                    title: "N",
+                    isActive: state.isNotationNoteEntryModeEnabled,
+                    activeFillColor: appColors.accent,
+                    inactiveTextColor: appColors.secondaryText
+                ) {
+                    actions.notationNoteEntryModeToggled()
+                }
+                .disabled(state.duration <= 0)
+                .help("Add notes to Notation (N)")
+                .accessibilityLabel("Notation Note Entry")
+                .accessibilityValue(state.isNotationNoteEntryModeEnabled ? "Enabled" : "Disabled")
             }
         }
         .padding(.horizontal, AppTheme.Spacing.md)

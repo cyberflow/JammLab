@@ -82,8 +82,63 @@ enum NotationDurationControlSymbol: Equatable {
     }
 }
 
+enum NotationStaffNoteSymbol: Equatable {
+    case whole
+    case half
+    case quarter
+    case eighth
+
+    init?(duration: NotationDuration) {
+        switch duration.denominator {
+        case 1:
+            self = .whole
+        case 2:
+            self = .half
+        case 4:
+            self = .quarter
+        case 8:
+            self = .eighth
+        default:
+            return nil
+        }
+    }
+
+    var durationControlSymbol: NotationDurationControlSymbol {
+        switch self {
+        case .whole:
+            return .whole
+        case .half:
+            return .half
+        case .quarter:
+            return .quarter
+        case .eighth:
+            return .eighth
+        }
+    }
+
+    var codepoint: UInt32 {
+        durationControlSymbol.codepoint
+    }
+
+    fileprivate var anchorReferenceCodepoint: UInt32? {
+        switch self {
+        case .whole:
+            return nil
+        case .half:
+            return 0xE0A3
+        case .quarter, .eighth:
+            return 0xE0A4
+        }
+    }
+
+    var glyph: String {
+        durationControlSymbol.glyph
+    }
+}
+
 enum NotationMusicFontRegistry {
     static let fallbackFontName = "Leland"
+    private static let glyphPathCache = NSCache<NSString, NotationSMuFLGlyphPathBox>()
 
     static var fontName: String {
         registeredFontName ?? fallbackFontName
@@ -115,7 +170,33 @@ enum NotationMusicFontRegistry {
         glyphPath(forCodepoint: symbol.codepoint, fontSize: fontSize)
     }
 
+    static func glyphPath(
+        for symbol: NotationStaffNoteSymbol,
+        fontSize: CGFloat
+    ) -> NotationSMuFLGlyphPath? {
+        glyphPath(forCodepoint: symbol.codepoint, fontSize: fontSize)
+    }
+
+    static func noteheadAnchor(
+        for symbol: NotationStaffNoteSymbol,
+        fontSize: CGFloat
+    ) -> CGPoint? {
+        let glyphPath: NotationSMuFLGlyphPath?
+        if let anchorCodepoint = symbol.anchorReferenceCodepoint {
+            glyphPath = self.glyphPath(forCodepoint: anchorCodepoint, fontSize: fontSize)
+        } else {
+            glyphPath = self.glyphPath(for: symbol, fontSize: fontSize)
+        }
+
+        return glyphPath.map { CGPoint(x: $0.bounds.midX, y: $0.bounds.midY) }
+    }
+
     private static func glyphPath(forCodepoint codepoint: UInt32, fontSize: CGFloat) -> NotationSMuFLGlyphPath? {
+        let cacheKey = NSString(string: "\(codepoint)-\(fontSize)")
+        if let cached = glyphPathCache.object(forKey: cacheKey) {
+            return cached.value
+        }
+
         guard let character = UniChar(exactly: codepoint) else { return nil }
 
         let font = CTFontCreateWithName(fontName as CFString, fontSize, nil)
@@ -130,7 +211,17 @@ enum NotationMusicFontRegistry {
         let bounds = CTFontGetBoundingRectsForGlyphs(font, .default, &glyph, nil, 1)
         guard !bounds.isEmpty else { return nil }
 
-        return NotationSMuFLGlyphPath(path: path, bounds: bounds)
+        let glyphPath = NotationSMuFLGlyphPath(path: path, bounds: bounds)
+        glyphPathCache.setObject(NotationSMuFLGlyphPathBox(glyphPath), forKey: cacheKey)
+        return glyphPath
+    }
+}
+
+private final class NotationSMuFLGlyphPathBox {
+    let value: NotationSMuFLGlyphPath
+
+    init(_ value: NotationSMuFLGlyphPath) {
+        self.value = value
     }
 }
 
@@ -147,6 +238,18 @@ struct NotationSMuFLGlyphPath {
             d: -1,
             tx: size.width / 2 - bounds.midX,
             ty: size.height / 2 + bounds.midY
+        )
+    }
+
+    func anchoredTransform(anchor: CGPoint, target: CGPoint) -> CGAffineTransform {
+        // CoreText glyph paths use y-up coordinates; Canvas uses y-down.
+        CGAffineTransform(
+            a: 1,
+            b: 0,
+            c: 0,
+            d: -1,
+            tx: target.x - anchor.x,
+            ty: target.y + anchor.y
         )
     }
 }

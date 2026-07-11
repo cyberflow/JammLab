@@ -147,6 +147,7 @@ extension ContentView {
                 : notationViewportState(availableWidth: notationTrackContentWidth),
             notationDurationDenominator: viewModel.notationDurationDenominator,
             canChangeNotationDuration: viewModel.canChangeNotationDuration,
+            isNotationNoteEntryModeEnabled: viewModel.isNotationNoteEntryModeEnabled,
             isNotationTrackCollapsed: viewModel.isNotationTrackCollapsed,
             isLoadingPeakform: viewModel.isBuildingWaveform,
             mainTrackVolume: viewModel.mainTrackVolume,
@@ -200,7 +201,7 @@ extension ContentView {
             addNote: { viewModel.addNote(at: $0) },
             selectHarmony: { viewModel.selectHarmonySymbol(id: $0) },
             selectNotationMeasure: { viewModel.selectNotationMeasure($0, extendingSelection: $1) },
-            selectNotationItem: { viewModel.selectNotationItem($0) },
+            selectNotationItem: { viewModel.selectNotationItem($0, shouldAudition: $1) },
             saveHarmony: { viewModel.saveHarmonySymbol($0) },
             deleteHarmony: { viewModel.deleteHarmonySymbol(id: $0) },
             adjacentHarmonyPlacement: { viewModel.adjacentHarmonyPlacement(from: $0, direction: $1) },
@@ -222,6 +223,11 @@ extension ContentView {
             mainTrackVolumeChanged: { viewModel.setMainTrackVolume($0) },
             notationTrackCollapsedChanged: { viewModel.setNotationTrackCollapsed($0) },
             notationDurationChanged: { viewModel.setNotationDurationDenominator($0) },
+            notationNoteEntryModeToggled: { viewModel.toggleNotationNoteEntryMode() },
+            insertNotationNote: { viewModel.insertNotationNote($0) },
+            changeSelectedNotePitch: { viewModel.changeSelectedNotationNotePitch(to: $0, shouldAudition: $1) },
+            auditionNotePitch: { viewModel.auditionNotationNotePitch($0) },
+            deleteSelectedNotationNote: { viewModel.deleteSelectedNotationNote() },
             showNotationWindow: { openWindow(id: AppWindowID.notation) }
         )
     }

@@ -44,6 +44,58 @@ final class ViewModelNotationClipboardTests: XCTestCase {
     }
 
     @MainActor
+    func testCopyNotationMeasurePreservesNotationNotesAndRests() throws {
+        let viewModel = try loadedNotationViewModel(duration: 8)
+        let measure = try notationMeasure(1, in: viewModel)
+        let pitch = NotationPitch(step: .f, octave: 4, alter: 1)
+        viewModel.harmonySymbols = [
+            HarmonySymbol(time: 0, measureNumber: 1, offsetInQuarterNotes: 0, rawText: "D")
+        ]
+        viewModel.notationItems = [
+            NotationMeasureItem(
+                id: "note",
+                kind: .note,
+                pitch: pitch,
+                measureNumber: measure.number,
+                measureStartTime: measure.startTime,
+                offsetInQuarterNotes: 0,
+                durationInQuarterNotes: 1,
+                displayDuration: NotationDuration(denominator: 4)
+            ),
+            NotationMeasureItem(
+                id: "rest",
+                measureNumber: measure.number,
+                measureStartTime: measure.startTime,
+                offsetInQuarterNotes: 1,
+                durationInQuarterNotes: 2,
+                displayDuration: NotationDuration(denominator: 2)
+            )
+        ]
+
+        viewModel.selectNotationMeasure(try notationMeasure(1, in: viewModel))
+
+        XCTAssertTrue(viewModel.copySelectedNotationMeasure())
+        let copiedMeasure = try XCTUnwrap(viewModel.notationMeasureClipboard?.measures.first)
+        XCTAssertEqual(copiedMeasure.items, [
+            NotationMeasureClipboardItem(offsetInQuarterNotes: 0, rawText: "D")
+        ])
+        XCTAssertEqual(copiedMeasure.notationItems, [
+            NotationMeasureClipboardNotationItem(
+                kind: .note,
+                pitch: pitch,
+                offsetInQuarterNotes: 0,
+                durationInQuarterNotes: 1,
+                displayDuration: NotationDuration(denominator: 4)
+            ),
+            NotationMeasureClipboardNotationItem(
+                offsetInQuarterNotes: 1,
+                durationInQuarterNotes: 2,
+                displayDuration: NotationDuration(denominator: 2)
+            )
+        ])
+    }
+
+    @MainActor
     func testCopyRejectsPartialStaleNotationMeasureSelection() throws {
         let viewModel = try loadedNotationViewModel(duration: 8)
         let firstMeasure = try notationMeasure(1, in: viewModel)

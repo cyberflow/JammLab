@@ -44,7 +44,7 @@ struct JammLabProject: Codable {
     var isNotationTrackCollapsed: Bool?
 
     init(
-        formatVersion: Int = 10,
+        formatVersion: Int = 11,
         audioBookmarkData: Data,
         artifactRootBookmarkData: Data? = nil,
         audioDisplayName: String,

@@ -102,6 +102,21 @@ final class MockAnalyzer: AudioAnalyzing {
     }
 }
 
+@MainActor
+final class MockNotationNoteAuditioner: NotationNoteAuditioning {
+    var errorToThrow: Error?
+    private(set) var attemptedPitches: [NotationPitch] = []
+    private(set) var auditionedPitches: [NotationPitch] = []
+
+    func audition(pitch: NotationPitch) throws {
+        attemptedPitches.append(pitch)
+        if let errorToThrow {
+            throw errorToThrow
+        }
+        auditionedPitches.append(pitch)
+    }
+}
+
 struct MockPeakformProvider: PeakformProvider {
     var samplesPerPeakLevels = PeakformData.defaultSamplesPerPeakLevels
     var peakform = PeakformData(

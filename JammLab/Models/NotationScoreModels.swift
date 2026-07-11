@@ -131,6 +131,8 @@ struct NotationMeasureClipboardItem: Equatable {
 }
 
 struct NotationMeasureClipboardNotationItem: Equatable {
+    var kind: NotationMeasureItem.Kind = .rest
+    var pitch: NotationPitch? = nil
     var offsetInQuarterNotes: Double
     var durationInQuarterNotes: Double
     var displayDuration: NotationDuration
@@ -254,10 +256,12 @@ struct NotationDuration: Codable, Equatable, Identifiable {
 struct NotationMeasureItem: Identifiable, Codable, Equatable {
     enum Kind: String, Codable, Equatable {
         case rest
+        case note
     }
 
     var id: String
     var kind: Kind
+    var pitch: NotationPitch?
     var measureNumber: Int
     var measureStartTime: TimeInterval
     var offsetInQuarterNotes: Double
@@ -268,6 +272,7 @@ struct NotationMeasureItem: Identifiable, Codable, Equatable {
     init(
         id: String = UUID().uuidString,
         kind: Kind = .rest,
+        pitch: NotationPitch? = nil,
         measureNumber: Int,
         measureStartTime: TimeInterval,
         offsetInQuarterNotes: Double,
@@ -277,12 +282,161 @@ struct NotationMeasureItem: Identifiable, Codable, Equatable {
     ) {
         self.id = id
         self.kind = kind
+        self.pitch = kind == .note ? pitch : nil
         self.measureNumber = measureNumber
         self.measureStartTime = measureStartTime
         self.offsetInQuarterNotes = offsetInQuarterNotes
         self.durationInQuarterNotes = durationInQuarterNotes
         self.displayDuration = displayDuration
         self.isSynthesized = isSynthesized
+    }
+
+    var isNote: Bool {
+        kind == .note
+    }
+
+    var isRest: Bool {
+        kind == .rest
+    }
+
+    func persistedCopy() -> NotationMeasureItem {
+        NotationMeasureItem(
+            id: isSynthesized ? UUID().uuidString : id,
+            kind: kind,
+            pitch: pitch,
+            measureNumber: measureNumber,
+            measureStartTime: measureStartTime,
+            offsetInQuarterNotes: offsetInQuarterNotes,
+            durationInQuarterNotes: durationInQuarterNotes,
+            displayDuration: displayDuration
+        )
+    }
+
+    private enum CodingKeys: String, CodingKey {
+        case id
+        case kind
+        case pitch
+        case measureNumber
+        case measureStartTime
+        case offsetInQuarterNotes
+        case durationInQuarterNotes
+        case displayDuration
+        case isSynthesized
+    }
+
+    init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        id = try container.decodeIfPresent(String.self, forKey: .id) ?? UUID().uuidString
+        kind = try container.decodeIfPresent(Kind.self, forKey: .kind) ?? .rest
+        let decodedPitch = try container.decodeIfPresent(NotationPitch.self, forKey: .pitch)
+        pitch = kind == .note ? decodedPitch : nil
+        measureNumber = try container.decode(Int.self, forKey: .measureNumber)
+        measureStartTime = try container.decode(TimeInterval.self, forKey: .measureStartTime)
+        offsetInQuarterNotes = try container.decode(Double.self, forKey: .offsetInQuarterNotes)
+        durationInQuarterNotes = try container.decode(Double.self, forKey: .durationInQuarterNotes)
+        displayDuration = try container.decode(NotationDuration.self, forKey: .displayDuration)
+        isSynthesized = try container.decodeIfPresent(Bool.self, forKey: .isSynthesized) ?? false
+    }
+}
+
+enum NotationPitchStep: String, Codable, CaseIterable, Equatable {
+    case c = "C"
+    case d = "D"
+    case e = "E"
+    case f = "F"
+    case g = "G"
+    case a = "A"
+    case b = "B"
+}
+
+struct NotationPitch: Codable, Equatable {
+    var step: NotationPitchStep
+    var octave: Int
+    var alter: Int
+
+    init(step: NotationPitchStep, octave: Int, alter: Int = 0) {
+        self.step = step
+        self.octave = octave
+        self.alter = min(1, max(-1, alter))
+    }
+
+    var midiNoteNumber: Int {
+        let semitone: Int
+        switch step {
+        case .c:
+            semitone = 0
+        case .d:
+            semitone = 2
+        case .e:
+            semitone = 4
+        case .f:
+            semitone = 5
+        case .g:
+            semitone = 7
+        case .a:
+            semitone = 9
+        case .b:
+            semitone = 11
+        }
+
+        return min(127, max(0, (octave + 1) * 12 + semitone + alter))
+    }
+}
+
+enum NotationPitchMapper {
+    private static let staffPitches: [NotationPitch] = [
+        NotationPitch(step: .f, octave: 5),
+        NotationPitch(step: .e, octave: 5),
+        NotationPitch(step: .d, octave: 5),
+        NotationPitch(step: .c, octave: 5),
+        NotationPitch(step: .b, octave: 4),
+        NotationPitch(step: .a, octave: 4),
+        NotationPitch(step: .g, octave: 4),
+        NotationPitch(step: .f, octave: 4),
+        NotationPitch(step: .e, octave: 4)
+    ]
+
+    static var minimumStaffPosition: Int { 0 }
+    static var maximumStaffPosition: Int { staffPitches.count - 1 }
+
+    static func pitch(
+        forStaffPosition staffPosition: Int,
+        keySignature: KeySignature
+    ) -> NotationPitch {
+        let index = min(maximumStaffPosition, max(minimumStaffPosition, staffPosition))
+        var pitch = staffPitches[index]
+        pitch.alter = keySignature.defaultAlter(for: pitch.step)
+        return pitch
+    }
+
+    static func staffPosition(for pitch: NotationPitch) -> Int? {
+        staffPitches.firstIndex {
+            $0.step == pitch.step && $0.octave == pitch.octave
+        }
+    }
+
+    static func adjacentPitch(
+        from pitch: NotationPitch,
+        staffPositionDelta: Int,
+        keySignature: KeySignature
+    ) -> NotationPitch? {
+        guard staffPositionDelta != 0,
+              let currentPosition = staffPosition(for: pitch)
+        else {
+            return nil
+        }
+
+        let targetPosition = currentPosition + staffPositionDelta
+        guard targetPosition >= minimumStaffPosition,
+              targetPosition <= maximumStaffPosition
+        else {
+            return nil
+        }
+
+        return self.pitch(
+            forStaffPosition: targetPosition,
+            keySignature: keySignature
+        )
     }
 }
 
@@ -441,6 +595,18 @@ struct KeySignature: Equatable {
         }
     }
 
+    func defaultAlter(for step: NotationPitchStep) -> Int {
+        if fifths > 0 {
+            return Self.sharpSteps.prefix(accidentalCount).contains(step) ? 1 : 0
+        }
+
+        if fifths < 0 {
+            return Self.flatSteps.prefix(accidentalCount).contains(step) ? -1 : 0
+        }
+
+        return 0
+    }
+
     static func normalized(from keyName: String?) -> KeySignature {
         guard let keyName else { return .cMajor }
 
@@ -523,6 +689,9 @@ struct KeySignature: Equatable {
         "A": 0,
         "E": 1, "B": 2, "F#": 3, "C#": 4, "G#": 5, "D#": 6, "A#": 7
     ]
+
+    private static let sharpSteps: [NotationPitchStep] = [.f, .c, .g, .d, .a, .e, .b]
+    private static let flatSteps: [NotationPitchStep] = [.b, .e, .a, .d, .g, .c, .f]
 
     private static let trebleSharpAccidentals: [KeySignatureAccidental] = [
         KeySignatureAccidental(symbol: "♯", staffPositionFromTopLine: 0),

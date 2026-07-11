@@ -63,6 +63,18 @@ struct NotationWindowView: View {
                 isEnabled: viewModel.canChangeNotationDuration
             )
 
+            AppControlButton(
+                title: "Note Entry",
+                systemImage: "music.note",
+                isActive: viewModel.isNotationNoteEntryModeEnabled
+            ) {
+                viewModel.toggleNotationNoteEntryMode()
+            }
+            .disabled(viewModel.duration <= 0)
+            .help("Add notes to Notation (N)")
+            .accessibilityLabel("Notation Note Entry")
+            .accessibilityValue(viewModel.isNotationNoteEntryModeEnabled ? "Enabled" : "Disabled")
+
             Spacer(minLength: AppTheme.Spacing.md)
 
             AppControlButton(
@@ -97,6 +109,8 @@ struct NotationWindowView: View {
                                 selectedHarmonySymbolID: viewModel.selectedHarmonySymbolID,
                                 selectedMeasures: viewModel.selectedNotationMeasures,
                                 selectedItem: viewModel.selectedNotationItem,
+                                selectedDuration: NotationDuration(denominator: viewModel.notationDurationDenominator),
+                                isNoteEntryModeEnabled: viewModel.isNotationNoteEntryModeEnabled,
                                 pendingEditorRequest: viewModel.pendingHarmonyEditorRequest,
                                 actions: notationActions,
                                 cornerRadius: AppTheme.Spacing.none
@@ -161,7 +175,11 @@ struct NotationWindowView: View {
         NotationTrackActions(
             selectHarmony: { viewModel.selectHarmonySymbol(id: $0) },
             selectMeasure: { viewModel.selectNotationMeasure($0, extendingSelection: $1) },
-            selectItem: { viewModel.selectNotationItem($0) },
+            selectItem: { viewModel.selectNotationItem($0, shouldAudition: $1) },
+            insertNotationNote: { viewModel.insertNotationNote($0) },
+            changeSelectedNotePitch: { viewModel.changeSelectedNotationNotePitch(to: $0, shouldAudition: $1) },
+            auditionNotePitch: { viewModel.auditionNotationNotePitch($0) },
+            deleteSelectedNotationNote: { viewModel.deleteSelectedNotationNote() },
             locatePlaybackMarkerExactly: { viewModel.locatePlaybackMarkerExactly(to: $0) },
             saveHarmony: { viewModel.saveHarmonySymbol($0) },
             deleteHarmony: { viewModel.deleteHarmonySymbol(id: $0) },
@@ -177,7 +195,7 @@ struct NotationWindowView: View {
         if viewModel.canPasteNotationMeasureClipboard {
             hotkeys.insert(.pasteMeasure)
         }
-        if viewModel.hasSelectedNotationMeasures {
+        if viewModel.hasSelectedNotationMeasures || viewModel.isNotationNoteEntryModeEnabled {
             hotkeys.insert(.clearNotationMeasureSelection)
         }
         if viewModel.canEditSelectedNotationItem {
@@ -185,6 +203,15 @@ struct NotationWindowView: View {
         }
         if viewModel.canChangeNotationDuration {
             hotkeys.formUnion(AppHotkey.notationDurationHotkeys)
+        }
+        if viewModel.duration > 0 {
+            hotkeys.insert(.toggleNotationNoteEntryMode)
+        }
+        if viewModel.canChangeSelectedNotationNotePitch(byStaffPositionDelta: -1) {
+            hotkeys.insert(.moveSelectedNotationNotePitchUp)
+        }
+        if viewModel.canChangeSelectedNotationNotePitch(byStaffPositionDelta: 1) {
+            hotkeys.insert(.moveSelectedNotationNotePitchDown)
         }
         return hotkeys
     }
@@ -200,10 +227,21 @@ struct NotationWindowView: View {
         case .pasteMeasure:
             return viewModel.pasteNotationMeasureClipboard()
         case .clearNotationMeasureSelection:
-            viewModel.clearNotationMeasureSelection()
+            if viewModel.isNotationNoteEntryModeEnabled {
+                viewModel.clearNotationNoteEntryMode()
+            } else {
+                viewModel.clearNotationMeasureSelection()
+            }
             return true
         case .editHarmonyAtSelectedNotationItem:
             return viewModel.requestEditSelectedNotationItem()
+        case .toggleNotationNoteEntryMode:
+            viewModel.toggleNotationNoteEntryMode()
+            return true
+        case .moveSelectedNotationNotePitchUp:
+            return viewModel.changeSelectedNotationNotePitch(byStaffPositionDelta: -1)
+        case .moveSelectedNotationNotePitchDown:
+            return viewModel.changeSelectedNotationNotePitch(byStaffPositionDelta: 1)
         case .setNotationDurationEighth,
                 .setNotationDurationQuarter,
                 .setNotationDurationHalf,

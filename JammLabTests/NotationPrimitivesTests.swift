@@ -1,3 +1,4 @@
+import CoreGraphics
 import XCTest
 @testable import JammLab
 
@@ -34,6 +35,18 @@ final class NotationPrimitivesTests: XCTestCase {
         XCTAssertEqual(eighth, .eighth)
         XCTAssertEqual(eighth.codepoint, 0xECA7)
         XCTAssertEqual(eighth.glyph.unicodeScalars.first?.value, 0xECA7)
+    }
+
+    func testNotationStaffNoteSymbolsReuseLelandMetNoteCodepoints() throws {
+        let whole = try XCTUnwrap(NotationStaffNoteSymbol(duration: NotationDuration(denominator: 1)))
+        let half = try XCTUnwrap(NotationStaffNoteSymbol(duration: NotationDuration(denominator: 2)))
+        let quarter = try XCTUnwrap(NotationStaffNoteSymbol(duration: NotationDuration(denominator: 4)))
+        let eighth = try XCTUnwrap(NotationStaffNoteSymbol(duration: NotationDuration(denominator: 8)))
+
+        XCTAssertEqual(whole.codepoint, 0xECA2)
+        XCTAssertEqual(half.codepoint, 0xECA3)
+        XCTAssertEqual(quarter.codepoint, 0xECA5)
+        XCTAssertEqual(eighth.codepoint, 0xECA7)
     }
 
     func testNotationRestItemFactoryUsesGreedyAllowedDurationDecomposition() {
@@ -109,6 +122,438 @@ final class NotationPrimitivesTests: XCTestCase {
         XCTAssertTrue(item.isSynthesized)
     }
 
+    func testNotationMeasureItemDecodesLegacyRestWithoutPitchOrSynthesizedFlag() throws {
+        let json = """
+        {
+          "id": "legacy-rest",
+          "kind": "rest",
+          "measureNumber": 1,
+          "measureStartTime": 0,
+          "offsetInQuarterNotes": 0,
+          "durationInQuarterNotes": 4,
+          "displayDuration": { "denominator": 1 }
+        }
+        """
+
+        let item = try JSONDecoder().decode(NotationMeasureItem.self, from: Data(json.utf8))
+
+        XCTAssertEqual(item.id, "legacy-rest")
+        XCTAssertEqual(item.kind, .rest)
+        XCTAssertNil(item.pitch)
+        XCTAssertFalse(item.isSynthesized)
+    }
+
+    func testNotationMeasureItemPersistedCopyClearsSynthesizedStateAndNormalizesPitch() throws {
+        let persistedNote = NotationMeasureItem(
+            id: "note",
+            kind: .note,
+            pitch: NotationPitch(step: .g, octave: 4),
+            measureNumber: 1,
+            measureStartTime: 0,
+            offsetInQuarterNotes: 1,
+            durationInQuarterNotes: 1,
+            displayDuration: NotationDuration(denominator: 4)
+        )
+        let synthesizedRest = NotationMeasureItem(
+            id: "default-rest",
+            kind: .rest,
+            pitch: NotationPitch(step: .c, octave: 5),
+            measureNumber: 1,
+            measureStartTime: 0,
+            offsetInQuarterNotes: 2,
+            durationInQuarterNotes: 2,
+            displayDuration: NotationDuration(denominator: 2),
+            isSynthesized: true
+        )
+
+        let noteCopy = persistedNote.persistedCopy()
+        let restCopy = synthesizedRest.persistedCopy()
+
+        XCTAssertEqual(noteCopy.id, "note")
+        XCTAssertEqual(noteCopy.kind, .note)
+        XCTAssertEqual(noteCopy.pitch, NotationPitch(step: .g, octave: 4))
+        XCTAssertFalse(noteCopy.isSynthesized)
+        XCTAssertNotEqual(restCopy.id, "default-rest")
+        XCTAssertEqual(restCopy.kind, .rest)
+        XCTAssertNil(restCopy.pitch)
+        XCTAssertFalse(restCopy.isSynthesized)
+    }
+
+    func testNotationPitchMapperAppliesKeySignatureDefaultAlter() {
+        let fSharp = NotationPitchMapper.pitch(
+            forStaffPosition: 0,
+            keySignature: KeySignature.normalized(from: "G major")
+        )
+        let bFlat = NotationPitchMapper.pitch(
+            forStaffPosition: 4,
+            keySignature: KeySignature.normalized(from: "F major")
+        )
+
+        XCTAssertEqual(fSharp.step, .f)
+        XCTAssertEqual(fSharp.octave, 5)
+        XCTAssertEqual(fSharp.alter, 1)
+        XCTAssertEqual(bFlat.step, .b)
+        XCTAssertEqual(bFlat.octave, 4)
+        XCTAssertEqual(bFlat.alter, -1)
+    }
+
+    func testNotationPitchMapperAdjacentPitchRespectsBoundsAndKeySignature() throws {
+        let cMajor = KeySignature.normalized(from: "C major")
+        let fMajor = KeySignature.normalized(from: "F major")
+
+        XCTAssertEqual(
+            NotationPitchMapper.adjacentPitch(
+                from: NotationPitch(step: .c, octave: 5),
+                staffPositionDelta: 1,
+                keySignature: cMajor
+            ),
+            NotationPitch(step: .b, octave: 4)
+        )
+        XCTAssertEqual(
+            NotationPitchMapper.adjacentPitch(
+                from: NotationPitch(step: .c, octave: 5),
+                staffPositionDelta: -1,
+                keySignature: cMajor
+            ),
+            NotationPitch(step: .d, octave: 5)
+        )
+        XCTAssertEqual(
+            NotationPitchMapper.adjacentPitch(
+                from: NotationPitch(step: .a, octave: 4),
+                staffPositionDelta: -1,
+                keySignature: fMajor
+            ),
+            NotationPitch(step: .b, octave: 4, alter: -1)
+        )
+        XCTAssertNil(NotationPitchMapper.adjacentPitch(
+            from: NotationPitch(step: .f, octave: 5),
+            staffPositionDelta: -1,
+            keySignature: cMajor
+        ))
+        XCTAssertNil(NotationPitchMapper.adjacentPitch(
+            from: NotationPitch(step: .c, octave: 3),
+            staffPositionDelta: 1,
+            keySignature: cMajor
+        ))
+    }
+
+    func testNotationPitchMapsToMIDINoteNumbers() {
+        XCTAssertEqual(NotationPitch(step: .c, octave: 4).midiNoteNumber, 60)
+        XCTAssertEqual(NotationPitch(step: .f, octave: 5, alter: 1).midiNoteNumber, 78)
+        XCTAssertEqual(NotationPitch(step: .b, octave: 4, alter: -1).midiNoteNumber, 70)
+        XCTAssertEqual(NotationPitch(step: .c, octave: -2).midiNoteNumber, 0)
+        XCTAssertEqual(NotationPitch(step: .b, octave: 10, alter: 1).midiNoteNumber, 127)
+    }
+
+    func testNotationNotePlacementResolverForcesFullMeasureWholeRestToBeatOne() throws {
+        let measure = ScoreMeasure(
+            number: 1,
+            startTime: 0,
+            endTime: 2,
+            attributes: .defaultTreble,
+            notationItems: [
+                NotationMeasureItem(
+                    id: "explicit-whole-rest",
+                    measureNumber: 1,
+                    measureStartTime: 0,
+                    offsetInQuarterNotes: 0,
+                    durationInQuarterNotes: 4,
+                    displayDuration: NotationDuration(denominator: 1)
+                )
+            ]
+        )
+        let geometry = NotationMeasureCanvasGeometry(
+            measureIndex: 0,
+            cellStartX: 0,
+            cellEndX: 200,
+            contentStartX: 20,
+            contentEndX: 180,
+            staffStartX: 0,
+            staffEndX: 200
+        )
+
+        let placement = try XCTUnwrap(NotationNotePlacementResolver.placement(
+            in: measure,
+            geometry: geometry,
+            point: CGPoint(x: 160, y: 72),
+            staffTop: 40,
+            selectedDuration: NotationDuration(denominator: 4)
+        ))
+
+        XCTAssertEqual(placement.offsetInQuarterNotes, 0, accuracy: 0.0001)
+        XCTAssertEqual(placement.targetRestID, "explicit-whole-rest")
+        XCTAssertEqual(placement.pitch.step, .e)
+        XCTAssertEqual(placement.pitch.octave, 4)
+    }
+
+    func testNotationNotePlacementResolverTargetsContainingShortRestWithFollowingCapacity() throws {
+        let measure = ScoreMeasure(
+            number: 1,
+            startTime: 0,
+            endTime: 2,
+            attributes: .defaultTreble,
+            notationItems: [
+                NotationMeasureItem(
+                    id: "first-note",
+                    kind: .note,
+                    pitch: NotationPitch(step: .c, octave: 5),
+                    measureNumber: 1,
+                    measureStartTime: 0,
+                    offsetInQuarterNotes: 0,
+                    durationInQuarterNotes: 1,
+                    displayDuration: NotationDuration(denominator: 4)
+                ),
+                NotationMeasureItem(
+                    id: "first-eighth-rest",
+                    measureNumber: 1,
+                    measureStartTime: 0,
+                    offsetInQuarterNotes: 1,
+                    durationInQuarterNotes: 0.5,
+                    displayDuration: NotationDuration(denominator: 8)
+                ),
+                NotationMeasureItem(
+                    id: "second-eighth-rest",
+                    measureNumber: 1,
+                    measureStartTime: 0,
+                    offsetInQuarterNotes: 1.5,
+                    durationInQuarterNotes: 0.5,
+                    displayDuration: NotationDuration(denominator: 8)
+                ),
+                NotationMeasureItem(
+                    id: "half-rest",
+                    measureNumber: 1,
+                    measureStartTime: 0,
+                    offsetInQuarterNotes: 2,
+                    durationInQuarterNotes: 2,
+                    displayDuration: NotationDuration(denominator: 2)
+                )
+            ]
+        )
+        let geometry = NotationMeasureCanvasGeometry(
+            measureIndex: 0,
+            cellStartX: 0,
+            cellEndX: 200,
+            contentStartX: 20,
+            contentEndX: 180,
+            staffStartX: 0,
+            staffEndX: 200
+        )
+        let xInsideSecondEighth = NotationMeasureLayout.notationAnchorX(
+            geometry: geometry,
+            offsetInQuarterNotes: 1.9,
+            timeSignature: measure.attributes.timeSignature
+        )
+
+        let placement = try XCTUnwrap(NotationNotePlacementResolver.placement(
+            in: measure,
+            geometry: geometry,
+            point: CGPoint(x: xInsideSecondEighth, y: 72),
+            staffTop: 40,
+            selectedDuration: NotationDuration(denominator: 4)
+        ))
+
+        XCTAssertEqual(placement.targetRestID, "second-eighth-rest")
+        XCTAssertEqual(placement.offsetInQuarterNotes, 1.5, accuracy: 0.0001)
+        XCTAssertEqual(placement.durationInQuarterNotes, 1, accuracy: 0.0001)
+    }
+
+    func testNotationNotePlacementResolverRejectsRestWithoutContiguousCapacity() {
+        let measure = ScoreMeasure(
+            number: 1,
+            startTime: 0,
+            endTime: 2,
+            attributes: .defaultTreble,
+            notationItems: [
+                NotationMeasureItem(
+                    id: "short-rest",
+                    measureNumber: 1,
+                    measureStartTime: 0,
+                    offsetInQuarterNotes: 1,
+                    durationInQuarterNotes: 0.5,
+                    displayDuration: NotationDuration(denominator: 8)
+                ),
+                NotationMeasureItem(
+                    id: "next-note",
+                    kind: .note,
+                    pitch: NotationPitch(step: .e, octave: 4),
+                    measureNumber: 1,
+                    measureStartTime: 0,
+                    offsetInQuarterNotes: 1.5,
+                    durationInQuarterNotes: 1,
+                    displayDuration: NotationDuration(denominator: 4)
+                )
+            ]
+        )
+        let geometry = NotationMeasureCanvasGeometry(
+            measureIndex: 0,
+            cellStartX: 0,
+            cellEndX: 200,
+            contentStartX: 20,
+            contentEndX: 180,
+            staffStartX: 0,
+            staffEndX: 200
+        )
+        let xInsideShortRest = NotationMeasureLayout.notationAnchorX(
+            geometry: geometry,
+            offsetInQuarterNotes: 1.25,
+            timeSignature: measure.attributes.timeSignature
+        )
+
+        XCTAssertNil(NotationNotePlacementResolver.placement(
+            in: measure,
+            geometry: geometry,
+            point: CGPoint(x: xInsideShortRest, y: 72),
+            staffTop: 40,
+            selectedDuration: NotationDuration(denominator: 4)
+        ))
+    }
+
+    func testNotationNoteEntryRecomposerPreservesPersistedItemsAndCopiesSynthesizedItems() throws {
+        let note = NotationMeasureItem(
+            id: "existing-note",
+            kind: .note,
+            pitch: NotationPitch(step: .c, octave: 5),
+            measureNumber: 1,
+            measureStartTime: 0,
+            offsetInQuarterNotes: 0,
+            durationInQuarterNotes: 1,
+            displayDuration: NotationDuration(denominator: 4)
+        )
+        let targetRest = NotationMeasureItem(
+            id: "target-rest",
+            measureNumber: 1,
+            measureStartTime: 0,
+            offsetInQuarterNotes: 1,
+            durationInQuarterNotes: 1,
+            displayDuration: NotationDuration(denominator: 4),
+            isSynthesized: true
+        )
+        let trailingRest = NotationMeasureItem(
+            id: "trailing-rest",
+            measureNumber: 1,
+            measureStartTime: 0,
+            offsetInQuarterNotes: 2,
+            durationInQuarterNotes: 2,
+            displayDuration: NotationDuration(denominator: 2),
+            isSynthesized: true
+        )
+        let measure = ScoreMeasure(
+            number: 1,
+            startTime: 0,
+            endTime: 2,
+            attributes: .defaultTreble,
+            notationItems: [note, targetRest, trailingRest]
+        )
+        let span = try XCTUnwrap(NotationNotePlacementResolver.restSpan(
+            in: measure,
+            from: targetRest,
+            requiredDurationInQuarterNotes: 1
+        ))
+        let inserted = NotationMeasureItem(
+            id: "inserted-note",
+            kind: .note,
+            pitch: NotationPitch(step: .e, octave: 4),
+            measureNumber: 1,
+            measureStartTime: 0,
+            offsetInQuarterNotes: 1,
+            durationInQuarterNotes: 1,
+            displayDuration: NotationDuration(denominator: 4)
+        )
+
+        let recomposed = NotationNoteEntryRecomposer.recomposedItems(
+            in: measure,
+            replacing: span,
+            with: inserted
+        )
+
+        XCTAssertEqual(recomposed[0].id, "existing-note")
+        XCTAssertEqual(recomposed[1].id, "inserted-note")
+        XCTAssertNotEqual(recomposed[2].id, "trailing-rest")
+        XCTAssertEqual(recomposed.map(\.kind), [.note, .note, .rest])
+        XCTAssertEqual(recomposed[0].pitch, NotationPitch(step: .c, octave: 5))
+        XCTAssertFalse(recomposed[0].isSynthesized)
+        XCTAssertFalse(recomposed[2].isSynthesized)
+    }
+
+    func testNotationNoteEntryRecomposerSplitsTailToNextQuarterBoundary() throws {
+        let targetRest = NotationMeasureItem(
+            id: "second-eighth-rest",
+            measureNumber: 1,
+            measureStartTime: 0,
+            offsetInQuarterNotes: 1.5,
+            durationInQuarterNotes: 0.5,
+            displayDuration: NotationDuration(denominator: 8)
+        )
+        let followingRest = NotationMeasureItem(
+            id: "half-rest",
+            measureNumber: 1,
+            measureStartTime: 0,
+            offsetInQuarterNotes: 2,
+            durationInQuarterNotes: 2,
+            displayDuration: NotationDuration(denominator: 2)
+        )
+        let measure = ScoreMeasure(
+            number: 1,
+            startTime: 0,
+            endTime: 2,
+            attributes: .defaultTreble,
+            notationItems: [targetRest, followingRest]
+        )
+        let span = try XCTUnwrap(NotationNotePlacementResolver.restSpan(
+            in: measure,
+            from: targetRest,
+            requiredDurationInQuarterNotes: 1
+        ))
+        let inserted = NotationMeasureItem(
+            id: "inserted-note",
+            kind: .note,
+            pitch: NotationPitch(step: .e, octave: 4),
+            measureNumber: 1,
+            measureStartTime: 0,
+            offsetInQuarterNotes: 1.5,
+            durationInQuarterNotes: 1,
+            displayDuration: NotationDuration(denominator: 4)
+        )
+
+        let recomposed = NotationNoteEntryRecomposer.recomposedItems(
+            in: measure,
+            replacing: span,
+            with: inserted
+        )
+
+        XCTAssertEqual(recomposed.map(\.kind), [.note, .rest, .rest])
+        XCTAssertEqual(recomposed.map(\.offsetInQuarterNotes), [1.5, 2.5, 3])
+        XCTAssertEqual(recomposed.map(\.durationInQuarterNotes), [1, 0.5, 1])
+        XCTAssertEqual(recomposed.map(\.displayDuration.denominator), [4, 8, 4])
+    }
+
+    func testNotationNotePlacementResolverClampsStaffPositionForPitchDrag() throws {
+        let staffTop: CGFloat = 40
+        let spacing = AppTheme.Timeline.notationStaffLineSpacing
+
+        XCTAssertEqual(
+            NotationNotePlacementResolver.clampedStaffPosition(
+                forY: staffTop - spacing * 4,
+                staffTop: staffTop
+            ),
+            NotationPitchMapper.minimumStaffPosition
+        )
+        XCTAssertEqual(
+            NotationNotePlacementResolver.clampedStaffPosition(
+                forY: staffTop + spacing * 8,
+                staffTop: staffTop
+            ),
+            NotationPitchMapper.maximumStaffPosition
+        )
+        XCTAssertEqual(
+            NotationNotePlacementResolver.clampedStaffPosition(
+                forY: staffTop + spacing,
+                staffTop: staffTop
+            ),
+            2
+        )
+    }
+
     func testLelandFontResourceIsBundledAndRegistered() throws {
         let url = try XCTUnwrap(Bundle.main.url(forResource: "Leland", withExtension: "otf"))
 
@@ -142,6 +587,51 @@ final class NotationPrimitivesTests: XCTestCase {
             XCTAssertFalse(glyphPath.path.isEmpty)
             XCTAssertGreaterThan(glyphPath.bounds.width, 0)
             XCTAssertGreaterThan(glyphPath.bounds.height, 0)
+        }
+    }
+
+    func testLelandStaffNoteGlyphPathsHaveBounds() throws {
+        for symbol in [
+            NotationStaffNoteSymbol.whole,
+            .half,
+            .quarter,
+            .eighth
+        ] {
+            let glyphPath = try XCTUnwrap(NotationMusicFontRegistry.glyphPath(
+                for: symbol,
+                fontSize: 32.5
+            ))
+
+            XCTAssertFalse(glyphPath.path.isEmpty)
+            XCTAssertGreaterThan(glyphPath.bounds.width, 0)
+            XCTAssertGreaterThan(glyphPath.bounds.height, 0)
+        }
+    }
+
+    func testLelandStaffNoteGlyphTransformAnchorsNoteheadAtTargetPoint() throws {
+        let target = CGPoint(x: 42, y: 73)
+
+        for symbol in [
+            NotationStaffNoteSymbol.whole,
+            .half,
+            .quarter,
+            .eighth
+        ] {
+            let glyphPath = try XCTUnwrap(NotationMusicFontRegistry.glyphPath(
+                for: symbol,
+                fontSize: 32.5
+            ))
+            let anchor = try XCTUnwrap(NotationMusicFontRegistry.noteheadAnchor(
+                for: symbol,
+                fontSize: 32.5
+            ))
+            let transformedAnchor = anchor.applying(glyphPath.anchoredTransform(
+                anchor: anchor,
+                target: target
+            ))
+
+            XCTAssertEqual(transformedAnchor.x, target.x, accuracy: 0.0001)
+            XCTAssertEqual(transformedAnchor.y, target.y, accuracy: 0.0001)
         }
     }
 

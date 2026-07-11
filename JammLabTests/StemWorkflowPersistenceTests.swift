@@ -43,7 +43,7 @@ final class StemWorkflowPersistenceTests: XCTestCase {
 
         let decoded = try JSONDecoder().decode(JammLabProject.self, from: JSONEncoder().encode(project))
 
-        XCTAssertEqual(decoded.formatVersion, 10)
+        XCTAssertEqual(decoded.formatVersion, 11)
         XCTAssertEqual(decoded.artifactRootBookmarkData, artifactRootBookmarkData)
         XCTAssertEqual(decoded.mediaKind, .video)
         XCTAssertEqual(decoded.isLoopEnabled, true)
@@ -60,6 +60,50 @@ final class StemWorkflowPersistenceTests: XCTestCase {
         XCTAssertEqual(decoded.stemState?.playbackMode, .stems)
         XCTAssertEqual(try XCTUnwrap(decoded.stemState?.mixState.effectiveVolume(for: .vocals)), 0, accuracy: 0.0001)
         XCTAssertEqual(try XCTUnwrap(decoded.stemState?.mixState.effectiveVolume(for: .drums)), 0.8, accuracy: 0.0001)
+    }
+
+    func testProjectVersionElevenPersistsPitchedNotationItems() throws {
+        let pitch = NotationPitch(step: .f, octave: 4, alter: 1)
+        let project = JammLabProject(
+            audioBookmarkData: Data("bookmark".utf8),
+            audioDisplayName: "lesson.mp3",
+            audioDuration: 8,
+            notes: [],
+            notationItems: [
+                NotationMeasureItem(
+                    id: "note",
+                    kind: .note,
+                    pitch: pitch,
+                    measureNumber: 1,
+                    measureStartTime: 0,
+                    offsetInQuarterNotes: 0,
+                    durationInQuarterNotes: 1,
+                    displayDuration: NotationDuration(denominator: 4)
+                ),
+                NotationMeasureItem(
+                    id: "rest",
+                    measureNumber: 1,
+                    measureStartTime: 0,
+                    offsetInQuarterNotes: 1,
+                    durationInQuarterNotes: 2,
+                    displayDuration: NotationDuration(denominator: 2)
+                )
+            ],
+            loopStart: 0,
+            loopEnd: 8,
+            playbackRate: 1,
+            pitchShiftSemitones: 0
+        )
+
+        let decoded = try JSONDecoder().decode(JammLabProject.self, from: JSONEncoder().encode(project))
+
+        XCTAssertEqual(decoded.formatVersion, 11)
+        XCTAssertEqual(decoded.notationItems.map(\.id), ["note", "rest"])
+        XCTAssertEqual(decoded.notationItems.map(\.kind), [.note, .rest])
+        XCTAssertEqual(decoded.notationItems.map(\.pitch), [pitch, nil])
+        XCTAssertEqual(decoded.notationItems.map(\.offsetInQuarterNotes), [0, 1])
+        XCTAssertEqual(decoded.notationItems.map(\.durationInQuarterNotes), [1, 2])
+        XCTAssertEqual(decoded.notationItems.map(\.displayDuration.denominator), [4, 2])
     }
 
     func testLegacyProjectWithoutStemStateStillDecodes() throws {

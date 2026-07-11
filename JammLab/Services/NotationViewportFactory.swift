@@ -526,6 +526,7 @@ struct NotationViewportFactory {
             .filter { item in
                 item.measureNumber == measure.number
                     && abs(item.measureStartTime - measure.startTime) < timelineTolerance
+                    && (item.kind == .rest || item.pitch != nil)
             }
             .sorted(by: itemSort)
         guard !explicitItems.isEmpty else {

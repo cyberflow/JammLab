@@ -17,6 +17,9 @@ enum AppHotkey: CaseIterable, Hashable {
     case pasteMeasure
     case clearNotationMeasureSelection
     case editHarmonyAtSelectedNotationItem
+    case toggleNotationNoteEntryMode
+    case moveSelectedNotationNotePitchUp
+    case moveSelectedNotationNotePitchDown
     case setNotationDurationEighth
     case setNotationDurationQuarter
     case setNotationDurationHalf
@@ -73,6 +76,12 @@ enum AppHotkey: CaseIterable, Hashable {
             self = .setLoopEnd
         case 46:
             self = .addNote
+        case 45:
+            self = .toggleNotationNoteEntryMode
+        case 126:
+            self = .moveSelectedNotationNotePitchUp
+        case 125:
+            self = .moveSelectedNotationNotePitchDown
         case 11:
             self = .setBeatOne
         case 8:
@@ -124,6 +133,12 @@ enum AppHotkey: CaseIterable, Hashable {
             return "Esc"
         case .editHarmonyAtSelectedNotationItem:
             return "Cmd+K"
+        case .toggleNotationNoteEntryMode:
+            return "N"
+        case .moveSelectedNotationNotePitchUp:
+            return "Arrow Up"
+        case .moveSelectedNotationNotePitchDown:
+            return "Arrow Down"
         case .setNotationDurationEighth:
             return "4"
         case .setNotationDurationQuarter:
@@ -167,6 +182,12 @@ enum AppHotkey: CaseIterable, Hashable {
             return "Clear Measure Selection"
         case .editHarmonyAtSelectedNotationItem:
             return "Edit Harmony"
+        case .toggleNotationNoteEntryMode:
+            return "Notation Note Entry"
+        case .moveSelectedNotationNotePitchUp:
+            return "Move Notation Note Up"
+        case .moveSelectedNotationNotePitchDown:
+            return "Move Notation Note Down"
         case .setNotationDurationEighth:
             return "Set Eighth Note Duration"
         case .setNotationDurationQuarter:
@@ -210,6 +231,12 @@ enum AppHotkey: CaseIterable, Hashable {
             return "Clear the selected notation measure or measure range."
         case .editHarmonyAtSelectedNotationItem:
             return "Open harmony entry for the selected notation item."
+        case .toggleNotationNoteEntryMode:
+            return "Enable or disable adding notes to Notation."
+        case .moveSelectedNotationNotePitchUp:
+            return "Move the selected notation note to the next higher staff position."
+        case .moveSelectedNotationNotePitchDown:
+            return "Move the selected notation note to the next lower staff position."
         case .setNotationDurationEighth:
             return "Set notation duration to eighth notes for the selected notation item."
         case .setNotationDurationQuarter:

@@ -101,6 +101,75 @@ final class AppHotkeyNotationEventFilterTests: XCTestCase {
         )
     }
 
+    func testAppHotkeyEventFilterDoesNotStealNotationPitchArrowsFromTextRespondersOrUnavailableScopes() throws {
+        let arrowEvent = try XCTUnwrap(NSEvent.keyEvent(
+            with: .keyDown,
+            location: .zero,
+            modifierFlags: [],
+            timestamp: 0,
+            windowNumber: 42,
+            context: nil,
+            characters: "\u{F700}",
+            charactersIgnoringModifiers: "\u{F700}",
+            isARepeat: false,
+            keyCode: 126
+        ))
+        let repeatArrowEvent = try XCTUnwrap(NSEvent.keyEvent(
+            with: .keyDown,
+            location: .zero,
+            modifierFlags: [],
+            timestamp: 0,
+            windowNumber: 42,
+            context: nil,
+            characters: "\u{F700}",
+            charactersIgnoringModifiers: "\u{F700}",
+            isARepeat: true,
+            keyCode: 126
+        ))
+
+        XCTAssertEqual(
+            AppHotkeyEventFilter.hotkey(
+                for: arrowEvent,
+                attachedWindowNumber: 42,
+                firstResponder: nil,
+                allowedHotkeys: [.moveSelectedNotationNotePitchUp]
+            ),
+            .moveSelectedNotationNotePitchUp
+        )
+        XCTAssertNil(
+            AppHotkeyEventFilter.hotkey(
+                for: arrowEvent,
+                attachedWindowNumber: 42,
+                firstResponder: nil,
+                allowedHotkeys: [.playPause]
+            )
+        )
+        XCTAssertNil(
+            AppHotkeyEventFilter.hotkey(
+                for: arrowEvent,
+                attachedWindowNumber: 42,
+                firstResponder: NSTextView(),
+                allowedHotkeys: [.moveSelectedNotationNotePitchUp]
+            )
+        )
+        XCTAssertNil(
+            AppHotkeyEventFilter.hotkey(
+                for: arrowEvent,
+                attachedWindowNumber: 42,
+                firstResponder: AbletonNumberFieldNSView(),
+                allowedHotkeys: [.moveSelectedNotationNotePitchUp]
+            )
+        )
+        XCTAssertNil(
+            AppHotkeyEventFilter.hotkey(
+                for: repeatArrowEvent,
+                attachedWindowNumber: 42,
+                firstResponder: nil,
+                allowedHotkeys: [.moveSelectedNotationNotePitchUp]
+            )
+        )
+    }
+
     func testAppHotkeyEventFilterDoesNotStealEditHarmonyFromTextRespondersOrUnavailableScopes() throws {
         let editHarmonyEvent = try XCTUnwrap(NSEvent.keyEvent(
             with: .keyDown,

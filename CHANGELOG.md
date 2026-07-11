@@ -8,6 +8,8 @@ development artifact builds use `vMAJOR.MINOR.PATCH-dev.N`.
 
 ## Unreleased
 
+- Added Notation note-entry mode for placing pitched notes with Leland-rendered note glyphs, note selection preview, cross-rest insertion, rest recomposition, and MusicXML export.
+- Added Notation note editing for dragging note pitch, arrow-key pitch changes, and deleting selected notes back to rests.
 - Added clearer hover tooltips and numpad shortcuts for Notation duration buttons.
 - Added a bar/beat position readout to the transport time display.
 

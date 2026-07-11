@@ -49,6 +49,73 @@ final class AppHotkeyNotationMappingTests: XCTestCase {
         XCTAssertTrue(AppHotkey.allCases.contains(.setNotationDurationWhole))
     }
 
+    func testAppHotkeyRecognizesNotationNoteEntryModeToggle() throws {
+        let event = try XCTUnwrap(NSEvent.keyEvent(
+            with: .keyDown,
+            location: .zero,
+            modifierFlags: [],
+            timestamp: 0,
+            windowNumber: 0,
+            context: nil,
+            characters: "n",
+            charactersIgnoringModifiers: "n",
+            isARepeat: false,
+            keyCode: 45
+        ))
+
+        XCTAssertEqual(AppHotkey(event: event), .toggleNotationNoteEntryMode)
+        XCTAssertEqual(AppHotkey.toggleNotationNoteEntryMode.key, "N")
+        XCTAssertEqual(AppHotkey.toggleNotationNoteEntryMode.title, "Notation Note Entry")
+        XCTAssertTrue(AppHotkey.allCases.contains(.toggleNotationNoteEntryMode))
+    }
+
+    func testAppHotkeyRecognizesNotationNotePitchArrowKeys() throws {
+        let upEvent = try XCTUnwrap(NSEvent.keyEvent(
+            with: .keyDown,
+            location: .zero,
+            modifierFlags: [],
+            timestamp: 0,
+            windowNumber: 0,
+            context: nil,
+            characters: "\u{F700}",
+            charactersIgnoringModifiers: "\u{F700}",
+            isARepeat: false,
+            keyCode: 126
+        ))
+        let downEvent = try XCTUnwrap(NSEvent.keyEvent(
+            with: .keyDown,
+            location: .zero,
+            modifierFlags: [],
+            timestamp: 0,
+            windowNumber: 0,
+            context: nil,
+            characters: "\u{F701}",
+            charactersIgnoringModifiers: "\u{F701}",
+            isARepeat: false,
+            keyCode: 125
+        ))
+        let shiftUpEvent = try XCTUnwrap(NSEvent.keyEvent(
+            with: .keyDown,
+            location: .zero,
+            modifierFlags: [.shift],
+            timestamp: 0,
+            windowNumber: 0,
+            context: nil,
+            characters: "\u{F700}",
+            charactersIgnoringModifiers: "\u{F700}",
+            isARepeat: false,
+            keyCode: 126
+        ))
+
+        XCTAssertEqual(AppHotkey(event: upEvent), .moveSelectedNotationNotePitchUp)
+        XCTAssertEqual(AppHotkey(event: downEvent), .moveSelectedNotationNotePitchDown)
+        XCTAssertNil(AppHotkey(event: shiftUpEvent))
+        XCTAssertEqual(AppHotkey.moveSelectedNotationNotePitchUp.key, "Arrow Up")
+        XCTAssertEqual(AppHotkey.moveSelectedNotationNotePitchDown.key, "Arrow Down")
+        XCTAssertEqual(AppHotkey.moveSelectedNotationNotePitchUp.title, "Move Notation Note Up")
+        XCTAssertTrue(AppHotkey.allCases.contains(.moveSelectedNotationNotePitchDown))
+    }
+
     func testAppHotkeyRecognizesNotationDurationNumpadKeys() throws {
         let expectations: [(key: String, keyCode: UInt16, hotkey: AppHotkey, denominator: Int)] = [
             ("4", 86, .setNotationDurationEighth, 8),

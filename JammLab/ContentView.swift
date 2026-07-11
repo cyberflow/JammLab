@@ -181,7 +181,7 @@ struct ContentView: View {
         if !viewModel.canPasteNotationMeasureClipboard {
             hotkeys.remove(.pasteMeasure)
         }
-        if !viewModel.hasSelectedNotationMeasures {
+        if !viewModel.hasSelectedNotationMeasures && !viewModel.isNotationNoteEntryModeEnabled {
             hotkeys.remove(.clearNotationMeasureSelection)
         }
         if !viewModel.canEditSelectedNotationItem {
@@ -189,6 +189,12 @@ struct ContentView: View {
         }
         if !viewModel.canChangeNotationDuration {
             hotkeys.subtract(AppHotkey.notationDurationHotkeys)
+        }
+        if !viewModel.canChangeSelectedNotationNotePitch(byStaffPositionDelta: -1) {
+            hotkeys.remove(.moveSelectedNotationNotePitchUp)
+        }
+        if !viewModel.canChangeSelectedNotationNotePitch(byStaffPositionDelta: 1) {
+            hotkeys.remove(.moveSelectedNotationNotePitchDown)
         }
         return hotkeys
     }
@@ -237,10 +243,21 @@ struct ContentView: View {
         case .pasteMeasure:
             return viewModel.pasteNotationMeasureClipboard()
         case .clearNotationMeasureSelection:
-            viewModel.clearNotationMeasureSelection()
+            if viewModel.isNotationNoteEntryModeEnabled {
+                viewModel.clearNotationNoteEntryMode()
+            } else {
+                viewModel.clearNotationMeasureSelection()
+            }
             return true
         case .editHarmonyAtSelectedNotationItem:
             return viewModel.requestEditSelectedNotationItem()
+        case .toggleNotationNoteEntryMode:
+            viewModel.toggleNotationNoteEntryMode()
+            return true
+        case .moveSelectedNotationNotePitchUp:
+            return viewModel.changeSelectedNotationNotePitch(byStaffPositionDelta: -1)
+        case .moveSelectedNotationNotePitchDown:
+            return viewModel.changeSelectedNotationNotePitch(byStaffPositionDelta: 1)
         case .setNotationDurationEighth,
                 .setNotationDurationQuarter,
                 .setNotationDurationHalf,

@@ -126,6 +126,7 @@ struct ProjectStateNormalizer {
         return items
             .filter { item in
                 !item.isSynthesized
+                    && (item.kind == .rest || item.pitch != nil)
                     && item.measureStartTime.isFinite
                     && item.measureStartTime >= 0
                     && item.measureStartTime <= duration
@@ -137,6 +138,7 @@ struct ProjectStateNormalizer {
                 NotationMeasureItem(
                     id: item.id,
                     kind: item.kind,
+                    pitch: item.kind == .note ? item.pitch : nil,
                     measureNumber: max(1, item.measureNumber),
                     measureStartTime: min(max(0, finiteTime(item.measureStartTime)), duration),
                     offsetInQuarterNotes: max(0, finiteTime(item.offsetInQuarterNotes)),

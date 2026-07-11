@@ -6,12 +6,40 @@ extension AudioPlayerViewModel {
     }
 
     var canChangeNotationDuration: Bool {
-        canEditSelectedNotationItem
+        duration > 0 && (isNotationNoteEntryModeEnabled || canEditSelectedNotationItem)
+    }
+
+    var canChangeSelectedNotationNotePitch: Bool {
+        canChangeSelectedNotationNotePitch(byStaffPositionDelta: -1)
+            || canChangeSelectedNotationNotePitch(byStaffPositionDelta: 1)
     }
 
     func setNotationDurationDenominator(_ denominator: Int) {
         notationDurationDenominator = NotationDuration.normalizedDenominator(denominator)
+        guard !isNotationNoteEntryModeEnabled else { return }
         changeSelectedNotationItemDuration(to: NotationDuration(denominator: notationDurationDenominator))
+    }
+
+    func toggleNotationNoteEntryMode() {
+        setNotationNoteEntryModeEnabled(!isNotationNoteEntryModeEnabled)
+    }
+
+    func setNotationNoteEntryModeEnabled(_ isEnabled: Bool) {
+        let resolvedIsEnabled = isEnabled && duration > 0
+        guard isNotationNoteEntryModeEnabled != resolvedIsEnabled else { return }
+
+        isNotationNoteEntryModeEnabled = resolvedIsEnabled
+        if resolvedIsEnabled {
+            selectedNotationMeasures = []
+            notationMeasureSelectionAnchor = nil
+            selectedHarmonySymbolID = nil
+            selectedNotationItem = nil
+            pendingHarmonyEditorRequest = nil
+        }
+    }
+
+    func clearNotationNoteEntryMode() {
+        setNotationNoteEntryModeEnabled(false)
     }
 
     @discardableResult
@@ -34,19 +62,35 @@ extension AudioPlayerViewModel {
         selectedHarmonySymbolID = availableHarmonySymbolID(id)
     }
 
-    func selectNotationItem(_ selection: NotationItemSelection?) {
+    func selectNotationItem(
+        _ selection: NotationItemSelection?,
+        shouldAudition: Bool = false
+    ) {
         guard let selection else {
             clearNotationItemSelection()
             return
         }
 
-        selectedNotationItem = selection
+        guard let match = notationItemMatch(for: selection) else {
+            clearNotationItemSelection()
+            return
+        }
+
+        let canonicalSelection = NotationItemSelection(measure: match.measure, item: match.item)
+        selectedNotationItem = canonicalSelection
         selectedNotationMeasures = []
         notationMeasureSelectionAnchor = nil
-        if let placement = harmonyPlacement(for: selection) {
+        isNotationNoteEntryModeEnabled = false
+        if let placement = harmonyPlacement(for: canonicalSelection) {
             selectedHarmonySymbolID = harmonySymbolID(at: placement.harmonyPlacement.time)
         } else {
             selectedHarmonySymbolID = nil
+        }
+
+        if shouldAudition,
+           match.item.kind == .note,
+           let pitch = match.item.pitch {
+            try? notationNoteAuditioner.audition(pitch: pitch)
         }
     }
 
@@ -93,6 +137,7 @@ extension AudioPlayerViewModel {
         }
         selectedHarmonySymbolID = nil
         selectedNotationItem = nil
+        isNotationNoteEntryModeEnabled = false
         locatePlaybackMarkerAtFirstSelectedNotationMeasure()
     }
 
@@ -101,6 +146,151 @@ extension AudioPlayerViewModel {
         notationMeasureSelectionAnchor = nil
         selectedHarmonySymbolID = nil
         selectedNotationItem = nil
+    }
+
+    @discardableResult
+    func insertNotationNote(_ placement: NotationNotePlacement) -> Bool {
+        guard duration > 0,
+              let measure = currentNotationScoreMeasures().first(where: {
+                  $0.number == placement.measure.number
+                      && abs($0.startTime - placement.measure.startTime) < NotationMeasureTiming.timelineTolerance
+                      && abs($0.endTime - placement.measure.endTime) < NotationMeasureTiming.timelineTolerance
+              }),
+              let restSpan = NotationNotePlacementResolver.restSpan(in: measure, matching: placement)
+        else {
+            return false
+        }
+
+        let noteItem = NotationMeasureItem(
+            kind: .note,
+            pitch: placement.pitch,
+            measureNumber: measure.number,
+            measureStartTime: measure.startTime,
+            offsetInQuarterNotes: restSpan.startOffsetInQuarterNotes,
+            durationInQuarterNotes: placement.durationInQuarterNotes,
+            displayDuration: placement.displayDuration
+        )
+        let recomposedItems = NotationNoteEntryRecomposer.recomposedItems(
+            in: measure,
+            replacing: restSpan,
+            with: noteItem
+        )
+
+        performUndoableEdit("Add Notation Note") {
+            replaceNotationMeasureItems(in: measure, with: recomposedItems)
+            selectedNotationMeasures = []
+            notationMeasureSelectionAnchor = nil
+            selectedHarmonySymbolID = nil
+
+            if let updatedMeasure = currentNotationScoreMeasures().first(where: {
+                $0.number == measure.number
+                    && abs($0.startTime - measure.startTime) < NotationMeasureTiming.timelineTolerance
+            }), let selected = updatedMeasure.notationItems.first(where: { $0.id == noteItem.id }) {
+                selectedNotationItem = NotationItemSelection(measure: updatedMeasure, item: selected)
+            } else {
+                selectedNotationItem = nil
+            }
+        }
+
+        try? notationNoteAuditioner.audition(pitch: placement.pitch)
+        return true
+    }
+
+    @discardableResult
+    func changeSelectedNotationNotePitch(
+        to pitch: NotationPitch,
+        shouldAudition: Bool = true
+    ) -> Bool {
+        guard let selection = selectedNotationItem,
+              let match = notationItemMatch(for: selection),
+              match.item.kind == .note,
+              match.item.pitch != nil,
+              match.item.pitch != pitch
+        else {
+            return false
+        }
+
+        let measure = match.measure
+        let item = match.item
+        let updatedItem = NotationMeasureItem(
+            id: item.id,
+            kind: .note,
+            pitch: pitch,
+            measureNumber: item.measureNumber,
+            measureStartTime: item.measureStartTime,
+            offsetInQuarterNotes: item.offsetInQuarterNotes,
+            durationInQuarterNotes: item.durationInQuarterNotes,
+            displayDuration: item.displayDuration
+        )
+
+        performUndoableEdit("Change Notation Note Pitch") {
+            replaceNotationItem(
+                in: measure,
+                matching: item,
+                with: updatedItem
+            )
+            reselectNotationItem(
+                inMeasureNumber: measure.number,
+                measureStartTime: measure.startTime,
+                itemID: updatedItem.id
+            )
+        }
+
+        if shouldAudition {
+            try? notationNoteAuditioner.audition(pitch: pitch)
+        }
+        return true
+    }
+
+    func auditionNotationNotePitch(_ pitch: NotationPitch) {
+        try? notationNoteAuditioner.audition(pitch: pitch)
+    }
+
+    func canChangeSelectedNotationNotePitch(byStaffPositionDelta staffPositionDelta: Int) -> Bool {
+        selectedNotationNotePitchChange(byStaffPositionDelta: staffPositionDelta) != nil
+    }
+
+    @discardableResult
+    func changeSelectedNotationNotePitch(byStaffPositionDelta staffPositionDelta: Int) -> Bool {
+        guard let pitch = selectedNotationNotePitchChange(byStaffPositionDelta: staffPositionDelta) else {
+            return false
+        }
+
+        return changeSelectedNotationNotePitch(to: pitch)
+    }
+
+    @discardableResult
+    func deleteSelectedNotationNote() -> Bool {
+        guard let selection = selectedNotationItem,
+              let match = notationItemMatch(for: selection),
+              match.item.kind == .note
+        else {
+            return false
+        }
+
+        let measure = match.measure
+        let item = match.item
+        let replacementRest = NotationMeasureItem(
+            id: item.id,
+            kind: .rest,
+            pitch: nil,
+            measureNumber: item.measureNumber,
+            measureStartTime: item.measureStartTime,
+            offsetInQuarterNotes: item.offsetInQuarterNotes,
+            durationInQuarterNotes: item.durationInQuarterNotes,
+            displayDuration: item.displayDuration
+        )
+
+        performUndoableEdit("Delete Notation Note") {
+            replaceNotationItem(
+                in: measure,
+                matching: item,
+                with: replacementRest
+            )
+            selectedNotationItem = nil
+        }
+
+        return true
     }
 
     func clearNotationMeasureSelectionAndClipboard() {
@@ -148,6 +338,7 @@ extension AudioPlayerViewModel {
                         $0.offsetInQuarterNotes,
                         in: targetMeasure.attributes.timeSignature
                     )
+                    && ($0.kind == .rest || $0.pitch != nil)
                 }
                 .sorted(by: notationClipboardNotationItemSort)
         }
@@ -191,6 +382,8 @@ extension AudioPlayerViewModel {
                 })
                 notationItems.append(contentsOf: pastedNotationItems.map { item in
                     NotationMeasureItem(
+                        kind: item.kind,
+                        pitch: item.kind == .note ? item.pitch : nil,
                         measureNumber: targetMeasure.number,
                         measureStartTime: targetMeasure.startTime,
                         offsetInQuarterNotes: item.offsetInQuarterNotes,
@@ -345,17 +538,12 @@ extension AudioPlayerViewModel {
 
             let suffix = notationDurationSuffix(
                 measure: measure,
+                selectedItem: match.item,
                 startOffset: startOffset,
                 remaining: remaining,
                 selectedDuration: selectedDuration
             )
-            notationItems.removeAll {
-                $0.measureNumber == measure.number
-                    && abs($0.measureStartTime - measure.startTime) < NotationMeasureTiming.timelineTolerance
-            }
-            notationItems.append(contentsOf: prefix)
-            notationItems.append(contentsOf: suffix)
-            notationItems = ProjectStateNormalizer.normalizedNotationItems(notationItems, duration: duration)
+            replaceNotationMeasureItems(in: measure, with: prefix + suffix)
 
             if let selected = suffix.first {
                 selectedNotationItem = NotationItemSelection(measure: measure, item: selected)
@@ -365,6 +553,7 @@ extension AudioPlayerViewModel {
 
     private func notationDurationSuffix(
         measure: ScoreMeasure,
+        selectedItem: NotationMeasureItem,
         startOffset: Double,
         remaining: Double,
         selectedDuration: NotationDuration
@@ -373,6 +562,35 @@ extension AudioPlayerViewModel {
         var cursor = startOffset
         var rest = remaining
         let selectedLength = selectedDuration.durationInQuarterNotes
+
+        if selectedItem.kind == .note {
+            guard selectedLength <= rest + NotationMeasureTiming.timelineTolerance,
+                  let pitch = selectedItem.pitch
+            else {
+                return [selectedItem.persistedCopy()]
+            }
+
+            let duration = min(selectedLength, rest)
+            items.append(NotationMeasureItem(
+                id: selectedItem.id,
+                kind: .note,
+                pitch: pitch,
+                measureNumber: measure.number,
+                measureStartTime: measure.startTime,
+                offsetInQuarterNotes: cursor,
+                durationInQuarterNotes: duration,
+                displayDuration: selectedDuration
+            ))
+            cursor += duration
+            rest -= duration
+            items.append(contentsOf: fillerNotationItems(
+                measure: measure,
+                startOffset: cursor,
+                remaining: rest
+            ))
+            return items
+        }
+
         let selectedCount = min(2, Int(floor((rest + NotationMeasureTiming.timelineTolerance) / selectedLength)))
 
         if selectedCount > 0 {
@@ -485,6 +703,8 @@ extension AudioPlayerViewModel {
             .filter { !$0.isSynthesized }
             .map {
                 NotationMeasureClipboardNotationItem(
+                    kind: $0.kind,
+                    pitch: $0.pitch,
                     offsetInQuarterNotes: $0.offsetInQuarterNotes,
                     durationInQuarterNotes: $0.durationInQuarterNotes,
                     displayDuration: $0.displayDuration
@@ -563,6 +783,61 @@ extension AudioPlayerViewModel {
             harmonySymbols: harmonySymbols,
             notes: notes
         ).measures
+    }
+
+    private func replaceNotationItem(
+        in measure: ScoreMeasure,
+        matching targetItem: NotationMeasureItem,
+        with replacementItem: NotationMeasureItem
+    ) {
+        let updatedItems = measure.notationItems.map { item in
+            item.id == targetItem.id ? replacementItem : item.persistedCopy()
+        }
+        replaceNotationMeasureItems(in: measure, with: updatedItems)
+    }
+
+    private func replaceNotationMeasureItems(
+        in measure: ScoreMeasure,
+        with replacementItems: [NotationMeasureItem]
+    ) {
+        notationItems.removeAll {
+            $0.measureNumber == measure.number
+                && abs($0.measureStartTime - measure.startTime) < NotationMeasureTiming.timelineTolerance
+        }
+        notationItems.append(contentsOf: replacementItems)
+        notationItems = ProjectStateNormalizer.normalizedNotationItems(notationItems, duration: duration)
+    }
+
+    private func selectedNotationNotePitchChange(byStaffPositionDelta staffPositionDelta: Int) -> NotationPitch? {
+        guard let selection = selectedNotationItem,
+              let match = notationItemMatch(for: selection),
+              match.item.kind == .note,
+              let pitch = match.item.pitch
+        else {
+            return nil
+        }
+
+        return NotationPitchMapper.adjacentPitch(
+            from: pitch,
+            staffPositionDelta: staffPositionDelta,
+            keySignature: match.measure.attributes.keySignature
+        )
+    }
+
+    private func reselectNotationItem(
+        inMeasureNumber measureNumber: Int,
+        measureStartTime: TimeInterval,
+        itemID: String
+    ) {
+        guard let updatedMeasure = currentNotationScoreMeasures().first(where: {
+            $0.number == measureNumber
+                && abs($0.startTime - measureStartTime) < NotationMeasureTiming.timelineTolerance
+        }), let selected = updatedMeasure.notationItems.first(where: { $0.id == itemID }) else {
+            selectedNotationItem = nil
+            return
+        }
+
+        selectedNotationItem = NotationItemSelection(measure: updatedMeasure, item: selected)
     }
 
     private func locatePlaybackMarkerAtFirstSelectedNotationMeasure() {

@@ -48,6 +48,89 @@ final class ViewModelNotationSelectionTests: XCTestCase {
     }
 
     @MainActor
+    func testSelectingNotationNoteAuditionsWhenRequested() throws {
+        let auditioner = MockNotationNoteAuditioner()
+        let viewModel = try loadedNotationViewModel(
+            duration: 8,
+            notationNoteAuditioner: auditioner
+        )
+        let pitch = NotationPitch(step: .e, octave: 4)
+        viewModel.notationItems = [
+            NotationMeasureItem(
+                id: "selected-note",
+                kind: .note,
+                pitch: pitch,
+                measureNumber: 1,
+                measureStartTime: 0,
+                offsetInQuarterNotes: 0,
+                durationInQuarterNotes: 1,
+                displayDuration: NotationDuration(denominator: 4)
+            ),
+            NotationMeasureItem(
+                id: "rest",
+                measureNumber: 1,
+                measureStartTime: 0,
+                offsetInQuarterNotes: 1,
+                durationInQuarterNotes: 1,
+                displayDuration: NotationDuration(denominator: 4)
+            )
+        ]
+        viewModel.markProjectClean()
+        let measure = try notationMeasure(1, in: viewModel)
+        let note = try XCTUnwrap(measure.notationItems.first { $0.id == "selected-note" })
+        let rest = try XCTUnwrap(measure.notationItems.first { $0.id == "rest" })
+
+        viewModel.selectNotationItem(
+            NotationItemSelection(measure: measure, item: note),
+            shouldAudition: true
+        )
+        viewModel.selectNotationItem(
+            NotationItemSelection(measure: measure, item: note),
+            shouldAudition: true
+        )
+        viewModel.selectNotationItem(
+            NotationItemSelection(measure: measure, item: rest),
+            shouldAudition: true
+        )
+        viewModel.clearNotationItemSelection()
+
+        XCTAssertEqual(auditioner.auditionedPitches, [pitch, pitch])
+        XCTAssertFalse(viewModel.isProjectModified)
+    }
+
+    @MainActor
+    func testSelectingNotationNoteDoesNotAuditionWhenSuppressed() throws {
+        let auditioner = MockNotationNoteAuditioner()
+        let viewModel = try loadedNotationViewModel(
+            duration: 8,
+            notationNoteAuditioner: auditioner
+        )
+        viewModel.notationItems = [
+            NotationMeasureItem(
+                id: "selected-note",
+                kind: .note,
+                pitch: NotationPitch(step: .e, octave: 4),
+                measureNumber: 1,
+                measureStartTime: 0,
+                offsetInQuarterNotes: 0,
+                durationInQuarterNotes: 1,
+                displayDuration: NotationDuration(denominator: 4)
+            )
+        ]
+        viewModel.markProjectClean()
+        let measure = try notationMeasure(1, in: viewModel)
+        let note = try XCTUnwrap(measure.notationItems.first { $0.id == "selected-note" })
+
+        viewModel.selectNotationItem(
+            NotationItemSelection(measure: measure, item: note),
+            shouldAudition: false
+        )
+
+        XCTAssertTrue(auditioner.auditionedPitches.isEmpty)
+        XCTAssertFalse(viewModel.isProjectModified)
+    }
+
+    @MainActor
     func testRequestEditSelectedNotationItemUsesExactItemOffsetAndExistingHarmony() throws {
         let viewModel = try loadedNotationViewModel(duration: 8)
         let measure = try notationMeasure(1, in: viewModel)
@@ -184,14 +267,16 @@ extension XCTestCase {
     @MainActor
     func loadedNotationViewModel(
         duration: TimeInterval,
-        playbackEngine: MockPlaybackEngine? = nil
+        playbackEngine: MockPlaybackEngine? = nil,
+        notationNoteAuditioner: NotationNoteAuditioning? = nil
     ) throws -> AudioPlayerViewModel {
         let audioURL = try temporaryAudioFile(duration: duration)
         let playbackEngine = playbackEngine ?? MockPlaybackEngine()
         let viewModel = AudioPlayerViewModel(
             analyzer: MockAnalyzer(),
             peakformProvider: MockPeakformProvider(),
-            playbackEngine: playbackEngine
+            playbackEngine: playbackEngine,
+            notationNoteAuditioner: notationNoteAuditioner ?? NoopNotationNoteAuditioner()
         )
         let media = ImportedAudioFile(url: audioURL, displayName: "notation.wav", duration: duration)
         try viewModel.loadImportedAudio(media)

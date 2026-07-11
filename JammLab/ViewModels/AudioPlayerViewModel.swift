@@ -46,6 +46,7 @@ final class AudioPlayerViewModel: ObservableObject {
     @Published var notationMeasureClipboard: NotationMeasureClipboard?
     @Published var notationDurationDenominator = NotationDuration.defaultDenominator
     @Published var notationItems: [NotationMeasureItem] = []
+    @Published var isNotationNoteEntryModeEnabled = false
     @Published var pendingHarmonyEditorRequest: HarmonyEditorRequest?
     @Published var activeLoopRegionID: TimecodedNote.ID?
     @Published var loopRegion: LoopRegion = .empty
@@ -89,6 +90,7 @@ final class AudioPlayerViewModel: ObservableObject {
     let projectPersistenceCoordinator: ProjectPersistenceCoordinator
     let notationExportService: NotationExportService
     let notationExportDocumentService: NotationExportDocumentService
+    let notationNoteAuditioner: NotationNoteAuditioning
     let recentProjectsStore: RecentProjectsStore
     let isSandboxed: () -> Bool
     var clockTask: Task<Void, Never>?
@@ -176,6 +178,7 @@ final class AudioPlayerViewModel: ObservableObject {
         projectPersistenceCoordinator: ProjectPersistenceCoordinator? = nil,
         notationExportService: NotationExportService = NotationExportService(),
         notationExportDocumentService: NotationExportDocumentService = NotationExportDocumentService(),
+        notationNoteAuditioner: NotationNoteAuditioning? = nil,
         recentProjectsStore: RecentProjectsStore? = nil,
         isSandboxed: @escaping () -> Bool = AudioPlayerViewModel.defaultSandboxDetection
     ) {
@@ -198,6 +201,7 @@ final class AudioPlayerViewModel: ObservableObject {
         )
         self.notationExportService = notationExportService
         self.notationExportDocumentService = notationExportDocumentService
+        self.notationNoteAuditioner = notationNoteAuditioner ?? SamplerNotationNoteAuditioner()
         self.recentProjectsStore = recentProjectsStore ?? .shared
         self.isSandboxed = isSandboxed
         self.playbackEngine.setClickVolume(clickVolume)

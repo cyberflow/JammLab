@@ -51,6 +51,8 @@
 		9FEA01032D70000100112233 /* NotationViewportFactory.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9FEA00032D70000100112233 /* NotationViewportFactory.swift */; };
 		9FEA01042D70000100112233 /* NotationTrackView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9FEA00042D70000100112233 /* NotationTrackView.swift */; };
 		9FCB01062D80000100112233 /* NotationMeasureLayout.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9FCB00062D80000100112233 /* NotationMeasureLayout.swift */; };
+		9FAE01012F10000100112233 /* NotationNotePlacementResolver.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9FAE00012F10000100112233 /* NotationNotePlacementResolver.swift */; };
+		9FAE01022F10000100112233 /* NotationNoteAuditioner.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9FAE00022F10000100112233 /* NotationNoteAuditioner.swift */; };
 		9FEA01052D70000100112233 /* NotationVisibleMeasureFitter.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9FEA00052D70000100112233 /* NotationVisibleMeasureFitter.swift */; };
 		9FEA01062D70000100112233 /* ProjectKeySelection.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9FEA00062D70000100112233 /* ProjectKeySelection.swift */; };
 		9FEE01012D90000100112233 /* NotationExportService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9FEE00012D90000100112233 /* NotationExportService.swift */; };
@@ -315,6 +317,8 @@
 		9FEA00032D70000100112233 /* NotationViewportFactory.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotationViewportFactory.swift; sourceTree = "<group>"; };
 		9FEA00042D70000100112233 /* NotationTrackView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotationTrackView.swift; sourceTree = "<group>"; };
 		9FCB00062D80000100112233 /* NotationMeasureLayout.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotationMeasureLayout.swift; sourceTree = "<group>"; };
+		9FAE00012F10000100112233 /* NotationNotePlacementResolver.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotationNotePlacementResolver.swift; sourceTree = "<group>"; };
+		9FAE00022F10000100112233 /* NotationNoteAuditioner.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotationNoteAuditioner.swift; sourceTree = "<group>"; };
 		9FEA00052D70000100112233 /* NotationVisibleMeasureFitter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotationVisibleMeasureFitter.swift; sourceTree = "<group>"; };
 		9FEA00062D70000100112233 /* ProjectKeySelection.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProjectKeySelection.swift; sourceTree = "<group>"; };
 		9FEE00012D90000100112233 /* NotationExportService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotationExportService.swift; sourceTree = "<group>"; };
@@ -597,6 +601,8 @@
 				9F8A00182C00000100112233 /* MetronomeClickScheduler.swift */,
 				9FCB00062D80000100112233 /* NotationMeasureLayout.swift */,
 				9FEE00012D90000100112233 /* NotationExportService.swift */,
+				9FAE00022F10000100112233 /* NotationNoteAuditioner.swift */,
+				9FAE00012F10000100112233 /* NotationNotePlacementResolver.swift */,
 				9F2700012EA0000100112233 /* NotationSMuFL.swift */,
 				9FEA00032D70000100112233 /* NotationViewportFactory.swift */,
 				9FEA00052D70000100112233 /* NotationVisibleMeasureFitter.swift */,
@@ -1113,6 +1119,8 @@
 				9F8A010D2C00000100112233 /* AppHotkey.swift in Sources */,
 				9FCB01062D80000100112233 /* NotationMeasureLayout.swift in Sources */,
 				9FEE01012D90000100112233 /* NotationExportService.swift in Sources */,
+				9FAE01022F10000100112233 /* NotationNoteAuditioner.swift in Sources */,
+				9FAE01012F10000100112233 /* NotationNotePlacementResolver.swift in Sources */,
 				9FEA01032D70000100112233 /* NotationViewportFactory.swift in Sources */,
 				9FEA01052D70000100112233 /* NotationVisibleMeasureFitter.swift in Sources */,
 				9FEA01022D70000100112233 /* NotationViewportState.swift in Sources */,
