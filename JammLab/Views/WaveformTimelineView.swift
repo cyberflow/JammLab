@@ -34,7 +34,7 @@ struct TimelineViewState: Equatable {
     var notationViewport: NotationViewportState
     var notationDurationDenominator: Int
     var canChangeNotationDuration: Bool
-    var isNotationNoteEntryModeEnabled: Bool
+    var notationEntryMode: NotationEntryMode?
     var isNotationTrackCollapsed: Bool
     var isLoadingPeakform: Bool
     var mainTrackVolume: Float
@@ -74,7 +74,9 @@ struct TimelineViewActions {
     var notationTrackCollapsedChanged: (Bool) -> Void
     var notationDurationChanged: (Int) -> Void
     var notationNoteEntryModeToggled: () -> Void
+    var notationRestEntryModeToggled: () -> Void
     var insertNotationNote: (NotationNotePlacement) -> Bool
+    var insertNotationRest: (NotationRestPlacement) -> Bool
     var changeSelectedNotePitch: (NotationPitch, Bool) -> Bool
     var auditionNotePitch: (NotationPitch) -> Void
     var deleteSelectedNotationNote: () -> Bool
@@ -153,6 +155,14 @@ struct WaveformTimelineView: View {
         AppTheme.Timeline.notationTrackCurrentHeight(
             isCollapsed: state.isNotationTrackCollapsed
         )
+    }
+
+    private var isNotationNoteEntryModeEnabled: Bool {
+        state.notationEntryMode == .note
+    }
+
+    private var isNotationRestEntryModeEnabled: Bool {
+        state.notationEntryMode == .rest
     }
 
     private var upperTrackStack: some View {
@@ -276,13 +286,14 @@ struct WaveformTimelineView: View {
                 selectedMeasures: state.selectedNotationMeasures,
                 selectedItem: state.selectedNotationItem,
                 selectedDuration: NotationDuration(denominator: state.notationDurationDenominator),
-                isNoteEntryModeEnabled: state.isNotationNoteEntryModeEnabled,
+                entryMode: state.notationEntryMode,
                 pendingEditorRequest: state.pendingHarmonyEditorRequest,
                 actions: NotationTrackActions(
                     selectHarmony: actions.selectHarmony,
                     selectMeasure: actions.selectNotationMeasure,
                     selectItem: actions.selectNotationItem,
                     insertNotationNote: actions.insertNotationNote,
+                    insertNotationRest: actions.insertNotationRest,
                     changeSelectedNotePitch: actions.changeSelectedNotePitch,
                     auditionNotePitch: actions.auditionNotePitch,
                     deleteSelectedNotationNote: actions.deleteSelectedNotationNote,
@@ -322,18 +333,31 @@ struct WaveformTimelineView: View {
                     isEnabled: state.canChangeNotationDuration
                 )
 
-                AppLetterToggleButton(
-                    title: "N",
-                    isActive: state.isNotationNoteEntryModeEnabled,
-                    activeFillColor: appColors.accent,
-                    inactiveTextColor: appColors.secondaryText
-                ) {
-                    actions.notationNoteEntryModeToggled()
+                HStack(spacing: AppTheme.Spacing.xs) {
+                    NotationEntryModeButton(
+                        mode: .note,
+                        selectedDuration: NotationDuration(denominator: state.notationDurationDenominator),
+                        isActive: isNotationNoteEntryModeEnabled
+                    ) {
+                        actions.notationNoteEntryModeToggled()
+                    }
+                    .disabled(state.duration <= 0)
+                    .help("Add notes to Notation (N)")
+                    .accessibilityLabel("Notation Note Entry")
+                    .accessibilityValue(isNotationNoteEntryModeEnabled ? "Enabled" : "Disabled")
+
+                    NotationEntryModeButton(
+                        mode: .rest,
+                        selectedDuration: NotationDuration(denominator: state.notationDurationDenominator),
+                        isActive: isNotationRestEntryModeEnabled
+                    ) {
+                        actions.notationRestEntryModeToggled()
+                    }
+                    .disabled(state.duration <= 0)
+                    .help("Add rests to Notation")
+                    .accessibilityLabel("Notation Rest Entry")
+                    .accessibilityValue(isNotationRestEntryModeEnabled ? "Enabled" : "Disabled")
                 }
-                .disabled(state.duration <= 0)
-                .help("Add notes to Notation (N)")
-                .accessibilityLabel("Notation Note Entry")
-                .accessibilityValue(state.isNotationNoteEntryModeEnabled ? "Enabled" : "Disabled")
             }
         }
         .padding(.horizontal, AppTheme.Spacing.md)

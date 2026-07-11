@@ -22,6 +22,11 @@ enum PlaybackState: Equatable {
     }
 }
 
+enum NotationEntryMode: Equatable {
+    case note
+    case rest
+}
+
 @MainActor
 final class AudioPlayerViewModel: ObservableObject {
     @Published var importedFile: ImportedAudioFile?
@@ -46,7 +51,7 @@ final class AudioPlayerViewModel: ObservableObject {
     @Published var notationMeasureClipboard: NotationMeasureClipboard?
     @Published var notationDurationDenominator = NotationDuration.defaultDenominator
     @Published var notationItems: [NotationMeasureItem] = []
-    @Published var isNotationNoteEntryModeEnabled = false
+    @Published var notationEntryMode: NotationEntryMode?
     @Published var pendingHarmonyEditorRequest: HarmonyEditorRequest?
     @Published var activeLoopRegionID: TimecodedNote.ID?
     @Published var loopRegion: LoopRegion = .empty

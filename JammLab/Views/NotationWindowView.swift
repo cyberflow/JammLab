@@ -55,17 +55,9 @@ struct NotationWindowView: View {
 
     private var header: some View {
         HStack(spacing: AppTheme.Spacing.md) {
-            NotationDurationControl(
-                denominator: Binding(
-                    get: { viewModel.notationDurationDenominator },
-                    set: { viewModel.setNotationDurationDenominator($0) }
-                ),
-                isEnabled: viewModel.canChangeNotationDuration
-            )
-
-            AppControlButton(
-                title: "Note Entry",
-                systemImage: "music.note",
+            NotationEntryModeButton(
+                mode: .note,
+                selectedDuration: NotationDuration(denominator: viewModel.notationDurationDenominator),
                 isActive: viewModel.isNotationNoteEntryModeEnabled
             ) {
                 viewModel.toggleNotationNoteEntryMode()
@@ -74,6 +66,26 @@ struct NotationWindowView: View {
             .help("Add notes to Notation (N)")
             .accessibilityLabel("Notation Note Entry")
             .accessibilityValue(viewModel.isNotationNoteEntryModeEnabled ? "Enabled" : "Disabled")
+
+            NotationDurationControl(
+                denominator: Binding(
+                    get: { viewModel.notationDurationDenominator },
+                    set: { viewModel.setNotationDurationDenominator($0) }
+                ),
+                isEnabled: viewModel.canChangeNotationDuration
+            )
+
+            NotationEntryModeButton(
+                mode: .rest,
+                selectedDuration: NotationDuration(denominator: viewModel.notationDurationDenominator),
+                isActive: viewModel.isNotationRestEntryModeEnabled
+            ) {
+                viewModel.toggleNotationRestEntryMode()
+            }
+            .disabled(viewModel.duration <= 0)
+            .help("Add rests to Notation")
+            .accessibilityLabel("Notation Rest Entry")
+            .accessibilityValue(viewModel.isNotationRestEntryModeEnabled ? "Enabled" : "Disabled")
 
             Spacer(minLength: AppTheme.Spacing.md)
 
@@ -110,7 +122,7 @@ struct NotationWindowView: View {
                                 selectedMeasures: viewModel.selectedNotationMeasures,
                                 selectedItem: viewModel.selectedNotationItem,
                                 selectedDuration: NotationDuration(denominator: viewModel.notationDurationDenominator),
-                                isNoteEntryModeEnabled: viewModel.isNotationNoteEntryModeEnabled,
+                                entryMode: viewModel.notationEntryMode,
                                 pendingEditorRequest: viewModel.pendingHarmonyEditorRequest,
                                 actions: notationActions,
                                 cornerRadius: AppTheme.Spacing.none
@@ -177,6 +189,7 @@ struct NotationWindowView: View {
             selectMeasure: { viewModel.selectNotationMeasure($0, extendingSelection: $1) },
             selectItem: { viewModel.selectNotationItem($0, shouldAudition: $1) },
             insertNotationNote: { viewModel.insertNotationNote($0) },
+            insertNotationRest: { viewModel.insertNotationRest($0) },
             changeSelectedNotePitch: { viewModel.changeSelectedNotationNotePitch(to: $0, shouldAudition: $1) },
             auditionNotePitch: { viewModel.auditionNotationNotePitch($0) },
             deleteSelectedNotationNote: { viewModel.deleteSelectedNotationNote() },
@@ -195,7 +208,7 @@ struct NotationWindowView: View {
         if viewModel.canPasteNotationMeasureClipboard {
             hotkeys.insert(.pasteMeasure)
         }
-        if viewModel.hasSelectedNotationMeasures || viewModel.isNotationNoteEntryModeEnabled {
+        if viewModel.hasSelectedNotationMeasures || viewModel.isNotationEntryModeEnabled {
             hotkeys.insert(.clearNotationMeasureSelection)
         }
         if viewModel.canEditSelectedNotationItem {
@@ -227,8 +240,8 @@ struct NotationWindowView: View {
         case .pasteMeasure:
             return viewModel.pasteNotationMeasureClipboard()
         case .clearNotationMeasureSelection:
-            if viewModel.isNotationNoteEntryModeEnabled {
-                viewModel.clearNotationNoteEntryMode()
+            if viewModel.isNotationEntryModeEnabled {
+                viewModel.clearNotationEntryMode()
             } else {
                 viewModel.clearNotationMeasureSelection()
             }

@@ -131,6 +131,54 @@ final class ViewModelNotationSelectionTests: XCTestCase {
     }
 
     @MainActor
+    func testNotationEntryModesAreMutuallyExclusiveAndClearEditingState() throws {
+        let viewModel = try loadedNotationViewModel(duration: 8)
+        let measure = try notationMeasure(1, in: viewModel)
+        let item = try XCTUnwrap(measure.notationItems.first)
+        let harmony = HarmonySymbol(
+            time: measure.startTime,
+            measureNumber: measure.number,
+            offsetInQuarterNotes: 0,
+            rawText: "C"
+        )
+        viewModel.harmonySymbols = [harmony]
+        viewModel.selectedNotationMeasures = [NotationMeasureSelection(measure: measure)]
+        viewModel.notationMeasureSelectionAnchor = NotationMeasureSelection(measure: measure)
+        viewModel.selectedNotationItem = NotationItemSelection(measure: measure, item: item)
+        viewModel.selectedHarmonySymbolID = harmony.id
+        viewModel.pendingHarmonyEditorRequest = HarmonyEditorRequest(time: measure.startTime)
+
+        viewModel.setNotationNoteEntryModeEnabled(true)
+
+        XCTAssertEqual(viewModel.notationEntryMode, .note)
+        XCTAssertTrue(viewModel.isNotationNoteEntryModeEnabled)
+        XCTAssertFalse(viewModel.isNotationRestEntryModeEnabled)
+        XCTAssertTrue(viewModel.selectedNotationMeasures.isEmpty)
+        XCTAssertNil(viewModel.notationMeasureSelectionAnchor)
+        XCTAssertNil(viewModel.selectedNotationItem)
+        XCTAssertNil(viewModel.selectedHarmonySymbolID)
+        XCTAssertNil(viewModel.pendingHarmonyEditorRequest)
+
+        viewModel.setNotationRestEntryModeEnabled(true)
+
+        XCTAssertEqual(viewModel.notationEntryMode, .rest)
+        XCTAssertFalse(viewModel.isNotationNoteEntryModeEnabled)
+        XCTAssertTrue(viewModel.isNotationRestEntryModeEnabled)
+
+        viewModel.toggleNotationRestEntryMode()
+
+        XCTAssertNil(viewModel.notationEntryMode)
+        XCTAssertFalse(viewModel.isNotationEntryModeEnabled)
+
+        viewModel.setNotationNoteEntryModeEnabled(true)
+        viewModel.clearNotationEntryMode()
+
+        XCTAssertNil(viewModel.notationEntryMode)
+        XCTAssertFalse(viewModel.isNotationNoteEntryModeEnabled)
+        XCTAssertFalse(viewModel.isNotationRestEntryModeEnabled)
+    }
+
+    @MainActor
     func testRequestEditSelectedNotationItemUsesExactItemOffsetAndExistingHarmony() throws {
         let viewModel = try loadedNotationViewModel(duration: 8)
         let measure = try notationMeasure(1, in: viewModel)

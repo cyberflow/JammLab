@@ -181,7 +181,7 @@ struct ContentView: View {
         if !viewModel.canPasteNotationMeasureClipboard {
             hotkeys.remove(.pasteMeasure)
         }
-        if !viewModel.hasSelectedNotationMeasures && !viewModel.isNotationNoteEntryModeEnabled {
+        if !viewModel.hasSelectedNotationMeasures && !viewModel.isNotationEntryModeEnabled {
             hotkeys.remove(.clearNotationMeasureSelection)
         }
         if !viewModel.canEditSelectedNotationItem {
@@ -243,8 +243,8 @@ struct ContentView: View {
         case .pasteMeasure:
             return viewModel.pasteNotationMeasureClipboard()
         case .clearNotationMeasureSelection:
-            if viewModel.isNotationNoteEntryModeEnabled {
-                viewModel.clearNotationNoteEntryMode()
+            if viewModel.isNotationEntryModeEnabled {
+                viewModel.clearNotationEntryMode()
             } else {
                 viewModel.clearNotationMeasureSelection()
             }

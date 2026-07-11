@@ -8,6 +8,7 @@ struct NotationTrackActions {
     var selectMeasure: (ScoreMeasure?, Bool) -> Void
     var selectItem: (NotationItemSelection?, Bool) -> Void
     var insertNotationNote: (NotationNotePlacement) -> Bool
+    var insertNotationRest: (NotationRestPlacement) -> Bool
     var changeSelectedNotePitch: (NotationPitch, Bool) -> Bool
     var auditionNotePitch: (NotationPitch) -> Void
     var deleteSelectedNotationNote: () -> Bool
@@ -24,7 +25,7 @@ struct NotationTrackView: View {
     let selectedMeasures: [NotationMeasureSelection]
     let selectedItem: NotationItemSelection?
     let selectedDuration: NotationDuration
-    let isNoteEntryModeEnabled: Bool
+    let entryMode: NotationEntryMode?
     let pendingEditorRequest: HarmonyEditorRequest?
     let actions: NotationTrackActions
     let cornerRadius: CGFloat
@@ -33,6 +34,7 @@ struct NotationTrackView: View {
     @FocusState private var isTrackFocused: Bool
     @State private var editingDraft: HarmonyEditorDraft?
     @State private var hoveredNotePlacement: NotationNotePlacement?
+    @State private var hoveredRestPlacement: NotationRestPlacement?
     @State private var draggedNotePitchPreview: NotationDraggedNotePitchPreview?
 
     init(
@@ -42,7 +44,7 @@ struct NotationTrackView: View {
         selectedMeasures: [NotationMeasureSelection] = [],
         selectedItem: NotationItemSelection? = nil,
         selectedDuration: NotationDuration = NotationDuration(),
-        isNoteEntryModeEnabled: Bool = false,
+        entryMode: NotationEntryMode? = nil,
         pendingEditorRequest: HarmonyEditorRequest? = nil,
         actions: NotationTrackActions = .noop,
         cornerRadius: CGFloat = AppTheme.Radius.small
@@ -53,7 +55,7 @@ struct NotationTrackView: View {
         self.selectedMeasures = selectedMeasures
         self.selectedItem = selectedItem
         self.selectedDuration = selectedDuration
-        self.isNoteEntryModeEnabled = isNoteEntryModeEnabled
+        self.entryMode = entryMode
         self.pendingEditorRequest = pendingEditorRequest
         self.actions = actions
         self.cornerRadius = cornerRadius
@@ -119,7 +121,7 @@ struct NotationTrackView: View {
                     height: proxy.size.height,
                     attributeDisplays: attributeDisplays
                 )
-                noteEntryLayer(
+                notationEntryLayer(
                     width: contentWidth,
                     height: proxy.size.height,
                     attributeDisplays: attributeDisplays
@@ -142,9 +144,14 @@ struct NotationTrackView: View {
             .onChange(of: pendingEditorRequest?.id) { _, _ in
                 handlePendingEditorRequest()
             }
-            .onChange(of: isNoteEntryModeEnabled) { _, isEnabled in
+            .onChange(of: entryMode) { _, mode in
                 draggedNotePitchPreview = nil
-                if !isEnabled {
+                if mode == nil {
+                    hoveredNotePlacement = nil
+                    hoveredRestPlacement = nil
+                } else if mode == .note {
+                    hoveredRestPlacement = nil
+                } else {
                     hoveredNotePlacement = nil
                 }
             }
@@ -162,6 +169,10 @@ struct NotationTrackView: View {
 
     private var renderedMeasureCount: Int {
         max(1, state.visibleMeasures.isEmpty ? state.visibleMeasureCount : state.visibleMeasures.count)
+    }
+
+    private var isEntryModeEnabled: Bool {
+        entryMode != nil
     }
 
     private var visibleAttributeDisplays: [NotationAttributeDisplay] {
@@ -308,13 +319,11 @@ struct NotationTrackView: View {
                 else {
                     continue
                 }
-                drawNoteGlyph(
+                drawNoteGlyphWithLedgerLines(
                     duration: item.notationItem.displayDuration,
                     x: item.x,
-                    y: NotationNotePlacementResolver.yPosition(
-                        forStaffPosition: staffPosition,
-                        staffTop: staffTop
-                    ),
+                    staffPosition: staffPosition,
+                    staffTop: staffTop,
                     color: color,
                     opacity: 1,
                     in: &context
@@ -323,13 +332,81 @@ struct NotationTrackView: View {
         }
 
         if let hoveredNotePlacement {
-            drawNoteGlyph(
-                duration: hoveredNotePlacement.displayDuration,
-                x: hoveredNotePlacement.x,
-                y: hoveredNotePlacement.y,
-                color: appColors.accent,
-                opacity: 0.56,
+            if let staffPosition = NotationPitchMapper.staffPosition(for: hoveredNotePlacement.pitch) {
+                drawNoteGlyphWithLedgerLines(
+                    duration: hoveredNotePlacement.displayDuration,
+                    x: hoveredNotePlacement.x,
+                    staffPosition: staffPosition,
+                    staffTop: staffTop,
+                    color: appColors.accent,
+                    opacity: 0.56,
+                    in: &context
+                )
+            }
+        } else if let hoveredRestPlacement,
+                  let symbol = NotationSMuFLSymbol(duration: hoveredRestPlacement.displayDuration) {
+            drawRestGlyph(
+                symbol: symbol,
+                x: hoveredRestPlacement.x,
+                staffTop: staffTop,
+                color: appColors.accent.opacity(0.56),
                 in: &context
+            )
+        }
+    }
+
+    private func drawNoteGlyphWithLedgerLines(
+        duration: NotationDuration,
+        x: CGFloat,
+        staffPosition: Int,
+        staffTop: CGFloat,
+        color: Color,
+        opacity: Double,
+        in context: inout GraphicsContext
+    ) {
+        drawLedgerLines(
+            staffPosition: staffPosition,
+            x: x,
+            staffTop: staffTop,
+            color: color,
+            opacity: opacity,
+            in: &context
+        )
+        drawNoteGlyph(
+            duration: duration,
+            x: x,
+            y: NotationNotePlacementResolver.yPosition(
+                forStaffPosition: staffPosition,
+                staffTop: staffTop
+            ),
+            color: color,
+            opacity: opacity,
+            in: &context
+        )
+    }
+
+    private func drawLedgerLines(
+        staffPosition: Int,
+        x: CGFloat,
+        staffTop: CGFloat,
+        color: Color,
+        opacity: Double,
+        in context: inout GraphicsContext
+    ) {
+        let spacing = AppTheme.Timeline.notationStaffLineSpacing
+        let halfWidth = spacing * 1.28
+        for ledgerPosition in NotationNotePlacementResolver.ledgerLineStaffPositions(forStaffPosition: staffPosition) {
+            let y = NotationNotePlacementResolver.yPosition(
+                forStaffPosition: ledgerPosition,
+                staffTop: staffTop
+            )
+            var path = Path()
+            path.move(to: CGPoint(x: x - halfWidth, y: y))
+            path.addLine(to: CGPoint(x: x + halfWidth, y: y))
+            context.stroke(
+                path,
+                with: .color(color.opacity(opacity)),
+                lineWidth: AppTheme.Stroke.thin
             )
         }
     }
@@ -553,7 +630,6 @@ struct NotationTrackView: View {
             attributeDisplays: attributeDisplays
         )
         let staffTop = staffTop(in: height)
-        let hitY = max(0, staffTop - AppTheme.Spacing.sm)
         let hitHeight = AppTheme.Timeline.notationStaffLineSpacing * 4 + AppTheme.Spacing.md
         let hitWidth = max(
             AppTheme.ControlSize.abletonNumberFieldHeight,
@@ -562,13 +638,14 @@ struct NotationTrackView: View {
 
         return ZStack(alignment: .topLeading) {
             ForEach(notationItemLayoutItems(geometries: geometries), id: \.id) { item in
+                let hitCenterY = notationItemHitCenterY(item, staffTop: staffTop)
                 Rectangle()
                     .fill(Color.clear)
                     .contentShape(Rectangle())
                     .frame(width: hitWidth, height: hitHeight)
                     .offset(
                         x: item.x - hitWidth / 2,
-                        y: hitY
+                        y: max(0, hitCenterY - hitHeight / 2)
                     )
                     .onTapGesture {
                         isTrackFocused = true
@@ -590,13 +667,32 @@ struct NotationTrackView: View {
         }
     }
 
+    private func notationItemHitCenterY(
+        _ item: NotationItemLayoutItem,
+        staffTop: CGFloat
+    ) -> CGFloat {
+        if item.notationItem.kind == .note,
+           let pitch = item.notationItem.pitch,
+           let staffPosition = NotationPitchMapper.staffPosition(for: pitch) {
+            return NotationNotePlacementResolver.yPosition(
+                forStaffPosition: staffPosition,
+                staffTop: staffTop
+            )
+        }
+
+        return restGlyphY(
+            symbol: NotationSMuFLSymbol(duration: item.notationItem.displayDuration) ?? .restQuarter,
+            staffTop: staffTop
+        )
+    }
+
     @ViewBuilder
-    private func noteEntryLayer(
+    private func notationEntryLayer(
         width: CGFloat,
         height: CGFloat,
         attributeDisplays: [NotationAttributeDisplay]
     ) -> some View {
-        if isNoteEntryModeEnabled {
+        if let entryMode {
             Rectangle()
                 .fill(Color.clear)
                 .contentShape(Rectangle())
@@ -604,14 +700,16 @@ struct NotationTrackView: View {
                 .onContinuousHover { phase in
                     switch phase {
                     case .active(let point):
-                        hoveredNotePlacement = notePlacement(
-                            at: point,
+                        updateHoveredEntryPlacement(
+                            mode: entryMode,
+                            point: point,
                             width: width,
                             height: height,
                             attributeDisplays: attributeDisplays
                         )
                     case .ended:
                         hoveredNotePlacement = nil
+                        hoveredRestPlacement = nil
                     }
                 }
                 .gesture(
@@ -619,20 +717,62 @@ struct NotationTrackView: View {
                         .onEnded { value in
                             isTrackFocused = true
                             editingDraft = nil
-                            guard let placement = notePlacement(
-                                at: value.location,
-                                width: width,
-                                height: height,
-                                attributeDisplays: attributeDisplays
-                            ) else { return }
-                            if actions.insertNotationNote(placement) {
-                                hoveredNotePlacement = placement
+                            switch entryMode {
+                            case .note:
+                                guard let placement = notePlacement(
+                                    at: value.location,
+                                    width: width,
+                                    height: height,
+                                    attributeDisplays: attributeDisplays
+                                ) else { return }
+                                if actions.insertNotationNote(placement) {
+                                    hoveredNotePlacement = placement
+                                    hoveredRestPlacement = nil
+                                }
+                            case .rest:
+                                guard let placement = restPlacement(
+                                    at: value.location,
+                                    width: width,
+                                    height: height,
+                                    attributeDisplays: attributeDisplays
+                                ) else { return }
+                                if actions.insertNotationRest(placement) {
+                                    hoveredNotePlacement = nil
+                                    hoveredRestPlacement = placement
+                                }
                             }
                         }
                 )
                 .cursor(.crosshair)
-                .help("Add notation note")
-                .accessibilityLabel("Notation note entry area")
+                .help(entryMode == .note ? "Add notation note" : "Add notation rest")
+                .accessibilityLabel(entryMode == .note ? "Notation note entry area" : "Notation rest entry area")
+        }
+    }
+
+    private func updateHoveredEntryPlacement(
+        mode: NotationEntryMode,
+        point: CGPoint,
+        width: CGFloat,
+        height: CGFloat,
+        attributeDisplays: [NotationAttributeDisplay]
+    ) {
+        switch mode {
+        case .note:
+            hoveredNotePlacement = notePlacement(
+                at: point,
+                width: width,
+                height: height,
+                attributeDisplays: attributeDisplays
+            )
+            hoveredRestPlacement = nil
+        case .rest:
+            hoveredNotePlacement = nil
+            hoveredRestPlacement = restPlacement(
+                at: point,
+                width: width,
+                height: height,
+                attributeDisplays: attributeDisplays
+            )
         }
     }
 
@@ -642,7 +782,7 @@ struct NotationTrackView: View {
     ) -> some Gesture {
         DragGesture(minimumDistance: 3, coordinateSpace: .named(notationTrackCoordinateSpaceName))
             .onChanged { value in
-                guard !isNoteEntryModeEnabled,
+                guard !isEntryModeEnabled,
                       item.notationItem.kind == .note,
                       let pitch = notePitch(
                           forDragY: value.location.y,
@@ -1339,6 +1479,47 @@ struct NotationTrackView: View {
         height: CGFloat,
         attributeDisplays: [NotationAttributeDisplay]
     ) -> NotationNotePlacement? {
+        guard let target = notationEntryTarget(
+            at: point,
+            width: width,
+            attributeDisplays: attributeDisplays
+        ) else { return nil }
+
+        return NotationNotePlacementResolver.placement(
+            in: target.measure,
+            geometry: target.geometry,
+            point: point,
+            staffTop: staffTop(in: height),
+            selectedDuration: selectedDuration
+        )
+    }
+
+    private func restPlacement(
+        at point: CGPoint,
+        width: CGFloat,
+        height: CGFloat,
+        attributeDisplays: [NotationAttributeDisplay]
+    ) -> NotationRestPlacement? {
+        guard let target = notationEntryTarget(
+            at: point,
+            width: width,
+            attributeDisplays: attributeDisplays
+        ) else { return nil }
+
+        return NotationNotePlacementResolver.restPlacement(
+            in: target.measure,
+            geometry: target.geometry,
+            point: point,
+            staffTop: staffTop(in: height),
+            selectedDuration: selectedDuration
+        )
+    }
+
+    private func notationEntryTarget(
+        at point: CGPoint,
+        width: CGFloat,
+        attributeDisplays: [NotationAttributeDisplay]
+    ) -> (measure: ScoreMeasure, geometry: NotationMeasureCanvasGeometry)? {
         guard renderedMeasureCount > 0, !state.visibleMeasures.isEmpty else { return nil }
         let geometries = measureCanvasGeometries(
             measureCount: renderedMeasureCount,
@@ -1355,13 +1536,7 @@ struct NotationTrackView: View {
         let measureIndex = min(max(0, geometryIndex), state.visibleMeasures.count - 1)
         guard geometries.indices.contains(measureIndex) else { return nil }
 
-        return NotationNotePlacementResolver.placement(
-            in: state.visibleMeasures[measureIndex],
-            geometry: geometries[measureIndex],
-            point: point,
-            staffTop: staffTop(in: height),
-            selectedDuration: selectedDuration
-        )
+        return (measure: state.visibleMeasures[measureIndex], geometry: geometries[measureIndex])
     }
 
     private var accessibilityValue: String {
@@ -1493,6 +1668,7 @@ private extension NotationTrackActions {
         selectMeasure: { _, _ in },
         selectItem: { _, _ in },
         insertNotationNote: { _ in false },
+        insertNotationRest: { _ in false },
         changeSelectedNotePitch: { _, _ in false },
         auditionNotePitch: { _ in },
         deleteSelectedNotationNote: { false },

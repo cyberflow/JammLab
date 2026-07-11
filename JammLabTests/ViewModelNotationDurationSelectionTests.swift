@@ -1,3 +1,4 @@
+import CoreGraphics
 import XCTest
 @testable import JammLab
 
@@ -150,6 +151,224 @@ final class ViewModelNotationDurationSelectionTests: XCTestCase {
             "second-eighth-rest",
             "half-rest"
         ])
+    }
+
+    @MainActor
+    func testAddingNotationRestCanConsumeFollowingRestsFromShortTargetRest() throws {
+        let viewModel = try loadedNotationViewModel(duration: 8)
+        let undoManager = UndoManager()
+        viewModel.undoManager = undoManager
+        viewModel.notationItems = [
+            NotationMeasureItem(
+                id: "first-note",
+                kind: .note,
+                pitch: NotationPitch(step: .c, octave: 5),
+                measureNumber: 1,
+                measureStartTime: 0,
+                offsetInQuarterNotes: 0,
+                durationInQuarterNotes: 1,
+                displayDuration: NotationDuration(denominator: 4)
+            ),
+            NotationMeasureItem(
+                id: "first-eighth-rest",
+                measureNumber: 1,
+                measureStartTime: 0,
+                offsetInQuarterNotes: 1,
+                durationInQuarterNotes: 0.5,
+                displayDuration: NotationDuration(denominator: 8)
+            ),
+            NotationMeasureItem(
+                id: "second-eighth-rest",
+                measureNumber: 1,
+                measureStartTime: 0,
+                offsetInQuarterNotes: 1.5,
+                durationInQuarterNotes: 0.5,
+                displayDuration: NotationDuration(denominator: 8)
+            ),
+            NotationMeasureItem(
+                id: "half-rest",
+                measureNumber: 1,
+                measureStartTime: 0,
+                offsetInQuarterNotes: 2,
+                durationInQuarterNotes: 2,
+                displayDuration: NotationDuration(denominator: 2)
+            )
+        ]
+        viewModel.markProjectClean()
+
+        let measure = try notationMeasure(1, in: viewModel)
+        let targetRest = try XCTUnwrap(measure.notationItems.first { $0.id == "second-eighth-rest" })
+        let placement = NotationRestPlacement(
+            measure: measure,
+            targetRestID: targetRest.id,
+            offsetInQuarterNotes: targetRest.offsetInQuarterNotes,
+            durationInQuarterNotes: 1,
+            displayDuration: NotationDuration(denominator: 4),
+            x: 0
+        )
+
+        XCTAssertTrue(viewModel.insertNotationRest(placement))
+
+        let updatedMeasure = try notationMeasure(1, in: viewModel)
+        XCTAssertEqual(updatedMeasure.notationItems.map(\.kind), [.note, .rest, .rest, .rest, .rest])
+        XCTAssertEqual(updatedMeasure.notationItems.map(\.offsetInQuarterNotes), [0, 1, 1.5, 2.5, 3])
+        XCTAssertEqual(updatedMeasure.notationItems.map(\.durationInQuarterNotes), [1, 0.5, 1, 0.5, 1])
+        XCTAssertEqual(updatedMeasure.notationItems.map(\.displayDuration.denominator), [4, 8, 4, 8, 4])
+        XCTAssertEqual(viewModel.selectedNotationItem?.offsetInQuarterNotes, 1.5)
+        XCTAssertTrue(viewModel.isProjectModified)
+
+        viewModel.undoLastEdit()
+
+        let undoneMeasure = try notationMeasure(1, in: viewModel)
+        XCTAssertEqual(undoneMeasure.notationItems.map(\.id), [
+            "first-note",
+            "first-eighth-rest",
+            "second-eighth-rest",
+            "half-rest"
+        ])
+    }
+
+    @MainActor
+    func testRejectedNotationRestDoesNotConsumeAcrossExistingNoteOrMutateSelection() throws {
+        let viewModel = try loadedNotationViewModel(duration: 8)
+        viewModel.notationItems = [
+            NotationMeasureItem(
+                id: "short-rest",
+                measureNumber: 1,
+                measureStartTime: 0,
+                offsetInQuarterNotes: 1,
+                durationInQuarterNotes: 0.5,
+                displayDuration: NotationDuration(denominator: 8)
+            ),
+            NotationMeasureItem(
+                id: "blocking-note",
+                kind: .note,
+                pitch: NotationPitch(step: .c, octave: 5),
+                measureNumber: 1,
+                measureStartTime: 0,
+                offsetInQuarterNotes: 1.5,
+                durationInQuarterNotes: 1,
+                displayDuration: NotationDuration(denominator: 4)
+            )
+        ]
+        let measure = try notationMeasure(1, in: viewModel)
+        let rest = try XCTUnwrap(measure.notationItems.first { $0.id == "short-rest" })
+        viewModel.selectNotationItem(NotationItemSelection(measure: measure, item: rest))
+        viewModel.markProjectClean()
+        let originalItems = viewModel.notationItems
+        let originalSelection = viewModel.selectedNotationItem
+        let placement = NotationRestPlacement(
+            measure: measure,
+            targetRestID: rest.id,
+            offsetInQuarterNotes: rest.offsetInQuarterNotes,
+            durationInQuarterNotes: 1,
+            displayDuration: NotationDuration(denominator: 4),
+            x: 0
+        )
+
+        XCTAssertFalse(viewModel.insertNotationRest(placement))
+
+        XCTAssertEqual(viewModel.notationItems, originalItems)
+        XCTAssertEqual(viewModel.selectedNotationItem, originalSelection)
+        XCTAssertFalse(viewModel.isProjectModified)
+    }
+
+    @MainActor
+    func testAddingExactPersistedNotationRestSelectsWithoutDirtyingProject() throws {
+        let viewModel = try loadedNotationViewModel(duration: 8)
+        viewModel.notationItems = [
+            NotationMeasureItem(
+                id: "explicit-whole-rest",
+                measureNumber: 1,
+                measureStartTime: 0,
+                offsetInQuarterNotes: 0,
+                durationInQuarterNotes: 4,
+                displayDuration: NotationDuration(denominator: 1)
+            )
+        ]
+        viewModel.markProjectClean()
+        let measure = try notationMeasure(1, in: viewModel)
+        let rest = try XCTUnwrap(measure.notationItems.first)
+        let placement = NotationRestPlacement(
+            measure: measure,
+            targetRestID: rest.id,
+            offsetInQuarterNotes: 0,
+            durationInQuarterNotes: 4,
+            displayDuration: NotationDuration(denominator: 1),
+            x: 0
+        )
+
+        XCTAssertTrue(viewModel.insertNotationRest(placement))
+
+        let updatedMeasure = try notationMeasure(1, in: viewModel)
+        XCTAssertEqual(updatedMeasure.notationItems.map(\.id), ["explicit-whole-rest"])
+        XCTAssertEqual(viewModel.selectedNotationItem?.itemID, "explicit-whole-rest")
+        XCTAssertFalse(viewModel.isProjectModified)
+    }
+
+    @MainActor
+    func testAddingNotationNotesAtLedgerExtremesUsesResolverPlacementAndRespectsPitchBounds() throws {
+        let viewModel = try loadedNotationViewModel(duration: 8)
+        let geometry = NotationMeasureCanvasGeometry(
+            measureIndex: 0,
+            cellStartX: 0,
+            cellEndX: 200,
+            contentStartX: 20,
+            contentEndX: 180,
+            staffStartX: 0,
+            staffEndX: 200
+        )
+        let staffTop: CGFloat = 40
+        let selectedDuration = NotationDuration(denominator: 4)
+        let highY = NotationNotePlacementResolver.yPosition(
+            forStaffPosition: NotationPitchMapper.minimumStaffPosition,
+            staffTop: staffTop
+        )
+        let lowY = NotationNotePlacementResolver.yPosition(
+            forStaffPosition: NotationPitchMapper.maximumStaffPosition,
+            staffTop: staffTop
+        )
+
+        let initialMeasure = try notationMeasure(1, in: viewModel)
+        let highPlacement = try XCTUnwrap(NotationNotePlacementResolver.placement(
+            in: initialMeasure,
+            geometry: geometry,
+            point: CGPoint(x: 160, y: highY),
+            staffTop: staffTop,
+            selectedDuration: selectedDuration
+        ))
+        XCTAssertEqual(highPlacement.pitch, NotationPitch(step: .d, octave: 6))
+        XCTAssertTrue(viewModel.insertNotationNote(highPlacement))
+
+        let measureAfterHighNote = try notationMeasure(1, in: viewModel)
+        let highNote = try XCTUnwrap(measureAfterHighNote.notationItems.first {
+            $0.pitch == NotationPitch(step: .d, octave: 6)
+        })
+        viewModel.selectNotationItem(NotationItemSelection(measure: measureAfterHighNote, item: highNote))
+        XCTAssertFalse(viewModel.canChangeSelectedNotationNotePitch(byStaffPositionDelta: -1))
+        XCTAssertTrue(viewModel.canChangeSelectedNotationNotePitch(byStaffPositionDelta: 1))
+
+        let lowPlacement = try XCTUnwrap(NotationNotePlacementResolver.placement(
+            in: measureAfterHighNote,
+            geometry: geometry,
+            point: CGPoint(x: 70, y: lowY),
+            staffTop: staffTop,
+            selectedDuration: selectedDuration
+        ))
+        XCTAssertEqual(lowPlacement.pitch, NotationPitch(step: .g, octave: 3))
+        XCTAssertTrue(viewModel.insertNotationNote(lowPlacement))
+
+        let updatedMeasure = try notationMeasure(1, in: viewModel)
+        let lowNote = try XCTUnwrap(updatedMeasure.notationItems.first {
+            $0.pitch == NotationPitch(step: .g, octave: 3)
+        })
+        XCTAssertEqual(viewModel.selectedNotationItem?.itemID, lowNote.id)
+        XCTAssertEqual(updatedMeasure.notationItems.filter { $0.kind == .note }.compactMap(\.pitch), [
+            NotationPitch(step: .d, octave: 6),
+            NotationPitch(step: .g, octave: 3)
+        ])
+        XCTAssertFalse(viewModel.canChangeSelectedNotationNotePitch(byStaffPositionDelta: 1))
+        XCTAssertTrue(viewModel.canChangeSelectedNotationNotePitch(byStaffPositionDelta: -1))
     }
 
     @MainActor
@@ -463,7 +682,7 @@ final class ViewModelNotationDurationSelectionTests: XCTestCase {
     func testChangingSelectedNotationNotePitchByStaffStepNoOpsForRestBoundsAndUnmappedPitch() throws {
         let viewModel = try loadedNotationViewModel(duration: 8)
         let note = try insertQuarterNote(
-            pitch: NotationPitch(step: .f, octave: 5),
+            pitch: NotationPitch(step: .d, octave: 6),
             inMeasure: 1,
             viewModel: viewModel
         )
@@ -561,6 +780,23 @@ final class ViewModelNotationDurationSelectionTests: XCTestCase {
 
         viewModel.selectNotationItem(NotationItemSelection(measure: measure, item: item))
         viewModel.setNotationNoteEntryModeEnabled(true)
+        viewModel.setNotationDurationDenominator(4)
+
+        let updatedMeasure = try notationMeasure(1, in: viewModel)
+        XCTAssertEqual(viewModel.notationDurationDenominator, 4)
+        XCTAssertNil(viewModel.selectedNotationItem)
+        XCTAssertEqual(updatedMeasure.notationItems.count, 1)
+        XCTAssertEqual(updatedMeasure.notationItems.first?.displayDuration.denominator, 1)
+    }
+
+    @MainActor
+    func testRestEntryDurationChangeDoesNotEditSelectedItem() throws {
+        let viewModel = try loadedNotationViewModel(duration: 8)
+        let measure = try notationMeasure(1, in: viewModel)
+        let item = try XCTUnwrap(measure.notationItems.first)
+
+        viewModel.selectNotationItem(NotationItemSelection(measure: measure, item: item))
+        viewModel.setNotationRestEntryModeEnabled(true)
         viewModel.setNotationDurationDenominator(4)
 
         let updatedMeasure = try notationMeasure(1, in: viewModel)

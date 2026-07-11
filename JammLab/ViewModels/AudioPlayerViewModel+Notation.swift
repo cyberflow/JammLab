@@ -6,7 +6,7 @@ extension AudioPlayerViewModel {
     }
 
     var canChangeNotationDuration: Bool {
-        duration > 0 && (isNotationNoteEntryModeEnabled || canEditSelectedNotationItem)
+        duration > 0 && (isNotationEntryModeEnabled || canEditSelectedNotationItem)
     }
 
     var canChangeSelectedNotationNotePitch: Bool {
@@ -16,8 +16,20 @@ extension AudioPlayerViewModel {
 
     func setNotationDurationDenominator(_ denominator: Int) {
         notationDurationDenominator = NotationDuration.normalizedDenominator(denominator)
-        guard !isNotationNoteEntryModeEnabled else { return }
+        guard !isNotationEntryModeEnabled else { return }
         changeSelectedNotationItemDuration(to: NotationDuration(denominator: notationDurationDenominator))
+    }
+
+    var isNotationEntryModeEnabled: Bool {
+        notationEntryMode != nil
+    }
+
+    var isNotationNoteEntryModeEnabled: Bool {
+        notationEntryMode == .note
+    }
+
+    var isNotationRestEntryModeEnabled: Bool {
+        notationEntryMode == .rest
     }
 
     func toggleNotationNoteEntryMode() {
@@ -25,11 +37,27 @@ extension AudioPlayerViewModel {
     }
 
     func setNotationNoteEntryModeEnabled(_ isEnabled: Bool) {
-        let resolvedIsEnabled = isEnabled && duration > 0
-        guard isNotationNoteEntryModeEnabled != resolvedIsEnabled else { return }
+        setNotationEntryMode(isEnabled ? .note : nil)
+    }
 
-        isNotationNoteEntryModeEnabled = resolvedIsEnabled
-        if resolvedIsEnabled {
+    func toggleNotationRestEntryMode() {
+        setNotationEntryMode(isNotationRestEntryModeEnabled ? nil : .rest)
+    }
+
+    func setNotationRestEntryModeEnabled(_ isEnabled: Bool) {
+        setNotationEntryMode(isEnabled ? .rest : nil)
+    }
+
+    func clearNotationEntryMode() {
+        setNotationEntryMode(nil)
+    }
+
+    private func setNotationEntryMode(_ mode: NotationEntryMode?) {
+        let resolvedMode = duration > 0 ? mode : nil
+        guard notationEntryMode != resolvedMode else { return }
+
+        notationEntryMode = resolvedMode
+        if resolvedMode != nil {
             selectedNotationMeasures = []
             notationMeasureSelectionAnchor = nil
             selectedHarmonySymbolID = nil
@@ -39,7 +67,7 @@ extension AudioPlayerViewModel {
     }
 
     func clearNotationNoteEntryMode() {
-        setNotationNoteEntryModeEnabled(false)
+        clearNotationEntryMode()
     }
 
     @discardableResult
@@ -80,7 +108,7 @@ extension AudioPlayerViewModel {
         selectedNotationItem = canonicalSelection
         selectedNotationMeasures = []
         notationMeasureSelectionAnchor = nil
-        isNotationNoteEntryModeEnabled = false
+        notationEntryMode = nil
         if let placement = harmonyPlacement(for: canonicalSelection) {
             selectedHarmonySymbolID = harmonySymbolID(at: placement.harmonyPlacement.time)
         } else {
@@ -137,7 +165,7 @@ extension AudioPlayerViewModel {
         }
         selectedHarmonySymbolID = nil
         selectedNotationItem = nil
-        isNotationNoteEntryModeEnabled = false
+        notationEntryMode = nil
         locatePlaybackMarkerAtFirstSelectedNotationMeasure()
     }
 
@@ -170,7 +198,7 @@ extension AudioPlayerViewModel {
             durationInQuarterNotes: placement.durationInQuarterNotes,
             displayDuration: placement.displayDuration
         )
-        let recomposedItems = NotationNoteEntryRecomposer.recomposedItems(
+        let recomposedItems = NotationEntryRecomposer.recomposedItems(
             in: measure,
             replacing: restSpan,
             with: noteItem
@@ -181,18 +209,69 @@ extension AudioPlayerViewModel {
             selectedNotationMeasures = []
             notationMeasureSelectionAnchor = nil
             selectedHarmonySymbolID = nil
-
-            if let updatedMeasure = currentNotationScoreMeasures().first(where: {
-                $0.number == measure.number
-                    && abs($0.startTime - measure.startTime) < NotationMeasureTiming.timelineTolerance
-            }), let selected = updatedMeasure.notationItems.first(where: { $0.id == noteItem.id }) {
-                selectedNotationItem = NotationItemSelection(measure: updatedMeasure, item: selected)
-            } else {
-                selectedNotationItem = nil
-            }
+            reselectNotationItem(
+                inMeasureNumber: measure.number,
+                measureStartTime: measure.startTime,
+                itemID: noteItem.id
+            )
         }
 
         try? notationNoteAuditioner.audition(pitch: placement.pitch)
+        return true
+    }
+
+    @discardableResult
+    func insertNotationRest(_ placement: NotationRestPlacement) -> Bool {
+        guard duration > 0,
+              let measure = currentNotationScoreMeasures().first(where: {
+                  $0.number == placement.measure.number
+                      && abs($0.startTime - placement.measure.startTime) < NotationMeasureTiming.timelineTolerance
+                      && abs($0.endTime - placement.measure.endTime) < NotationMeasureTiming.timelineTolerance
+              }),
+              let restSpan = NotationNotePlacementResolver.restSpan(in: measure, matching: placement),
+              let targetRest = restSpan.rests.first
+        else {
+            return false
+        }
+
+        let restItem = NotationMeasureItem(
+            kind: .rest,
+            measureNumber: measure.number,
+            measureStartTime: measure.startTime,
+            offsetInQuarterNotes: restSpan.startOffsetInQuarterNotes,
+            durationInQuarterNotes: placement.durationInQuarterNotes,
+            displayDuration: placement.displayDuration
+        )
+
+        if !targetRest.isSynthesized,
+           abs(targetRest.offsetInQuarterNotes - restItem.offsetInQuarterNotes) < NotationMeasureTiming.timelineTolerance,
+           abs(targetRest.durationInQuarterNotes - restItem.durationInQuarterNotes) < NotationMeasureTiming.timelineTolerance,
+           targetRest.displayDuration == restItem.displayDuration {
+            selectedNotationMeasures = []
+            notationMeasureSelectionAnchor = nil
+            selectedHarmonySymbolID = nil
+            selectedNotationItem = NotationItemSelection(measure: measure, item: targetRest)
+            return true
+        }
+
+        let recomposedItems = NotationEntryRecomposer.recomposedItems(
+            in: measure,
+            replacing: restSpan,
+            with: restItem
+        )
+
+        performUndoableEdit("Add Notation Rest") {
+            replaceNotationMeasureItems(in: measure, with: recomposedItems)
+            selectedNotationMeasures = []
+            notationMeasureSelectionAnchor = nil
+            selectedHarmonySymbolID = nil
+            reselectNotationItem(
+                inMeasureNumber: measure.number,
+                measureStartTime: measure.startTime,
+                itemID: restItem.id
+            )
+        }
+
         return true
     }
 

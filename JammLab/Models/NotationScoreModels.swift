@@ -385,6 +385,11 @@ struct NotationPitch: Codable, Equatable {
 
 enum NotationPitchMapper {
     private static let staffPitches: [NotationPitch] = [
+        NotationPitch(step: .d, octave: 6),
+        NotationPitch(step: .c, octave: 6),
+        NotationPitch(step: .b, octave: 5),
+        NotationPitch(step: .a, octave: 5),
+        NotationPitch(step: .g, octave: 5),
         NotationPitch(step: .f, octave: 5),
         NotationPitch(step: .e, octave: 5),
         NotationPitch(step: .d, octave: 5),
@@ -393,17 +398,23 @@ enum NotationPitchMapper {
         NotationPitch(step: .a, octave: 4),
         NotationPitch(step: .g, octave: 4),
         NotationPitch(step: .f, octave: 4),
-        NotationPitch(step: .e, octave: 4)
+        NotationPitch(step: .e, octave: 4),
+        NotationPitch(step: .d, octave: 4),
+        NotationPitch(step: .c, octave: 4),
+        NotationPitch(step: .b, octave: 3),
+        NotationPitch(step: .a, octave: 3),
+        NotationPitch(step: .g, octave: 3)
     ]
 
-    static var minimumStaffPosition: Int { 0 }
-    static var maximumStaffPosition: Int { staffPitches.count - 1 }
+    static let minimumStaffPosition = -5
+    static let maximumStaffPosition = 13
 
     static func pitch(
         forStaffPosition staffPosition: Int,
         keySignature: KeySignature
     ) -> NotationPitch {
-        let index = min(maximumStaffPosition, max(minimumStaffPosition, staffPosition))
+        let clampedPosition = min(maximumStaffPosition, max(minimumStaffPosition, staffPosition))
+        let index = clampedPosition - minimumStaffPosition
         var pitch = staffPitches[index]
         pitch.alter = keySignature.defaultAlter(for: pitch.step)
         return pitch
@@ -412,6 +423,8 @@ enum NotationPitchMapper {
     static func staffPosition(for pitch: NotationPitch) -> Int? {
         staffPitches.firstIndex {
             $0.step == pitch.step && $0.octave == pitch.octave
+        }.map {
+            $0 + minimumStaffPosition
         }
     }
 

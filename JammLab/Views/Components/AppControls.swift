@@ -83,8 +83,91 @@ struct NotationDurationControl: View {
     }
 }
 
+struct NotationEntryModeButton: View {
+    let mode: NotationEntryMode
+    let selectedDuration: NotationDuration
+    let isActive: Bool
+    let action: () -> Void
+    @Environment(\.isEnabled) private var isEnabled
+    @Environment(\.appColors) private var appColors
+
+    var body: some View {
+        Button(action: action) {
+            ZStack {
+                switch mode {
+                case .note:
+                    Image(systemName: "pencil")
+                        .font(.system(size: 14, weight: .semibold))
+                        .foregroundStyle(iconColor)
+                case .rest:
+                    if let symbol = NotationSMuFLSymbol(duration: selectedDuration) {
+                        NotationRestControlGlyphView(
+                            symbol: symbol,
+                            color: iconColor
+                        )
+                    }
+                }
+            }
+            .frame(
+                width: AppTheme.ControlSize.notationDurationButtonWidth,
+                height: AppTheme.ControlSize.notationDurationControlHeight
+            )
+            .background(backgroundColor)
+            .clipShape(RoundedRectangle(cornerRadius: AppTheme.Radius.small, style: .continuous))
+            .overlay {
+                RoundedRectangle(cornerRadius: AppTheme.Radius.small, style: .continuous)
+                    .stroke(borderColor, lineWidth: AppTheme.Stroke.thin)
+            }
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .opacity(isEnabled ? 1 : 0.45)
+    }
+
+    private var iconColor: Color {
+        guard isEnabled else { return appColors.disabledText }
+        return isActive ? appColors.primaryText : appColors.secondaryText
+    }
+
+    private var backgroundColor: Color {
+        isActive ? appColors.accent : appColors.statusButtonFill
+    }
+
+    private var borderColor: Color {
+        isActive ? appColors.accent : appColors.border
+    }
+}
+
 private struct NotationDurationGlyphView: View {
     let symbol: NotationDurationControlSymbol
+    let color: Color
+
+    var body: some View {
+        ZStack {
+            if let glyphPath = NotationMusicFontRegistry.glyphPath(
+                for: symbol,
+                fontSize: AppTheme.ControlSize.notationDurationGlyphSize
+            ) {
+                Canvas { context, size in
+                    context.fill(
+                        Path(glyphPath.path).applying(glyphPath.centeredTransform(in: size)),
+                        with: .color(color)
+                    )
+                }
+            } else {
+                Text(symbol.glyph)
+                    .font(.custom(
+                        NotationMusicFontRegistry.fontName,
+                        size: AppTheme.ControlSize.notationDurationGlyphSize
+                    ))
+                    .foregroundStyle(color)
+            }
+        }
+    }
+}
+
+private struct NotationRestControlGlyphView: View {
+    let symbol: NotationSMuFLSymbol
     let color: Color
 
     var body: some View {
