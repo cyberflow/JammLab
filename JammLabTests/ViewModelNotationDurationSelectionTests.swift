@@ -76,6 +76,44 @@ final class ViewModelNotationDurationSelectionTests: XCTestCase {
     }
 
     @MainActor
+    func testAddingNotationNoteToStemPartDoesNotReplaceMainNotationItems() throws {
+        let viewModel = try loadedNotationViewModel(duration: 8)
+        viewModel.notationItems = [
+            NotationMeasureItem(
+                id: "main-note",
+                kind: .note,
+                pitch: NotationPitch(step: .c, octave: 4),
+                measureNumber: 1,
+                measureStartTime: 0,
+                offsetInQuarterNotes: 0,
+                durationInQuarterNotes: 1,
+                displayDuration: NotationDuration(denominator: 4)
+            )
+        ]
+        let stemMeasure = try notationMeasure(1, in: viewModel, partID: .stem(.bass))
+        let rest = try XCTUnwrap(stemMeasure.notationItems.first)
+        let placement = NotationNotePlacement(
+            measure: stemMeasure,
+            partID: .stem(.bass),
+            targetRestID: rest.id,
+            offsetInQuarterNotes: 0,
+            durationInQuarterNotes: 1,
+            displayDuration: NotationDuration(denominator: 4),
+            pitch: NotationPitch(step: .e, octave: 2),
+            x: 0,
+            y: 0
+        )
+
+        XCTAssertTrue(viewModel.insertNotationNote(placement))
+
+        let mainMeasure = try notationMeasure(1, in: viewModel)
+        let updatedStemMeasure = try notationMeasure(1, in: viewModel, partID: .stem(.bass))
+        XCTAssertNotNil(mainMeasure.notationItems.first { $0.id == "main-note" && $0.partID == .main })
+        XCTAssertEqual(updatedStemMeasure.notationItems.first?.partID, .stem(.bass))
+        XCTAssertEqual(updatedStemMeasure.notationItems.first?.pitch, NotationPitch(step: .e, octave: 2))
+    }
+
+    @MainActor
     func testAddingNotationNoteCanConsumeFollowingRestsFromShortTargetRest() throws {
         let viewModel = try loadedNotationViewModel(duration: 8)
         let undoManager = UndoManager()

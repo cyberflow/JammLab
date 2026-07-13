@@ -109,6 +109,62 @@ final class ViewModelNotationTrackCollapseTests: XCTestCase {
         XCTAssertEqual(viewModel.mainTrackVolume, AppSliderDefaults.mainTrackVolume, accuracy: 0.0001)
     }
 
+    @MainActor
+    func testProjectSaveAndOpenPreservesStemNotationPartState() async throws {
+        let audioURL = try temporaryAudioFile()
+        let projectURL = temporaryDirectory().appendingPathComponent("stem-notation-state.jammlab")
+        try FileManager.default.createDirectory(at: projectURL.deletingLastPathComponent(), withIntermediateDirectories: true)
+        defer {
+            try? FileManager.default.removeItem(at: audioURL)
+            try? FileManager.default.removeItem(at: projectURL.deletingLastPathComponent())
+        }
+
+        let projectService = ProjectDocumentService()
+        let makeViewModel: () throws -> AudioPlayerViewModel = {
+            AudioPlayerViewModel(
+                analyzer: MockAnalyzer(),
+                peakformProvider: MockPeakformProvider(),
+                playbackEngine: MockPlaybackEngine(),
+                projectService: projectService,
+                recentProjectsStore: RecentProjectsStore(defaults: try self.temporaryUserDefaults()),
+                isSandboxed: { false }
+            )
+        }
+        let savingViewModel = try makeViewModel()
+        try savingViewModel.loadImportedAudio(
+            ImportedAudioFile(url: audioURL, displayName: "notation.wav", duration: 0.5)
+        )
+        savingViewModel.notationItems = [
+            NotationMeasureItem(
+                id: "bass-note",
+                partID: .stem(.bass),
+                kind: .note,
+                pitch: NotationPitch(step: .e, octave: 2),
+                measureNumber: 1,
+                measureStartTime: 0,
+                offsetInQuarterNotes: 0,
+                durationInQuarterNotes: 1,
+                displayDuration: NotationDuration(denominator: 4)
+            )
+        ]
+        savingViewModel.toggleNotationWindowPartVisibility(.stem(.bass))
+        savingViewModel.setStemNotationTrackCollapsed(.bass, isCollapsed: false)
+
+        let didSave = await savingViewModel.saveProject(to: projectURL)
+        XCTAssertTrue(didSave)
+        let savedProject = try projectService.load(from: projectURL)
+        XCTAssertEqual(savedProject.visibleNotationPartIDs, [.main, .stem(.bass)])
+        XCTAssertEqual(savedProject.stemNotationTrackCollapsed[.bass], false)
+
+        let restoredViewModel = try makeViewModel()
+        await restoredViewModel.openProject(at: projectURL)
+
+        XCTAssertEqual(restoredViewModel.visibleNotationPartIDs, [.main, .stem(.bass)])
+        XCTAssertFalse(restoredViewModel.isStemNotationTrackCollapsed(.bass))
+        XCTAssertEqual(restoredViewModel.notationItems.first?.partID, .stem(.bass))
+        XCTAssertFalse(restoredViewModel.isProjectModified)
+    }
+
     private func notationCollapseProject(
         audioURL: URL,
         projectService: ProjectDocumentService,

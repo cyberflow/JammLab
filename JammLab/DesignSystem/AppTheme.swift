@@ -333,18 +333,34 @@ enum AppTheme {
         static var upperTrackStackHeight: CGFloat {
             upperTrackStackHeight(isNotationTrackCollapsed: false)
         }
-        static func stemTracksHeight(rowCount: Int) -> CGFloat {
+        static func stemRowHeight(isNotationExpanded: Bool) -> CGFloat {
+            stemTrackHeight
+                + (isNotationExpanded ? trackSpacing + notationTrackHeight : 0)
+        }
+        static func stemTracksHeight(
+            rowCount: Int,
+            expandedStemNotationCount: Int = 0
+        ) -> CGFloat {
             let visibleRows = max(defaultVisibleStemRows, rowCount)
+            let expandedRows = min(max(0, expandedStemNotationCount), max(0, rowCount))
             return CGFloat(visibleRows) * stemTrackHeight
                 + CGFloat(max(0, visibleRows - 1)) * AppTheme.Spacing.md
+                + CGFloat(expandedRows) * (trackSpacing + notationTrackHeight)
         }
         static var stemTracksHeight: CGFloat {
             stemTracksHeight(rowCount: defaultVisibleStemRows)
         }
-        static func tracksMinimumHeight(stemRowCount: Int, isNotationTrackCollapsed: Bool = false) -> CGFloat {
+        static func tracksMinimumHeight(
+            stemRowCount: Int,
+            isNotationTrackCollapsed: Bool = false,
+            expandedStemNotationCount: Int = 0
+        ) -> CGFloat {
             upperTrackStackHeight(isNotationTrackCollapsed: isNotationTrackCollapsed)
                 + trackSpacing
-                + stemTracksHeight(rowCount: stemRowCount)
+                + stemTracksHeight(
+                    rowCount: stemRowCount,
+                    expandedStemNotationCount: expandedStemNotationCount
+                )
         }
         static var tracksMinimumHeight: CGFloat {
             tracksMinimumHeight(stemRowCount: defaultVisibleStemRows)
@@ -355,11 +371,13 @@ enum AppTheme {
         }
         static func timelineBlockMinimumHeight(
             stemRowCount: Int,
-            isNotationTrackCollapsed: Bool = false
+            isNotationTrackCollapsed: Bool = false,
+            expandedStemNotationCount: Int = 0
         ) -> CGFloat {
             tracksMinimumHeight(
                 stemRowCount: stemRowCount,
-                isNotationTrackCollapsed: isNotationTrackCollapsed
+                isNotationTrackCollapsed: isNotationTrackCollapsed,
+                expandedStemNotationCount: expandedStemNotationCount
             ) + viewportFooterGap + viewportControlBarHeight
         }
         static var timelineBlockMinimumHeight: CGFloat {
@@ -367,11 +385,13 @@ enum AppTheme {
         }
         static func minimumContentHeight(
             stemRowCount: Int,
-            isNotationTrackCollapsed: Bool = false
+            isNotationTrackCollapsed: Bool = false,
+            expandedStemNotationCount: Int = 0
         ) -> CGFloat {
             timelineBlockMinimumHeight(
                 stemRowCount: stemRowCount,
-                isNotationTrackCollapsed: isNotationTrackCollapsed
+                isNotationTrackCollapsed: isNotationTrackCollapsed,
+                expandedStemNotationCount: expandedStemNotationCount
             )
         }
         static var minimumContentHeight: CGFloat {
@@ -441,7 +461,18 @@ enum AppTheme {
     enum NotationWindow {
         static let maximumMeasuresPerSystem = 4
         static let systemHeight: CGFloat = 124
-        static let systemSpacing: CGFloat = AppTheme.Spacing.none
+        static let staffSpacing: CGFloat = AppTheme.Spacing.none
+        static let systemSpacing: CGFloat = AppTheme.Spacing.xxl
         static let pagePadding: CGFloat = 28
+        static let partLabelWidth: CGFloat = 104
+        static let partGutterSpacing: CGFloat = AppTheme.Spacing.xl
+        static let systemConnectorWidth: CGFloat = AppTheme.Spacing.sm
+        static let systemConnectorTopInset: CGFloat = max(
+            AppTheme.Spacing.xxl,
+            (systemHeight - AppTheme.Timeline.notationStaffLineSpacing * 4) / 2 + AppTheme.Spacing.xs
+        )
+        static let systemConnectorBottomInset: CGFloat = systemHeight
+            - systemConnectorTopInset
+            - AppTheme.Timeline.notationStaffLineSpacing * 4
     }
 }

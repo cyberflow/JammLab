@@ -42,6 +42,8 @@ struct JammLabProject: Codable {
     var stemState: StemProjectState?
     var isVideoWindowOpen: Bool?
     var isNotationTrackCollapsed: Bool?
+    var stemNotationTrackCollapsed: [StemType: Bool]
+    var visibleNotationPartIDs: Set<NotationPartID>
 
     init(
         formatVersion: Int = 11,
@@ -70,7 +72,9 @@ struct JammLabProject: Codable {
         timelineVisibleRange: ProjectTimelineVisibleRange? = nil,
         stemState: StemProjectState? = nil,
         isVideoWindowOpen: Bool? = nil,
-        isNotationTrackCollapsed: Bool? = nil
+        isNotationTrackCollapsed: Bool? = nil,
+        stemNotationTrackCollapsed: [StemType: Bool] = [:],
+        visibleNotationPartIDs: Set<NotationPartID> = [.main]
     ) {
         self.formatVersion = formatVersion
         self.audioBookmarkData = audioBookmarkData
@@ -99,6 +103,8 @@ struct JammLabProject: Codable {
         self.stemState = stemState
         self.isVideoWindowOpen = isVideoWindowOpen
         self.isNotationTrackCollapsed = isNotationTrackCollapsed
+        self.stemNotationTrackCollapsed = stemNotationTrackCollapsed
+        self.visibleNotationPartIDs = visibleNotationPartIDs
     }
 
     private enum CodingKeys: String, CodingKey {
@@ -129,6 +135,8 @@ struct JammLabProject: Codable {
         case stemState
         case isVideoWindowOpen
         case isNotationTrackCollapsed
+        case stemNotationTrackCollapsed
+        case visibleNotationPartIDs
     }
 
     init(from decoder: Decoder) throws {
@@ -160,6 +168,8 @@ struct JammLabProject: Codable {
         stemState = try container.decodeIfPresent(StemProjectState.self, forKey: .stemState)
         isVideoWindowOpen = try container.decodeIfPresent(Bool.self, forKey: .isVideoWindowOpen)
         isNotationTrackCollapsed = try container.decodeIfPresent(Bool.self, forKey: .isNotationTrackCollapsed)
+        stemNotationTrackCollapsed = try container.decodeIfPresent([StemType: Bool].self, forKey: .stemNotationTrackCollapsed) ?? [:]
+        visibleNotationPartIDs = try container.decodeIfPresent(Set<NotationPartID>.self, forKey: .visibleNotationPartIDs) ?? [.main]
     }
 
     func encode(to encoder: Encoder) throws {
@@ -191,6 +201,8 @@ struct JammLabProject: Codable {
         try container.encodeIfPresent(stemState, forKey: .stemState)
         try container.encodeIfPresent(isVideoWindowOpen, forKey: .isVideoWindowOpen)
         try container.encodeIfPresent(isNotationTrackCollapsed, forKey: .isNotationTrackCollapsed)
+        try container.encode(stemNotationTrackCollapsed, forKey: .stemNotationTrackCollapsed)
+        try container.encode(visibleNotationPartIDs, forKey: .visibleNotationPartIDs)
     }
 
     func resolvedAudioURL() throws -> URL {

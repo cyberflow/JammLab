@@ -50,6 +50,8 @@ struct ProjectDocumentSnapshot {
     let stemState: StemProjectState?
     let isVideoWindowOpen: Bool
     let isNotationTrackCollapsed: Bool
+    let stemNotationTrackCollapsed: [StemType: Bool]
+    let visibleNotationPartIDs: Set<NotationPartID>
 }
 
 struct ProjectPersistenceCoordinator {
@@ -231,7 +233,9 @@ struct ProjectPersistenceCoordinator {
             ),
             stemState: snapshot.stemState,
             isVideoWindowOpen: snapshot.importedFile.mediaKind == .video ? snapshot.isVideoWindowOpen : nil,
-            isNotationTrackCollapsed: snapshot.isNotationTrackCollapsed
+            isNotationTrackCollapsed: snapshot.isNotationTrackCollapsed,
+            stemNotationTrackCollapsed: snapshot.stemNotationTrackCollapsed,
+            visibleNotationPartIDs: snapshot.visibleNotationPartIDs
         )
     }
 

@@ -5,7 +5,7 @@ private let notationTrackCoordinateSpaceName = "NotationTrackCoordinateSpace"
 
 struct NotationTrackActions {
     var selectHarmony: (HarmonySymbol.ID?) -> Void
-    var selectMeasure: (ScoreMeasure?, Bool) -> Void
+    var selectMeasure: (ScoreMeasure?, Bool, NotationPartID) -> Void
     var selectItem: (NotationItemSelection?, Bool) -> Void
     var insertNotationNote: (NotationNotePlacement) -> Bool
     var insertNotationRest: (NotationRestPlacement) -> Bool
@@ -20,6 +20,7 @@ struct NotationTrackActions {
 
 struct NotationTrackView: View {
     let state: NotationViewportState
+    let partID: NotationPartID
     let playbackDisplayState: PlaybackDisplayState?
     let selectedHarmonySymbolID: HarmonySymbol.ID?
     let selectedMeasures: [NotationMeasureSelection]
@@ -27,6 +28,7 @@ struct NotationTrackView: View {
     let selectedDuration: NotationDuration
     let entryMode: NotationEntryMode?
     let pendingEditorRequest: HarmonyEditorRequest?
+    let showsRegionLabels: Bool
     let actions: NotationTrackActions
     let cornerRadius: CGFloat
 
@@ -39,6 +41,7 @@ struct NotationTrackView: View {
 
     init(
         state: NotationViewportState,
+        partID: NotationPartID = .main,
         playbackDisplayState: PlaybackDisplayState? = nil,
         selectedHarmonySymbolID: HarmonySymbol.ID? = nil,
         selectedMeasures: [NotationMeasureSelection] = [],
@@ -46,10 +49,12 @@ struct NotationTrackView: View {
         selectedDuration: NotationDuration = NotationDuration(),
         entryMode: NotationEntryMode? = nil,
         pendingEditorRequest: HarmonyEditorRequest? = nil,
+        showsRegionLabels: Bool = true,
         actions: NotationTrackActions = .noop,
         cornerRadius: CGFloat = AppTheme.Radius.small
     ) {
         self.state = state
+        self.partID = partID
         self.playbackDisplayState = playbackDisplayState
         self.selectedHarmonySymbolID = selectedHarmonySymbolID
         self.selectedMeasures = selectedMeasures
@@ -57,6 +62,7 @@ struct NotationTrackView: View {
         self.selectedDuration = selectedDuration
         self.entryMode = entryMode
         self.pendingEditorRequest = pendingEditorRequest
+        self.showsRegionLabels = showsRegionLabels
         self.actions = actions
         self.cornerRadius = cornerRadius
     }
@@ -96,11 +102,13 @@ struct NotationTrackView: View {
                     height: proxy.size.height,
                     attributeDisplays: attributeDisplays
                 )
-                regionLabelsLayer(
-                    width: contentWidth,
-                    height: proxy.size.height,
-                    attributeDisplays: attributeDisplays
-                )
+                if showsRegionLabels {
+                    regionLabelsLayer(
+                        width: contentWidth,
+                        height: proxy.size.height,
+                        attributeDisplays: attributeDisplays
+                    )
+                }
                 harmonySymbolsLayer(
                     width: contentWidth,
                     height: proxy.size.height,
@@ -116,11 +124,13 @@ struct NotationTrackView: View {
                     height: proxy.size.height,
                     attributeDisplays: attributeDisplays
                 )
-                harmonyEditorLayer(
-                    width: contentWidth,
-                    height: proxy.size.height,
-                    attributeDisplays: attributeDisplays
-                )
+                if partID.isMain {
+                    harmonyEditorLayer(
+                        width: contentWidth,
+                        height: proxy.size.height,
+                        attributeDisplays: attributeDisplays
+                    )
+                }
                 notationEntryLayer(
                     width: contentWidth,
                     height: proxy.size.height,
@@ -142,7 +152,9 @@ struct NotationTrackView: View {
                 deleteSelectedNotationItemOrHarmony()
             }
             .onChange(of: pendingEditorRequest?.id) { _, _ in
-                handlePendingEditorRequest()
+                if partID.isMain {
+                    handlePendingEditorRequest()
+                }
             }
             .onChange(of: entryMode) { _, mode in
                 draggedNotePitchPreview = nil
@@ -558,9 +570,11 @@ struct NotationTrackView: View {
             + AppTheme.Timeline.notationStaffLineSpacing * 4
             + AppTheme.Spacing.lg
         let overlayHeight = max(1, overlayBottom - overlayY)
-        let selectedMeasureIndices = state.visibleMeasures.indices.filter { index in
-            selectedMeasures.contains(where: { $0.matches(state.visibleMeasures[index]) })
-        }
+        let selectedMeasureIndices = NotationTrackLayoutItems.selectedMeasureIndices(
+            visibleMeasures: state.visibleMeasures,
+            selectedMeasures: selectedMeasures,
+            partID: partID
+        )
         let selectionRuns = NotationMeasureLayout.selectionOverlayRuns(
             selectedMeasureIndices: selectedMeasureIndices,
             geometries: geometries
@@ -611,7 +625,7 @@ struct NotationTrackView: View {
                         .onTapGesture {
                             isTrackFocused = true
                             editingDraft = nil
-                            actions.selectMeasure(state.visibleMeasures[index], isShiftClickActive)
+                            actions.selectMeasure(state.visibleMeasures[index], isShiftClickActive, partID)
                         }
                         .accessibilityHidden(true)
                 }
@@ -1490,7 +1504,8 @@ struct NotationTrackView: View {
             geometry: target.geometry,
             point: point,
             staffTop: staffTop(in: height),
-            selectedDuration: selectedDuration
+            selectedDuration: selectedDuration,
+            partID: partID
         )
     }
 
@@ -1511,7 +1526,8 @@ struct NotationTrackView: View {
             geometry: target.geometry,
             point: point,
             staffTop: staffTop(in: height),
-            selectedDuration: selectedDuration
+            selectedDuration: selectedDuration,
+            partID: partID
         )
     }
 
@@ -1540,22 +1556,13 @@ struct NotationTrackView: View {
     }
 
     private var accessibilityValue: String {
-        guard let first = state.visibleMeasures.first, let last = state.visibleMeasures.last else {
-            return "Pending tempo"
-        }
-
-        let selectedMeasureText: String
-        if selectedMeasures.isEmpty {
-            selectedMeasureText = ""
-        } else if selectedMeasures.count == 1, let selectedMeasure = selectedMeasures.first {
-            selectedMeasureText = ", selected measure \(selectedMeasure.number)"
-        } else if let firstSelectedMeasure = selectedMeasures.first,
-                  let lastSelectedMeasure = selectedMeasures.last {
-            selectedMeasureText = ", selected measures \(firstSelectedMeasure.number) through \(lastSelectedMeasure.number)"
-        } else {
-            selectedMeasureText = ""
-        }
-        return "Measures \(first.number) through \(last.number), \(state.keySignature.displayName), \(state.timeSignature.displayText)\(selectedMeasureText)"
+        NotationTrackAccessibility.value(
+            visibleMeasures: state.visibleMeasures,
+            keySignature: state.keySignature,
+            timeSignature: state.timeSignature,
+            selectedMeasures: selectedMeasures,
+            partID: partID
+        )
     }
 
     private func barlineAccessibilityLabel(for target: NotationBarlineHitTarget) -> String {
@@ -1665,7 +1672,7 @@ private struct NotationDraggedNotePitchPreview: Equatable {
 private extension NotationTrackActions {
     static let noop = NotationTrackActions(
         selectHarmony: { _ in },
-        selectMeasure: { _, _ in },
+        selectMeasure: { _, _, _ in },
         selectItem: { _, _ in },
         insertNotationNote: { _ in false },
         insertNotationRest: { _ in false },

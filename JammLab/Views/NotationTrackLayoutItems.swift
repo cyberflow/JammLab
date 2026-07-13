@@ -23,6 +23,26 @@ struct NotationItemLayoutItem: Equatable, Identifiable {
 }
 
 enum NotationTrackLayoutItems {
+    static func selectedMeasures(
+        _ selectedMeasures: [NotationMeasureSelection],
+        for partID: NotationPartID
+    ) -> [NotationMeasureSelection] {
+        selectedMeasures.filter { $0.partID == partID }
+    }
+
+    static func selectedMeasureIndices(
+        visibleMeasures: [ScoreMeasure],
+        selectedMeasures: [NotationMeasureSelection],
+        partID: NotationPartID
+    ) -> [Int] {
+        let partSelections = Self.selectedMeasures(selectedMeasures, for: partID)
+        return visibleMeasures.indices.filter { index in
+            partSelections.contains(where: {
+                $0.matches(visibleMeasures[index], partID: partID)
+            })
+        }
+    }
+
     static func regionLabels(
         visibleMeasures: [ScoreMeasure],
         geometries: [NotationMeasureCanvasGeometry]
@@ -111,6 +131,38 @@ enum NotationTrackLayoutItems {
                 )
             }
         }
+    }
+}
+
+enum NotationTrackAccessibility {
+    static func value(
+        visibleMeasures: [ScoreMeasure],
+        keySignature: KeySignature,
+        timeSignature: TimeSignature,
+        selectedMeasures: [NotationMeasureSelection],
+        partID: NotationPartID
+    ) -> String {
+        guard let first = visibleMeasures.first, let last = visibleMeasures.last else {
+            return "Pending tempo"
+        }
+
+        let partSelections = NotationTrackLayoutItems.selectedMeasures(
+            selectedMeasures,
+            for: partID
+        )
+        let selectedMeasureText: String
+        if partSelections.isEmpty {
+            selectedMeasureText = ""
+        } else if partSelections.count == 1, let selectedMeasure = partSelections.first {
+            selectedMeasureText = ", selected measure \(selectedMeasure.number)"
+        } else if let firstSelectedMeasure = partSelections.first,
+                  let lastSelectedMeasure = partSelections.last {
+            selectedMeasureText = ", selected measures \(firstSelectedMeasure.number) through \(lastSelectedMeasure.number)"
+        } else {
+            selectedMeasureText = ""
+        }
+
+        return "Measures \(first.number) through \(last.number), \(keySignature.displayName), \(timeSignature.displayText)\(selectedMeasureText)"
     }
 }
 

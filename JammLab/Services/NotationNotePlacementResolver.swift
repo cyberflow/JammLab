@@ -3,6 +3,7 @@ import Foundation
 
 struct NotationNotePlacement: Equatable {
     var measure: ScoreMeasure
+    var partID: NotationPartID
     var targetRestID: String
     var offsetInQuarterNotes: Double
     var durationInQuarterNotes: Double
@@ -11,16 +12,57 @@ struct NotationNotePlacement: Equatable {
 
     var x: CGFloat
     var y: CGFloat
+
+    init(
+        measure: ScoreMeasure,
+        partID: NotationPartID = .main,
+        targetRestID: String,
+        offsetInQuarterNotes: Double,
+        durationInQuarterNotes: Double,
+        displayDuration: NotationDuration,
+        pitch: NotationPitch,
+        x: CGFloat,
+        y: CGFloat
+    ) {
+        self.measure = measure
+        self.partID = partID
+        self.targetRestID = targetRestID
+        self.offsetInQuarterNotes = offsetInQuarterNotes
+        self.durationInQuarterNotes = durationInQuarterNotes
+        self.displayDuration = displayDuration
+        self.pitch = pitch
+        self.x = x
+        self.y = y
+    }
 }
 
 struct NotationRestPlacement: Equatable {
     var measure: ScoreMeasure
+    var partID: NotationPartID
     var targetRestID: String
     var offsetInQuarterNotes: Double
     var durationInQuarterNotes: Double
     var displayDuration: NotationDuration
 
     var x: CGFloat
+
+    init(
+        measure: ScoreMeasure,
+        partID: NotationPartID = .main,
+        targetRestID: String,
+        offsetInQuarterNotes: Double,
+        durationInQuarterNotes: Double,
+        displayDuration: NotationDuration,
+        x: CGFloat
+    ) {
+        self.measure = measure
+        self.partID = partID
+        self.targetRestID = targetRestID
+        self.offsetInQuarterNotes = offsetInQuarterNotes
+        self.durationInQuarterNotes = durationInQuarterNotes
+        self.displayDuration = displayDuration
+        self.x = x
+    }
 }
 
 struct NotationRestSpan: Equatable {
@@ -47,6 +89,7 @@ enum NotationNotePlacementResolver {
         point: CGPoint,
         staffTop: CGFloat,
         selectedDuration: NotationDuration,
+        partID: NotationPartID = .main,
         lineSpacing: CGFloat = AppTheme.Timeline.notationStaffLineSpacing
     ) -> NotationNotePlacement? {
         guard lineSpacing > 0,
@@ -78,6 +121,7 @@ enum NotationNotePlacementResolver {
 
         return NotationNotePlacement(
             measure: measure,
+            partID: partID,
             targetRestID: targetRest.id,
             offsetInQuarterNotes: targetRest.offsetInQuarterNotes,
             durationInQuarterNotes: selectedLength,
@@ -94,6 +138,7 @@ enum NotationNotePlacementResolver {
         point: CGPoint,
         staffTop: CGFloat,
         selectedDuration: NotationDuration,
+        partID: NotationPartID = .main,
         lineSpacing: CGFloat = AppTheme.Timeline.notationStaffLineSpacing
     ) -> NotationRestPlacement? {
         guard isWithinEntryYRange(point.y, staffTop: staffTop, lineSpacing: lineSpacing) else {
@@ -117,6 +162,7 @@ enum NotationNotePlacementResolver {
 
         return NotationRestPlacement(
             measure: measure,
+            partID: partID,
             targetRestID: targetRest.id,
             offsetInQuarterNotes: targetRest.offsetInQuarterNotes,
             durationInQuarterNotes: selectedLength,
@@ -391,6 +437,7 @@ enum NotationEntryRecomposer {
                     let insertedItemEnd = insertedItem.offsetInQuarterNotes + insertedItem.durationInQuarterNotes
                     output.append(contentsOf: metricAwareFillerNotationItems(
                         measure: measure,
+                        partID: insertedItem.partID,
                         startOffset: insertedItemEnd,
                         remaining: restSpan.endOffsetInQuarterNotes - insertedItemEnd
                     ))
@@ -407,6 +454,7 @@ enum NotationEntryRecomposer {
 
     private static func metricAwareFillerNotationItems(
         measure: ScoreMeasure,
+        partID: NotationPartID,
         startOffset: Double,
         remaining: Double
     ) -> [NotationMeasureItem] {
@@ -424,6 +472,7 @@ enum NotationEntryRecomposer {
            distanceToQuarterBoundary < rest - NotationMeasureTiming.timelineTolerance,
            let duration = exactNotationDuration(for: distanceToQuarterBoundary) {
             output.append(NotationRestItemFactory.restItem(
+                partID: partID,
                 measureNumber: measure.number,
                 measureStartTime: measure.startTime,
                 offsetInQuarterNotes: cursor,
@@ -438,7 +487,8 @@ enum NotationEntryRecomposer {
             measureNumber: measure.number,
             measureStartTime: measure.startTime,
             startOffset: cursor,
-            remaining: rest
+            remaining: rest,
+            partID: partID
         ))
         return output
     }

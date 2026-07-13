@@ -23,7 +23,21 @@ enum NotationExportFormat {
 struct NotationExportRequest {
     var displayName: String
     var score: NotationScoreState
+    var parts: [NotationExportPart] = []
     var tempoBPM: Double? = nil
+
+    var exportParts: [NotationExportPart] {
+        let readyParts = parts.filter { $0.score.isReady && !$0.score.measures.isEmpty }
+        guard !readyParts.isEmpty else {
+            return [NotationExportPart(descriptor: .main, score: score)]
+        }
+        return readyParts
+    }
+}
+
+struct NotationExportPart: Equatable {
+    var descriptor: NotationPartDescriptor
+    var score: NotationScoreState
 }
 
 protocol NotationExportRenderer {
@@ -56,7 +70,7 @@ final class NotationExportService {
     }
 
     func export(_ request: NotationExportRequest, format: NotationExportFormat) throws -> Data {
-        guard request.score.isReady, !request.score.measures.isEmpty else {
+        guard request.exportParts.contains(where: { $0.score.isReady && !$0.score.measures.isEmpty }) else {
             throw NotationExportError.emptyScore
         }
 
@@ -98,7 +112,6 @@ final class MusicXMLNotationExportRenderer: NotationExportRenderer {
     let format: NotationExportFormat = .musicXML
 
     private let divisions = 480
-    private let partID = "P1"
     private let appVersionProvider: () -> String?
 
     init(appVersionProvider: @escaping () -> String? = MusicXMLNotationExportRenderer.bundledAppVersion) {
@@ -106,15 +119,23 @@ final class MusicXMLNotationExportRenderer: NotationExportRenderer {
     }
 
     func render(_ request: NotationExportRequest) throws -> Data {
-        guard request.score.isReady, !request.score.measures.isEmpty else {
+        let exportParts = request.exportParts
+        guard !exportParts.isEmpty else {
             throw NotationExportError.emptyScore
         }
 
         let root = element("score-partwise", attributes: ["version": "4.0"])
         root.addChild(identification())
         root.addChild(titleCredit(title: request.displayName))
-        root.addChild(partList(title: request.displayName))
-        root.addChild(try part(measures: request.score.measures, tempoBPM: request.tempoBPM))
+        root.addChild(partList(parts: exportParts, title: request.displayName))
+        for (index, exportPart) in exportParts.enumerated() {
+            root.addChild(try part(
+                id: musicXMLPartID(for: index),
+                measures: exportPart.score.measures,
+                tempoBPM: index == 0 ? request.tempoBPM : nil,
+                includesAnnotations: exportPart.descriptor.id.isMain
+            ))
+        }
 
         let document = XMLDocument(rootElement: root)
         document.version = "1.0"
@@ -154,12 +175,20 @@ final class MusicXMLNotationExportRenderer: NotationExportRenderer {
         return trimmedVersion.isEmpty ? nil : trimmedVersion
     }
 
-    private func partList(title: String) -> XMLElement {
+    private func partList(parts: [NotationExportPart], title: String) -> XMLElement {
         let partList = element("part-list")
-        let scorePart = element("score-part", attributes: ["id": partID])
-        scorePart.addChild(element("part-name", stringValue: title, attributes: ["print-object": "no"]))
-        partList.addChild(scorePart)
+        for (index, part) in parts.enumerated() {
+            let scorePart = element("score-part", attributes: ["id": musicXMLPartID(for: index)])
+            let partName = part.descriptor.id.isMain ? title : part.descriptor.title
+            let attributes = part.descriptor.id.isMain ? ["print-object": "no"] : [:]
+            scorePart.addChild(element("part-name", stringValue: partName, attributes: attributes))
+            partList.addChild(scorePart)
+        }
         return partList
+    }
+
+    private func musicXMLPartID(for index: Int) -> String {
+        "P\(index + 1)"
     }
 
     private func titleCredit(title: String) -> XMLElement {
@@ -179,8 +208,13 @@ final class MusicXMLNotationExportRenderer: NotationExportRenderer {
         return credit
     }
 
-    private func part(measures: [ScoreMeasure], tempoBPM: Double?) throws -> XMLElement {
-        let part = element("part", attributes: ["id": partID])
+    private func part(
+        id: String,
+        measures: [ScoreMeasure],
+        tempoBPM: Double?,
+        includesAnnotations: Bool
+    ) throws -> XMLElement {
+        let part = element("part", attributes: ["id": id])
         var previousAttributes: MeasureAttributes?
 
         for (measureIndex, measure) in measures.enumerated() {
@@ -193,11 +227,13 @@ final class MusicXMLNotationExportRenderer: NotationExportRenderer {
                 measureElement.addChild(metronomeDirection)
             }
 
-            for regionLabel in measure.regionLabels {
-                measureElement.addChild(regionDirection(for: regionLabel))
+            if includesAnnotations {
+                for regionLabel in measure.regionLabels {
+                    measureElement.addChild(regionDirection(for: regionLabel))
+                }
             }
 
-            let sortedHarmonies = measure.harmonies.sorted(by: isHarmonyOrderedByNotationPosition)
+            let sortedHarmonies = includesAnnotations ? measure.harmonies.sorted(by: isHarmonyOrderedByNotationPosition) : []
             var harmonyIndex = sortedHarmonies.startIndex
             var notationCursorOffsetInQuarterNotes = 0.0
             let sortedItems = measure.notationItems.sorted(by: isNotationItemOrderedByNotationPosition)

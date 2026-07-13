@@ -60,6 +60,7 @@
 		9FD100012E00000100112233 /* NotationTrackLayoutItems.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9FD100002E00000100112233 /* NotationTrackLayoutItems.swift */; };
 		9FCB01072D80000100112233 /* NotationHarmonyInlineTextField.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9FCB00072D80000100112233 /* NotationHarmonyInlineTextField.swift */; };
 		9FEC01012D71000100112233 /* NotationWindowView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9FEC00012D71000100112233 /* NotationWindowView.swift */; };
+		9FEC01022D71000100112233 /* NotationWindowScoreLayout.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9FEC00022D71000100112233 /* NotationWindowScoreLayout.swift */; };
 		9F8B01062C10000100112233 /* TestSupport.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9F8B00072C10000100112233 /* TestSupport.swift */; };
 		9FCD01012D50000100112233 /* PerformanceBenchmarkTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9FCD00012D50000100112233 /* PerformanceBenchmarkTests.swift */; };
 		9FCD01022D50000100112233 /* TestSupport.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9F8B00072C10000100112233 /* TestSupport.swift */; };
@@ -326,6 +327,7 @@
 		9FD100002E00000100112233 /* NotationTrackLayoutItems.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotationTrackLayoutItems.swift; sourceTree = "<group>"; };
 		9FCB00072D80000100112233 /* NotationHarmonyInlineTextField.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotationHarmonyInlineTextField.swift; sourceTree = "<group>"; };
 		9FEC00012D71000100112233 /* NotationWindowView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotationWindowView.swift; sourceTree = "<group>"; };
+		9FEC00022D71000100112233 /* NotationWindowScoreLayout.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotationWindowScoreLayout.swift; sourceTree = "<group>"; };
 		9F8B00062C10000100112233 /* JammLabTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = JammLabTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		9F8B00072C10000100112233 /* TestSupport.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TestSupport.swift; sourceTree = "<group>"; };
 		9FCD00012D50000100112233 /* PerformanceBenchmarkTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PerformanceBenchmarkTests.swift; sourceTree = "<group>"; };
@@ -676,6 +678,7 @@
 				9FD100002E00000100112233 /* NotationTrackLayoutItems.swift */,
 				9FEA00042D70000100112233 /* NotationTrackView.swift */,
 				9FEC00012D71000100112233 /* NotationWindowView.swift */,
+				9FEC00022D71000100112233 /* NotationWindowScoreLayout.swift */,
 				9F8B00032C10000100112233 /* PeakformTimelineView.swift */,
 				9FDD00032D60000100112233 /* RegionInteractionOverlay.swift */,
 				9FDD00062D60000100112233 /* SettingsContentViews.swift */,
@@ -1116,6 +1119,7 @@
 				9FCB01072D80000100112233 /* NotationHarmonyInlineTextField.swift in Sources */,
 				9FD100012E00000100112233 /* NotationTrackLayoutItems.swift in Sources */,
 				9FEC01012D71000100112233 /* NotationWindowView.swift in Sources */,
+				9FEC01022D71000100112233 /* NotationWindowScoreLayout.swift in Sources */,
 				9F8A010D2C00000100112233 /* AppHotkey.swift in Sources */,
 				9FCB01062D80000100112233 /* NotationMeasureLayout.swift in Sources */,
 				9FEE01012D90000100112233 /* NotationExportService.swift in Sources */,

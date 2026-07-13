@@ -109,12 +109,23 @@ extension ContentView {
     var timelineTracksHeight: CGFloat {
         AppTheme.Timeline.tracksMinimumHeight(
             stemRowCount: timelineStemRowCount,
-            isNotationTrackCollapsed: viewModel.isNotationTrackCollapsed
+            isNotationTrackCollapsed: viewModel.isNotationTrackCollapsed,
+            expandedStemNotationCount: expandedStemNotationRowCount
         )
     }
 
+    var expandedStemNotationRowCount: Int {
+        viewModel.stemFiles.filter {
+            !viewModel.isStemNotationTrackCollapsed($0.type)
+        }.count
+    }
+
     var timelineMinimumContentHeight: CGFloat {
-        AppTheme.Timeline.minimumContentHeight(stemRowCount: timelineStemRowCount)
+        AppTheme.Timeline.minimumContentHeight(
+            stemRowCount: timelineStemRowCount,
+            isNotationTrackCollapsed: viewModel.isNotationTrackCollapsed,
+            expandedStemNotationCount: expandedStemNotationRowCount
+        )
     }
 
     var timelineColumnMinimumHeight: CGFloat {
@@ -144,11 +155,13 @@ extension ContentView {
                     visibleMeasureCount: 1,
                     keySignature: KeySignature.normalized(from: viewModel.effectiveKeyName)
                 )
-                : notationViewportState(availableWidth: notationTrackContentWidth),
+                : notationViewportState(availableWidth: notationTrackContentWidth, partID: .main),
+            stemNotationViewports: stemNotationViewports(availableWidth: notationTrackContentWidth),
             notationDurationDenominator: viewModel.notationDurationDenominator,
             canChangeNotationDuration: viewModel.canChangeNotationDuration,
             notationEntryMode: viewModel.notationEntryMode,
             isNotationTrackCollapsed: viewModel.isNotationTrackCollapsed,
+            stemNotationTrackCollapsed: viewModel.stemNotationTrackCollapsed,
             isLoadingPeakform: viewModel.isBuildingWaveform,
             mainTrackVolume: viewModel.mainTrackVolume,
             playbackMode: viewModel.playbackMode,
@@ -159,12 +172,17 @@ extension ContentView {
         )
     }
 
-    func notationViewportState(availableWidth: CGFloat) -> NotationViewportState {
+    func notationViewportState(
+        availableWidth: CGFloat,
+        partID: NotationPartID
+    ) -> NotationViewportState {
         let factory = NotationViewportFactory()
         let content = notationProjectionCache.content(
             tempoMap: viewModel.tempoMap,
             duration: viewModel.duration,
             keyName: viewModel.effectiveKeyName,
+            partID: partID,
+            includesHarmonies: partID.isMain,
             notationItems: viewModel.notationItems,
             harmonySymbols: viewModel.harmonySymbols,
             notes: viewModel.notes
@@ -194,13 +212,29 @@ extension ContentView {
         )
     }
 
+    func stemNotationViewports(availableWidth: CGFloat) -> [StemType: NotationViewportState] {
+        Dictionary(uniqueKeysWithValues: viewModel.stemFiles.map { stemFile in
+            let isCollapsed = viewModel.isStemNotationTrackCollapsed(stemFile.type)
+            let viewport: NotationViewportState = isCollapsed
+                ? .pending(
+                    visibleMeasureCount: 1,
+                    keySignature: KeySignature.normalized(from: viewModel.effectiveKeyName)
+                )
+                : notationViewportState(
+                    availableWidth: availableWidth,
+                    partID: .stem(stemFile.type)
+                )
+            return (stemFile.type, viewport)
+        })
+    }
+
     var timelineViewActions: TimelineViewActions {
         TimelineViewActions(
             locatePlaybackMarker: { viewModel.locatePlaybackMarker(to: $0) },
             locatePlaybackMarkerExactly: { viewModel.locatePlaybackMarkerExactly(to: $0) },
             addNote: { viewModel.addNote(at: $0) },
             selectHarmony: { viewModel.selectHarmonySymbol(id: $0) },
-            selectNotationMeasure: { viewModel.selectNotationMeasure($0, extendingSelection: $1) },
+            selectNotationMeasure: { viewModel.selectNotationMeasure($0, extendingSelection: $1, partID: $2) },
             selectNotationItem: { viewModel.selectNotationItem($0, shouldAudition: $1) },
             saveHarmony: { viewModel.saveHarmonySymbol($0) },
             deleteHarmony: { viewModel.deleteHarmonySymbol(id: $0) },
@@ -222,6 +256,7 @@ extension ContentView {
             timelineScroll: { viewModel.handleTimelineScroll(deltaX: $0, deltaY: $1, anchorTime: $2) },
             mainTrackVolumeChanged: { viewModel.setMainTrackVolume($0) },
             notationTrackCollapsedChanged: { viewModel.setNotationTrackCollapsed($0) },
+            stemNotationTrackCollapsedChanged: { viewModel.setStemNotationTrackCollapsed($0, isCollapsed: $1) },
             notationDurationChanged: { viewModel.setNotationDurationDenominator($0) },
             notationNoteEntryModeToggled: { viewModel.toggleNotationNoteEntryMode() },
             notationRestEntryModeToggled: { viewModel.toggleNotationRestEntryMode() },

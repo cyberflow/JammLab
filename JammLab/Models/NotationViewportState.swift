@@ -128,46 +128,68 @@ struct NotationScoreContent: Equatable {
 }
 
 final class NotationProjectionCache {
-    private var cachedInputs: Inputs?
-    private var cachedContent: NotationScoreContent?
+    private var cachedEntries: [Scope: Entry] = [:]
+    private(set) var cacheMissCount = 0
+
+    var cachedScopeCount: Int {
+        cachedEntries.count
+    }
 
     func content(
         tempoMap: TempoMap,
         duration: TimeInterval,
         keyName: String?,
+        partID: NotationPartID = .main,
+        includesHarmonies: Bool = true,
         notationItems: [NotationMeasureItem],
         harmonySymbols: [HarmonySymbol],
         notes: [TimecodedNote]
     ) -> NotationScoreContent {
+        let scopedNotationItems = notationItems.filter { $0.partID == partID }
+        let scopedHarmonySymbols = includesHarmonies ? harmonySymbols : []
+        let regionNotes = notes.filter(\.isRegion)
         let inputs = Inputs(
             tempoMap: tempoMap,
             duration: duration,
             keyName: keyName,
-            notationItems: notationItems,
-            harmonySymbols: harmonySymbols,
-            notes: notes
+            notationItems: scopedNotationItems,
+            harmonySymbols: scopedHarmonySymbols,
+            regionNotes: regionNotes
         )
+        let scope = Scope(partID: partID, includesHarmonies: includesHarmonies)
 
-        if inputs == cachedInputs, let cachedContent {
-            return cachedContent
+        if let entry = cachedEntries[scope], entry.inputs == inputs {
+            return entry.content
         }
 
+        cacheMissCount += 1
         let content = NotationViewportFactory().scoreContent(
             tempoMap: tempoMap,
             duration: duration,
             keyName: keyName,
-            notationItems: notationItems,
-            harmonySymbols: harmonySymbols,
-            notes: notes
+            partID: partID,
+            includesHarmonies: includesHarmonies,
+            notationItems: scopedNotationItems,
+            harmonySymbols: scopedHarmonySymbols,
+            notes: regionNotes
         )
-        cachedInputs = inputs
-        cachedContent = content
+        cachedEntries[scope] = Entry(inputs: inputs, content: content)
         return content
     }
 
     func invalidate() {
-        cachedInputs = nil
-        cachedContent = nil
+        cachedEntries.removeAll()
+        cacheMissCount = 0
+    }
+
+    private struct Scope: Hashable {
+        var partID: NotationPartID
+        var includesHarmonies: Bool
+    }
+
+    private struct Entry {
+        var inputs: Inputs
+        var content: NotationScoreContent
     }
 
     private struct Inputs: Equatable {
@@ -176,7 +198,7 @@ final class NotationProjectionCache {
         var keyName: String?
         var notationItems: [NotationMeasureItem]
         var harmonySymbols: [HarmonySymbol]
-        var notes: [TimecodedNote]
+        var regionNotes: [TimecodedNote]
     }
 }
 

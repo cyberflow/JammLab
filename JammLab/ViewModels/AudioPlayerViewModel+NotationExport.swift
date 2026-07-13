@@ -67,6 +67,7 @@ extension AudioPlayerViewModel {
         return NotationExportRequest(
             displayName: notationExportDisplayName,
             score: score,
+            parts: currentNotationExportParts(mainScore: score),
             tempoBPM: beatGridSettings.bpm
         )
     }
@@ -83,6 +84,28 @@ extension AudioPlayerViewModel {
             harmonySymbols: harmonySymbols,
             notes: notes
         )
+    }
+
+    private func currentNotationExportParts(mainScore: NotationScoreState) -> [NotationExportPart] {
+        availableNotationParts.compactMap { part in
+            let score = part.id.isMain
+                ? mainScore
+                : NotationViewportFactory().scoreState(
+                    tempoMap: tempoMap,
+                    duration: duration,
+                    currentTime: currentTime,
+                    playbackMarkerTime: playbackMarkerTime,
+                    isPlaying: playbackState == .playing,
+                    keyName: effectiveKeyName,
+                    partID: part.id,
+                    includesHarmonies: false,
+                    notationItems: notationItems,
+                    harmonySymbols: harmonySymbols,
+                    notes: notes
+                )
+            guard score.isReady, !score.measures.isEmpty else { return nil }
+            return NotationExportPart(descriptor: part, score: score)
+        }
     }
 
     private var notationExportDisplayName: String {

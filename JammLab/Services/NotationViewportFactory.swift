@@ -8,6 +8,8 @@ struct NotationViewportFactory {
         playbackMarkerTime: TimeInterval,
         isPlaying: Bool,
         keyName: String?,
+        partID: NotationPartID = .main,
+        includesHarmonies: Bool = true,
         notationItems: [NotationMeasureItem] = [],
         harmonySymbols: [HarmonySymbol] = [],
         notes: [TimecodedNote] = []
@@ -16,6 +18,8 @@ struct NotationViewportFactory {
             tempoMap: tempoMap,
             duration: duration,
             keyName: keyName,
+            partID: partID,
+            includesHarmonies: includesHarmonies,
             notationItems: notationItems,
             harmonySymbols: harmonySymbols,
             notes: notes
@@ -34,6 +38,8 @@ struct NotationViewportFactory {
         tempoMap: TempoMap,
         duration: TimeInterval,
         keyName: String?,
+        partID: NotationPartID = .main,
+        includesHarmonies: Bool = true,
         notationItems: [NotationMeasureItem] = [],
         harmonySymbols: [HarmonySymbol] = [],
         notes: [TimecodedNote] = []
@@ -54,6 +60,8 @@ struct NotationViewportFactory {
             measures.append(decoratedMeasure(
                 cursor,
                 keySignature: keySignature,
+                partID: partID,
+                includesHarmonies: includesHarmonies,
                 notationItems: notationItems,
                 harmonySymbols: harmonySymbols,
                 regionNotes: regionNotes
@@ -120,6 +128,8 @@ struct NotationViewportFactory {
         isPlaying: Bool,
         keyName: String?,
         visibleMeasureCount: Int,
+        partID: NotationPartID = .main,
+        includesHarmonies: Bool = true,
         notationItems: [NotationMeasureItem] = [],
         harmonySymbols: [HarmonySymbol] = [],
         notes: [TimecodedNote] = []
@@ -128,6 +138,8 @@ struct NotationViewportFactory {
             tempoMap: tempoMap,
             duration: duration,
             keyName: keyName,
+            partID: partID,
+            includesHarmonies: includesHarmonies,
             notationItems: notationItems,
             harmonySymbols: harmonySymbols,
             notes: notes
@@ -195,14 +207,16 @@ struct NotationViewportFactory {
     private func decoratedMeasure(
         _ measure: ScoreMeasure,
         keySignature: KeySignature,
+        partID: NotationPartID,
+        includesHarmonies: Bool,
         notationItems: [NotationMeasureItem],
         harmonySymbols: [HarmonySymbol],
         regionNotes: [TimecodedNote]
     ) -> ScoreMeasure {
         let keyedMeasure = measure.withKeySignature(keySignature)
         return keyedMeasure
-            .withNotationItems(Self.notationItems(for: keyedMeasure, from: notationItems))
-            .withHarmonies(harmonies(for: keyedMeasure, from: harmonySymbols))
+            .withNotationItems(Self.notationItems(for: keyedMeasure, from: notationItems, partID: partID))
+            .withHarmonies(includesHarmonies ? harmonies(for: keyedMeasure, from: harmonySymbols) : [])
             .withRegionLabels(regionLabels(for: keyedMeasure, from: regionNotes))
     }
 
@@ -517,7 +531,8 @@ struct NotationViewportFactory {
 
     static func notationItems(
         for measure: ScoreMeasure,
-        from notationItems: [NotationMeasureItem]
+        from notationItems: [NotationMeasureItem],
+        partID: NotationPartID = .main
     ) -> [NotationMeasureItem] {
         let measureLength = NotationMeasureTiming.quarterLength(for: measure.attributes.timeSignature)
         guard measureLength > 0 else { return [] }
@@ -525,6 +540,7 @@ struct NotationViewportFactory {
         let explicitItems = notationItems
             .filter { item in
                 item.measureNumber == measure.number
+                    && item.partID == partID
                     && abs(item.measureStartTime - measure.startTime) < timelineTolerance
                     && (item.kind == .rest || item.pitch != nil)
             }
@@ -533,6 +549,7 @@ struct NotationViewportFactory {
             return [
                 NotationRestItemFactory.restItem(
                     id: "default-rest-\(measure.number)-\(measure.startTime)-\(measure.endTime)",
+                    partID: partID,
                     measureNumber: measure.number,
                     measureStartTime: measure.startTime,
                     offsetInQuarterNotes: 0,
@@ -550,6 +567,7 @@ struct NotationViewportFactory {
             if offset > cursor + timelineTolerance {
                 normalized.append(contentsOf: fillerItems(
                     measure: measure,
+                    partID: partID,
                     startOffset: cursor,
                     remaining: offset - cursor
                 ))
@@ -561,6 +579,7 @@ struct NotationViewportFactory {
             guard duration > timelineTolerance else { continue }
 
             var copy = item
+            copy.partID = partID
             copy.measureNumber = measure.number
             copy.measureStartTime = measure.startTime
             copy.offsetInQuarterNotes = offset
@@ -573,6 +592,7 @@ struct NotationViewportFactory {
         if cursor < measureLength - timelineTolerance {
             normalized.append(contentsOf: fillerItems(
                 measure: measure,
+                partID: partID,
                 startOffset: cursor,
                 remaining: measureLength - cursor
             ))
@@ -583,6 +603,7 @@ struct NotationViewportFactory {
 
     static func fillerItems(
         measure: ScoreMeasure,
+        partID: NotationPartID = .main,
         startOffset: Double,
         remaining: Double
     ) -> [NotationMeasureItem] {
@@ -591,6 +612,7 @@ struct NotationViewportFactory {
             measureStartTime: measure.startTime,
             startOffset: startOffset,
             remaining: remaining,
+            partID: partID,
             isSynthesized: true,
             includeTail: true
         ) { segment in

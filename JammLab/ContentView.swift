@@ -184,7 +184,7 @@ struct ContentView: View {
         if !viewModel.hasSelectedNotationMeasures && !viewModel.isNotationEntryModeEnabled {
             hotkeys.remove(.clearNotationMeasureSelection)
         }
-        if !viewModel.canEditSelectedNotationItem {
+        if !viewModel.canEditHarmonyAtSelectedNotationItem {
             hotkeys.remove(.editHarmonyAtSelectedNotationItem)
         }
         if !viewModel.canChangeNotationDuration {

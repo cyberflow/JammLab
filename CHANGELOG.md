@@ -11,8 +11,10 @@ development artifact builds use `vMAJOR.MINOR.PATCH-dev.N`.
 - Added Notation note-entry mode for placing pitched notes with Leland-rendered note glyphs, note selection preview, cross-rest insertion, rest recomposition, and MusicXML export.
 - Expanded Notation entry to ledger-line pitches from G3 through D6 and added rest-entry controls for inserting selected rest durations.
 - Added Notation note editing for dragging note pitch, arrow-key pitch changes, and deleting selected notes back to rests.
+- Added per-stem Notation parts with collapsible stem notation tracks, score-aligned multi-part Notation systems, shared Region labels, part visibility controls, and multi-part MusicXML export.
 - Added clearer hover tooltips and numpad shortcuts for Notation duration buttons.
 - Added a bar/beat position readout to the transport time display.
+- Fixed multi-part Notation accessibility selection announcements and prevented harmony editing from clearing a selected stem note.
 
 ## 1.1.0
 

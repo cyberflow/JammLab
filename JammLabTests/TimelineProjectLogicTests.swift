@@ -97,4 +97,66 @@ final class TimelineProjectLogicTests: XCTestCase {
         XCTAssertEqual(decoded.harmonySymbols, [symbol])
     }
 
+    func testProjectPersistsNotationPartState() throws {
+        let notationItem = NotationMeasureItem(
+            id: "bass-note",
+            partID: .stem(.bass),
+            kind: .note,
+            pitch: NotationPitch(step: .e, octave: 2),
+            measureNumber: 1,
+            measureStartTime: 0,
+            offsetInQuarterNotes: 0,
+            durationInQuarterNotes: 1,
+            displayDuration: NotationDuration(denominator: 4)
+        )
+        let project = JammLabProject(
+            audioBookmarkData: Data([1, 2, 3]),
+            audioDisplayName: "song.wav",
+            audioDuration: 12,
+            notes: [],
+            notationItems: [notationItem],
+            loopStart: 0,
+            loopEnd: 4,
+            playbackRate: 1,
+            pitchShiftSemitones: 0,
+            stemNotationTrackCollapsed: [.bass: false, .drums: true],
+            visibleNotationPartIDs: [.main, .stem(.bass), .stem(.drums)]
+        )
+
+        let decoded = try JSONDecoder().decode(
+            JammLabProject.self,
+            from: JSONEncoder().encode(project)
+        )
+
+        XCTAssertEqual(decoded.notationItems.first?.partID, .stem(.bass))
+        XCTAssertEqual(decoded.stemNotationTrackCollapsed, [.bass: false, .drums: true])
+        XCTAssertEqual(decoded.visibleNotationPartIDs, [.main, .stem(.bass), .stem(.drums)])
+    }
+
+    func testProjectDefaultsMissingNotationPartState() throws {
+        let project = JammLabProject(
+            audioBookmarkData: Data([1, 2, 3]),
+            audioDisplayName: "song.wav",
+            audioDuration: 12,
+            notes: [],
+            loopStart: 0,
+            loopEnd: 4,
+            playbackRate: 1,
+            pitchShiftSemitones: 0
+        )
+        var object = try XCTUnwrap(
+            JSONSerialization.jsonObject(with: JSONEncoder().encode(project)) as? [String: Any]
+        )
+        object.removeValue(forKey: "stemNotationTrackCollapsed")
+        object.removeValue(forKey: "visibleNotationPartIDs")
+
+        let decoded = try JSONDecoder().decode(
+            JammLabProject.self,
+            from: JSONSerialization.data(withJSONObject: object)
+        )
+
+        XCTAssertTrue(decoded.stemNotationTrackCollapsed.isEmpty)
+        XCTAssertEqual(decoded.visibleNotationPartIDs, [.main])
+    }
+
 }

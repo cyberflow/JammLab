@@ -59,12 +59,14 @@ struct NotationRegionLabel: Identifiable, Equatable {
 }
 
 struct NotationMeasureSelection: Equatable, Identifiable {
+    var partID: NotationPartID
     var number: Int
     var startTime: TimeInterval
     var endTime: TimeInterval
     var attributes: MeasureAttributes
 
-    init(measure: ScoreMeasure) {
+    init(measure: ScoreMeasure, partID: NotationPartID = .main) {
+        self.partID = partID
         self.number = measure.number
         self.startTime = measure.startTime
         self.endTime = measure.endTime
@@ -72,17 +74,23 @@ struct NotationMeasureSelection: Equatable, Identifiable {
     }
 
     var id: String {
-        "\(number)-\(startTime)-\(endTime)"
+        "\(partID.rawValue)-\(number)-\(startTime)-\(endTime)"
     }
 
     func matches(_ measure: ScoreMeasure) -> Bool {
-        number == measure.number
+        matches(measure, partID: partID)
+    }
+
+    func matches(_ measure: ScoreMeasure, partID: NotationPartID) -> Bool {
+        self.partID == partID
+            && number == measure.number
             && abs(startTime - measure.startTime) < NotationMeasureTiming.timelineTolerance
             && abs(endTime - measure.endTime) < NotationMeasureTiming.timelineTolerance
     }
 }
 
 struct NotationItemSelection: Equatable, Identifiable {
+    var partID: NotationPartID
     var measureNumber: Int
     var measureStartTime: TimeInterval
     var measureEndTime: TimeInterval
@@ -91,7 +99,8 @@ struct NotationItemSelection: Equatable, Identifiable {
     var offsetInQuarterNotes: Double
     var durationInQuarterNotes: Double
 
-    init(measure: ScoreMeasure, item: NotationMeasureItem) {
+    init(measure: ScoreMeasure, item: NotationMeasureItem, partID: NotationPartID? = nil) {
+        self.partID = partID ?? item.partID
         self.measureNumber = measure.number
         self.measureStartTime = measure.startTime
         self.measureEndTime = measure.endTime
@@ -102,11 +111,12 @@ struct NotationItemSelection: Equatable, Identifiable {
     }
 
     var id: String {
-        "\(measureNumber)-\(measureStartTime)-\(measureEndTime)-\(itemID)-\(offsetInQuarterNotes)-\(durationInQuarterNotes)"
+        "\(partID.rawValue)-\(measureNumber)-\(measureStartTime)-\(measureEndTime)-\(itemID)-\(offsetInQuarterNotes)-\(durationInQuarterNotes)"
     }
 
     func matches(_ measure: ScoreMeasure, item: NotationMeasureItem) -> Bool {
-        measureNumber == measure.number
+        item.partID == partID
+            && measureNumber == measure.number
             && abs(measureStartTime - measure.startTime) < NotationMeasureTiming.timelineTolerance
             && abs(measureEndTime - measure.endTime) < NotationMeasureTiming.timelineTolerance
             && attributes == measure.attributes
@@ -136,6 +146,38 @@ struct NotationMeasureClipboardNotationItem: Equatable {
     var offsetInQuarterNotes: Double
     var durationInQuarterNotes: Double
     var displayDuration: NotationDuration
+}
+
+struct NotationPartID: Codable, Hashable, Identifiable, Equatable {
+    var rawValue: String
+
+    var id: String { rawValue }
+
+    static let main = NotationPartID(rawValue: "main")
+
+    static func stem(_ type: StemType) -> NotationPartID {
+        NotationPartID(rawValue: "stem:\(type.rawValue)")
+    }
+
+    var stemType: StemType? {
+        guard rawValue.hasPrefix("stem:") else { return nil }
+        return StemType(rawValue: String(rawValue.dropFirst("stem:".count)))
+    }
+
+    var isMain: Bool {
+        self == .main
+    }
+}
+
+struct NotationPartDescriptor: Codable, Equatable, Identifiable {
+    var id: NotationPartID
+    var title: String
+
+    static let main = NotationPartDescriptor(id: .main, title: "Main")
+
+    static func stem(_ type: StemType) -> NotationPartDescriptor {
+        NotationPartDescriptor(id: .stem(type), title: type.title)
+    }
 }
 
 enum NotationMeasureTiming {
@@ -260,6 +302,7 @@ struct NotationMeasureItem: Identifiable, Codable, Equatable {
     }
 
     var id: String
+    var partID: NotationPartID
     var kind: Kind
     var pitch: NotationPitch?
     var measureNumber: Int
@@ -271,6 +314,7 @@ struct NotationMeasureItem: Identifiable, Codable, Equatable {
 
     init(
         id: String = UUID().uuidString,
+        partID: NotationPartID = .main,
         kind: Kind = .rest,
         pitch: NotationPitch? = nil,
         measureNumber: Int,
@@ -281,6 +325,7 @@ struct NotationMeasureItem: Identifiable, Codable, Equatable {
         isSynthesized: Bool = false
     ) {
         self.id = id
+        self.partID = partID
         self.kind = kind
         self.pitch = kind == .note ? pitch : nil
         self.measureNumber = measureNumber
@@ -302,6 +347,7 @@ struct NotationMeasureItem: Identifiable, Codable, Equatable {
     func persistedCopy() -> NotationMeasureItem {
         NotationMeasureItem(
             id: isSynthesized ? UUID().uuidString : id,
+            partID: partID,
             kind: kind,
             pitch: pitch,
             measureNumber: measureNumber,
@@ -314,6 +360,7 @@ struct NotationMeasureItem: Identifiable, Codable, Equatable {
 
     private enum CodingKeys: String, CodingKey {
         case id
+        case partID
         case kind
         case pitch
         case measureNumber
@@ -327,6 +374,7 @@ struct NotationMeasureItem: Identifiable, Codable, Equatable {
     init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
         id = try container.decodeIfPresent(String.self, forKey: .id) ?? UUID().uuidString
+        partID = try container.decodeIfPresent(NotationPartID.self, forKey: .partID) ?? .main
         kind = try container.decodeIfPresent(Kind.self, forKey: .kind) ?? .rest
         let decodedPitch = try container.decodeIfPresent(NotationPitch.self, forKey: .pitch)
         pitch = kind == .note ? decodedPitch : nil
@@ -503,6 +551,7 @@ enum NotationRestItemFactory {
         measureStartTime: TimeInterval,
         startOffset: Double,
         remaining: Double,
+        partID: NotationPartID = .main,
         isSynthesized: Bool = false,
         includeTail: Bool = false,
         id: (Segment) -> String? = { _ in nil }
@@ -511,6 +560,7 @@ enum NotationRestItemFactory {
             .map { segment in
                 restItem(
                     id: id(segment),
+                    partID: partID,
                     measureNumber: measureNumber,
                     measureStartTime: measureStartTime,
                     offsetInQuarterNotes: segment.offsetInQuarterNotes,
@@ -523,6 +573,7 @@ enum NotationRestItemFactory {
 
     static func restItem(
         id: String? = nil,
+        partID: NotationPartID = .main,
         measureNumber: Int,
         measureStartTime: TimeInterval,
         offsetInQuarterNotes: Double,
@@ -533,6 +584,7 @@ enum NotationRestItemFactory {
         if let id {
             return NotationMeasureItem(
                 id: id,
+                partID: partID,
                 measureNumber: measureNumber,
                 measureStartTime: measureStartTime,
                 offsetInQuarterNotes: offsetInQuarterNotes,
@@ -543,6 +595,7 @@ enum NotationRestItemFactory {
         }
 
         return NotationMeasureItem(
+            partID: partID,
             measureNumber: measureNumber,
             measureStartTime: measureStartTime,
             offsetInQuarterNotes: offsetInQuarterNotes,

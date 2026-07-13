@@ -137,6 +137,7 @@ struct ProjectStateNormalizer {
             .map { item in
                 NotationMeasureItem(
                     id: item.id,
+                    partID: item.partID,
                     kind: item.kind,
                     pitch: item.kind == .note ? item.pitch : nil,
                     measureNumber: max(1, item.measureNumber),
@@ -148,6 +149,10 @@ struct ProjectStateNormalizer {
                 )
             }
             .sorted {
+                if $0.partID.rawValue != $1.partID.rawValue {
+                    return notationPartSortKey($0.partID) < notationPartSortKey($1.partID)
+                }
+
                 if $0.measureNumber != $1.measureNumber {
                     return $0.measureNumber < $1.measureNumber
                 }
@@ -162,6 +167,19 @@ struct ProjectStateNormalizer {
 
                 return $0.id < $1.id
             }
+    }
+
+    private static func notationPartSortKey(_ partID: NotationPartID) -> String {
+        if partID == .main {
+            return "0-main"
+        }
+
+        if let stemType = partID.stemType,
+           let index = StemType.allCases.firstIndex(of: stemType) {
+            return "1-\(String(format: "%02d", index))-\(stemType.rawValue)"
+        }
+
+        return "9-\(partID.rawValue)"
     }
 
     static func normalizedNote(_ note: TimecodedNote, duration: TimeInterval) -> TimecodedNote {

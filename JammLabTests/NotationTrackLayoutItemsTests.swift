@@ -2,6 +2,119 @@ import XCTest
 @testable import JammLab
 
 final class NotationTrackLayoutItemsTests: XCTestCase {
+    func testTimelineNotationActionAdapterSuppressesOnlyStemHarmonyActions() {
+        let recorder = TimelineNotationActionRecorder()
+        let actions = timelineViewActions(recorder: recorder)
+        let mainActions = actions.notationTrackActions(allowsHarmony: true)
+        let stemActions = actions.notationTrackActions(allowsHarmony: false)
+        let harmony = HarmonySymbol(
+            time: 0,
+            measureNumber: 1,
+            offsetInQuarterNotes: 0,
+            rawText: "C"
+        )
+        let measure = ScoreMeasure(
+            number: 1,
+            startTime: 0,
+            endTime: 2,
+            attributes: .defaultTreble
+        )
+        let notePlacement = NotationNotePlacement(
+            measure: measure,
+            targetRestID: "rest",
+            offsetInQuarterNotes: 0,
+            durationInQuarterNotes: 1,
+            displayDuration: NotationDuration(denominator: 4),
+            pitch: NotationPitch(step: .c, octave: 4),
+            x: 0,
+            y: 0
+        )
+        let restPlacement = NotationRestPlacement(
+            measure: measure,
+            targetRestID: "rest",
+            offsetInQuarterNotes: 0,
+            durationInQuarterNotes: 1,
+            displayDuration: NotationDuration(denominator: 4),
+            x: 0
+        )
+
+        mainActions.selectHarmony(harmony.id)
+        mainActions.saveHarmony(harmony)
+        mainActions.deleteHarmony(harmony.id)
+        _ = mainActions.adjacentHarmonyPlacement(0, .next)
+        stemActions.selectHarmony(harmony.id)
+        stemActions.saveHarmony(harmony)
+        stemActions.deleteHarmony(harmony.id)
+        _ = stemActions.adjacentHarmonyPlacement(0, .next)
+
+        mainActions.selectMeasure(nil, false, .main)
+        stemActions.selectMeasure(nil, false, .stem(.bass))
+        mainActions.selectItem(nil, false)
+        stemActions.selectItem(nil, false)
+        mainActions.locatePlaybackMarkerExactly(1)
+        stemActions.locatePlaybackMarkerExactly(2)
+        XCTAssertTrue(mainActions.insertNotationNote(notePlacement))
+        XCTAssertTrue(stemActions.insertNotationNote(notePlacement))
+        XCTAssertTrue(mainActions.insertNotationRest(restPlacement))
+        XCTAssertTrue(stemActions.insertNotationRest(restPlacement))
+        XCTAssertTrue(mainActions.deleteSelectedNotationNote())
+        XCTAssertTrue(stemActions.deleteSelectedNotationNote())
+
+        XCTAssertEqual(recorder.harmonyCallCount, 4)
+        XCTAssertEqual(recorder.measureSelectionCount, 2)
+        XCTAssertEqual(recorder.itemSelectionCount, 2)
+        XCTAssertEqual(recorder.playbackLocationCount, 2)
+        XCTAssertEqual(recorder.notationInsertionCount, 4)
+        XCTAssertEqual(recorder.deleteNotationCount, 2)
+    }
+
+    func testSelectedMeasureIndicesOnlyMatchTheRenderedPart() {
+        let measure = ScoreMeasure(
+            number: 1,
+            startTime: 0,
+            endTime: 2,
+            attributes: .defaultTreble
+        )
+        let bassSelection = NotationMeasureSelection(
+            measure: measure,
+            partID: .stem(.bass)
+        )
+
+        XCTAssertEqual(
+            NotationTrackLayoutItems.selectedMeasureIndices(
+                visibleMeasures: [measure],
+                selectedMeasures: [bassSelection],
+                partID: .stem(.bass)
+            ),
+            [0]
+        )
+        XCTAssertTrue(
+            NotationTrackLayoutItems.selectedMeasureIndices(
+                visibleMeasures: [measure],
+                selectedMeasures: [bassSelection],
+                partID: .main
+            ).isEmpty
+        )
+
+        let mainAccessibilityValue = NotationTrackAccessibility.value(
+            visibleMeasures: [measure],
+            keySignature: .cMajor,
+            timeSignature: .fourFour,
+            selectedMeasures: [bassSelection],
+            partID: .main
+        )
+        let bassAccessibilityValue = NotationTrackAccessibility.value(
+            visibleMeasures: [measure],
+            keySignature: .cMajor,
+            timeSignature: .fourFour,
+            selectedMeasures: [bassSelection],
+            partID: .stem(.bass)
+        )
+
+        XCTAssertFalse(mainAccessibilityValue.contains("selected measure"))
+        XCTAssertTrue(bassAccessibilityValue.contains("selected measure 1"))
+    }
+
     func testNotationTrackLayoutItemsBuildsMeasureItemsFromPureInputs() throws {
         let geometry = NotationMeasureCanvasGeometry(
             measureIndex: 0,
@@ -107,4 +220,68 @@ final class NotationTrackLayoutItemsTests: XCTestCase {
             accuracy: 0.0001
         )
     }
+}
+
+private final class TimelineNotationActionRecorder {
+    var harmonyCallCount = 0
+    var measureSelectionCount = 0
+    var itemSelectionCount = 0
+    var playbackLocationCount = 0
+    var notationInsertionCount = 0
+    var deleteNotationCount = 0
+}
+
+private func timelineViewActions(
+    recorder: TimelineNotationActionRecorder
+) -> TimelineViewActions {
+    TimelineViewActions(
+        locatePlaybackMarker: { _ in },
+        locatePlaybackMarkerExactly: { _ in recorder.playbackLocationCount += 1 },
+        addNote: { _ in },
+        selectHarmony: { _ in recorder.harmonyCallCount += 1 },
+        selectNotationMeasure: { _, _, _ in recorder.measureSelectionCount += 1 },
+        selectNotationItem: { _, _ in recorder.itemSelectionCount += 1 },
+        saveHarmony: { _ in recorder.harmonyCallCount += 1 },
+        deleteHarmony: { _ in recorder.harmonyCallCount += 1 },
+        adjacentHarmonyPlacement: { _, _ in
+            recorder.harmonyCallCount += 1
+            return nil
+        },
+        addTempoTimeSignatureMarker: { _ in },
+        editNote: { _ in },
+        deleteNote: { _ in },
+        noteColorChanged: { _, _ in },
+        noteCustomColorChanged: { _, _ in },
+        markerTimeChanged: { _, _ in },
+        saveLoopRegion: {},
+        selectRegion: { _ in },
+        activateRegionAsLoop: { _ in },
+        focusRegion: { _ in },
+        regionRangeChanged: { _, _, _ in },
+        loopStartChanged: { _ in },
+        loopEndChanged: { _ in },
+        loopRegionChanged: { _, _ in },
+        timelineScroll: { _, _, _ in },
+        mainTrackVolumeChanged: { _ in },
+        notationTrackCollapsedChanged: { _ in },
+        stemNotationTrackCollapsedChanged: { _, _ in },
+        notationDurationChanged: { _ in },
+        notationNoteEntryModeToggled: {},
+        notationRestEntryModeToggled: {},
+        insertNotationNote: { _ in
+            recorder.notationInsertionCount += 1
+            return true
+        },
+        insertNotationRest: { _ in
+            recorder.notationInsertionCount += 1
+            return true
+        },
+        changeSelectedNotePitch: { _, _ in true },
+        auditionNotePitch: { _ in },
+        deleteSelectedNotationNote: {
+            recorder.deleteNotationCount += 1
+            return true
+        },
+        showNotationWindow: {}
+    )
 }

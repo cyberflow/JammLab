@@ -115,6 +115,8 @@ extension AudioPlayerViewModel {
         notes = []
         harmonySymbols = []
         notationItems = []
+        stemNotationTrackCollapsed = [:]
+        visibleNotationPartIDs = [.main]
         projectKeySelection = nil
         clearTransientEditingState()
         loopRegion = .empty
@@ -173,6 +175,8 @@ extension AudioPlayerViewModel {
         notes = []
         harmonySymbols = []
         notationItems = []
+        stemNotationTrackCollapsed = [:]
+        visibleNotationPartIDs = [.main]
         projectKeySelection = nil
         clearTransientEditingState()
         loopRegion = LoopRegion(start: 0, end: file.duration).clamped(to: file.duration)
@@ -272,6 +276,8 @@ extension AudioPlayerViewModel {
             setPlaybackMarkerExactly(to: restoredPlaybackMarkerTime)
             restoreVideoWindowOpenState(file.mediaKind == .video && project.isVideoWindowOpen == true)
             isNotationTrackCollapsed = project.isNotationTrackCollapsed ?? true
+            stemNotationTrackCollapsed = project.stemNotationTrackCollapsed
+            visibleNotationPartIDs = normalizedVisibleNotationPartIDs(from: project.visibleNotationPartIDs)
             isImporting = false
             clearUndoHistory()
             markProjectClean()
@@ -404,7 +410,9 @@ extension AudioPlayerViewModel {
             timelineVisibleRange: userTimelineVisibleRange,
             stemState: makeStemProjectState(),
             isVideoWindowOpen: isVideoWindowOpen,
-            isNotationTrackCollapsed: isNotationTrackCollapsed
+            isNotationTrackCollapsed: isNotationTrackCollapsed,
+            stemNotationTrackCollapsed: stemNotationTrackCollapsed,
+            visibleNotationPartIDs: normalizedVisibleNotationPartIDs()
         )
     }
 
