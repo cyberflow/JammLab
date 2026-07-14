@@ -53,7 +53,6 @@ struct NotationWindowView: View {
         HStack(spacing: AppTheme.Spacing.md) {
             NotationEntryModeButton(
                 mode: .note,
-                selectedDuration: NotationDuration(denominator: viewModel.notationDurationDenominator),
                 isActive: viewModel.isNotationNoteEntryModeEnabled
             ) {
                 viewModel.toggleNotationNoteEntryMode()
@@ -73,7 +72,6 @@ struct NotationWindowView: View {
 
             NotationEntryModeButton(
                 mode: .rest,
-                selectedDuration: NotationDuration(denominator: viewModel.notationDurationDenominator),
                 isActive: viewModel.isNotationRestEntryModeEnabled
             ) {
                 viewModel.toggleNotationRestEntryMode()

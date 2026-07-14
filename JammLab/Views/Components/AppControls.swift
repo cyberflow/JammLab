@@ -85,7 +85,6 @@ struct NotationDurationControl: View {
 
 struct NotationEntryModeButton: View {
     let mode: NotationEntryMode
-    let selectedDuration: NotationDuration
     let isActive: Bool
     let action: () -> Void
     @Environment(\.isEnabled) private var isEnabled
@@ -100,12 +99,10 @@ struct NotationEntryModeButton: View {
                         .font(.system(size: 14, weight: .semibold))
                         .foregroundStyle(iconColor)
                 case .rest:
-                    if let symbol = NotationSMuFLSymbol(duration: selectedDuration) {
-                        NotationRestControlGlyphView(
-                            symbol: symbol,
-                            color: iconColor
-                        )
-                    }
+                    NotationRestControlGlyphView(
+                        symbol: .restQuarter,
+                        color: iconColor
+                    )
                 }
             }
             .frame(

@@ -2,6 +2,17 @@ import XCTest
 @testable import JammLab
 
 final class NotationTrackLayoutItemsTests: XCTestCase {
+    func testNotationTrackTogglePresentationUsesConsistentIcons() {
+        XCTAssertEqual(
+            NotationTrackTogglePresentation.systemName(isCollapsed: true),
+            "music.note.list"
+        )
+        XCTAssertEqual(
+            NotationTrackTogglePresentation.systemName(isCollapsed: false),
+            "music.note"
+        )
+    }
+
     func testTimelineNotationActionAdapterSuppressesOnlyStemHarmonyActions() {
         let recorder = TimelineNotationActionRecorder()
         let actions = timelineViewActions(recorder: recorder)

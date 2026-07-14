@@ -133,7 +133,8 @@ final class MusicXMLNotationExportRenderer: NotationExportRenderer {
                 id: musicXMLPartID(for: index),
                 measures: exportPart.score.measures,
                 tempoBPM: index == 0 ? request.tempoBPM : nil,
-                includesAnnotations: exportPart.descriptor.id.isMain
+                includesRegionLabels: index == 0,
+                includesHarmonies: exportPart.descriptor.id.isMain
             ))
         }
 
@@ -212,7 +213,8 @@ final class MusicXMLNotationExportRenderer: NotationExportRenderer {
         id: String,
         measures: [ScoreMeasure],
         tempoBPM: Double?,
-        includesAnnotations: Bool
+        includesRegionLabels: Bool,
+        includesHarmonies: Bool
     ) throws -> XMLElement {
         let part = element("part", attributes: ["id": id])
         var previousAttributes: MeasureAttributes?
@@ -227,13 +229,15 @@ final class MusicXMLNotationExportRenderer: NotationExportRenderer {
                 measureElement.addChild(metronomeDirection)
             }
 
-            if includesAnnotations {
+            if includesRegionLabels {
                 for regionLabel in measure.regionLabels {
                     measureElement.addChild(regionDirection(for: regionLabel))
                 }
             }
 
-            let sortedHarmonies = includesAnnotations ? measure.harmonies.sorted(by: isHarmonyOrderedByNotationPosition) : []
+            let sortedHarmonies = includesHarmonies
+                ? measure.harmonies.sorted(by: isHarmonyOrderedByNotationPosition)
+                : []
             var harmonyIndex = sortedHarmonies.startIndex
             var notationCursorOffsetInQuarterNotes = 0.0
             let sortedItems = measure.notationItems.sorted(by: isNotationItemOrderedByNotationPosition)

@@ -2,7 +2,8 @@ import Foundation
 
 extension AudioPlayerViewModel {
     var canExportNotation: Bool {
-        let score = currentNotationExportScore()
+        guard let firstVisiblePart = visibleNotationParts.first else { return false }
+        let score = currentNotationExportScore(for: firstVisiblePart.id)
         return score.isReady && !score.measures.isEmpty
     }
 
@@ -59,20 +60,20 @@ extension AudioPlayerViewModel {
     }
 
     private func makeNotationExportRequest() throws -> NotationExportRequest {
-        let score = currentNotationExportScore()
-        guard score.isReady, !score.measures.isEmpty else {
+        let parts = currentNotationExportParts()
+        guard let firstPart = parts.first else {
             throw NotationExportError.emptyScore
         }
 
         return NotationExportRequest(
             displayName: notationExportDisplayName,
-            score: score,
-            parts: currentNotationExportParts(mainScore: score),
+            score: firstPart.score,
+            parts: parts,
             tempoBPM: beatGridSettings.bpm
         )
     }
 
-    private func currentNotationExportScore() -> NotationScoreState {
+    private func currentNotationExportScore(for partID: NotationPartID) -> NotationScoreState {
         NotationViewportFactory().scoreState(
             tempoMap: tempoMap,
             duration: duration,
@@ -80,29 +81,17 @@ extension AudioPlayerViewModel {
             playbackMarkerTime: playbackMarkerTime,
             isPlaying: playbackState == .playing,
             keyName: effectiveKeyName,
+            partID: partID,
+            includesHarmonies: partID.isMain,
             notationItems: notationItems,
             harmonySymbols: harmonySymbols,
             notes: notes
         )
     }
 
-    private func currentNotationExportParts(mainScore: NotationScoreState) -> [NotationExportPart] {
-        availableNotationParts.compactMap { part in
-            let score = part.id.isMain
-                ? mainScore
-                : NotationViewportFactory().scoreState(
-                    tempoMap: tempoMap,
-                    duration: duration,
-                    currentTime: currentTime,
-                    playbackMarkerTime: playbackMarkerTime,
-                    isPlaying: playbackState == .playing,
-                    keyName: effectiveKeyName,
-                    partID: part.id,
-                    includesHarmonies: false,
-                    notationItems: notationItems,
-                    harmonySymbols: harmonySymbols,
-                    notes: notes
-                )
+    private func currentNotationExportParts() -> [NotationExportPart] {
+        visibleNotationParts.compactMap { part in
+            let score = currentNotationExportScore(for: part.id)
             guard score.isReady, !score.measures.isEmpty else { return nil }
             return NotationExportPart(descriptor: part, score: score)
         }

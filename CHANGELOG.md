@@ -15,6 +15,7 @@ development artifact builds use `vMAJOR.MINOR.PATCH-dev.N`.
 - Added clearer hover tooltips and numpad shortcuts for Notation duration buttons.
 - Added a bar/beat position readout to the transport time display.
 - Fixed multi-part Notation accessibility selection announcements and prevented harmony editing from clearing a selected stem note.
+- Stabilized the Rest entry icon, matched Notation track controls, aligned stem Mute/Solo buttons, and limited MusicXML export to the selected Parts.
 
 ## 1.1.0
 

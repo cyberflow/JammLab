@@ -161,3 +161,38 @@ Do not spawn `test_reviewer` for pure analysis-only tasks, DISCUSS mode, documen
 
 The main agent owns the final decision.
 The main agent must not silently ignore `test_reviewer` findings.
+
+## Maintainability review workflow
+
+For implementation tasks that create, modify, rename, or delete source files, project files, or behavior-affecting configuration:
+
+1. After the implementation is complete and before the final report, spawn the `maintainability_reviewer` subagent.
+2. The `maintainability_reviewer` subagent must be read-only and must not edit files.
+3. Ask `maintainability_reviewer` to review:
+   - maintainability risks;
+   - avoidable complexity;
+   - duplicated logic;
+   - unclear ownership boundaries;
+   - unnecessary coupling;
+   - premature or weak abstractions;
+   - oversized functions, types, SwiftUI views, services, or managers;
+   - duplicated or inconsistent state;
+   - whether a smaller refactor should be done before finalizing.
+4. Wait for the review result.
+5. Address valid maintainability reviewer findings before the final report when the fix is in scope.
+6. If a reviewer finding is rejected or deferred, explain why briefly in the final report.
+
+Use `maintainability_reviewer` especially for changes involving:
+- SwiftUI views or custom controls;
+- state management;
+- timeline, waveform, markers, regions, notation, harmony, or MusicXML logic;
+- AVAudioEngine, AVFoundation, CoreAudio, playback, timing, BPM/key detection, or metronome logic;
+- persistence, project loading/saving, import/export, or migrations;
+- refactoring tasks;
+- new services, managers, protocols, models, or shared utilities;
+- changes that touch several files or architectural boundaries.
+
+Do not spawn `maintainability_reviewer` for pure analysis-only tasks, DISCUSS mode, documentation-only edits, comment-only edits, formatting-only changes, or trivial one-line fixes unless maintainability/refactoring review is explicitly requested.
+
+The main agent owns the final decision.
+The main agent must not silently ignore `maintainability_reviewer` findings.

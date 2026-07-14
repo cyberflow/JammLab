@@ -118,6 +118,12 @@ extension TimelineViewActions {
     }
 }
 
+enum NotationTrackTogglePresentation {
+    static func systemName(isCollapsed: Bool) -> String {
+        isCollapsed ? "music.note.list" : "music.note"
+    }
+}
+
 struct StemTrackActions {
     var volumeChanged: (StemType, Float) -> Void
     var muteToggled: (StemType) -> Void
@@ -378,7 +384,6 @@ struct WaveformTimelineView: View {
                 HStack(spacing: AppTheme.Spacing.xs) {
                     NotationEntryModeButton(
                         mode: .note,
-                        selectedDuration: NotationDuration(denominator: state.notationDurationDenominator),
                         isActive: isNotationNoteEntryModeEnabled
                     ) {
                         actions.notationNoteEntryModeToggled()
@@ -390,7 +395,6 @@ struct WaveformTimelineView: View {
 
                     NotationEntryModeButton(
                         mode: .rest,
-                        selectedDuration: NotationDuration(denominator: state.notationDurationDenominator),
                         isActive: isNotationRestEntryModeEnabled
                     ) {
                         actions.notationRestEntryModeToggled()
@@ -416,7 +420,9 @@ struct WaveformTimelineView: View {
             Spacer(minLength: AppTheme.Spacing.sm)
 
             TimelineIconButton(
-                systemName: state.isNotationTrackCollapsed ? "plus" : "minus",
+                systemName: NotationTrackTogglePresentation.systemName(
+                    isCollapsed: state.isNotationTrackCollapsed
+                ),
                 helpText: notationTrackToggleHelpText,
                 accessibilityLabel: notationTrackToggleHelpText,
                 accessibilityValue: state.isNotationTrackCollapsed ? "Collapsed" : "Expanded"
@@ -613,27 +619,31 @@ private struct StemTracksSection: View {
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)
 
-                AppLetterToggleButton(
-                    title: "M",
-                    isActive: item.isMuted,
-                    activeFillColor: appColors.statusButtonCriticalFill,
-                    inactiveTextColor: appColors.statusButtonCriticalFill
-                ) {
-                    actions.muteToggled(type)
-                }
-                .disabled(!isRowEnabled)
-                .help(ControlHelpText.muteTrack(type.title))
-                .accessibilityLabel("Mute \(type.title)")
+                HStack(spacing: AppTheme.Spacing.md) {
+                    AppLetterToggleButton(
+                        title: "M",
+                        isActive: item.isMuted,
+                        activeFillColor: appColors.statusButtonCriticalFill,
+                        inactiveTextColor: appColors.statusButtonCriticalFill
+                    ) {
+                        actions.muteToggled(type)
+                    }
+                    .disabled(!isRowEnabled)
+                    .help(ControlHelpText.muteTrack(type.title))
+                    .accessibilityLabel("Mute \(type.title)")
 
-                TimelineIconButton(
-                    systemName: isNotationCollapsed(type) ? "music.note.list" : "music.note",
-                    helpText: notationToggleHelpText(type),
-                    accessibilityLabel: notationToggleHelpText(type),
-                    accessibilityValue: isNotationCollapsed(type) ? "Collapsed" : "Expanded"
-                ) {
-                    notationActions.stemNotationTrackCollapsedChanged(type, !isNotationCollapsed(type))
+                    TimelineIconButton(
+                        systemName: NotationTrackTogglePresentation.systemName(
+                            isCollapsed: isNotationCollapsed(type)
+                        ),
+                        helpText: notationToggleHelpText(type),
+                        accessibilityLabel: notationToggleHelpText(type),
+                        accessibilityValue: isNotationCollapsed(type) ? "Collapsed" : "Expanded"
+                    ) {
+                        notationActions.stemNotationTrackCollapsedChanged(type, !isNotationCollapsed(type))
+                    }
+                    .disabled(!item.isAvailable)
                 }
-                .disabled(!item.isAvailable)
             }
 
             HStack(spacing: AppTheme.Spacing.md) {
@@ -660,17 +670,27 @@ private struct StemTracksSection: View {
 
                 Spacer(minLength: AppTheme.Spacing.none)
 
-                AppLetterToggleButton(
-                    title: "S",
-                    isActive: item.isSoloed,
-                    activeFillColor: appColors.statusButtonAttentionFill,
-                    inactiveTextColor: appColors.statusButtonAttentionFill
-                ) {
-                    actions.soloToggled(type)
+                HStack(spacing: AppTheme.Spacing.md) {
+                    AppLetterToggleButton(
+                        title: "S",
+                        isActive: item.isSoloed,
+                        activeFillColor: appColors.statusButtonAttentionFill,
+                        inactiveTextColor: appColors.statusButtonAttentionFill
+                    ) {
+                        actions.soloToggled(type)
+                    }
+                    .disabled(!isRowEnabled)
+                    .help(ControlHelpText.soloTrack(type.title))
+                    .accessibilityLabel("Solo \(type.title)")
+
+                    Color.clear
+                        .frame(
+                            width: AppTheme.Timeline.viewportControlButtonSize,
+                            height: AppTheme.Timeline.viewportControlButtonSize
+                        )
+                        .allowsHitTesting(false)
+                        .accessibilityHidden(true)
                 }
-                .disabled(!isRowEnabled)
-                .help(ControlHelpText.soloTrack(type.title))
-                .accessibilityLabel("Solo \(type.title)")
             }
         }
         .padding(.horizontal, AppTheme.Spacing.md)
@@ -724,7 +744,6 @@ private struct StemTracksSection: View {
             HStack(spacing: AppTheme.Spacing.xs) {
                 NotationEntryModeButton(
                     mode: .note,
-                    selectedDuration: selectedDuration,
                     isActive: entryMode == .note
                 ) {
                     notationActions.notationNoteEntryModeToggled()
@@ -735,7 +754,6 @@ private struct StemTracksSection: View {
 
                 NotationEntryModeButton(
                     mode: .rest,
-                    selectedDuration: selectedDuration,
                     isActive: entryMode == .rest
                 ) {
                     notationActions.notationRestEntryModeToggled()
