@@ -90,10 +90,15 @@ extension AudioPlayerViewModel {
     }
 
     func toggleNotationRestEntryMode() {
-        setNotationEntryMode(isNotationRestEntryModeEnabled ? nil : .rest)
+        setNotationRestEntryModeEnabled(!isNotationRestEntryModeEnabled)
     }
 
     func setNotationRestEntryModeEnabled(_ isEnabled: Bool) {
+        if isEnabled, duration > 0 {
+            _ = replaceSelectedNotationNoteWithRest(
+                undoActionName: "Convert Notation Note to Rest"
+            )
+        }
         setNotationEntryMode(isEnabled ? .rest : nil)
     }
 
@@ -413,6 +418,15 @@ extension AudioPlayerViewModel {
 
     @discardableResult
     func deleteSelectedNotationNote() -> Bool {
+        replaceSelectedNotationNoteWithRest(
+            undoActionName: "Delete Notation Note"
+        )
+    }
+
+    @discardableResult
+    private func replaceSelectedNotationNoteWithRest(
+        undoActionName: String
+    ) -> Bool {
         guard let selection = selectedNotationItem,
               let match = notationItemMatch(for: selection),
               match.item.kind == .note
@@ -434,7 +448,7 @@ extension AudioPlayerViewModel {
             displayDuration: item.displayDuration
         )
 
-        performUndoableEdit("Delete Notation Note") {
+        performUndoableEdit(undoActionName) {
             replaceNotationItem(
                 in: measure,
                 matching: item,
@@ -970,8 +984,11 @@ extension AudioPlayerViewModel {
         matching targetItem: NotationMeasureItem,
         with replacementItem: NotationMeasureItem
     ) {
-        let updatedItems = measure.notationItems.map { item in
-            item.id == targetItem.id && item.partID == targetItem.partID ? replacementItem : item.persistedCopy()
+        let updatedItems = measure.notationItems.compactMap { item in
+            if item.id == targetItem.id && item.partID == targetItem.partID {
+                return replacementItem
+            }
+            return item.isSynthesized ? nil : item.persistedCopy()
         }
         replaceNotationMeasureItems(in: measure, with: updatedItems)
     }

@@ -791,6 +791,134 @@ final class ViewModelNotationDurationSelectionTests: XCTestCase {
     }
 
     @MainActor
+    func testEnablingRestEntryModeReplacesSelectedNoteWithoutChangingOtherMeasureItems() throws {
+        let viewModel = try loadedNotationViewModel(duration: 8)
+        let selectedNote = NotationMeasureItem(
+            id: "selected-eighth-note",
+            kind: .note,
+            pitch: NotationPitch(step: .e, octave: 4),
+            measureNumber: 1,
+            measureStartTime: 0,
+            offsetInQuarterNotes: 0,
+            durationInQuarterNotes: 0.5,
+            displayDuration: NotationDuration(denominator: 8)
+        )
+        let otherItems = [
+            NotationMeasureItem(
+                id: "eighth-rest",
+                measureNumber: 1,
+                measureStartTime: 0,
+                offsetInQuarterNotes: 0.5,
+                durationInQuarterNotes: 0.5,
+                displayDuration: NotationDuration(denominator: 8)
+            ),
+            NotationMeasureItem(
+                id: "other-quarter-note",
+                kind: .note,
+                pitch: NotationPitch(step: .g, octave: 4),
+                measureNumber: 1,
+                measureStartTime: 0,
+                offsetInQuarterNotes: 1,
+                durationInQuarterNotes: 1,
+                displayDuration: NotationDuration(denominator: 4)
+            ),
+            NotationMeasureItem(
+                id: "half-rest",
+                measureNumber: 1,
+                measureStartTime: 0,
+                offsetInQuarterNotes: 2,
+                durationInQuarterNotes: 2,
+                displayDuration: NotationDuration(denominator: 2)
+            )
+        ]
+        viewModel.notationItems = [selectedNote] + otherItems
+        let undoManager = UndoManager()
+        viewModel.undoManager = undoManager
+        let measure = try notationMeasure(1, in: viewModel)
+        let selectedItem = try XCTUnwrap(
+            measure.notationItems.first { $0.id == selectedNote.id }
+        )
+        viewModel.selectNotationItem(
+            NotationItemSelection(measure: measure, item: selectedItem),
+            shouldAudition: false
+        )
+        viewModel.markProjectClean()
+
+        viewModel.toggleNotationRestEntryMode()
+
+        let updatedMeasure = try notationMeasure(1, in: viewModel)
+        let replacementRest = try XCTUnwrap(
+            updatedMeasure.notationItems.first { $0.id == selectedNote.id }
+        )
+        XCTAssertEqual(replacementRest.kind, .rest)
+        XCTAssertNil(replacementRest.pitch)
+        XCTAssertEqual(replacementRest.offsetInQuarterNotes, selectedNote.offsetInQuarterNotes)
+        XCTAssertEqual(replacementRest.durationInQuarterNotes, selectedNote.durationInQuarterNotes)
+        XCTAssertEqual(replacementRest.displayDuration, selectedNote.displayDuration)
+        XCTAssertEqual(
+            updatedMeasure.notationItems.filter { $0.id != selectedNote.id },
+            otherItems
+        )
+        XCTAssertEqual(viewModel.notationEntryMode, .rest)
+        XCTAssertNil(viewModel.selectedNotationItem)
+        XCTAssertTrue(viewModel.isProjectModified)
+        XCTAssertTrue(viewModel.canUndo)
+
+        viewModel.undoLastEdit()
+
+        let restoredMeasure = try notationMeasure(1, in: viewModel)
+        XCTAssertEqual(
+            restoredMeasure.notationItems.first { $0.id == selectedNote.id },
+            selectedNote
+        )
+        XCTAssertEqual(
+            restoredMeasure.notationItems.filter { $0.id != selectedNote.id },
+            otherItems
+        )
+    }
+
+    @MainActor
+    func testEnablingRestEntryModePreservesSynthesizedNeighboringRests() throws {
+        let viewModel = try loadedNotationViewModel(duration: 8)
+        let note = NotationMeasureItem(
+            id: "explicit-quarter-note",
+            kind: .note,
+            pitch: NotationPitch(step: .e, octave: 4),
+            measureNumber: 1,
+            measureStartTime: 0,
+            offsetInQuarterNotes: 0,
+            durationInQuarterNotes: 1,
+            displayDuration: NotationDuration(denominator: 4)
+        )
+        viewModel.notationItems = [note]
+        let measureBeforeConversion = try notationMeasure(1, in: viewModel)
+        let selectedNote = try XCTUnwrap(
+            measureBeforeConversion.notationItems.first { $0.id == note.id }
+        )
+        let synthesizedNeighbors = measureBeforeConversion.notationItems.filter {
+            $0.id != note.id
+        }
+        XCTAssertFalse(synthesizedNeighbors.isEmpty)
+        XCTAssertTrue(synthesizedNeighbors.allSatisfy(\.isSynthesized))
+        viewModel.selectNotationItem(
+            NotationItemSelection(measure: measureBeforeConversion, item: selectedNote),
+            shouldAudition: false
+        )
+
+        viewModel.toggleNotationRestEntryMode()
+
+        let convertedMeasure = try notationMeasure(1, in: viewModel)
+        XCTAssertEqual(
+            convertedMeasure.notationItems.filter { $0.id != note.id },
+            synthesizedNeighbors
+        )
+        XCTAssertEqual(
+            convertedMeasure.notationItems.first { $0.id == note.id }?.kind,
+            .rest
+        )
+    }
+
+    @MainActor
     func testDeletingSelectedNotationRestIsNoOp() throws {
         let viewModel = try loadedNotationViewModel(duration: 8)
         let note = try insertQuarterNote(
