@@ -70,6 +70,7 @@ final class ViewModelNotationExportTests: XCTestCase {
         viewModel.notes = [
             TimecodedNote(kind: .region, time: 0.5, duration: 2, title: "Intro")
         ]
+        viewModel.notationPartClefs[.stem(.bass)] = .bass
         viewModel.visibleNotationPartIDs = [.main, .stem(.bass)]
         let outputURL = FileManager.default.temporaryDirectory
             .appendingPathComponent("notation-stem-export-\(UUID().uuidString)")
@@ -82,6 +83,9 @@ final class ViewModelNotationExportTests: XCTestCase {
         let xml = try String(contentsOf: outputURL, encoding: .utf8)
         XCTAssertTrue(xml.contains("<part-name>Bass Guitar</part-name>"))
         XCTAssertTrue(xml.contains("<step>E</step>"))
+        XCTAssertTrue(xml.contains("<octave>2</octave>"))
+        XCTAssertTrue(xml.contains("<sign>F</sign>"))
+        XCTAssertTrue(xml.contains("<line>4</line>"))
         XCTAssertEqual(xml.components(separatedBy: ">Intro</words>").count - 1, 1)
     }
 

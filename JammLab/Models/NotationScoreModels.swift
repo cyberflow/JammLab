@@ -465,6 +465,18 @@ enum NotationPitchStep: String, Codable, CaseIterable, Equatable {
     case g = "G"
     case a = "A"
     case b = "B"
+
+    var diatonicIndex: Int {
+        switch self {
+        case .c: return 0
+        case .d: return 1
+        case .e: return 2
+        case .f: return 3
+        case .g: return 4
+        case .a: return 5
+        case .b: return 6
+        }
+    }
 }
 
 struct NotationPitch: Codable, Equatable {
@@ -502,71 +514,61 @@ struct NotationPitch: Codable, Equatable {
 }
 
 enum NotationPitchMapper {
-    private static let staffPitches: [NotationPitch] = [
-        NotationPitch(step: .d, octave: 6),
-        NotationPitch(step: .c, octave: 6),
-        NotationPitch(step: .b, octave: 5),
-        NotationPitch(step: .a, octave: 5),
-        NotationPitch(step: .g, octave: 5),
-        NotationPitch(step: .f, octave: 5),
-        NotationPitch(step: .e, octave: 5),
-        NotationPitch(step: .d, octave: 5),
-        NotationPitch(step: .c, octave: 5),
-        NotationPitch(step: .b, octave: 4),
-        NotationPitch(step: .a, octave: 4),
-        NotationPitch(step: .g, octave: 4),
-        NotationPitch(step: .f, octave: 4),
-        NotationPitch(step: .e, octave: 4),
-        NotationPitch(step: .d, octave: 4),
-        NotationPitch(step: .c, octave: 4),
-        NotationPitch(step: .b, octave: 3),
-        NotationPitch(step: .a, octave: 3),
-        NotationPitch(step: .g, octave: 3)
-    ]
+    static var minimumStaffPosition: Int {
+        Clef.treble.notationMetrics.editableStaffPositionRange.lowerBound
+    }
 
-    static let minimumStaffPosition = -5
-    static let maximumStaffPosition = 13
+    static var maximumStaffPosition: Int {
+        Clef.treble.notationMetrics.editableStaffPositionRange.upperBound
+    }
+
+    static func editableStaffPositionRange(for clef: Clef) -> ClosedRange<Int> {
+        clef.notationMetrics.editableStaffPositionRange
+    }
 
     static func pitch(
         forStaffPosition staffPosition: Int,
-        keySignature: KeySignature
+        keySignature: KeySignature,
+        clef: Clef = .treble
     ) -> NotationPitch {
-        let clampedPosition = min(maximumStaffPosition, max(minimumStaffPosition, staffPosition))
-        let index = clampedPosition - minimumStaffPosition
-        var pitch = staffPitches[index]
+        let range = editableStaffPositionRange(for: clef)
+        let clampedPosition = min(range.upperBound, max(range.lowerBound, staffPosition))
+        let ordinal = clef.notationMetrics.topLineDiatonicOrdinal - clampedPosition
+        let octave = Int(floor(Double(ordinal) / Double(NotationPitchStep.allCases.count)))
+        let stepIndex = ordinal - octave * NotationPitchStep.allCases.count
+        var pitch = NotationPitch(
+            step: NotationPitchStep.allCases[stepIndex],
+            octave: octave
+        )
         pitch.alter = keySignature.defaultAlter(for: pitch.step)
         return pitch
     }
 
-    static func staffPosition(for pitch: NotationPitch) -> Int? {
-        staffPitches.firstIndex {
-            $0.step == pitch.step && $0.octave == pitch.octave
-        }.map {
-            $0 + minimumStaffPosition
-        }
+    static func staffPosition(for pitch: NotationPitch, clef: Clef = .treble) -> Int {
+        let ordinal = pitch.octave * NotationPitchStep.allCases.count + pitch.step.diatonicIndex
+        return clef.notationMetrics.topLineDiatonicOrdinal - ordinal
     }
 
     static func adjacentPitch(
         from pitch: NotationPitch,
         staffPositionDelta: Int,
-        keySignature: KeySignature
+        keySignature: KeySignature,
+        clef: Clef = .treble
     ) -> NotationPitch? {
-        guard staffPositionDelta != 0,
-              let currentPosition = staffPosition(for: pitch)
-        else {
-            return nil
-        }
+        guard staffPositionDelta != 0 else { return nil }
 
+        let currentPosition = staffPosition(for: pitch, clef: clef)
         let targetPosition = currentPosition + staffPositionDelta
-        guard targetPosition >= minimumStaffPosition,
-              targetPosition <= maximumStaffPosition
+        let range = editableStaffPositionRange(for: clef)
+        guard range.contains(targetPosition)
         else {
             return nil
         }
 
         return self.pitch(
             forStaffPosition: targetPosition,
-            keySignature: keySignature
+            keySignature: keySignature,
+            clef: clef
         )
     }
 }
@@ -717,17 +719,21 @@ struct KeySignature: Equatable {
     }
 
     func notationAccidentalGlyphs(for clef: Clef) -> [KeySignatureAccidental] {
-        switch clef {
-        case .treble:
-            if fifths > 0 {
-                return Array(Self.trebleSharpAccidentals.prefix(accidentalCount))
-            }
-
-            if fifths < 0 {
-                return Array(Self.trebleFlatAccidentals.prefix(accidentalCount))
-            }
-
+        let source: ArraySlice<KeySignatureAccidental>
+        if fifths > 0 {
+            source = Self.trebleSharpAccidentals.prefix(accidentalCount)
+        } else if fifths < 0 {
+            source = Self.trebleFlatAccidentals.prefix(accidentalCount)
+        } else {
             return []
+        }
+
+        let positionOffset = clef.notationMetrics.keySignatureStaffPositionOffset
+        return source.map { accidental in
+            KeySignatureAccidental(
+                symbol: accidental.symbol,
+                staffPositionFromTopLine: accidental.staffPositionFromTopLine + positionOffset
+            )
         }
     }
 
@@ -850,18 +856,69 @@ struct KeySignature: Equatable {
     ]
 }
 
-enum Clef: String, Equatable {
+struct NotationClefMetrics: Equatable {
+    let editableStaffPositionRange: ClosedRange<Int>
+    let topLineDiatonicOrdinal: Int
+    let keySignatureStaffPositionOffset: Int
+    let storedPitchOctaveOffset: Int
+}
+
+enum Clef: String, Codable, CaseIterable, Identifiable, Equatable {
     case treble
+    case bass
+
+    var id: String { rawValue }
 
     var sign: String {
-        "G"
+        switch self {
+        case .treble: return "G"
+        case .bass: return "F"
+        }
     }
 
     var line: Int {
-        2
+        switch self {
+        case .treble: return 2
+        case .bass: return 4
+        }
     }
 
-    var displaySymbol: String {
-        "𝄞"
+    var displayName: String {
+        switch self {
+        case .treble: return "Treble Clef"
+        case .bass: return "Bass Clef"
+        }
+    }
+
+    var notationMetrics: NotationClefMetrics {
+        switch self {
+        case .treble:
+            return NotationClefMetrics(
+                editableStaffPositionRange: -5...13,
+                topLineDiatonicOrdinal: 5 * NotationPitchStep.allCases.count + NotationPitchStep.f.diatonicIndex,
+                keySignatureStaffPositionOffset: 0,
+                storedPitchOctaveOffset: 0
+            )
+        case .bass:
+            return NotationClefMetrics(
+                editableStaffPositionRange: -3...15,
+                topLineDiatonicOrdinal: 3 * NotationPitchStep.allCases.count + NotationPitchStep.a.diatonicIndex,
+                keySignatureStaffPositionOffset: 2,
+                storedPitchOctaveOffset: -2
+            )
+        }
+    }
+}
+
+enum NotationPartClefOverrides {
+    static func normalized(_ overrides: [NotationPartID: Clef]) -> [NotationPartID: Clef] {
+        overrides.filter { $0.value != .treble }
+    }
+
+    static func clef(
+        for partID: NotationPartID,
+        in overrides: [NotationPartID: Clef]
+    ) -> Clef {
+        overrides[partID] ?? .treble
     }
 }

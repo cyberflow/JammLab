@@ -40,6 +40,36 @@ final class NotationPrimitivesTests: XCTestCase {
         XCTAssertEqual(quarter.glyph.unicodeScalars.first?.value, 0xE4E5)
     }
 
+    func testNotationClefSymbolsUseLelandSMuFLCodepointsAndReferenceLines() {
+        let treble = NotationClefSymbol(.treble)
+        let bass = NotationClefSymbol(.bass)
+
+        XCTAssertEqual(treble.codepoint, 0xE050)
+        XCTAssertEqual(treble.referenceStaffLineFromTop, 3)
+        XCTAssertEqual(bass.codepoint, 0xE062)
+        XCTAssertEqual(bass.referenceStaffLineFromTop, 1)
+        XCTAssertEqual(Clef.treble.sign, "G")
+        XCTAssertEqual(Clef.treble.line, 2)
+        XCTAssertEqual(Clef.bass.sign, "F")
+        XCTAssertEqual(Clef.bass.line, 4)
+    }
+
+    func testNotationPartClefOverridesRemoveOnlyDefaultTrebleValues() {
+        let unknownPart = NotationPartID(rawValue: "future:baritone")
+        let normalized = NotationPartClefOverrides.normalized([
+            .main: .treble,
+            .stem(.bass): .bass,
+            unknownPart: .bass
+        ])
+
+        XCTAssertEqual(normalized, [
+            .stem(.bass): .bass,
+            unknownPart: .bass
+        ])
+        XCTAssertEqual(NotationPartClefOverrides.clef(for: .main, in: normalized), .treble)
+        XCTAssertEqual(NotationPartClefOverrides.clef(for: unknownPart, in: normalized), .bass)
+    }
+
     func testNotationSMuFLDurationControlSymbolsMapDurationsToLelandMetNoteCodepoints() throws {
         let whole = try XCTUnwrap(NotationDurationControlSymbol(duration: NotationDuration(denominator: 1)))
         let half = try XCTUnwrap(NotationDurationControlSymbol(duration: NotationDuration(denominator: 2)))
@@ -250,6 +280,73 @@ final class NotationPrimitivesTests: XCTestCase {
             NotationPitchMapper.staffPosition(for: NotationPitch(step: .g, octave: 3)),
             NotationPitchMapper.maximumStaffPosition
         )
+    }
+
+    func testNotationPitchMapperUsesBassRangeAndKeepsStoredPitchesMappable() {
+        let cMajor = KeySignature.normalized(from: "C major")
+
+        XCTAssertEqual(NotationPitchMapper.editableStaffPositionRange(for: .treble), -5...13)
+        XCTAssertEqual(NotationPitchMapper.editableStaffPositionRange(for: .bass), -3...15)
+        XCTAssertEqual(
+            NotationPitchMapper.pitch(forStaffPosition: -3, keySignature: cMajor, clef: .bass),
+            NotationPitch(step: .d, octave: 4)
+        )
+        XCTAssertEqual(
+            NotationPitchMapper.pitch(forStaffPosition: 15, keySignature: cMajor, clef: .bass),
+            NotationPitch(step: .g, octave: 1)
+        )
+        XCTAssertEqual(
+            NotationPitchMapper.staffPosition(for: NotationPitch(step: .d, octave: 4), clef: .bass),
+            -3
+        )
+        XCTAssertEqual(
+            NotationPitchMapper.staffPosition(for: NotationPitch(step: .g, octave: 1), clef: .bass),
+            15
+        )
+        XCTAssertEqual(
+            NotationPitchMapper.staffPosition(for: NotationPitch(step: .c, octave: 5), clef: .bass),
+            -9
+        )
+        XCTAssertNil(NotationPitchMapper.adjacentPitch(
+            from: NotationPitch(step: .d, octave: 4),
+            staffPositionDelta: -1,
+            keySignature: cMajor,
+            clef: .bass
+        ))
+        XCTAssertNil(NotationPitchMapper.adjacentPitch(
+            from: NotationPitch(step: .g, octave: 1),
+            staffPositionDelta: 1,
+            keySignature: cMajor,
+            clef: .bass
+        ))
+
+        let staffTop: CGFloat = 50
+        XCTAssertEqual(
+            NotationNotePlacementResolver.staffPosition(
+                forY: NotationNotePlacementResolver.yPosition(forStaffPosition: -3, staffTop: staffTop),
+                staffTop: staffTop,
+                clef: .bass
+            ),
+            -3
+        )
+        XCTAssertEqual(
+            NotationNotePlacementResolver.staffPosition(
+                forY: NotationNotePlacementResolver.yPosition(forStaffPosition: 15, staffTop: staffTop),
+                staffTop: staffTop,
+                clef: .bass
+            ),
+            15
+        )
+    }
+
+    func testBassKeySignatureAccidentalsUseBassStaffPositions() {
+        let sharps = KeySignature(fifths: 7, mode: .major, displayName: "C sharp major")
+            .notationAccidentalGlyphs(for: .bass)
+        let flats = KeySignature(fifths: -7, mode: .major, displayName: "C flat major")
+            .notationAccidentalGlyphs(for: .bass)
+
+        XCTAssertEqual(sharps.map(\.staffPositionFromTopLine), [2, 5, 1, 4, 7, 3, 6])
+        XCTAssertEqual(flats.map(\.staffPositionFromTopLine), [6, 3, 7, 4, 8, 5, 9])
     }
 
     func testNotationPitchMapperAdjacentPitchRespectsBoundsAndKeySignature() throws {
@@ -815,6 +912,56 @@ final class NotationPrimitivesTests: XCTestCase {
         XCTAssertFalse(glyphPath.path.isEmpty)
         XCTAssertGreaterThan(glyphPath.bounds.width, 0)
         XCTAssertGreaterThan(glyphPath.bounds.height, 0)
+    }
+
+    func testNotationClefLayoutUsesExpectedFrameAndStaffTargets() {
+        XCTAssertEqual(NotationClefLayout.frameSize, CGSize(width: 38, height: 60))
+        XCTAssertEqual(NotationClefLayout.referenceAnchorY, 0)
+        XCTAssertEqual(NotationClefLayout.targetY(for: .treble), 38)
+        XCTAssertEqual(NotationClefLayout.targetY(for: .bass), 22)
+    }
+
+    func testNotationClefLayoutTransformAnchorsGlyphAtStaffTarget() throws {
+        for symbol in [NotationClefSymbol.treble, .bass] {
+            let glyphPath = try XCTUnwrap(NotationMusicFontRegistry.glyphPath(
+                for: symbol,
+                fontSize: AppTheme.Timeline.notationClefFontSize
+            ))
+            let target = NotationClefLayout.target(for: symbol, in: NotationClefLayout.frameSize)
+            let transformedAnchor = NotationClefLayout.referenceAnchor(for: glyphPath).applying(
+                NotationClefLayout.transform(
+                    for: glyphPath,
+                    symbol: symbol,
+                    in: NotationClefLayout.frameSize
+                )
+            )
+
+            XCTAssertEqual(transformedAnchor.x, target.x, accuracy: 0.0001)
+            XCTAssertEqual(transformedAnchor.y, target.y, accuracy: 0.0001)
+        }
+    }
+
+    func testLelandClefGlyphPathsHaveBounds() throws {
+        for symbol in [NotationClefSymbol.treble, .bass] {
+            let glyphPath = try XCTUnwrap(NotationMusicFontRegistry.glyphPath(
+                for: symbol,
+                fontSize: AppTheme.Timeline.notationClefFontSize
+            ))
+            var transform = NotationClefLayout.transform(
+                for: glyphPath,
+                symbol: symbol,
+                in: NotationClefLayout.frameSize
+            )
+            let renderedBounds = try XCTUnwrap(glyphPath.path.copy(using: &transform)).boundingBox
+
+            XCTAssertFalse(glyphPath.path.isEmpty)
+            XCTAssertGreaterThan(glyphPath.bounds.width, 0)
+            XCTAssertGreaterThan(glyphPath.bounds.height, 0)
+            XCTAssertGreaterThanOrEqual(renderedBounds.minX, 0)
+            XCTAssertLessThanOrEqual(renderedBounds.maxX, NotationClefLayout.frameSize.width)
+            XCTAssertGreaterThanOrEqual(renderedBounds.minY, 0)
+            XCTAssertLessThanOrEqual(renderedBounds.maxY, NotationClefLayout.frameSize.height)
+        }
     }
 
     func testLelandDurationControlGlyphPathsHaveBounds() throws {

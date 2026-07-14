@@ -184,6 +184,39 @@ final class NotationViewportTests: XCTestCase {
         XCTAssertEqual(cache.cacheMissCount, 1)
     }
 
+    func testNotationProjectionCacheInvalidatesWhenPartClefChanges() throws {
+        let tempoMap = fourFourTempoMap(duration: 8)
+        let cache = NotationProjectionCache()
+
+        let treble = cache.content(
+            tempoMap: tempoMap,
+            duration: tempoMap.duration,
+            keyName: "G major",
+            clef: .treble,
+            partID: .stem(.bass),
+            includesHarmonies: false,
+            notationItems: [],
+            harmonySymbols: [],
+            notes: []
+        )
+        let bass = cache.content(
+            tempoMap: tempoMap,
+            duration: tempoMap.duration,
+            keyName: "G major",
+            clef: .bass,
+            partID: .stem(.bass),
+            includesHarmonies: false,
+            notationItems: [],
+            harmonySymbols: [],
+            notes: []
+        )
+
+        XCTAssertEqual(try XCTUnwrap(treble.measures.first).attributes.clef, .treble)
+        XCTAssertEqual(try XCTUnwrap(bass.measures.first).attributes.clef, .bass)
+        XCTAssertEqual(cache.cachedScopeCount, 1)
+        XCTAssertEqual(cache.cacheMissCount, 2)
+    }
+
     func testNotationProjectionCacheKeepsPartScopesAndGlobalRegionsIndependent() throws {
         let tempoMap = fourFourTempoMap(duration: 8)
         let cache = NotationProjectionCache()

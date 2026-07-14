@@ -81,6 +81,7 @@ struct TimelineViewActions {
     var insertNotationNote: (NotationNotePlacement) -> Bool
     var insertNotationRest: (NotationRestPlacement) -> Bool
     var changeSelectedNotePitch: (NotationPitch, Bool) -> Bool
+    var changeNotationClef: (NotationPartID, Clef) -> Void
     var auditionNotePitch: (NotationPitch) -> Void
     var deleteSelectedNotationNote: () -> Bool
     var showNotationWindow: () -> Void
@@ -108,6 +109,7 @@ extension TimelineViewActions {
             insertNotationNote: insertNotationNote,
             insertNotationRest: insertNotationRest,
             changeSelectedNotePitch: changeSelectedNotePitch,
+            changeClef: changeNotationClef,
             auditionNotePitch: auditionNotePitch,
             deleteSelectedNotationNote: deleteSelectedNotationNote,
             locatePlaybackMarkerExactly: locatePlaybackMarkerExactly,

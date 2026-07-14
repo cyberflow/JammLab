@@ -401,6 +401,7 @@ extension XCTestCase {
             playbackMarkerTime: viewModel.playbackMarkerTime,
             isPlaying: viewModel.playbackState == .playing,
             keyName: viewModel.effectiveKeyName,
+            clef: viewModel.notationClef(for: partID),
             partID: partID,
             includesHarmonies: partID.isMain,
             notationItems: viewModel.notationItems,

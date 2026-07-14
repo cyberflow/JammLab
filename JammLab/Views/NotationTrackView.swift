@@ -10,6 +10,7 @@ struct NotationTrackActions {
     var insertNotationNote: (NotationNotePlacement) -> Bool
     var insertNotationRest: (NotationRestPlacement) -> Bool
     var changeSelectedNotePitch: (NotationPitch, Bool) -> Bool
+    var changeClef: (NotationPartID, Clef) -> Void
     var auditionNotePitch: (NotationPitch) -> Void
     var deleteSelectedNotationNote: () -> Bool
     var locatePlaybackMarkerExactly: (TimeInterval) -> Void
@@ -114,11 +115,6 @@ struct NotationTrackView: View {
                     height: proxy.size.height,
                     attributeDisplays: attributeDisplays
                 )
-                attributeLabels(
-                    width: contentWidth,
-                    height: proxy.size.height,
-                    attributeDisplays: attributeDisplays
-                )
                 playheadIndicator(
                     width: contentWidth,
                     height: proxy.size.height,
@@ -132,6 +128,11 @@ struct NotationTrackView: View {
                     )
                 }
                 notationEntryLayer(
+                    width: contentWidth,
+                    height: proxy.size.height,
+                    attributeDisplays: attributeDisplays
+                )
+                attributeLabels(
                     width: contentWidth,
                     height: proxy.size.height,
                     attributeDisplays: attributeDisplays
@@ -326,11 +327,11 @@ struct NotationTrackView: View {
                 let pitch = draggedNotePitchPreview?.matches(item.selection) == true
                     ? draggedNotePitchPreview?.pitch
                     : item.notationItem.pitch
-                guard let pitch,
-                      let staffPosition = NotationPitchMapper.staffPosition(for: pitch)
-                else {
-                    continue
-                }
+                guard let pitch else { continue }
+                let staffPosition = NotationPitchMapper.staffPosition(
+                    for: pitch,
+                    clef: item.measure.attributes.clef
+                )
                 drawNoteGlyphWithLedgerLines(
                     duration: item.notationItem.displayDuration,
                     x: item.x,
@@ -344,17 +345,19 @@ struct NotationTrackView: View {
         }
 
         if let hoveredNotePlacement {
-            if let staffPosition = NotationPitchMapper.staffPosition(for: hoveredNotePlacement.pitch) {
-                drawNoteGlyphWithLedgerLines(
-                    duration: hoveredNotePlacement.displayDuration,
-                    x: hoveredNotePlacement.x,
-                    staffPosition: staffPosition,
-                    staffTop: staffTop,
-                    color: appColors.accent,
-                    opacity: 0.56,
-                    in: &context
-                )
-            }
+            let staffPosition = NotationPitchMapper.staffPosition(
+                for: hoveredNotePlacement.pitch,
+                clef: hoveredNotePlacement.measure.attributes.clef
+            )
+            drawNoteGlyphWithLedgerLines(
+                duration: hoveredNotePlacement.displayDuration,
+                x: hoveredNotePlacement.x,
+                staffPosition: staffPosition,
+                staffTop: staffTop,
+                color: appColors.accent,
+                opacity: 0.56,
+                in: &context
+            )
         } else if let hoveredRestPlacement,
                   let symbol = NotationSMuFLSymbol(duration: hoveredRestPlacement.displayDuration) {
             drawRestGlyph(
@@ -686,8 +689,11 @@ struct NotationTrackView: View {
         staffTop: CGFloat
     ) -> CGFloat {
         if item.notationItem.kind == .note,
-           let pitch = item.notationItem.pitch,
-           let staffPosition = NotationPitchMapper.staffPosition(for: pitch) {
+           let pitch = item.notationItem.pitch {
+            let staffPosition = NotationPitchMapper.staffPosition(
+                for: pitch,
+                clef: item.measure.attributes.clef
+            )
             return NotationNotePlacementResolver.yPosition(
                 forStaffPosition: staffPosition,
                 staffTop: staffTop
@@ -850,14 +856,16 @@ struct NotationTrackView: View {
     ) -> NotationPitch? {
         guard let staffPosition = NotationNotePlacementResolver.clampedStaffPosition(
             forY: y,
-            staffTop: staffTop
+            staffTop: staffTop,
+            clef: measure.attributes.clef
         ) else {
             return nil
         }
 
         return NotationPitchMapper.pitch(
             forStaffPosition: staffPosition,
-            keySignature: measure.attributes.keySignature
+            keySignature: measure.attributes.keySignature,
+            clef: measure.attributes.clef
         )
     }
 
@@ -1099,7 +1107,7 @@ struct NotationTrackView: View {
             display: display
         )
         let visibleSpacingWidth = NotationMeasureLayout.spacingWidth(forVisibleComponentCount: visibleComponentCount)
-        let fixedComponentWidth = (display.showsClef ? AppTheme.Timeline.notationClefWidth : 0)
+        let fixedComponentWidth = (display.showsClef ? NotationClefLayout.frameSize.width : 0)
             + (display.showsTimeSignature ? AppTheme.Timeline.notationTimeSignatureWidth : 0)
         let availableAccidentalWidth = max(
             0,
@@ -1111,12 +1119,28 @@ struct NotationTrackView: View {
 
         return HStack(alignment: .center, spacing: AppTheme.Spacing.xs) {
             if display.showsClef {
-                Text(attributes.clef.displaySymbol)
-                    .font(.system(size: AppTheme.Timeline.notationClefFontSize))
-                    .foregroundStyle(appColors.notationSymbolsAndLines)
-                    .frame(width: AppTheme.Timeline.notationClefWidth, alignment: .center)
-                    .offset(y: clefVerticalOffset(for: attributes.clef))
-                    .accessibilityLabel("Treble clef")
+                ClefGlyphView(
+                    clef: attributes.clef,
+                    color: appColors.notationSymbolsAndLines
+                )
+                    .contentShape(Rectangle())
+                    .contextMenu {
+                        ForEach(Clef.allCases) { clef in
+                            Button {
+                                actions.changeClef(partID, clef)
+                            } label: {
+                                Label(
+                                    clef.displayName,
+                                    systemImage: clef == attributes.clef ? "checkmark" : "music.note"
+                                )
+                            }
+                            .disabled(clef == attributes.clef)
+                        }
+                    }
+                    .menuOrder(.fixed)
+                    .help("Change clef")
+                    .accessibilityLabel("Notation clef")
+                    .accessibilityValue(attributes.clef.displayName)
             }
 
             if display.showsKeySignature && !keySignatureGlyphs.isEmpty {
@@ -1133,6 +1157,7 @@ struct NotationTrackView: View {
                 )
                 .accessibilityElement(children: .ignore)
                 .accessibilityLabel("\(attributes.keySignature.displayName) key signature")
+                .allowsHitTesting(false)
             }
 
             if display.showsTimeSignature {
@@ -1145,17 +1170,11 @@ struct NotationTrackView: View {
                 .lineLimit(1)
                 .frame(width: AppTheme.Timeline.notationTimeSignatureWidth)
                 .accessibilityLabel("Time signature \(attributes.timeSignature.displayText)")
+                .allowsHitTesting(false)
             }
         }
         .frame(width: max(0, blockWidth), alignment: .leading)
         .clipped()
-    }
-
-    private func clefVerticalOffset(for clef: Clef) -> CGFloat {
-        switch clef {
-        case .treble:
-            return AppTheme.Timeline.notationTrebleClefVerticalOffset
-        }
     }
 
     @ViewBuilder
@@ -1602,6 +1621,34 @@ struct NotationTrackView: View {
     }
 }
 
+private struct ClefGlyphView: View {
+    let clef: Clef
+    let color: Color
+
+    var body: some View {
+        Canvas { context, size in
+            let symbol = NotationClefSymbol(clef)
+            guard let glyphPath = NotationMusicFontRegistry.glyphPath(
+                for: symbol,
+                fontSize: AppTheme.Timeline.notationClefFontSize
+            ) else {
+                return
+            }
+
+            let transform = NotationClefLayout.transform(
+                for: glyphPath,
+                symbol: symbol,
+                in: size
+            )
+            context.fill(Path(glyphPath.path).applying(transform), with: .color(color))
+        }
+        .frame(
+            width: NotationClefLayout.frameSize.width,
+            height: NotationClefLayout.frameSize.height
+        )
+    }
+}
+
 private struct KeySignatureAccidentalsView: View {
     let glyphs: [KeySignatureAccidental]
     let color: Color
@@ -1677,6 +1724,7 @@ private extension NotationTrackActions {
         insertNotationNote: { _ in false },
         insertNotationRest: { _ in false },
         changeSelectedNotePitch: { _, _ in false },
+        changeClef: { _, _ in },
         auditionNotePitch: { _ in },
         deleteSelectedNotationNote: { false },
         locatePlaybackMarkerExactly: { _ in },

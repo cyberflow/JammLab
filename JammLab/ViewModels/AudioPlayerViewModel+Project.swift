@@ -115,6 +115,7 @@ extension AudioPlayerViewModel {
         notes = []
         harmonySymbols = []
         notationItems = []
+        notationPartClefs = [:]
         stemNotationTrackCollapsed = [:]
         visibleNotationPartIDs = [.main]
         projectKeySelection = nil
@@ -175,6 +176,7 @@ extension AudioPlayerViewModel {
         notes = []
         harmonySymbols = []
         notationItems = []
+        notationPartClefs = [:]
         stemNotationTrackCollapsed = [:]
         visibleNotationPartIDs = [.main]
         projectKeySelection = nil
@@ -255,6 +257,7 @@ extension AudioPlayerViewModel {
                 project.notationItems,
                 duration: resolvedProjectDuration
             )
+            notationPartClefs = NotationPartClefOverrides.normalized(project.notationPartClefs)
             projectKeySelection = project.projectKeySelection
             clearTransientEditingState()
             loopRegion = ProjectStateNormalizer.normalizedLoopRegion(
@@ -393,6 +396,7 @@ extension AudioPlayerViewModel {
             notes: notes,
             harmonySymbols: harmonySymbols,
             notationItems: notationItems,
+            notationPartClefs: NotationPartClefOverrides.normalized(notationPartClefs),
             projectKeySelection: projectKeySelection,
             loopRegion: loopRegion,
             loopMinimumLength: activeRangeMinimumLength,

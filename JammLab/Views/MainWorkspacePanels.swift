@@ -202,6 +202,7 @@ extension ContentView {
             tempoMap: viewModel.tempoMap,
             duration: viewModel.duration,
             keyName: viewModel.effectiveKeyName,
+            clef: viewModel.notationClef(for: partID),
             partID: partID,
             includesHarmonies: partID.isMain,
             notationItems: viewModel.notationItems,
@@ -284,6 +285,7 @@ extension ContentView {
             insertNotationNote: { viewModel.insertNotationNote($0) },
             insertNotationRest: { viewModel.insertNotationRest($0) },
             changeSelectedNotePitch: { viewModel.changeSelectedNotationNotePitch(to: $0, shouldAudition: $1) },
+            changeNotationClef: { viewModel.setNotationClef($1, for: $0) },
             auditionNotePitch: { viewModel.auditionNotationNotePitch($0) },
             deleteSelectedNotationNote: { viewModel.deleteSelectedNotationNote() },
             showNotationWindow: { openWindow(id: AppWindowID.notation) }

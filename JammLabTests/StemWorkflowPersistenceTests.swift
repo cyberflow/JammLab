@@ -2,7 +2,7 @@ import XCTest
 @testable import JammLab
 
 final class StemWorkflowPersistenceTests: XCTestCase {
-    func testProjectVersionSevenPersistsProjectEditablePlaybackStateMediaKindArtifactRootBookmarkAndVideoWindowState() throws {
+    func testProjectVersionTwelvePersistsProjectEditablePlaybackStateMediaKindArtifactRootBookmarkAndVideoWindowState() throws {
         let artifactRootBookmarkData = Data("artifact-root-bookmark".utf8)
         let metadata = StemProjectState(
             cacheKey: "cache-123",
@@ -43,7 +43,7 @@ final class StemWorkflowPersistenceTests: XCTestCase {
 
         let decoded = try JSONDecoder().decode(JammLabProject.self, from: JSONEncoder().encode(project))
 
-        XCTAssertEqual(decoded.formatVersion, 11)
+        XCTAssertEqual(decoded.formatVersion, 12)
         XCTAssertEqual(decoded.artifactRootBookmarkData, artifactRootBookmarkData)
         XCTAssertEqual(decoded.mediaKind, .video)
         XCTAssertEqual(decoded.isLoopEnabled, true)
@@ -62,7 +62,7 @@ final class StemWorkflowPersistenceTests: XCTestCase {
         XCTAssertEqual(try XCTUnwrap(decoded.stemState?.mixState.effectiveVolume(for: .drums)), 0.8, accuracy: 0.0001)
     }
 
-    func testProjectVersionElevenPersistsPitchedNotationItems() throws {
+    func testProjectVersionTwelvePersistsPitchedNotationItemsAndPartClefs() throws {
         let pitch = NotationPitch(step: .f, octave: 4, alter: 1)
         let project = JammLabProject(
             audioBookmarkData: Data("bookmark".utf8),
@@ -89,6 +89,10 @@ final class StemWorkflowPersistenceTests: XCTestCase {
                     displayDuration: NotationDuration(denominator: 2)
                 )
             ],
+            notationPartClefs: [
+                .main: .bass,
+                .stem(.bass): .bass
+            ],
             loopStart: 0,
             loopEnd: 8,
             playbackRate: 1,
@@ -97,13 +101,15 @@ final class StemWorkflowPersistenceTests: XCTestCase {
 
         let decoded = try JSONDecoder().decode(JammLabProject.self, from: JSONEncoder().encode(project))
 
-        XCTAssertEqual(decoded.formatVersion, 11)
+        XCTAssertEqual(decoded.formatVersion, 12)
         XCTAssertEqual(decoded.notationItems.map(\.id), ["note", "rest"])
         XCTAssertEqual(decoded.notationItems.map(\.kind), [.note, .rest])
         XCTAssertEqual(decoded.notationItems.map(\.pitch), [pitch, nil])
         XCTAssertEqual(decoded.notationItems.map(\.offsetInQuarterNotes), [0, 1])
         XCTAssertEqual(decoded.notationItems.map(\.durationInQuarterNotes), [1, 2])
         XCTAssertEqual(decoded.notationItems.map(\.displayDuration.denominator), [4, 2])
+        XCTAssertEqual(decoded.notationPartClefs[.main], .bass)
+        XCTAssertEqual(decoded.notationPartClefs[.stem(.bass)], .bass)
     }
 
     func testLegacyProjectWithoutStemStateStillDecodes() throws {
@@ -138,5 +144,6 @@ final class StemWorkflowPersistenceTests: XCTestCase {
         XCTAssertNil(decoded.mediaKind)
         XCTAssertNil(decoded.isVideoWindowOpen)
         XCTAssertNil(decoded.isNotationTrackCollapsed)
+        XCTAssertTrue(decoded.notationPartClefs.isEmpty)
     }
 }

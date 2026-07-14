@@ -139,6 +139,7 @@ final class NotationProjectionCache {
         tempoMap: TempoMap,
         duration: TimeInterval,
         keyName: String?,
+        clef: Clef = .treble,
         partID: NotationPartID = .main,
         includesHarmonies: Bool = true,
         notationItems: [NotationMeasureItem],
@@ -152,6 +153,7 @@ final class NotationProjectionCache {
             tempoMap: tempoMap,
             duration: duration,
             keyName: keyName,
+            clef: clef,
             notationItems: scopedNotationItems,
             harmonySymbols: scopedHarmonySymbols,
             regionNotes: regionNotes
@@ -167,6 +169,7 @@ final class NotationProjectionCache {
             tempoMap: tempoMap,
             duration: duration,
             keyName: keyName,
+            clef: clef,
             partID: partID,
             includesHarmonies: includesHarmonies,
             notationItems: scopedNotationItems,
@@ -196,6 +199,7 @@ final class NotationProjectionCache {
         var tempoMap: TempoMap
         var duration: TimeInterval
         var keyName: String?
+        var clef: Clef
         var notationItems: [NotationMeasureItem]
         var harmonySymbols: [HarmonySymbol]
         var regionNotes: [TimecodedNote]

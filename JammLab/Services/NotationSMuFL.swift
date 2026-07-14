@@ -136,6 +136,78 @@ enum NotationStaffNoteSymbol: Equatable {
     }
 }
 
+enum NotationClefSymbol: Equatable {
+    case treble
+    case bass
+
+    init(_ clef: Clef) {
+        switch clef {
+        case .treble:
+            self = .treble
+        case .bass:
+            self = .bass
+        }
+    }
+
+    var codepoint: UInt32 {
+        switch self {
+        case .treble:
+            return 0xE050
+        case .bass:
+            return 0xE062
+        }
+    }
+
+    var referenceStaffLineFromTop: Int {
+        switch self {
+        case .treble:
+            return 3
+        case .bass:
+            return 1
+        }
+    }
+}
+
+enum NotationClefLayout {
+    static let referenceAnchorY: CGFloat = 0
+
+    static var frameSize: CGSize {
+        CGSize(
+            width: AppTheme.Timeline.notationClefWidth,
+            height: AppTheme.Timeline.notationAttributeStaffTopInset * 2
+                + AppTheme.Timeline.notationStaffLineSpacing * 4
+        )
+    }
+
+    static func targetY(for symbol: NotationClefSymbol) -> CGFloat {
+        AppTheme.Timeline.notationAttributeStaffTopInset
+            + CGFloat(symbol.referenceStaffLineFromTop)
+                * AppTheme.Timeline.notationStaffLineSpacing
+    }
+
+    static func target(
+        for symbol: NotationClefSymbol,
+        in size: CGSize
+    ) -> CGPoint {
+        CGPoint(x: size.width / 2, y: targetY(for: symbol))
+    }
+
+    static func referenceAnchor(for glyphPath: NotationSMuFLGlyphPath) -> CGPoint {
+        CGPoint(x: glyphPath.bounds.midX, y: referenceAnchorY)
+    }
+
+    static func transform(
+        for glyphPath: NotationSMuFLGlyphPath,
+        symbol: NotationClefSymbol,
+        in size: CGSize
+    ) -> CGAffineTransform {
+        glyphPath.anchoredTransform(
+            anchor: referenceAnchor(for: glyphPath),
+            target: target(for: symbol, in: size)
+        )
+    }
+}
+
 enum NotationMusicFontRegistry {
     static let fallbackFontName = "Leland"
     private static let glyphPathCache = NSCache<NSString, NotationSMuFLGlyphPathBox>()
@@ -172,6 +244,13 @@ enum NotationMusicFontRegistry {
 
     static func glyphPath(
         for symbol: NotationStaffNoteSymbol,
+        fontSize: CGFloat
+    ) -> NotationSMuFLGlyphPath? {
+        glyphPath(forCodepoint: symbol.codepoint, fontSize: fontSize)
+    }
+
+    static func glyphPath(
+        for symbol: NotationClefSymbol,
         fontSize: CGFloat
     ) -> NotationSMuFLGlyphPath? {
         glyphPath(forCodepoint: symbol.codepoint, fontSize: fontSize)

@@ -973,6 +973,165 @@ final class ViewModelNotationDurationSelectionTests: XCTestCase {
     }
 
     @MainActor
+    func testChangingStemClefRoundTripsPitchAndRefreshesSelection() throws {
+        let (viewModel, bassPart) = try clefChangeViewModel(selectsBassNote: true)
+        viewModel.markProjectClean()
+
+        viewModel.setNotationClef(.bass, for: bassPart)
+
+        XCTAssertEqual(viewModel.notationClef(for: bassPart), .bass)
+        XCTAssertEqual(
+            viewModel.notationItems.first { $0.id == "bass-note" }?.pitch,
+            NotationPitch(step: .f, octave: 2, alter: 1)
+        )
+        XCTAssertEqual(
+            viewModel.notationItems.first { $0.id == "main-note" }?.pitch,
+            NotationPitch(step: .c, octave: 4)
+        )
+        XCTAssertEqual(viewModel.notationItems.first { $0.id == "bass-rest" }?.kind, .rest)
+        XCTAssertEqual(viewModel.selectedNotationItem?.attributes.clef, .bass)
+        XCTAssertEqual(viewModel.selectedNotationItem?.itemID, "bass-note")
+        XCTAssertTrue(viewModel.isProjectModified)
+
+        viewModel.setNotationClef(.treble, for: bassPart)
+
+        XCTAssertEqual(viewModel.notationClef(for: bassPart), .treble)
+        XCTAssertTrue(viewModel.notationPartClefs.isEmpty)
+        XCTAssertEqual(
+            viewModel.notationItems.first { $0.id == "bass-note" }?.pitch,
+            NotationPitch(step: .f, octave: 4, alter: 1)
+        )
+        XCTAssertEqual(
+            viewModel.notationItems.first { $0.id == "main-note" }?.pitch,
+            NotationPitch(step: .c, octave: 4)
+        )
+        XCTAssertEqual(viewModel.notationItems.first { $0.id == "bass-rest" }?.kind, .rest)
+        XCTAssertEqual(viewModel.selectedNotationItem?.attributes.clef, .treble)
+        XCTAssertEqual(viewModel.selectedNotationItem?.itemID, "bass-note")
+        XCTAssertFalse(viewModel.isProjectModified)
+    }
+
+    @MainActor
+    func testChangingStemClefSupportsTwoUndoAndRedoSteps() throws {
+        let (viewModel, bassPart) = try clefChangeViewModel(selectsBassNote: false)
+        let undoManager = UndoManager()
+        undoManager.groupsByEvent = false
+        viewModel.undoManager = undoManager
+        viewModel.markProjectClean()
+
+        undoManager.beginUndoGrouping()
+        viewModel.setNotationClef(.bass, for: bassPart)
+        undoManager.endUndoGrouping()
+
+        undoManager.beginUndoGrouping()
+        viewModel.setNotationClef(.treble, for: bassPart)
+        undoManager.endUndoGrouping()
+
+        XCTAssertEqual(viewModel.notationClef(for: bassPart), .treble)
+        XCTAssertEqual(
+            viewModel.notationItems.first { $0.id == "bass-note" }?.pitch,
+            NotationPitch(step: .f, octave: 4, alter: 1)
+        )
+        XCTAssertTrue(viewModel.canUndo)
+
+        viewModel.undoLastEdit()
+
+        XCTAssertEqual(viewModel.notationClef(for: bassPart), .bass)
+        XCTAssertEqual(
+            viewModel.notationItems.first { $0.id == "bass-note" }?.pitch,
+            NotationPitch(step: .f, octave: 2, alter: 1)
+        )
+
+        viewModel.undoLastEdit()
+
+        XCTAssertEqual(viewModel.notationClef(for: bassPart), .treble)
+        XCTAssertEqual(
+            viewModel.notationItems.first { $0.id == "bass-note" }?.pitch,
+            NotationPitch(step: .f, octave: 4, alter: 1)
+        )
+
+        viewModel.redoLastEdit()
+
+        XCTAssertEqual(viewModel.notationClef(for: bassPart), .bass)
+        XCTAssertEqual(
+            viewModel.notationItems.first { $0.id == "bass-note" }?.pitch,
+            NotationPitch(step: .f, octave: 2, alter: 1)
+        )
+
+        viewModel.redoLastEdit()
+
+        XCTAssertEqual(viewModel.notationClef(for: bassPart), .treble)
+        XCTAssertEqual(
+            viewModel.notationItems.first { $0.id == "bass-note" }?.pitch,
+            NotationPitch(step: .f, octave: 4, alter: 1)
+        )
+    }
+
+    @MainActor
+    private func clefChangeViewModel(
+        selectsBassNote: Bool
+    ) throws -> (viewModel: AudioPlayerViewModel, bassPart: NotationPartID) {
+        let viewModel = try loadedNotationViewModel(duration: 8)
+        let bassPart = NotationPartID.stem(.bass)
+        viewModel.notationItems = [
+            NotationMeasureItem(
+                id: "main-note",
+                kind: .note,
+                pitch: NotationPitch(step: .c, octave: 4),
+                measureNumber: 1,
+                measureStartTime: 0,
+                offsetInQuarterNotes: 0,
+                durationInQuarterNotes: 1,
+                displayDuration: NotationDuration(denominator: 4)
+            ),
+            NotationMeasureItem(
+                id: "bass-note",
+                partID: bassPart,
+                kind: .note,
+                pitch: NotationPitch(step: .f, octave: 4, alter: 1),
+                measureNumber: 1,
+                measureStartTime: 0,
+                offsetInQuarterNotes: 0,
+                durationInQuarterNotes: 1,
+                displayDuration: NotationDuration(denominator: 4)
+            ),
+            NotationMeasureItem(
+                id: "bass-rest",
+                partID: bassPart,
+                measureNumber: 1,
+                measureStartTime: 0,
+                offsetInQuarterNotes: 1,
+                durationInQuarterNotes: 1,
+                displayDuration: NotationDuration(denominator: 4)
+            )
+        ]
+
+        guard selectsBassNote else { return (viewModel, bassPart) }
+
+        let bassMeasure = try notationMeasure(1, in: viewModel, partID: bassPart)
+        let selectedNote = try XCTUnwrap(bassMeasure.notationItems.first { $0.id == "bass-note" })
+        viewModel.selectNotationItem(
+            NotationItemSelection(measure: bassMeasure, item: selectedNote, partID: bassPart),
+            shouldAudition: false
+        )
+        return (viewModel, bassPart)
+    }
+
+    @MainActor
+    func testSelectingDefaultTrebleClefIsNoOp() throws {
+        let viewModel = try loadedNotationViewModel(duration: 8)
+        let undoManager = UndoManager()
+        viewModel.undoManager = undoManager
+        viewModel.markProjectClean()
+
+        viewModel.setNotationClef(.treble, for: .main)
+
+        XCTAssertTrue(viewModel.notationPartClefs.isEmpty)
+        XCTAssertFalse(viewModel.isProjectModified)
+        XCTAssertFalse(viewModel.canUndo)
+    }
+
+    @MainActor
     private func insertQuarterNote(
         pitch: NotationPitch,
         inMeasure measureNumber: Int,

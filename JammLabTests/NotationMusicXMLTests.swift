@@ -209,6 +209,7 @@ final class NotationMusicXMLTests: XCTestCase {
             playbackMarkerTime: 0,
             isPlaying: false,
             keyName: nil,
+            clef: .bass,
             partID: .stem(.bass),
             includesHarmonies: false,
             notationItems: notationItems,
@@ -236,6 +237,10 @@ final class NotationMusicXMLTests: XCTestCase {
         let bassPart = try partElement(id: "P2", in: root)
         let mainPitch = try firstXMLChild(named: "pitch", in: try firstXMLChild(named: "note", in: try XCTUnwrap(mainPart.elements(forName: "measure").first)))
         let bassPitch = try firstXMLChild(named: "pitch", in: try firstXMLChild(named: "note", in: try XCTUnwrap(bassPart.elements(forName: "measure").first)))
+        let mainAttributes = try firstXMLChild(named: "attributes", in: try XCTUnwrap(mainPart.elements(forName: "measure").first))
+        let bassAttributes = try firstXMLChild(named: "attributes", in: try XCTUnwrap(bassPart.elements(forName: "measure").first))
+        let mainClef = try firstXMLChild(named: "clef", in: mainAttributes)
+        let bassClef = try firstXMLChild(named: "clef", in: bassAttributes)
 
         XCTAssertEqual(scoreParts.map { $0.attribute(forName: "id")?.stringValue }, ["P1", "P2"])
         let bassScorePart = try XCTUnwrap(scoreParts.last)
@@ -256,6 +261,12 @@ final class NotationMusicXMLTests: XCTestCase {
         try assertXMLChild(bassInstrumentName, precedes: bassInstrumentSound, in: bassScoreInstrument)
         XCTAssertEqual(try firstXMLChild(named: "step", in: mainPitch).stringValue, "C")
         XCTAssertEqual(try firstXMLChild(named: "step", in: bassPitch).stringValue, "E")
+        XCTAssertEqual(try firstXMLChild(named: "octave", in: mainPitch).stringValue, "4")
+        XCTAssertEqual(try firstXMLChild(named: "octave", in: bassPitch).stringValue, "2")
+        XCTAssertEqual(try firstXMLChild(named: "sign", in: mainClef).stringValue, "G")
+        XCTAssertEqual(try firstXMLChild(named: "line", in: mainClef).stringValue, "2")
+        XCTAssertEqual(try firstXMLChild(named: "sign", in: bassClef).stringValue, "F")
+        XCTAssertEqual(try firstXMLChild(named: "line", in: bassClef).stringValue, "4")
         XCTAssertFalse(mainPart.elements(forName: "measure").flatMap { $0.elements(forName: "harmony") }.isEmpty)
         XCTAssertTrue(bassPart.elements(forName: "measure").flatMap { $0.elements(forName: "harmony") }.isEmpty)
         XCTAssertEqual(mainPart.elements(forName: "measure").flatMap { $0.elements(forName: "direction") }.count, 1)

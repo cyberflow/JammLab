@@ -41,6 +41,21 @@ final class ViewModelProjectSaveCloseTests: XCTestCase {
         )
 
         await viewModel.openRecentProject(entry)
+        let bassPart = NotationPartID.stem(.bass)
+        viewModel.notationItems = [
+            NotationMeasureItem(
+                id: "bass-note",
+                partID: bassPart,
+                kind: .note,
+                pitch: NotationPitch(step: .e, octave: 4),
+                measureNumber: 1,
+                measureStartTime: 0,
+                offsetInQuarterNotes: 0,
+                durationInQuarterNotes: 1,
+                displayDuration: NotationDuration(denominator: 4)
+            )
+        ]
+        viewModel.setNotationClef(.bass, for: bassPart)
         viewModel.setMainTrackVolume(0.2)
 
         XCTAssertTrue(viewModel.isProjectModified)
@@ -52,8 +67,24 @@ final class ViewModelProjectSaveCloseTests: XCTestCase {
 
         let savedProject = try projectService.load(from: projectURL)
         XCTAssertEqual(try XCTUnwrap(savedProject.mainTrackVolume), 0.2, accuracy: 0.0001)
+        XCTAssertEqual(savedProject.notationPartClefs[bassPart], .bass)
+        XCTAssertEqual(savedProject.notationItems.first?.pitch, NotationPitch(step: .e, octave: 2))
         XCTAssertNotNil(savedProject.artifactRootBookmarkData)
         XCTAssertNil(savedProject.isVideoWindowOpen)
+
+        let restoredViewModel = AudioPlayerViewModel(
+            analyzer: MockAnalyzer(),
+            peakformProvider: MockPeakformProvider(),
+            playbackEngine: MockPlaybackEngine(),
+            projectService: projectService,
+            recentProjectsStore: RecentProjectsStore(defaults: try temporaryUserDefaults()),
+            isSandboxed: { false }
+        )
+        await restoredViewModel.openRecentProject(entry)
+
+        XCTAssertEqual(restoredViewModel.notationClef(for: bassPart), .bass)
+        XCTAssertEqual(restoredViewModel.notationItems.first?.pitch, NotationPitch(step: .e, octave: 2))
+        XCTAssertFalse(restoredViewModel.isProjectModified)
     }
 
     @MainActor

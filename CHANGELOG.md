@@ -19,6 +19,7 @@ development artifact builds use `vMAJOR.MINOR.PATCH-dev.N`.
 - Added full instrument names, abbreviations, and standard instrument sounds to exported MusicXML parts and Notation score labels.
 - Added vertical workspace scrolling when expanded Notation tracks exceed the main window height.
 - Changed Rest entry mode to replace a selected note with its corresponding rest without recomposing the measure.
+- Added per-part treble and bass clefs with Leland glyphs, clef-aware note editing, pitch transposition, and MusicXML export.
 
 ## 1.1.0
 

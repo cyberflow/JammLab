@@ -81,6 +81,7 @@ extension AudioPlayerViewModel {
             playbackMarkerTime: playbackMarkerTime,
             isPlaying: playbackState == .playing,
             keyName: effectiveKeyName,
+            clef: notationClef(for: partID),
             partID: partID,
             includesHarmonies: partID.isMain,
             notationItems: notationItems,

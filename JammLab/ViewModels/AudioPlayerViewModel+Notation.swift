@@ -41,6 +41,45 @@ extension AudioPlayerViewModel {
         return normalized
     }
 
+    func notationClef(for partID: NotationPartID) -> Clef {
+        NotationPartClefOverrides.clef(for: partID, in: notationPartClefs)
+    }
+
+    func setNotationClef(_ clef: Clef, for partID: NotationPartID) {
+        let sourceClef = notationClef(for: partID)
+        guard sourceClef != clef else { return }
+
+        let octaveDelta = clef.notationMetrics.storedPitchOctaveOffset
+            - sourceClef.notationMetrics.storedPitchOctaveOffset
+        performUndoableEdit("Change Notation Clef") {
+            if clef == .treble {
+                notationPartClefs.removeValue(forKey: partID)
+            } else {
+                notationPartClefs[partID] = clef
+            }
+
+            notationItems = notationItems.map { item in
+                guard item.partID == partID,
+                      !item.isSynthesized,
+                      item.kind == .note,
+                      var pitch = item.pitch
+                else {
+                    return item
+                }
+
+                pitch.octave += octaveDelta
+                var transposed = item
+                transposed.pitch = pitch
+                return transposed
+            }
+            notationItems = ProjectStateNormalizer.normalizedNotationItems(
+                notationItems,
+                duration: duration
+            )
+            refreshNotationSelections(for: partID)
+        }
+    }
+
     private func knownStemNotationPartTypes() -> [StemType] {
         let stemTypes = Set(stemFiles.map(\.type))
         let notationStemTypes = Set(notationItems.compactMap(\.partID.stemType))
@@ -971,6 +1010,7 @@ extension AudioPlayerViewModel {
             playbackMarkerTime: playbackMarkerTime,
             isPlaying: playbackState == .playing,
             keyName: effectiveKeyName,
+            clef: notationClef(for: partID),
             partID: partID,
             includesHarmonies: partID.isMain,
             notationItems: notationItems,
@@ -1018,8 +1058,44 @@ extension AudioPlayerViewModel {
         return NotationPitchMapper.adjacentPitch(
             from: pitch,
             staffPositionDelta: staffPositionDelta,
-            keySignature: match.measure.attributes.keySignature
+            keySignature: match.measure.attributes.keySignature,
+            clef: match.measure.attributes.clef
         )
+    }
+
+    private func refreshNotationSelections(for partID: NotationPartID) {
+        let measures = currentNotationScoreMeasures(partID: partID)
+
+        if let selection = selectedNotationItem, selection.partID == partID {
+            if let measure = measures.first(where: {
+                $0.number == selection.measureNumber
+                    && abs($0.startTime - selection.measureStartTime) < NotationMeasureTiming.timelineTolerance
+            }), let item = measure.notationItems.first(where: {
+                $0.id == selection.itemID && $0.partID == partID
+            }) {
+                selectedNotationItem = NotationItemSelection(measure: measure, item: item, partID: partID)
+            } else {
+                selectedNotationItem = nil
+            }
+        }
+
+        selectedNotationMeasures = selectedNotationMeasures.compactMap { selection in
+            guard selection.partID == partID else { return selection }
+            guard let measure = measures.first(where: {
+                $0.number == selection.number
+                    && abs($0.startTime - selection.startTime) < NotationMeasureTiming.timelineTolerance
+            }) else {
+                return nil
+            }
+            return NotationMeasureSelection(measure: measure, partID: partID)
+        }
+
+        if let anchor = notationMeasureSelectionAnchor, anchor.partID == partID {
+            notationMeasureSelectionAnchor = measures.first(where: {
+                $0.number == anchor.number
+                    && abs($0.startTime - anchor.startTime) < NotationMeasureTiming.timelineTolerance
+            }).map { NotationMeasureSelection(measure: $0, partID: partID) }
+        }
     }
 
     private func reselectNotationItem(

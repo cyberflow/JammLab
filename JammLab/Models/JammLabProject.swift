@@ -24,6 +24,7 @@ struct JammLabProject: Codable {
     var notes: [TimecodedNote]
     var harmonySymbols: [HarmonySymbol]
     var notationItems: [NotationMeasureItem]
+    var notationPartClefs: [NotationPartID: Clef]
     var projectKeySelection: ProjectKeySelection?
     var loopStart: TimeInterval
     var loopEnd: TimeInterval
@@ -46,7 +47,7 @@ struct JammLabProject: Codable {
     var visibleNotationPartIDs: Set<NotationPartID>
 
     init(
-        formatVersion: Int = 11,
+        formatVersion: Int = 12,
         audioBookmarkData: Data,
         artifactRootBookmarkData: Data? = nil,
         audioDisplayName: String,
@@ -55,6 +56,7 @@ struct JammLabProject: Codable {
         notes: [TimecodedNote],
         harmonySymbols: [HarmonySymbol] = [],
         notationItems: [NotationMeasureItem] = [],
+        notationPartClefs: [NotationPartID: Clef] = [:],
         projectKeySelection: ProjectKeySelection? = nil,
         loopStart: TimeInterval,
         loopEnd: TimeInterval,
@@ -85,6 +87,7 @@ struct JammLabProject: Codable {
         self.notes = notes
         self.harmonySymbols = harmonySymbols
         self.notationItems = notationItems
+        self.notationPartClefs = notationPartClefs
         self.projectKeySelection = projectKeySelection
         self.loopStart = loopStart
         self.loopEnd = loopEnd
@@ -117,6 +120,7 @@ struct JammLabProject: Codable {
         case notes
         case harmonySymbols
         case notationItems
+        case notationPartClefs
         case projectKeySelection
         case loopStart
         case loopEnd
@@ -150,6 +154,7 @@ struct JammLabProject: Codable {
         notes = try container.decode([TimecodedNote].self, forKey: .notes)
         harmonySymbols = try container.decodeIfPresent([HarmonySymbol].self, forKey: .harmonySymbols) ?? []
         notationItems = try container.decodeIfPresent([NotationMeasureItem].self, forKey: .notationItems) ?? []
+        notationPartClefs = try container.decodeIfPresent([NotationPartID: Clef].self, forKey: .notationPartClefs) ?? [:]
         projectKeySelection = try container.decodeIfPresent(ProjectKeySelection.self, forKey: .projectKeySelection)
         loopStart = try container.decode(TimeInterval.self, forKey: .loopStart)
         loopEnd = try container.decode(TimeInterval.self, forKey: .loopEnd)
@@ -183,6 +188,7 @@ struct JammLabProject: Codable {
         try container.encode(notes, forKey: .notes)
         try container.encode(harmonySymbols, forKey: .harmonySymbols)
         try container.encode(notationItems, forKey: .notationItems)
+        try container.encode(notationPartClefs, forKey: .notationPartClefs)
         try container.encodeIfPresent(projectKeySelection, forKey: .projectKeySelection)
         try container.encode(loopStart, forKey: .loopStart)
         try container.encode(loopEnd, forKey: .loopEnd)

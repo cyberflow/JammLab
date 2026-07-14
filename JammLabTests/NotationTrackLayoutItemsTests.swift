@@ -70,6 +70,8 @@ final class NotationTrackLayoutItemsTests: XCTestCase {
         XCTAssertTrue(stemActions.insertNotationRest(restPlacement))
         XCTAssertTrue(mainActions.deleteSelectedNotationNote())
         XCTAssertTrue(stemActions.deleteSelectedNotationNote())
+        mainActions.changeClef(.main, .bass)
+        stemActions.changeClef(.stem(.bass), .bass)
 
         XCTAssertEqual(recorder.harmonyCallCount, 4)
         XCTAssertEqual(recorder.measureSelectionCount, 2)
@@ -77,6 +79,8 @@ final class NotationTrackLayoutItemsTests: XCTestCase {
         XCTAssertEqual(recorder.playbackLocationCount, 2)
         XCTAssertEqual(recorder.notationInsertionCount, 4)
         XCTAssertEqual(recorder.deleteNotationCount, 2)
+        XCTAssertEqual(recorder.clefChanges.map(\.0), [.main, .stem(.bass)])
+        XCTAssertEqual(recorder.clefChanges.map(\.1), [.bass, .bass])
     }
 
     func testSelectedMeasureIndicesOnlyMatchTheRenderedPart() {
@@ -240,6 +244,7 @@ private final class TimelineNotationActionRecorder {
     var playbackLocationCount = 0
     var notationInsertionCount = 0
     var deleteNotationCount = 0
+    var clefChanges: [(NotationPartID, Clef)] = []
 }
 
 private func timelineViewActions(
@@ -288,6 +293,7 @@ private func timelineViewActions(
             return true
         },
         changeSelectedNotePitch: { _, _ in true },
+        changeNotationClef: { recorder.clefChanges.append(($0, $1)) },
         auditionNotePitch: { _ in },
         deleteSelectedNotationNote: {
             recorder.deleteNotationCount += 1

@@ -93,7 +93,12 @@ enum NotationNotePlacementResolver {
         lineSpacing: CGFloat = AppTheme.Timeline.notationStaffLineSpacing
     ) -> NotationNotePlacement? {
         guard lineSpacing > 0,
-              let pitchPosition = staffPosition(forY: point.y, staffTop: staffTop, lineSpacing: lineSpacing)
+              let pitchPosition = staffPosition(
+                forY: point.y,
+                staffTop: staffTop,
+                clef: measure.attributes.clef,
+                lineSpacing: lineSpacing
+              )
         else {
             return nil
         }
@@ -110,7 +115,8 @@ enum NotationNotePlacementResolver {
 
         let pitch = NotationPitchMapper.pitch(
             forStaffPosition: pitchPosition,
-            keySignature: measure.attributes.keySignature
+            keySignature: measure.attributes.keySignature,
+            clef: measure.attributes.clef
         )
         let x = NotationMeasureLayout.harmonyX(
             geometry: geometry,
@@ -141,7 +147,12 @@ enum NotationNotePlacementResolver {
         partID: NotationPartID = .main,
         lineSpacing: CGFloat = AppTheme.Timeline.notationStaffLineSpacing
     ) -> NotationRestPlacement? {
-        guard isWithinEntryYRange(point.y, staffTop: staffTop, lineSpacing: lineSpacing) else {
+        guard isWithinEntryYRange(
+            point.y,
+            staffTop: staffTop,
+            clef: measure.attributes.clef,
+            lineSpacing: lineSpacing
+        ) else {
             return nil
         }
 
@@ -365,29 +376,37 @@ enum NotationNotePlacementResolver {
     static func staffPosition(
         forY y: CGFloat,
         staffTop: CGFloat,
+        clef: Clef = .treble,
         lineSpacing: CGFloat = AppTheme.Timeline.notationStaffLineSpacing
     ) -> Int? {
-        guard isWithinEntryYRange(y, staffTop: staffTop, lineSpacing: lineSpacing) else { return nil }
+        guard isWithinEntryYRange(
+            y,
+            staffTop: staffTop,
+            clef: clef,
+            lineSpacing: lineSpacing
+        ) else { return nil }
 
-        let halfSpacing = lineSpacing / 2
-        let rawPosition = ((y - staffTop) / halfSpacing).rounded()
-        return min(
-            NotationPitchMapper.maximumStaffPosition,
-            max(NotationPitchMapper.minimumStaffPosition, Int(rawPosition))
+        return clampedStaffPosition(
+            forY: y,
+            staffTop: staffTop,
+            clef: clef,
+            lineSpacing: lineSpacing
         )
     }
 
     static func clampedStaffPosition(
         forY y: CGFloat,
         staffTop: CGFloat,
+        clef: Clef = .treble,
         lineSpacing: CGFloat = AppTheme.Timeline.notationStaffLineSpacing
     ) -> Int? {
         guard lineSpacing > 0 else { return nil }
         let halfSpacing = lineSpacing / 2
         let rawPosition = ((y - staffTop) / halfSpacing).rounded()
+        let range = NotationPitchMapper.editableStaffPositionRange(for: clef)
         return min(
-            NotationPitchMapper.maximumStaffPosition,
-            max(NotationPitchMapper.minimumStaffPosition, Int(rawPosition))
+            range.upperBound,
+            max(range.lowerBound, Int(rawPosition))
         )
     }
 
@@ -402,17 +421,19 @@ enum NotationNotePlacementResolver {
     private static func isWithinEntryYRange(
         _ y: CGFloat,
         staffTop: CGFloat,
+        clef: Clef = .treble,
         lineSpacing: CGFloat
     ) -> Bool {
         guard lineSpacing > 0 else { return false }
         let halfSpacing = lineSpacing / 2
+        let range = NotationPitchMapper.editableStaffPositionRange(for: clef)
         let minimumY = yPosition(
-            forStaffPosition: NotationPitchMapper.minimumStaffPosition,
+            forStaffPosition: range.lowerBound,
             staffTop: staffTop,
             lineSpacing: lineSpacing
         ) - halfSpacing
         let maximumY = yPosition(
-            forStaffPosition: NotationPitchMapper.maximumStaffPosition,
+            forStaffPosition: range.upperBound,
             staffTop: staffTop,
             lineSpacing: lineSpacing
         ) + halfSpacing

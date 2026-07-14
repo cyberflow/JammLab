@@ -8,6 +8,7 @@ struct NotationViewportFactory {
         playbackMarkerTime: TimeInterval,
         isPlaying: Bool,
         keyName: String?,
+        clef: Clef = .treble,
         partID: NotationPartID = .main,
         includesHarmonies: Bool = true,
         notationItems: [NotationMeasureItem] = [],
@@ -18,6 +19,7 @@ struct NotationViewportFactory {
             tempoMap: tempoMap,
             duration: duration,
             keyName: keyName,
+            clef: clef,
             partID: partID,
             includesHarmonies: includesHarmonies,
             notationItems: notationItems,
@@ -38,6 +40,7 @@ struct NotationViewportFactory {
         tempoMap: TempoMap,
         duration: TimeInterval,
         keyName: String?,
+        clef: Clef = .treble,
         partID: NotationPartID = .main,
         includesHarmonies: Bool = true,
         notationItems: [NotationMeasureItem] = [],
@@ -60,6 +63,7 @@ struct NotationViewportFactory {
             measures.append(decoratedMeasure(
                 cursor,
                 keySignature: keySignature,
+                clef: clef,
                 partID: partID,
                 includesHarmonies: includesHarmonies,
                 notationItems: notationItems,
@@ -128,6 +132,7 @@ struct NotationViewportFactory {
         isPlaying: Bool,
         keyName: String?,
         visibleMeasureCount: Int,
+        clef: Clef = .treble,
         partID: NotationPartID = .main,
         includesHarmonies: Bool = true,
         notationItems: [NotationMeasureItem] = [],
@@ -138,6 +143,7 @@ struct NotationViewportFactory {
             tempoMap: tempoMap,
             duration: duration,
             keyName: keyName,
+            clef: clef,
             partID: partID,
             includesHarmonies: includesHarmonies,
             notationItems: notationItems,
@@ -207,17 +213,20 @@ struct NotationViewportFactory {
     private func decoratedMeasure(
         _ measure: ScoreMeasure,
         keySignature: KeySignature,
+        clef: Clef,
         partID: NotationPartID,
         includesHarmonies: Bool,
         notationItems: [NotationMeasureItem],
         harmonySymbols: [HarmonySymbol],
         regionNotes: [TimecodedNote]
     ) -> ScoreMeasure {
-        let keyedMeasure = measure.withKeySignature(keySignature)
-        return keyedMeasure
-            .withNotationItems(Self.notationItems(for: keyedMeasure, from: notationItems, partID: partID))
-            .withHarmonies(includesHarmonies ? harmonies(for: keyedMeasure, from: harmonySymbols) : [])
-            .withRegionLabels(regionLabels(for: keyedMeasure, from: regionNotes))
+        let attributedMeasure = measure
+            .withKeySignature(keySignature)
+            .withClef(clef)
+        return attributedMeasure
+            .withNotationItems(Self.notationItems(for: attributedMeasure, from: notationItems, partID: partID))
+            .withHarmonies(includesHarmonies ? harmonies(for: attributedMeasure, from: harmonySymbols) : [])
+            .withRegionLabels(regionLabels(for: attributedMeasure, from: regionNotes))
     }
 
     static func anchorTime(
@@ -641,6 +650,12 @@ private extension ScoreMeasure {
     func withKeySignature(_ keySignature: KeySignature) -> ScoreMeasure {
         var copy = self
         copy.attributes.keySignature = keySignature
+        return copy
+    }
+
+    func withClef(_ clef: Clef) -> ScoreMeasure {
+        var copy = self
+        copy.attributes.clef = clef
         return copy
     }
 
