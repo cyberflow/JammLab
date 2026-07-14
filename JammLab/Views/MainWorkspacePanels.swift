@@ -21,6 +21,27 @@ enum NotesFilter: String, CaseIterable, Identifiable {
 }
 
 extension ContentView {
+    var scrollableWorkspaceContent: some View {
+        GeometryReader { proxy in
+            let viewportContentHeight = max(
+                0,
+                proxy.size.height - AppTheme.Spacing.pagePadding * 2
+            )
+            let workspaceHeight = max(
+                viewportContentHeight,
+                timelineColumnMinimumHeight
+            )
+
+            ScrollView(.vertical) {
+                workspaceContent
+                    .frame(maxWidth: .infinity, alignment: .topLeading)
+                    .frame(height: workspaceHeight, alignment: .topLeading)
+                    .padding(AppTheme.Spacing.pagePadding)
+            }
+            .scrollBounceBehavior(.basedOnSize, axes: .vertical)
+        }
+    }
+
     var workspaceContent: some View {
         HStack(alignment: .top, spacing: AppTheme.Spacing.sectionGap) {
             timelineColumn

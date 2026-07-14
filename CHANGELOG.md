@@ -17,6 +17,7 @@ development artifact builds use `vMAJOR.MINOR.PATCH-dev.N`.
 - Fixed multi-part Notation accessibility selection announcements and prevented harmony editing from clearing a selected stem note.
 - Stabilized the Rest entry icon, matched Notation track controls, aligned stem Mute/Solo buttons, and limited MusicXML export to the selected Parts.
 - Added full instrument names, abbreviations, and standard instrument sounds to exported MusicXML parts and Notation score labels.
+- Added vertical workspace scrolling when expanded Notation tracks exceed the main window height.
 
 ## 1.1.0
 

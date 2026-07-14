@@ -25,9 +25,7 @@ struct ContentView: View {
 
             Divider()
 
-            workspaceContent
-                .padding(AppTheme.Spacing.pagePadding)
-                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+            scrollableWorkspaceContent
                 .background(appColors.appBackground)
         }
         .background(WindowTitleUpdater(title: viewModel.windowTitle))
