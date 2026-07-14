@@ -80,7 +80,7 @@ final class ViewModelNotationExportTests: XCTestCase {
         XCTAssertTrue(didExport)
 
         let xml = try String(contentsOf: outputURL, encoding: .utf8)
-        XCTAssertTrue(xml.contains("<part-name>Bass</part-name>"))
+        XCTAssertTrue(xml.contains("<part-name>Bass Guitar</part-name>"))
         XCTAssertTrue(xml.contains("<step>E</step>"))
         XCTAssertEqual(xml.components(separatedBy: ">Intro</words>").count - 1, 1)
     }
@@ -133,11 +133,18 @@ final class ViewModelNotationExportTests: XCTestCase {
         let root = try XCTUnwrap(document.rootElement())
         let partList = try XCTUnwrap(root.elements(forName: "part-list").first)
         let scoreParts = partList.elements(forName: "score-part")
+        let bassScorePart = try XCTUnwrap(scoreParts.first)
+        let scoreInstrument = try XCTUnwrap(bassScorePart.elements(forName: "score-instrument").first)
         let parts = root.elements(forName: "part")
         let measures = try XCTUnwrap(parts.first).elements(forName: "measure")
 
         XCTAssertEqual(scoreParts.count, 1)
-        XCTAssertEqual(scoreParts.first?.elements(forName: "part-name").first?.stringValue, "Bass")
+        XCTAssertEqual(bassScorePart.elements(forName: "part-name").first?.stringValue, "Bass Guitar")
+        XCTAssertEqual(bassScorePart.elements(forName: "part-abbreviation").first?.stringValue, "B. Guit.")
+        XCTAssertEqual(scoreInstrument.attribute(forName: "id")?.stringValue, "P1-I1")
+        XCTAssertEqual(scoreInstrument.elements(forName: "instrument-name").first?.stringValue, "Bass Guitar")
+        XCTAssertEqual(scoreInstrument.elements(forName: "instrument-sound").first?.stringValue, "pluck.bass")
+        XCTAssertFalse(bassScorePart.stringValue?.contains("Main") == true)
         XCTAssertEqual(parts.count, 1)
         XCTAssertTrue(measures.flatMap { $0.elements(forName: "harmony") }.isEmpty)
         XCTAssertEqual(

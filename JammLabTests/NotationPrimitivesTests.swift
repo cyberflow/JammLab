@@ -3,6 +3,26 @@ import XCTest
 @testable import JammLab
 
 final class NotationPrimitivesTests: XCTestCase {
+    func testNotationPartDescriptorsProvideMusicXMLMetadata() {
+        let descriptors: [(NotationPartDescriptor, String, String, String?)] = [
+            (.main, "Main", "Main", nil),
+            (.stem(.vocals), "Vocals", "Voc.", "voice.vocals"),
+            (.stem(.instrumental), "Instrumental", "Instr.", nil),
+            (.stem(.drums), "Drum Set", "Dr.", "drum.group.set"),
+            (.stem(.bass), "Bass Guitar", "B. Guit.", "pluck.bass"),
+            (.stem(.other), "Other", "Other", nil),
+            (.stem(.guitar), "Guitar", "Guit.", "pluck.guitar"),
+            (.stem(.piano), "Piano", "Pno.", "keyboard.piano")
+        ]
+
+        for (descriptor, title, abbreviation, instrumentSound) in descriptors {
+            XCTAssertEqual(descriptor.title, title)
+            XCTAssertEqual(descriptor.abbreviation, abbreviation)
+            XCTAssertEqual(descriptor.instrumentName, title)
+            XCTAssertEqual(descriptor.instrumentSound, instrumentSound)
+        }
+    }
+
     func testNotationSMuFLRestSymbolsMapDurationsToCodepoints() throws {
         let whole = try XCTUnwrap(NotationSMuFLSymbol(duration: NotationDuration(denominator: 1)))
         let half = try XCTUnwrap(NotationSMuFLSymbol(duration: NotationDuration(denominator: 2)))

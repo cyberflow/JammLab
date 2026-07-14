@@ -163,7 +163,7 @@ struct NotationWindowView: View {
                 ForEach(system.staves) { staff in
                     HStack(spacing: AppTheme.Spacing.none) {
                         if usesPartGutter {
-                            Text(staff.part.title)
+                            Text(staff.part.abbreviation)
                                 .font(AppTheme.Typography.noteTitle)
                                 .foregroundStyle(appColors.secondaryText)
                                 .lineLimit(2)

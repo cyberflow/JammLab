@@ -179,10 +179,19 @@ final class MusicXMLNotationExportRenderer: NotationExportRenderer {
     private func partList(parts: [NotationExportPart], title: String) -> XMLElement {
         let partList = element("part-list")
         for (index, part) in parts.enumerated() {
-            let scorePart = element("score-part", attributes: ["id": musicXMLPartID(for: index)])
+            let partID = musicXMLPartID(for: index)
+            let scorePart = element("score-part", attributes: ["id": partID])
             let partName = part.descriptor.id.isMain ? title : part.descriptor.title
             let attributes = part.descriptor.id.isMain ? ["print-object": "no"] : [:]
             scorePart.addChild(element("part-name", stringValue: partName, attributes: attributes))
+            scorePart.addChild(element("part-abbreviation", stringValue: part.descriptor.abbreviation))
+
+            let scoreInstrument = element("score-instrument", attributes: ["id": "\(partID)-I1"])
+            scoreInstrument.addChild(element("instrument-name", stringValue: part.descriptor.instrumentName))
+            if let instrumentSound = part.descriptor.instrumentSound {
+                scoreInstrument.addChild(element("instrument-sound", stringValue: instrumentSound))
+            }
+            scorePart.addChild(scoreInstrument)
             partList.addChild(scorePart)
         }
         return partList

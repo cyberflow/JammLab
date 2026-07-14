@@ -169,14 +169,84 @@ struct NotationPartID: Codable, Hashable, Identifiable, Equatable {
     }
 }
 
-struct NotationPartDescriptor: Codable, Equatable, Identifiable {
+struct NotationPartDescriptor: Equatable, Identifiable {
     var id: NotationPartID
     var title: String
+    var abbreviation: String
+    var instrumentName: String
+    var instrumentSound: String?
 
-    static let main = NotationPartDescriptor(id: .main, title: "Main")
+    static let main = make(
+        id: .main,
+        title: "Main",
+        abbreviation: "Main"
+    )
 
     static func stem(_ type: StemType) -> NotationPartDescriptor {
-        NotationPartDescriptor(id: .stem(type), title: type.title)
+        switch type {
+        case .vocals:
+            return make(
+                id: .stem(type),
+                title: "Vocals",
+                abbreviation: "Voc.",
+                instrumentSound: "voice.vocals"
+            )
+        case .instrumental:
+            return make(
+                id: .stem(type),
+                title: "Instrumental",
+                abbreviation: "Instr."
+            )
+        case .drums:
+            return make(
+                id: .stem(type),
+                title: "Drum Set",
+                abbreviation: "Dr.",
+                instrumentSound: "drum.group.set"
+            )
+        case .bass:
+            return make(
+                id: .stem(type),
+                title: "Bass Guitar",
+                abbreviation: "B. Guit.",
+                instrumentSound: "pluck.bass"
+            )
+        case .other:
+            return make(
+                id: .stem(type),
+                title: "Other",
+                abbreviation: "Other"
+            )
+        case .guitar:
+            return make(
+                id: .stem(type),
+                title: "Guitar",
+                abbreviation: "Guit.",
+                instrumentSound: "pluck.guitar"
+            )
+        case .piano:
+            return make(
+                id: .stem(type),
+                title: "Piano",
+                abbreviation: "Pno.",
+                instrumentSound: "keyboard.piano"
+            )
+        }
+    }
+
+    private static func make(
+        id: NotationPartID,
+        title: String,
+        abbreviation: String,
+        instrumentSound: String? = nil
+    ) -> NotationPartDescriptor {
+        NotationPartDescriptor(
+            id: id,
+            title: title,
+            abbreviation: abbreviation,
+            instrumentName: title,
+            instrumentSound: instrumentSound
+        )
     }
 }
 
