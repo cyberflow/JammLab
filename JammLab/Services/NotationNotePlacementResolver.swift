@@ -456,8 +456,8 @@ enum NotationEntryRecomposer {
                 if !didInsertItem {
                     output.append(insertedItem)
                     let insertedItemEnd = insertedItem.offsetInQuarterNotes + insertedItem.durationInQuarterNotes
-                    output.append(contentsOf: metricAwareFillerNotationItems(
-                        measure: measure,
+                    output.append(contentsOf: NotationRestItemFactory.metricAwareRestItems(
+                        in: measure,
                         partID: insertedItem.partID,
                         startOffset: insertedItemEnd,
                         remaining: restSpan.endOffsetInQuarterNotes - insertedItemEnd
@@ -471,55 +471,6 @@ enum NotationEntryRecomposer {
         }
 
         return output
-    }
-
-    private static func metricAwareFillerNotationItems(
-        measure: ScoreMeasure,
-        partID: NotationPartID,
-        startOffset: Double,
-        remaining: Double
-    ) -> [NotationMeasureItem] {
-        guard remaining > NotationMeasureTiming.timelineTolerance else { return [] }
-
-        var output: [NotationMeasureItem] = []
-        var cursor = startOffset
-        var rest = remaining
-        let nextQuarterBoundary = floor(cursor + NotationMeasureTiming.timelineTolerance) + 1
-        let distanceToQuarterBoundary = nextQuarterBoundary - cursor
-        let isOnQuarterBoundary = abs(cursor.rounded() - cursor) <= NotationMeasureTiming.timelineTolerance
-
-        if !isOnQuarterBoundary,
-           distanceToQuarterBoundary > NotationMeasureTiming.timelineTolerance,
-           distanceToQuarterBoundary < rest - NotationMeasureTiming.timelineTolerance,
-           let duration = exactNotationDuration(for: distanceToQuarterBoundary) {
-            output.append(NotationRestItemFactory.restItem(
-                partID: partID,
-                measureNumber: measure.number,
-                measureStartTime: measure.startTime,
-                offsetInQuarterNotes: cursor,
-                durationInQuarterNotes: distanceToQuarterBoundary,
-                displayDuration: duration
-            ))
-            cursor += distanceToQuarterBoundary
-            rest -= distanceToQuarterBoundary
-        }
-
-        output.append(contentsOf: NotationRestItemFactory.restItems(
-            measureNumber: measure.number,
-            measureStartTime: measure.startTime,
-            startOffset: cursor,
-            remaining: rest,
-            partID: partID
-        ))
-        return output
-    }
-
-    private static func exactNotationDuration(for length: Double) -> NotationDuration? {
-        NotationDuration.allowedDenominators
-            .map(NotationDuration.init(denominator:))
-            .first {
-                abs($0.durationInQuarterNotes - length) <= NotationMeasureTiming.timelineTolerance
-            }
     }
 
     private static func notationItemSort(_ lhs: NotationMeasureItem, _ rhs: NotationMeasureItem) -> Bool {

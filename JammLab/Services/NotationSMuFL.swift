@@ -8,6 +8,7 @@ enum NotationSMuFLSymbol: Equatable {
     case restQuarter
     case rest8th
     case rest16th
+    case rest32nd
 
     init?(duration: NotationDuration) {
         switch duration.denominator {
@@ -21,6 +22,8 @@ enum NotationSMuFLSymbol: Equatable {
             self = .rest8th
         case 16:
             self = .rest16th
+        case 32:
+            self = .rest32nd
         default:
             return nil
         }
@@ -38,12 +41,57 @@ enum NotationSMuFLSymbol: Equatable {
             return 0xE4E6
         case .rest16th:
             return 0xE4E7
+        case .rest32nd:
+            return 0xE4E8
         }
     }
 
     var glyph: String {
         guard let scalar = UnicodeScalar(codepoint) else { return "" }
         return String(Character(scalar))
+    }
+}
+
+enum NotationAugmentationDotSymbol: Equatable {
+    case augmentationDot
+
+    var codepoint: UInt32 { 0xE1E7 }
+
+    var glyph: String {
+        guard let scalar = UnicodeScalar(codepoint) else { return "" }
+        return String(Character(scalar))
+    }
+}
+
+enum NotationAugmentationDotLayout {
+    static func noteDotStaffPosition(for noteStaffPosition: Int) -> Int {
+        noteStaffPosition.isMultiple(of: 2) ? noteStaffPosition - 1 : noteStaffPosition
+    }
+
+    static func noteTarget(
+        noteX: CGFloat,
+        noteStaffPosition: Int,
+        staffTop: CGFloat
+    ) -> CGPoint {
+        let spacing = AppTheme.Timeline.notationStaffLineSpacing
+        return CGPoint(
+            x: noteX + spacing,
+            y: NotationNotePlacementResolver.yPosition(
+                forStaffPosition: noteDotStaffPosition(for: noteStaffPosition),
+                staffTop: staffTop
+            )
+        )
+    }
+
+    static func restTarget(restX: CGFloat, staffTop: CGFloat) -> CGPoint {
+        let spacing = AppTheme.Timeline.notationStaffLineSpacing
+        return CGPoint(
+            x: restX + spacing,
+            y: NotationNotePlacementResolver.yPosition(
+                forStaffPosition: 3,
+                staffTop: staffTop
+            )
+        )
     }
 }
 
@@ -272,6 +320,13 @@ enum NotationMusicFontRegistry {
 
     static func glyphPath(
         for symbol: NotationStaffNoteSymbol,
+        fontSize: CGFloat
+    ) -> NotationSMuFLGlyphPath? {
+        glyphPath(forCodepoint: symbol.codepoint, fontSize: fontSize)
+    }
+
+    static func glyphPath(
+        for symbol: NotationAugmentationDotSymbol,
         fontSize: CGFloat
     ) -> NotationSMuFLGlyphPath? {
         glyphPath(forCodepoint: symbol.codepoint, fontSize: fontSize)

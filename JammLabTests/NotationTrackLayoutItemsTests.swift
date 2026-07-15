@@ -282,6 +282,7 @@ private func timelineViewActions(
         notationTrackCollapsedChanged: { _ in },
         stemNotationTrackCollapsedChanged: { _, _ in },
         notationDurationChanged: { _ in },
+        notationDurationDotToggled: {},
         notationNoteEntryModeToggled: {},
         notationRestEntryModeToggled: {},
         insertNotationNote: { _ in

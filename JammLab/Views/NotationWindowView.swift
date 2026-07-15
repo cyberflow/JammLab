@@ -70,6 +70,13 @@ struct NotationWindowView: View {
                 isEnabled: viewModel.canChangeNotationDuration
             )
 
+            NotationAugmentationDotButton(
+                isActive: viewModel.notationDurationIsDotted
+            ) {
+                viewModel.toggleNotationDurationDot()
+            }
+            .disabled(!viewModel.canChangeNotationDuration)
+
             NotationEntryModeButton(
                 mode: .rest,
                 isActive: viewModel.isNotationRestEntryModeEnabled
@@ -185,7 +192,10 @@ struct NotationWindowView: View {
                             selectedHarmonySymbolID: staff.part.id.isMain ? viewModel.selectedHarmonySymbolID : nil,
                             selectedMeasures: viewModel.selectedNotationMeasures,
                             selectedItem: viewModel.selectedNotationItem,
-                            selectedDuration: NotationDuration(denominator: viewModel.notationDurationDenominator),
+                            selectedDuration: NotationDuration(
+                                denominator: viewModel.notationDurationDenominator,
+                                isDotted: viewModel.notationDurationIsDotted
+                            ),
                             entryMode: viewModel.notationEntryMode,
                             pendingEditorRequest: staff.part.id.isMain ? viewModel.pendingHarmonyEditorRequest : nil,
                             showsRegionLabels: staff.showsRegionLabels,
@@ -303,7 +313,7 @@ struct NotationWindowView: View {
             hotkeys.insert(.editHarmonyAtSelectedNotationItem)
         }
         if viewModel.canChangeNotationDuration {
-            hotkeys.formUnion(AppHotkey.notationDurationHotkeys)
+            hotkeys.formUnion(AppHotkey.notationDurationEditingHotkeys)
         }
         if viewModel.duration > 0 {
             hotkeys.insert(.toggleNotationNoteEntryMode)
@@ -351,6 +361,8 @@ struct NotationWindowView: View {
             guard let denominator = hotkey.notationDurationDenominator else { return false }
             viewModel.setNotationDurationDenominator(denominator)
             return true
+        case .toggleNotationDurationDot:
+            return viewModel.toggleNotationDurationDot()
         default:
             return false
         }

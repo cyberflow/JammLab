@@ -50,6 +50,7 @@ final class AudioPlayerViewModel: ObservableObject {
     @Published var selectedNotationItem: NotationItemSelection?
     @Published var notationMeasureClipboard: NotationMeasureClipboard?
     @Published var notationDurationDenominator = NotationDuration.defaultDenominator
+    @Published var notationEntryDurationIsDotted = false
     @Published var notationItems: [NotationMeasureItem] = []
     @Published var notationPartClefs: [NotationPartID: Clef] = [:]
     @Published var notationEntryMode: NotationEntryMode?

@@ -79,6 +79,32 @@ final class AppHotkeyNotationDurationEventFilterTests: XCTestCase {
         }
     }
 
+    func testAppHotkeyEventFilterScopesAugmentationDotToDurationEditing() throws {
+        let event = try keyEvent(key: ".", keyCode: 47)
+
+        XCTAssertEqual(
+            AppHotkeyEventFilter.hotkey(
+                for: event,
+                attachedWindowNumber: 42,
+                firstResponder: nil,
+                allowedHotkeys: AppHotkey.notationDurationEditingHotkeys
+            ),
+            .toggleNotationDurationDot
+        )
+        XCTAssertNil(AppHotkeyEventFilter.hotkey(
+            for: event,
+            attachedWindowNumber: 42,
+            firstResponder: nil,
+            allowedHotkeys: AppHotkey.notationDurationHotkeys
+        ))
+        XCTAssertNil(AppHotkeyEventFilter.hotkey(
+            for: event,
+            attachedWindowNumber: 42,
+            firstResponder: NSTextView(),
+            allowedHotkeys: AppHotkey.notationDurationEditingHotkeys
+        ))
+    }
+
     private func keyEvent(
         key: String,
         keyCode: UInt16,

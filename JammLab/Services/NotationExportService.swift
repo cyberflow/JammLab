@@ -445,9 +445,7 @@ final class MusicXMLNotationExportRenderer: NotationExportRenderer {
         let note = element("note")
         let isMeasureRest = isOnlyItem && item.isSynthesized && item.offsetInQuarterNotes == 0
         note.addChild(element("rest", attributes: isMeasureRest ? ["measure": "yes"] : [:]))
-        note.addChild(element("duration", stringValue: "\(durationValue(forQuarterOffset: item.durationInQuarterNotes))"))
-        note.addChild(element("voice", stringValue: "1"))
-        note.addChild(element("type", stringValue: item.displayDuration.displayName))
+        appendDurationElements(to: note, for: item)
         return note
     }
 
@@ -461,10 +459,17 @@ final class MusicXMLNotationExportRenderer: NotationExportRenderer {
         }
         pitchElement.addChild(element("octave", stringValue: "\(pitch.octave)"))
         note.addChild(pitchElement)
+        appendDurationElements(to: note, for: item)
+        return note
+    }
+
+    private func appendDurationElements(to note: XMLElement, for item: NotationMeasureItem) {
         note.addChild(element("duration", stringValue: "\(durationValue(forQuarterOffset: item.durationInQuarterNotes))"))
         note.addChild(element("voice", stringValue: "1"))
         note.addChild(element("type", stringValue: item.displayDuration.displayName))
-        return note
+        if item.displayDuration.isDotted {
+            note.addChild(element("dot"))
+        }
     }
 
     private func durationValue(forQuarterOffset offset: Double) -> Int {

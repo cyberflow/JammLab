@@ -34,6 +34,7 @@ struct TimelineViewState: Equatable {
     var notationViewport: NotationViewportState
     var stemNotationViewports: [StemType: NotationViewportState]
     var notationDurationDenominator: Int
+    var notationDurationIsDotted: Bool
     var canChangeNotationDuration: Bool
     var notationEntryMode: NotationEntryMode?
     var isNotationTrackCollapsed: Bool
@@ -76,6 +77,7 @@ struct TimelineViewActions {
     var notationTrackCollapsedChanged: (Bool) -> Void
     var stemNotationTrackCollapsedChanged: (StemType, Bool) -> Void
     var notationDurationChanged: (Int) -> Void
+    var notationDurationDotToggled: () -> Void
     var notationNoteEntryModeToggled: () -> Void
     var notationRestEntryModeToggled: () -> Void
     var insertNotationNote: (NotationNotePlacement) -> Bool
@@ -170,10 +172,14 @@ struct WaveformTimelineView: View {
             trackControlWidth: trackControlWidth,
             selectedMeasures: state.selectedNotationMeasures,
             selectedItem: state.selectedNotationItem,
-            selectedDuration: NotationDuration(denominator: state.notationDurationDenominator),
+            selectedDuration: NotationDuration(
+                denominator: state.notationDurationDenominator,
+                isDotted: state.notationDurationIsDotted
+            ),
             entryMode: state.notationEntryMode,
             canChangeNotationDuration: state.canChangeNotationDuration,
             notationDurationDenominator: state.notationDurationDenominator,
+            notationDurationIsDotted: state.notationDurationIsDotted,
             notationViewports: state.stemNotationViewports,
             notationCollapsed: state.stemNotationTrackCollapsed,
             notationActions: actions,
@@ -348,7 +354,10 @@ struct WaveformTimelineView: View {
                 selectedHarmonySymbolID: state.selectedHarmonySymbolID,
                 selectedMeasures: state.selectedNotationMeasures,
                 selectedItem: state.selectedNotationItem,
-                selectedDuration: NotationDuration(denominator: state.notationDurationDenominator),
+                selectedDuration: NotationDuration(
+                    denominator: state.notationDurationDenominator,
+                    isDotted: state.notationDurationIsDotted
+                ),
                 entryMode: state.notationEntryMode,
                 pendingEditorRequest: state.pendingHarmonyEditorRequest,
                 actions: actions.notationTrackActions(allowsHarmony: true)
@@ -405,6 +414,12 @@ struct WaveformTimelineView: View {
                     .help("Add rests to Notation")
                     .accessibilityLabel("Notation Rest Entry")
                     .accessibilityValue(isNotationRestEntryModeEnabled ? "Enabled" : "Disabled")
+
+                    NotationAugmentationDotButton(
+                        isActive: state.notationDurationIsDotted,
+                        action: actions.notationDurationDotToggled
+                    )
+                    .disabled(!state.canChangeNotationDuration)
                 }
             }
         }
@@ -550,6 +565,7 @@ private struct StemTracksSection: View {
     let entryMode: NotationEntryMode?
     let canChangeNotationDuration: Bool
     let notationDurationDenominator: Int
+    let notationDurationIsDotted: Bool
     let notationViewports: [StemType: NotationViewportState]
     let notationCollapsed: [StemType: Bool]
     let notationActions: TimelineViewActions
@@ -763,6 +779,12 @@ private struct StemTracksSection: View {
                 .disabled(duration <= 0)
                 .help("Add rests to \(type.title) Notation")
                 .accessibilityLabel("\(type.title) Notation Rest Entry")
+
+                NotationAugmentationDotButton(
+                    isActive: notationDurationIsDotted,
+                    action: notationActions.notationDurationDotToggled
+                )
+                .disabled(!canChangeNotationDuration)
             }
         }
         .padding(.horizontal, AppTheme.Spacing.md)

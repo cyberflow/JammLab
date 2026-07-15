@@ -324,19 +324,28 @@ enum HarmonyNavigationDirection: Equatable {
 }
 
 struct NotationDuration: Codable, Equatable, Identifiable {
-    static let allowedDenominators = [1, 2, 4, 8, 16]
+    static let entryDenominators = [1, 2, 4, 8, 16]
+    static let restDecompositionDenominators = entryDenominators + [32]
     static let defaultDenominator = 1
 
     var denominator: Int
+    var isDotted: Bool
 
-    init(denominator: Int = Self.defaultDenominator) {
-        self.denominator = Self.normalizedDenominator(denominator)
+    init(denominator: Int = Self.defaultDenominator, isDotted: Bool = false) {
+        self.denominator = Self.restDecompositionDenominators.contains(denominator)
+            ? denominator
+            : Self.normalizedDenominator(denominator)
+        self.isDotted = isDotted
     }
 
-    var id: Int { denominator }
+    var id: String { "\(denominator)-\(isDotted ? 1 : 0)" }
+
+    var baseDurationInQuarterNotes: Double {
+        4.0 / Double(denominator)
+    }
 
     var durationInQuarterNotes: Double {
-        4.0 / Double(denominator)
+        baseDurationInQuarterNotes * (isDotted ? 1.5 : 1)
     }
 
     var displayName: String {
@@ -351,23 +360,50 @@ struct NotationDuration: Codable, Equatable, Identifiable {
             return "eighth"
         case 16:
             return "16th"
+        case 32:
+            return "32nd"
         default:
             return "duration"
         }
     }
 
+    var humanDisplayName: String {
+        isDotted ? "dotted \(displayName)" : displayName
+    }
+
     var pluralDisplayName: String {
-        "\(displayName) notes"
+        "\(humanDisplayName) notes"
     }
 
     var capitalizedDisplayName: String {
-        displayName.prefix(1).uppercased() + displayName.dropFirst()
+        humanDisplayName.prefix(1).uppercased() + humanDisplayName.dropFirst()
     }
 
     static func normalizedDenominator(_ denominator: Int) -> Int {
-        allowedDenominators.min { lhs, rhs in
+        entryDenominators.min { lhs, rhs in
             abs(lhs - denominator) < abs(rhs - denominator)
         } ?? defaultDenominator
+    }
+
+    private enum CodingKeys: String, CodingKey {
+        case denominator
+        case isDotted
+    }
+
+    init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        self.init(
+            denominator: try container.decodeIfPresent(Int.self, forKey: .denominator) ?? Self.defaultDenominator,
+            isDotted: try container.decodeIfPresent(Bool.self, forKey: .isDotted) ?? false
+        )
+    }
+
+    func encode(to encoder: Encoder) throws {
+        var container = encoder.container(keyedBy: CodingKeys.self)
+        try container.encode(denominator, forKey: .denominator)
+        if isDotted {
+            try container.encode(true, forKey: .isDotted)
+        }
     }
 }
 
@@ -596,7 +632,7 @@ enum NotationRestItemFactory {
         var segments: [Segment] = []
         var cursor = startOffset
         var rest = remaining
-        for denominator in NotationDuration.allowedDenominators {
+        for denominator in NotationDuration.restDecompositionDenominators {
             let duration = NotationDuration(denominator: denominator)
             let length = duration.durationInQuarterNotes
             while rest >= length - tolerance {
@@ -612,7 +648,7 @@ enum NotationRestItemFactory {
         }
 
         if includeTail, rest > tolerance {
-            let duration = NotationDuration(denominator: NotationDuration.allowedDenominators.last ?? 8)
+            let duration = NotationDuration(denominator: NotationDuration.entryDenominators.last ?? 8)
             segments.append(Segment(
                 offsetInQuarterNotes: cursor,
                 durationInQuarterNotes: rest,
@@ -647,6 +683,59 @@ enum NotationRestItemFactory {
                     isSynthesized: isSynthesized
                 )
             }
+    }
+
+    static func metricAwareRestItems(
+        in measure: ScoreMeasure,
+        partID: NotationPartID,
+        startOffset: Double,
+        remaining: Double
+    ) -> [NotationMeasureItem] {
+        guard remaining > NotationMeasureTiming.timelineTolerance else { return [] }
+
+        var output: [NotationMeasureItem] = []
+        var cursor = startOffset
+        var rest = remaining
+        let nextQuarterBoundary = floor(cursor + NotationMeasureTiming.timelineTolerance) + 1
+        let distanceToQuarterBoundary = nextQuarterBoundary - cursor
+        let isOnQuarterBoundary = abs(cursor.rounded() - cursor) <= NotationMeasureTiming.timelineTolerance
+
+        if !isOnQuarterBoundary,
+           distanceToQuarterBoundary > NotationMeasureTiming.timelineTolerance,
+           distanceToQuarterBoundary < rest - NotationMeasureTiming.timelineTolerance,
+           let duration = exactDuration(for: distanceToQuarterBoundary) {
+            output.append(restItem(
+                partID: partID,
+                measureNumber: measure.number,
+                measureStartTime: measure.startTime,
+                offsetInQuarterNotes: cursor,
+                durationInQuarterNotes: distanceToQuarterBoundary,
+                displayDuration: duration
+            ))
+            cursor += distanceToQuarterBoundary
+            rest -= distanceToQuarterBoundary
+        }
+
+        output.append(contentsOf: restItems(
+            measureNumber: measure.number,
+            measureStartTime: measure.startTime,
+            startOffset: cursor,
+            remaining: rest,
+            partID: partID
+        ))
+        return output
+    }
+
+    private static func exactDuration(for length: Double) -> NotationDuration? {
+        restDecompositionDurations.first {
+            abs($0.durationInQuarterNotes - length) <= NotationMeasureTiming.timelineTolerance
+        }
+    }
+
+    private static var restDecompositionDurations: [NotationDuration] {
+        NotationDuration.restDecompositionDenominators.map {
+            NotationDuration(denominator: $0)
+        }
     }
 
     static func restItem(

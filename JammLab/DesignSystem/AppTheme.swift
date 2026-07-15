@@ -196,9 +196,12 @@ enum AppTheme {
         static let buttonHeight: CGFloat = 28
         static let notationDurationButtonWidth: CGFloat = 27
         static let notationDurationButtonSpacing: CGFloat = AppTheme.Spacing.xxxs
-        static let notationEntryModeButtonWidth: CGFloat = 32
+        static let notationModeButtonWidth: CGFloat = 32
         static let notationDurationControlHeight: CGFloat = controlHeight
         static let notationDurationGlyphSize: CGFloat = 20
+        static let notationAugmentationDotNoteOffsetX: CGFloat = -3
+        static let notationAugmentationDotGlyphOffsetX: CGFloat = 7
+        static let notationAugmentationDotGlyphOffsetY: CGFloat = 5
         static let transportBarMinHeight: CGFloat = 70
         static let abletonNumberFieldHeight: CGFloat = 24
         static let jammValueSliderWidth: CGFloat = 70

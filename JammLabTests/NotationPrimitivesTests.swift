@@ -46,6 +46,7 @@ final class NotationPrimitivesTests: XCTestCase {
         let quarter = try XCTUnwrap(NotationSMuFLSymbol(duration: NotationDuration(denominator: 4)))
         let eighth = try XCTUnwrap(NotationSMuFLSymbol(duration: NotationDuration(denominator: 8)))
         let sixteenth = try XCTUnwrap(NotationSMuFLSymbol(duration: NotationDuration(denominator: 16)))
+        let thirtySecond = try XCTUnwrap(NotationSMuFLSymbol(duration: NotationDuration(denominator: 32)))
 
         XCTAssertEqual(whole, .restWhole)
         XCTAssertEqual(whole.codepoint, 0xE4E3)
@@ -57,7 +58,10 @@ final class NotationPrimitivesTests: XCTestCase {
         XCTAssertEqual(eighth.codepoint, 0xE4E6)
         XCTAssertEqual(sixteenth, .rest16th)
         XCTAssertEqual(sixteenth.codepoint, 0xE4E7)
+        XCTAssertEqual(thirtySecond, .rest32nd)
+        XCTAssertEqual(thirtySecond.codepoint, 0xE4E8)
         XCTAssertEqual(quarter.glyph.unicodeScalars.first?.value, 0xE4E5)
+        XCTAssertEqual(NotationAugmentationDotSymbol.augmentationDot.codepoint, 0xE1E7)
     }
 
     func testNotationClefSymbolsUseLelandSMuFLCodepointsAndReferenceLines() {
@@ -147,15 +151,66 @@ final class NotationPrimitivesTests: XCTestCase {
         XCTAssertEqual(duration.pluralDisplayName, "16th notes")
     }
 
+    func testDottedDurationUsesOneAndAHalfTimesBaseValueAndHumanName() {
+        let dottedQuarter = NotationDuration(denominator: 4, isDotted: true)
+        let dottedSixteenth = NotationDuration(denominator: 16, isDotted: true)
+
+        XCTAssertEqual(dottedQuarter.baseDurationInQuarterNotes, 1, accuracy: 0.0001)
+        XCTAssertEqual(dottedQuarter.durationInQuarterNotes, 1.5, accuracy: 0.0001)
+        XCTAssertEqual(dottedQuarter.displayName, "quarter")
+        XCTAssertEqual(dottedQuarter.capitalizedDisplayName, "Dotted quarter")
+        XCTAssertEqual(dottedSixteenth.durationInQuarterNotes, 0.375, accuracy: 0.0001)
+        XCTAssertNotEqual(dottedQuarter.id, NotationDuration(denominator: 4).id)
+    }
+
+    func testNotationDurationCodableDefaultsLegacyValuesToUndottedAndOmitsFalseFlag() throws {
+        let legacy = try JSONDecoder().decode(
+            NotationDuration.self,
+            from: Data(#"{"denominator":4}"#.utf8)
+        )
+        let undottedData = try JSONEncoder().encode(NotationDuration(denominator: 4))
+        let dottedData = try JSONEncoder().encode(NotationDuration(denominator: 4, isDotted: true))
+
+        XCTAssertFalse(legacy.isDotted)
+        XCTAssertFalse(String(decoding: undottedData, as: UTF8.self).contains("isDotted"))
+        XCTAssertTrue(String(decoding: dottedData, as: UTF8.self).contains("isDotted"))
+    }
+
+    func testAugmentationDotLayoutMovesLineNotesIntoSpaceAbove() {
+        let spacing = AppTheme.Timeline.notationStaffLineSpacing
+        let staffTop: CGFloat = 20
+
+        XCTAssertEqual(NotationAugmentationDotLayout.noteDotStaffPosition(for: 4), 3)
+        XCTAssertEqual(NotationAugmentationDotLayout.noteDotStaffPosition(for: 3), 3)
+        XCTAssertEqual(NotationAugmentationDotLayout.noteDotStaffPosition(for: -2), -3)
+
+        let noteTarget = NotationAugmentationDotLayout.noteTarget(
+            noteX: 100,
+            noteStaffPosition: 4,
+            staffTop: staffTop
+        )
+        let restTarget = NotationAugmentationDotLayout.restTarget(restX: 100, staffTop: staffTop)
+        XCTAssertEqual(noteTarget.x, 100 + spacing, accuracy: 0.0001)
+        XCTAssertEqual(noteTarget.y, restTarget.y, accuracy: 0.0001)
+    }
+
     func testFiveDurationButtonsFitNotationTrackControls() {
-        let buttonCount = CGFloat(NotationDuration.allowedDenominators.count)
+        let buttonCount = CGFloat(NotationDuration.entryDenominators.count)
         let spacingCount = max(0, buttonCount - 1)
         let controlWidth = buttonCount * AppTheme.ControlSize.notationDurationButtonWidth
             + spacingCount * AppTheme.ControlSize.notationDurationButtonSpacing
         let availableWidth = AppTheme.Timeline.trackControlWidth - 2 * AppTheme.Spacing.md
 
         XCTAssertLessThanOrEqual(controlWidth, availableWidth)
-        XCTAssertEqual(AppTheme.ControlSize.notationEntryModeButtonWidth, 32)
+        XCTAssertEqual(AppTheme.ControlSize.notationModeButtonWidth, 32)
+    }
+
+    func testThreeEntryModeButtonsFitNotationTrackControls() {
+        let controlWidth = 3 * AppTheme.ControlSize.notationModeButtonWidth
+            + 2 * AppTheme.Spacing.sm
+        let availableWidth = AppTheme.Timeline.trackControlWidth - 2 * AppTheme.Spacing.md
+
+        XCTAssertLessThanOrEqual(controlWidth, availableWidth)
     }
 
     func testNotationRestItemFactoryUsesGreedyAllowedDurationDecomposition() {
@@ -172,14 +227,14 @@ final class NotationPrimitivesTests: XCTestCase {
 
         let withinTolerance = NotationRestItemFactory.greedySegments(
             startOffset: 1,
-            remaining: 0.25 - tolerance / 2
+            remaining: 0.125 - tolerance / 2
         )
         let outsideTolerance = NotationRestItemFactory.greedySegments(
             startOffset: 1,
-            remaining: 0.25 - tolerance * 2
+            remaining: 0.125 - tolerance * 2
         )
 
-        XCTAssertEqual(withinTolerance.map(\.displayDuration.denominator), [16])
+        XCTAssertEqual(withinTolerance.map(\.displayDuration.denominator), [32])
         XCTAssertEqual(withinTolerance.map(\.offsetInQuarterNotes), [1])
         XCTAssertTrue(outsideTolerance.isEmpty)
     }
@@ -1058,6 +1113,17 @@ final class NotationPrimitivesTests: XCTestCase {
         }
     }
 
+    func testLelandAugmentationDotGlyphPathHasBounds() throws {
+        let glyphPath = try XCTUnwrap(NotationMusicFontRegistry.glyphPath(
+            for: NotationAugmentationDotSymbol.augmentationDot,
+            fontSize: AppTheme.ControlSize.notationDurationGlyphSize
+        ))
+
+        XCTAssertFalse(glyphPath.path.isEmpty)
+        XCTAssertGreaterThan(glyphPath.bounds.width, 0)
+        XCTAssertGreaterThan(glyphPath.bounds.height, 0)
+    }
+
     func testLelandStaffNoteGlyphPathsHaveBounds() throws {
         for symbol in allStaffNoteSymbols {
             let glyphPath = try XCTUnwrap(NotationMusicFontRegistry.glyphPath(
@@ -1179,6 +1245,14 @@ final class NotationPrimitivesTests: XCTestCase {
             NotationDurationControlHelpText.accessibilityHint(for: quarter),
             "Sets notation duration to quarter note"
         )
+    }
+
+    func testAugmentationDotHelpTextMatchesShortcutDescription() {
+        XCTAssertEqual(
+            NotationAugmentationDotHelpText.tooltip,
+            "Augmentation dot (.; Num.; Num,)\nToggle duration dot"
+        )
+        XCTAssertEqual(NotationAugmentationDotHelpText.accessibilityLabel, "Augmentation dot")
     }
 
     func testWholeRestVisualCenterUsesStandardStaffPosition() {

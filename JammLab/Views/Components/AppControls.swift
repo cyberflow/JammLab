@@ -22,7 +22,7 @@ struct NotationDurationControl: View {
     @Environment(\.appColors) private var appColors
 
     private var options: [NotationDurationOption] {
-        NotationDuration.allowedDenominators
+        NotationDuration.entryDenominators
             .reversed()
             .compactMap(NotationDurationOption.init)
     }
@@ -87,11 +87,9 @@ struct NotationEntryModeButton: View {
     let mode: NotationEntryMode
     let isActive: Bool
     let action: () -> Void
-    @Environment(\.isEnabled) private var isEnabled
-    @Environment(\.appColors) private var appColors
 
     var body: some View {
-        Button(action: action) {
+        NotationSelectableButton(isActive: isActive, action: action) { iconColor in
             ZStack {
                 switch mode {
                 case .note:
@@ -105,17 +103,58 @@ struct NotationEntryModeButton: View {
                     )
                 }
             }
-            .frame(
-                width: AppTheme.ControlSize.notationEntryModeButtonWidth,
-                height: AppTheme.ControlSize.notationDurationControlHeight
-            )
-            .background(backgroundColor)
-            .clipShape(RoundedRectangle(cornerRadius: AppTheme.Radius.small, style: .continuous))
-            .overlay {
-                RoundedRectangle(cornerRadius: AppTheme.Radius.small, style: .continuous)
-                    .stroke(borderColor, lineWidth: AppTheme.Stroke.thin)
-            }
-            .contentShape(Rectangle())
+        }
+    }
+}
+
+struct NotationAugmentationDotButton: View {
+    let isActive: Bool
+    let action: () -> Void
+
+    var body: some View {
+        NotationSelectableButton(isActive: isActive, action: action) { iconColor in
+            NotationAugmentationDotGlyphView(color: iconColor)
+                .accessibilityHidden(true)
+        }
+        .help(Text(NotationAugmentationDotHelpText.tooltip))
+        .accessibilityLabel(NotationAugmentationDotHelpText.accessibilityLabel)
+        .accessibilityHint(NotationAugmentationDotHelpText.accessibilityHint)
+        .accessibilityValue(isActive ? "Enabled" : "Disabled")
+        .accessibilityAddTraits(isActive ? [.isSelected] : [])
+    }
+}
+
+private struct NotationSelectableButton<Label: View>: View {
+    let isActive: Bool
+    let action: () -> Void
+    private let label: (Color) -> Label
+    @Environment(\.isEnabled) private var isEnabled
+    @Environment(\.appColors) private var appColors
+
+    init(
+        isActive: Bool,
+        action: @escaping () -> Void,
+        @ViewBuilder label: @escaping (Color) -> Label
+    ) {
+        self.isActive = isActive
+        self.action = action
+        self.label = label
+    }
+
+    var body: some View {
+        Button(action: action) {
+            label(iconColor)
+                .frame(
+                    width: AppTheme.ControlSize.notationModeButtonWidth,
+                    height: AppTheme.ControlSize.notationDurationControlHeight
+                )
+                .background(isActive ? appColors.accent : appColors.statusButtonFill)
+                .clipShape(RoundedRectangle(cornerRadius: AppTheme.Radius.small, style: .continuous))
+                .overlay {
+                    RoundedRectangle(cornerRadius: AppTheme.Radius.small, style: .continuous)
+                        .stroke(isActive ? appColors.accent : appColors.border, lineWidth: AppTheme.Stroke.thin)
+                }
+                .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
         .opacity(isEnabled ? 1 : 0.45)
@@ -125,13 +164,50 @@ struct NotationEntryModeButton: View {
         guard isEnabled else { return appColors.disabledText }
         return isActive ? appColors.primaryText : appColors.secondaryText
     }
+}
 
-    private var backgroundColor: Color {
-        isActive ? appColors.accent : appColors.statusButtonFill
-    }
+enum NotationAugmentationDotHelpText {
+    static let tooltip = [
+        "\(AppHotkey.toggleNotationDurationDot.title) (\(AppHotkey.toggleNotationDurationDot.key))",
+        AppHotkey.toggleNotationDurationDot.detail
+    ].joined(separator: "\n")
+    static let accessibilityLabel = AppHotkey.toggleNotationDurationDot.title
+    static let accessibilityHint = AppHotkey.toggleNotationDurationDot.detail
+}
 
-    private var borderColor: Color {
-        isActive ? appColors.accent : appColors.border
+private struct NotationAugmentationDotGlyphView: View {
+    let color: Color
+
+    var body: some View {
+        Canvas { context, size in
+            let fontSize = AppTheme.ControlSize.notationDurationGlyphSize
+            if let notePath = NotationMusicFontRegistry.glyphPath(
+                for: NotationDurationControlSymbol.quarter,
+                fontSize: fontSize
+            ) {
+                let transform = notePath.centeredTransform(in: size)
+                    .translatedBy(
+                        x: AppTheme.ControlSize.notationAugmentationDotNoteOffsetX,
+                        y: 0
+                    )
+                context.fill(Path(notePath.path).applying(transform), with: .color(color))
+            }
+
+            if let dotPath = NotationMusicFontRegistry.glyphPath(
+                for: NotationAugmentationDotSymbol.augmentationDot,
+                fontSize: fontSize
+            ) {
+                let target = CGPoint(
+                    x: size.width / 2 + AppTheme.ControlSize.notationAugmentationDotGlyphOffsetX,
+                    y: size.height / 2 + AppTheme.ControlSize.notationAugmentationDotGlyphOffsetY
+                )
+                let anchor = CGPoint(x: dotPath.bounds.midX, y: dotPath.bounds.midY)
+                context.fill(
+                    Path(dotPath.path).applying(dotPath.anchoredTransform(anchor: anchor, target: target)),
+                    with: .color(color)
+                )
+            }
+        }
     }
 }
 

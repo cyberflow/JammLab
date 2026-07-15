@@ -1,105 +1,84 @@
 import Foundation
 
 enum NotationDurationEditor {
-    static func replacementSuffix(
+    struct Replacement: Equatable {
+        let items: [NotationMeasureItem]
+        let selectedItem: NotationMeasureItem
+    }
+
+    static func replacement(
         in measure: ScoreMeasure,
         selectedItem: NotationMeasureItem,
         selectedDuration: NotationDuration
-    ) -> [NotationMeasureItem]? {
-        var items: [NotationMeasureItem] = []
-        var cursor = selectedItem.offsetInQuarterNotes
+    ) -> Replacement? {
+        let orderedItems = measure.notationItems.sorted(by: itemSort)
+        guard let selectedIndex = orderedItems.firstIndex(where: {
+            $0.id == selectedItem.id
+                && $0.partID == selectedItem.partID
+                && abs($0.offsetInQuarterNotes - selectedItem.offsetInQuarterNotes)
+                    < NotationMeasureTiming.timelineTolerance
+        }) else {
+            return nil
+        }
+
+        let selected = orderedItems[selectedIndex]
+        let startOffset = selected.offsetInQuarterNotes
+        let sourceEnd = startOffset + selected.durationInQuarterNotes
+        let targetEnd = startOffset + selectedDuration.durationInQuarterNotes
         let measureLength = NotationMeasureTiming.quarterLength(for: measure.attributes.timeSignature)
-        var remaining = measureLength - cursor
-        guard remaining > NotationMeasureTiming.timelineTolerance else { return nil }
-
-        let selectedLength = selectedDuration.durationInQuarterNotes
-        if selectedItem.kind == .note {
-            guard selectedLength <= remaining + NotationMeasureTiming.timelineTolerance,
-                  let pitch = selectedItem.pitch
-            else {
-                return nil
-            }
-
-            let duration = min(selectedLength, remaining)
-            items.append(NotationMeasureItem(
-                id: selectedItem.id,
-                partID: selectedItem.partID,
-                kind: .note,
-                pitch: pitch,
-                measureNumber: measure.number,
-                measureStartTime: measure.startTime,
-                offsetInQuarterNotes: cursor,
-                durationInQuarterNotes: duration,
-                displayDuration: selectedDuration
-            ))
-            cursor += duration
-            remaining -= duration
-            items.append(contentsOf: fillerItems(
-                in: measure,
-                partID: selectedItem.partID,
-                startOffset: cursor,
-                remaining: remaining
-            ))
-            return items
+        guard targetEnd <= measureLength + NotationMeasureTiming.timelineTolerance,
+              selected.kind == .rest || selected.pitch != nil
+        else {
+            return nil
         }
 
-        let selectedCount = min(
-            2,
-            Int(floor((remaining + NotationMeasureTiming.timelineTolerance) / selectedLength))
-        )
-        if selectedCount > 0 {
-            for _ in 0..<selectedCount {
-                let duration = min(selectedLength, remaining)
-                items.append(NotationRestItemFactory.restItem(
-                    partID: selectedItem.partID,
-                    measureNumber: measure.number,
-                    measureStartTime: measure.startTime,
-                    offsetInQuarterNotes: cursor,
-                    durationInQuarterNotes: duration,
-                    displayDuration: selectedDuration
-                ))
-                cursor += duration
-                remaining -= duration
-            }
-        } else if let largest = largestDuration(fitting: remaining) {
-            let duration = min(largest.durationInQuarterNotes, remaining)
-            items.append(NotationRestItemFactory.restItem(
-                partID: selectedItem.partID,
-                measureNumber: measure.number,
-                measureStartTime: measure.startTime,
-                offsetInQuarterNotes: cursor,
-                durationInQuarterNotes: duration,
-                displayDuration: largest
-            ))
-            cursor += duration
-            remaining -= duration
+        var consumedEnd = sourceEnd
+        var suffixIndex = orderedItems.index(after: selectedIndex)
+        while suffixIndex < orderedItems.endIndex {
+            let item = orderedItems[suffixIndex]
+            guard item.kind == .rest,
+                  item.partID == selected.partID,
+                  abs(item.offsetInQuarterNotes - consumedEnd) < NotationMeasureTiming.timelineTolerance
+            else { break }
+
+            consumedEnd = item.offsetInQuarterNotes + item.durationInQuarterNotes
+            suffixIndex = orderedItems.index(after: suffixIndex)
         }
 
-        items.append(contentsOf: fillerItems(
-            in: measure,
-            partID: selectedItem.partID,
-            startOffset: cursor,
-            remaining: remaining
-        ))
-        return items
-    }
+        guard targetEnd <= consumedEnd + NotationMeasureTiming.timelineTolerance else {
+            return nil
+        }
 
-    private static func fillerItems(
-        in measure: ScoreMeasure,
-        partID: NotationPartID,
-        startOffset: Double,
-        remaining: Double
-    ) -> [NotationMeasureItem] {
-        NotationRestItemFactory.restItems(
+        let replacement = NotationMeasureItem(
+            id: selected.isSynthesized ? UUID().uuidString : selected.id,
+            partID: selected.partID,
+            kind: selected.kind,
+            pitch: selected.pitch,
             measureNumber: measure.number,
             measureStartTime: measure.startTime,
-            startOffset: startOffset,
-            remaining: remaining,
-            partID: partID
+            offsetInQuarterNotes: startOffset,
+            durationInQuarterNotes: selectedDuration.durationInQuarterNotes,
+            displayDuration: selectedDuration
         )
+        let fillerEnd = max(sourceEnd, consumedEnd)
+        let fillerItems = NotationRestItemFactory.metricAwareRestItems(
+            in: measure,
+            partID: selected.partID,
+            startOffset: targetEnd,
+            remaining: fillerEnd - targetEnd
+        )
+
+        let items = Array(orderedItems[..<selectedIndex])
+            + [replacement]
+            + fillerItems
+            + Array(orderedItems[suffixIndex...])
+        return Replacement(items: items, selectedItem: replacement)
     }
 
-    private static func largestDuration(fitting remaining: Double) -> NotationDuration? {
-        NotationRestItemFactory.greedySegments(startOffset: 0, remaining: remaining).first?.displayDuration
+    private static func itemSort(_ lhs: NotationMeasureItem, _ rhs: NotationMeasureItem) -> Bool {
+        if abs(lhs.offsetInQuarterNotes - rhs.offsetInQuarterNotes) > NotationMeasureTiming.timelineTolerance {
+            return lhs.offsetInQuarterNotes < rhs.offsetInQuarterNotes
+        }
+        return lhs.id < rhs.id
     }
 }

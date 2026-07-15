@@ -63,6 +63,8 @@ final class ViewModelResetTests: XCTestCase {
         viewModel.toggleSnap()
         viewModel.setLooping(true)
         viewModel.setNotationTrackCollapsed(false)
+        viewModel.notationDurationDenominator = 8
+        viewModel.notationEntryDurationIsDotted = true
 
         viewModel.newProject()
 
@@ -76,6 +78,8 @@ final class ViewModelResetTests: XCTestCase {
         XCTAssertFalse(viewModel.isSnapEnabled)
         XCTAssertFalse(viewModel.isLooping)
         XCTAssertTrue(viewModel.isNotationTrackCollapsed)
+        XCTAssertEqual(viewModel.notationDurationDenominator, NotationDuration.defaultDenominator)
+        XCTAssertFalse(viewModel.notationDurationIsDotted)
         XCTAssertNil(viewModel.importedFile)
         XCTAssertEqual(try XCTUnwrap(viewModel.tempoBPM), AppDefaults.defaultTempoBPM, accuracy: 0.0001)
         XCTAssertEqual(try XCTUnwrap(viewModel.beatGridSettings.bpm), AppDefaults.defaultTempoBPM, accuracy: 0.0001)

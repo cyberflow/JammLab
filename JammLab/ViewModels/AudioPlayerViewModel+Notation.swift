@@ -97,15 +97,60 @@ extension AudioPlayerViewModel {
         duration > 0 && (isNotationEntryModeEnabled || canEditSelectedNotationItem)
     }
 
+    var notationDurationIsDotted: Bool {
+        selectedNotationItemDuration?.isDotted ?? notationEntryDurationIsDotted
+    }
+
     var canChangeSelectedNotationNotePitch: Bool {
         canChangeSelectedNotationNotePitch(byStaffPositionDelta: -1)
             || canChangeSelectedNotationNotePitch(byStaffPositionDelta: 1)
     }
 
     func setNotationDurationDenominator(_ denominator: Int) {
-        notationDurationDenominator = NotationDuration.normalizedDenominator(denominator)
-        guard !isNotationEntryModeEnabled else { return }
-        changeSelectedNotationItemDuration(to: NotationDuration(denominator: notationDurationDenominator))
+        let normalizedDenominator = NotationDuration.normalizedDenominator(denominator)
+        guard !isNotationEntryModeEnabled else {
+            notationDurationDenominator = normalizedDenominator
+            return
+        }
+
+        let targetDuration = NotationDuration(
+            denominator: normalizedDenominator,
+            isDotted: notationDurationIsDotted
+        )
+        guard selectedNotationItemDuration != targetDuration else {
+            notationDurationDenominator = normalizedDenominator
+            return
+        }
+        guard changeSelectedNotationItemDuration(to: targetDuration) else { return }
+        notationDurationDenominator = normalizedDenominator
+    }
+
+    @discardableResult
+    func toggleNotationDurationDot() -> Bool {
+        if isNotationEntryModeEnabled {
+            notationEntryDurationIsDotted.toggle()
+            return true
+        }
+
+        guard let selection = selectedNotationItem,
+              let match = notationItemMatch(for: selection)
+        else {
+            return false
+        }
+
+        let targetDuration = NotationDuration(
+            denominator: match.item.displayDuration.denominator,
+            isDotted: !match.item.displayDuration.isDotted
+        )
+        guard changeSelectedNotationItemDuration(to: targetDuration) else { return false }
+        return true
+    }
+
+    private var selectedNotationItemDuration: NotationDuration? {
+        guard let selection = selectedNotationItem,
+              let match = notationItemMatch(for: selection)
+        else { return nil }
+        return match.item.displayDuration
     }
 
     var isNotationEntryModeEnabled: Bool {
@@ -730,30 +775,29 @@ extension AudioPlayerViewModel {
         return nil
     }
 
-    private func changeSelectedNotationItemDuration(to selectedDuration: NotationDuration) {
+    @discardableResult
+    private func changeSelectedNotationItemDuration(to selectedDuration: NotationDuration) -> Bool {
         guard let selection = selectedNotationItem,
               let match = notationItemMatch(for: selection)
-        else { return }
+        else { return false }
 
         let measure = match.measure
-        let startOffset = match.item.offsetInQuarterNotes
-        guard let suffix = NotationDurationEditor.replacementSuffix(
+        guard let replacement = NotationDurationEditor.replacement(
             in: measure,
             selectedItem: match.item,
             selectedDuration: selectedDuration
-        ) else { return }
+        ) else { return false }
 
         performUndoableEdit("Change Notation Duration") {
-            let prefix = measure.notationItems
-                .filter { $0.offsetInQuarterNotes < startOffset - NotationMeasureTiming.timelineTolerance }
-                .filter { !$0.isSynthesized }
-
-            replaceNotationMeasureItems(in: measure, with: prefix + suffix)
-
-            if let selected = suffix.first {
-                selectedNotationItem = NotationItemSelection(measure: measure, item: selected)
-            }
+            replaceNotationMeasureItems(in: measure, with: replacement.items)
+            reselectNotationItem(
+                inMeasureNumber: measure.number,
+                measureStartTime: measure.startTime,
+                itemID: replacement.selectedItem.id,
+                partID: replacement.selectedItem.partID
+            )
         }
+        return true
     }
 
     private func harmonySymbolID(at time: TimeInterval) -> HarmonySymbol.ID? {

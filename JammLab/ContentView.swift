@@ -186,7 +186,7 @@ struct ContentView: View {
             hotkeys.remove(.editHarmonyAtSelectedNotationItem)
         }
         if !viewModel.canChangeNotationDuration {
-            hotkeys.subtract(AppHotkey.notationDurationHotkeys)
+            hotkeys.subtract(AppHotkey.notationDurationEditingHotkeys)
         }
         if !viewModel.canChangeSelectedNotationNotePitch(byStaffPositionDelta: -1) {
             hotkeys.remove(.moveSelectedNotationNotePitchUp)
@@ -264,6 +264,8 @@ struct ContentView: View {
             guard let denominator = hotkey.notationDurationDenominator else { return false }
             viewModel.setNotationDurationDenominator(denominator)
             return true
+        case .toggleNotationDurationDot:
+            return viewModel.toggleNotationDurationDot()
         }
     }
 

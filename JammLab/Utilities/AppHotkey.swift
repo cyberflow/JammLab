@@ -25,10 +25,15 @@ enum AppHotkey: CaseIterable, Hashable {
     case setNotationDurationQuarter
     case setNotationDurationHalf
     case setNotationDurationWhole
+    case toggleNotationDurationDot
 
     static let notationDurationHotkeys = Set(allCases.filter {
         $0.notationDurationDenominator != nil
     })
+
+    static let notationDurationEditingHotkeys = notationDurationHotkeys.union([
+        .toggleNotationDurationDot
+    ])
 
     // Keep this enum as the single source of truth for keyboard shortcuts.
     // When adding a new handled hotkey, add a case here with its help metadata
@@ -94,6 +99,8 @@ enum AppHotkey: CaseIterable, Hashable {
             self = .setNotationDurationHalf
         case 26, 89:
             self = .setNotationDurationWhole
+        case 47, 65:
+            self = .toggleNotationDurationDot
         case 53:
             self = .clearNotationMeasureSelection
         default:
@@ -149,6 +156,8 @@ enum AppHotkey: CaseIterable, Hashable {
             return "6"
         case .setNotationDurationWhole:
             return "7"
+        case .toggleNotationDurationDot:
+            return ".; Num.; Num,"
         }
     }
 
@@ -200,6 +209,8 @@ enum AppHotkey: CaseIterable, Hashable {
             return "Set Half Note Duration"
         case .setNotationDurationWhole:
             return "Set Whole Note Duration"
+        case .toggleNotationDurationDot:
+            return "Augmentation dot"
         }
     }
 
@@ -251,6 +262,8 @@ enum AppHotkey: CaseIterable, Hashable {
             return "Set notation duration to half notes for the selected notation item."
         case .setNotationDurationWhole:
             return "Set notation duration to whole notes for the selected notation item."
+        case .toggleNotationDurationDot:
+            return "Toggle duration dot"
         }
     }
 

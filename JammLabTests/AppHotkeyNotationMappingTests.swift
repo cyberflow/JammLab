@@ -134,6 +134,24 @@ final class AppHotkeyNotationMappingTests: XCTestCase {
         }
     }
 
+    func testAppHotkeyRecognizesAugmentationDotFromPeriodAndNumpadDecimal() throws {
+        let rowPeriod = try keyEvent(key: ".", keyCode: 47)
+        let numpadPeriod = try keyEvent(key: ".", keyCode: 65)
+        let numpadComma = try keyEvent(key: ",", keyCode: 65)
+        let rowComma = try keyEvent(key: ",", keyCode: 43)
+
+        XCTAssertEqual(AppHotkey(event: rowPeriod), .toggleNotationDurationDot)
+        XCTAssertEqual(AppHotkey(event: numpadPeriod), .toggleNotationDurationDot)
+        XCTAssertEqual(AppHotkey(event: numpadComma), .toggleNotationDurationDot)
+        XCTAssertNil(AppHotkey(event: rowComma))
+        XCTAssertEqual(AppHotkey.toggleNotationDurationDot.key, ".; Num.; Num,")
+        XCTAssertEqual(AppHotkey.toggleNotationDurationDot.title, "Augmentation dot")
+        XCTAssertEqual(AppHotkey.toggleNotationDurationDot.detail, "Toggle duration dot")
+        XCTAssertNil(AppHotkey.toggleNotationDurationDot.notationDurationDenominator)
+        XCTAssertFalse(AppHotkey.notationDurationHotkeys.contains(.toggleNotationDurationDot))
+        XCTAssertTrue(AppHotkey.notationDurationEditingHotkeys.contains(.toggleNotationDurationDot))
+    }
+
     func testAppHotkeyNotationDurationShortcutTextUsesPrimaryAndNumpadKeys() {
         let expectations: [(denominator: Int, shortcutText: String)] = [
             (16, "3; Num3"),

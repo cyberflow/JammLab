@@ -313,6 +313,7 @@ extension AudioPlayerViewModel {
         clearNotationMeasureSelectionAndClipboard()
         pendingHarmonyEditorRequest = nil
         notationDurationDenominator = NotationDuration.defaultDenominator
+        notationEntryDurationIsDotted = false
         notationEntryMode = nil
         activeLoopRegionID = nil
     }

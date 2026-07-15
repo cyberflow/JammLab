@@ -318,6 +318,7 @@ struct NotationTrackView: View {
                 }
                 drawRestGlyph(
                     symbol: symbol,
+                    duration: item.notationItem.displayDuration,
                     x: item.x,
                     staffTop: staffTop,
                     color: color,
@@ -362,6 +363,7 @@ struct NotationTrackView: View {
                   let symbol = NotationSMuFLSymbol(duration: hoveredRestPlacement.displayDuration) {
             drawRestGlyph(
                 symbol: symbol,
+                duration: hoveredRestPlacement.displayDuration,
                 x: hoveredRestPlacement.x,
                 staffTop: staffTop,
                 color: appColors.accent.opacity(0.56),
@@ -399,6 +401,18 @@ struct NotationTrackView: View {
             opacity: opacity,
             in: &context
         )
+        if duration.isDotted {
+            drawAugmentationDot(
+                at: NotationAugmentationDotLayout.noteTarget(
+                    noteX: x,
+                    noteStaffPosition: staffPosition,
+                    staffTop: staffTop
+                ),
+                color: color,
+                opacity: opacity,
+                in: &context
+            )
+        }
     }
 
     private func drawLedgerLines(
@@ -460,6 +474,7 @@ struct NotationTrackView: View {
 
     private func drawRestGlyph(
         symbol: NotationSMuFLSymbol,
+        duration: NotationDuration,
         x: CGFloat,
         staffTop: CGFloat,
         color: Color,
@@ -478,16 +493,42 @@ struct NotationTrackView: View {
                 Path(glyphPath.path).applying(transform),
                 with: .color(color)
             )
-            return
+        } else {
+            let text = Text(symbol.glyph)
+                .font(.custom(NotationMusicFontRegistry.fontName, size: fontSize))
+                .foregroundStyle(color)
+            context.draw(
+                text,
+                at: CGPoint(x: x, y: restGlyphY(symbol: symbol, staffTop: staffTop)),
+                anchor: .center
+            )
         }
 
-        let text = Text(symbol.glyph)
-            .font(.custom(NotationMusicFontRegistry.fontName, size: fontSize))
-            .foregroundStyle(color)
-        context.draw(
-            text,
-            at: CGPoint(x: x, y: restGlyphY(symbol: symbol, staffTop: staffTop)),
-            anchor: .center
+        if duration.isDotted {
+            drawAugmentationDot(
+                at: NotationAugmentationDotLayout.restTarget(restX: x, staffTop: staffTop),
+                color: color,
+                opacity: 1,
+                in: &context
+            )
+        }
+    }
+
+    private func drawAugmentationDot(
+        at target: CGPoint,
+        color: Color,
+        opacity: Double,
+        in context: inout GraphicsContext
+    ) {
+        let fontSize = AppTheme.Timeline.notationStaffLineSpacing * 3.25
+        guard let glyphPath = NotationMusicFontRegistry.glyphPath(
+            for: NotationAugmentationDotSymbol.augmentationDot,
+            fontSize: fontSize
+        ) else { return }
+        let anchor = CGPoint(x: glyphPath.bounds.midX, y: glyphPath.bounds.midY)
+        context.fill(
+            Path(glyphPath.path).applying(glyphPath.anchoredTransform(anchor: anchor, target: target)),
+            with: .color(color.opacity(opacity))
         )
     }
 
@@ -502,7 +543,7 @@ struct NotationTrackView: View {
             return line3Y - spacing * 0.08
         case .restQuarter:
             return line3Y + spacing * 0.06
-        case .rest8th, .rest16th:
+        case .rest8th, .rest16th, .rest32nd:
             return line3Y - spacing * 0.12
         }
     }
