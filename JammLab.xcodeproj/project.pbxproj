@@ -230,6 +230,9 @@
 		9FBA01042D40000100112233 /* TunerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9FBA00042D40000100112233 /* TunerView.swift */; };
 		9FBA01052D40000100112233 /* PitchDetectionTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9FBA00052D40000100112233 /* PitchDetectionTests.swift */; };
 		9FBA01062D40000100112233 /* AudioSampleConverterTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9FBA00062D40000100112233 /* AudioSampleConverterTests.swift */; };
+		9FCE01012F20000100112233 /* MultiTrackAudioPlayerConversionTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9FCE00012F20000100112233 /* MultiTrackAudioPlayerConversionTests.swift */; };
+		9FCE01022F20000100112233 /* NotationDurationEditor.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9FCE00022F20000100112233 /* NotationDurationEditor.swift */; };
+		9FCE01032F20000100112233 /* NotationDurationEditorTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9FCE00032F20000100112233 /* NotationDurationEditorTests.swift */; };
 		9FD001012D20000100112233 /* ControlHelpText.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9FD001002D20000100112233 /* ControlHelpText.swift */; };
 /* End PBXBuildFile section */
 
@@ -494,6 +497,9 @@
 		9FBA00042D40000100112233 /* TunerView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TunerView.swift; sourceTree = "<group>"; };
 		9FBA00052D40000100112233 /* PitchDetectionTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PitchDetectionTests.swift; sourceTree = "<group>"; };
 		9FBA00062D40000100112233 /* AudioSampleConverterTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AudioSampleConverterTests.swift; sourceTree = "<group>"; };
+		9FCE00012F20000100112233 /* MultiTrackAudioPlayerConversionTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MultiTrackAudioPlayerConversionTests.swift; sourceTree = "<group>"; };
+		9FCE00022F20000100112233 /* NotationDurationEditor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotationDurationEditor.swift; sourceTree = "<group>"; };
+		9FCE00032F20000100112233 /* NotationDurationEditorTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotationDurationEditorTests.swift; sourceTree = "<group>"; };
 		9FC100012D10000100112233 /* Base.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = Base.xcconfig; sourceTree = "<group>"; };
 		9FC100022D10000100112233 /* Debug.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = Debug.xcconfig; sourceTree = "<group>"; };
 		9FC100032D10000100112233 /* Release.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = Release.xcconfig; sourceTree = "<group>"; };
@@ -581,6 +587,7 @@
 				9F8B00022C10000100112233 /* ProjectStateNormalizer.swift */,
 				9FAC00012CF0000100112233 /* ProjectEditableState.swift */,
 				9FEA00012D70000100112233 /* NotationScoreModels.swift */,
+				9FCE00022F20000100112233 /* NotationDurationEditor.swift */,
 				9F9300012C90000100112233 /* StemBackendResolver.swift */,
 				9F8D00012C30000100112233 /* StemModels.swift */,
 				9F8E00012C40000100112233 /* StemSeparationJobModels.swift */,
@@ -723,6 +730,8 @@
 				9FAB00022CE0000100112233 /* PeakformLogicTests.swift */,
 				9FBA00052D40000100112233 /* PitchDetectionTests.swift */,
 				9FBA00062D40000100112233 /* AudioSampleConverterTests.swift */,
+				9FCE00012F20000100112233 /* MultiTrackAudioPlayerConversionTests.swift */,
+				9FCE00032F20000100112233 /* NotationDurationEditorTests.swift */,
 				9FAB00032CE0000100112233 /* TimelineProjectLogicTests.swift */,
 				9FAB00682CE0000100112233 /* ProjectStateNormalizerTests.swift */,
 				9FAB00552CE0000100112233 /* ProjectSaveDestinationTests.swift */,
@@ -1138,6 +1147,7 @@
 				9F8A01132C00000100112233 /* RecentProjectsStore.swift in Sources */,
 				9F9401012CA0000100112233 /* AppSettingsStore.swift in Sources */,
 				9FEA01012D70000100112233 /* NotationScoreModels.swift in Sources */,
+				9FCE01022F20000100112233 /* NotationDurationEditor.swift in Sources */,
 				9F2701012EA0000100112233 /* NotationSMuFL.swift in Sources */,
 				9F8D01042C30000100112233 /* AudioRenderState.swift in Sources */,
 				9F8D01052C30000100112233 /* ClickRenderState.swift in Sources */,
@@ -1193,6 +1203,8 @@
 				9FAB01022CE0000100112233 /* PeakformLogicTests.swift in Sources */,
 				9FBA01052D40000100112233 /* PitchDetectionTests.swift in Sources */,
 				9FBA01062D40000100112233 /* AudioSampleConverterTests.swift in Sources */,
+				9FCE01012F20000100112233 /* MultiTrackAudioPlayerConversionTests.swift in Sources */,
+				9FCE01032F20000100112233 /* NotationDurationEditorTests.swift in Sources */,
 				9FAB01032CE0000100112233 /* TimelineProjectLogicTests.swift in Sources */,
 				9FAB01682CE0000100112233 /* ProjectStateNormalizerTests.swift in Sources */,
 				9FAB01552CE0000100112233 /* ProjectSaveDestinationTests.swift in Sources */,

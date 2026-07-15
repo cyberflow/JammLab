@@ -32,11 +32,13 @@ final class ViewModelStemSeparationCancellationTests: XCTestCase {
         try viewModel.loadImportedAudio(media)
 
         viewModel.separateStems()
-        try await Task.sleep(nanoseconds: 100_000_000)
 
         viewModel.cancelStemSeparation()
-        try await Task.sleep(nanoseconds: 700_000_000)
+        let didFinishCancellation = await waitForMainActorCondition {
+            viewModel.stemSeparationTask == nil
+        }
 
+        XCTAssertTrue(didFinishCancellation)
         if case .cancelled = viewModel.stemSeparationState.phase {
         } else {
             XCTFail("Expected cancelled stem separation phase, got \(viewModel.stemSeparationState.phase)")
@@ -78,7 +80,6 @@ final class ViewModelStemSeparationCancellationTests: XCTestCase {
         try viewModel.loadImportedAudio(media)
 
         viewModel.separateStems()
-        try await Task.sleep(nanoseconds: 100_000_000)
         let firstRunID = try XCTUnwrap(viewModel.stemSeparationRunID)
 
         viewModel.cancelStemSeparation()
@@ -89,18 +90,23 @@ final class ViewModelStemSeparationCancellationTests: XCTestCase {
         XCTAssertEqual(viewModel.stemSeparationState.phase, .processing)
         XCTAssertEqual(viewModel.stemSeparationState.status, "Cancelling stem separation")
 
-        try await Task.sleep(nanoseconds: 700_000_000)
+        let didFinishFirstCancellation = await waitForMainActorCondition {
+            viewModel.stemSeparationTask == nil
+        }
+        XCTAssertTrue(didFinishFirstCancellation)
         XCTAssertNil(viewModel.stemSeparationTask)
         XCTAssertNil(viewModel.stemSeparationRunID)
 
         viewModel.separateStems()
-        try await Task.sleep(nanoseconds: 100_000_000)
         let secondRunID = try XCTUnwrap(viewModel.stemSeparationRunID)
         XCTAssertNotEqual(secondRunID, firstRunID)
 
         viewModel.cancelStemSeparation()
-        try await Task.sleep(nanoseconds: 700_000_000)
+        let didFinishSecondCancellation = await waitForMainActorCondition {
+            viewModel.stemSeparationTask == nil
+        }
 
+        XCTAssertTrue(didFinishSecondCancellation)
         XCTAssertEqual(viewModel.stemSeparationState.phase, .cancelled)
         XCTAssertEqual(viewModel.stemSeparationState.status, "Stem separation cancelled")
         XCTAssertNil(viewModel.stemSeparationTask)

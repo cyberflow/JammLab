@@ -3,6 +3,21 @@ import XCTest
 
 final class ViewModelSettingsTests: XCTestCase {
     @MainActor
+    func testViewModelRestoresClickVolumeFromInjectedSettingsStore() throws {
+        let defaults = try temporaryUserDefaults()
+        defaults.set(0.42, forKey: AppSettingsStore.clickVolumeKey)
+        let engine = MockPlaybackEngine()
+
+        let viewModel = AudioPlayerViewModel(
+            playbackEngine: engine,
+            appSettingsStore: AppSettingsStore(defaults: defaults)
+        )
+
+        XCTAssertEqual(viewModel.clickVolume, 0.42, accuracy: 0.0001)
+        XCTAssertEqual(engine.clickVolume, 0.42, accuracy: 0.0001)
+    }
+
+    @MainActor
     func testViewModelSetTimelineVisibleRangeClampsWithoutAudio() {
         let viewModel = AudioPlayerViewModel(playbackEngine: MockPlaybackEngine())
 

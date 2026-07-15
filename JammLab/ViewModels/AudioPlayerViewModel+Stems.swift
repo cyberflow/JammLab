@@ -96,13 +96,6 @@ extension AudioPlayerViewModel {
         return false
     }
 
-    func retryStemSeparation() {
-        let method = StemSeparationMethod.method(forID: stemCacheMetadata?.separationMethodID)
-            ?? StemSeparationMethod.method(forModelName: stemCacheMetadata?.modelName ?? "")
-            ?? .defaultValue
-        separateStems(method: method)
-    }
-
     func setPlaybackMode(_ mode: PlaybackMode) {
         performUndoableEdit("Change Playback Mode") {
             switchPlaybackMode(mode, preservedTime: currentTime, errorPrefix: "Playback mode switch failed")

@@ -4,18 +4,12 @@ import XCTest
 final class ViewModelResetTests: XCTestCase {
     @MainActor
     func testViewModelResetMethodsUseSliderDefaults() throws {
-        let clickVolumeKey = "metronome.volume"
-        let originalClickVolumeValue = UserDefaults.standard.object(forKey: clickVolumeKey)
-        defer {
-            if let originalClickVolumeValue {
-                UserDefaults.standard.set(originalClickVolumeValue, forKey: clickVolumeKey)
-            } else {
-                UserDefaults.standard.removeObject(forKey: clickVolumeKey)
-            }
-        }
-
         let engine = MockPlaybackEngine()
-        let viewModel = AudioPlayerViewModel(playbackEngine: engine)
+        let settingsStore = AppSettingsStore(defaults: try temporaryUserDefaults())
+        let viewModel = AudioPlayerViewModel(
+            playbackEngine: engine,
+            appSettingsStore: settingsStore
+        )
 
         XCTAssertEqual(try XCTUnwrap(viewModel.tempoBPM), AppDefaults.defaultTempoBPM, accuracy: 0.0001)
         XCTAssertEqual(try XCTUnwrap(viewModel.beatGridSettings.bpm), AppDefaults.defaultTempoBPM, accuracy: 0.0001)
@@ -44,11 +38,6 @@ final class ViewModelResetTests: XCTestCase {
         XCTAssertEqual(viewModel.stemMixState.item(for: .drums).volume, 0.4, accuracy: 0.0001)
         XCTAssertTrue(viewModel.stemMixState.item(for: .vocals).isMuted)
         XCTAssertTrue(viewModel.stemMixState.item(for: .drums).isSoloed)
-        if let originalClickVolumeValue {
-            XCTAssertEqual(UserDefaults.standard.object(forKey: clickVolumeKey) as? Float, originalClickVolumeValue as? Float)
-        } else {
-            XCTAssertNil(UserDefaults.standard.object(forKey: clickVolumeKey))
-        }
         XCTAssertEqual(engine.playbackRate, AppSliderDefaults.playbackRate, accuracy: 0.0001)
         XCTAssertEqual(engine.pitchShiftSemitones, AppSliderDefaults.pitchShiftSemitones, accuracy: 0.0001)
         XCTAssertEqual(engine.mainVolume, AppSliderDefaults.mainTrackVolume, accuracy: 0.0001)
@@ -57,19 +46,13 @@ final class ViewModelResetTests: XCTestCase {
 
     @MainActor
     func testViewModelNewProjectResetsPlaybackControlsAndUnloadsEngine() throws {
-        let clickVolumeKey = "metronome.volume"
-        let originalClickVolumeValue = UserDefaults.standard.object(forKey: clickVolumeKey)
-        defer {
-            if let originalClickVolumeValue {
-                UserDefaults.standard.set(originalClickVolumeValue, forKey: clickVolumeKey)
-            } else {
-                UserDefaults.standard.removeObject(forKey: clickVolumeKey)
-            }
-        }
-
         let engine = MockPlaybackEngine()
         engine.isLoaded = true
-        let viewModel = AudioPlayerViewModel(playbackEngine: engine)
+        let settingsStore = AppSettingsStore(defaults: try temporaryUserDefaults())
+        let viewModel = AudioPlayerViewModel(
+            playbackEngine: engine,
+            appSettingsStore: settingsStore
+        )
 
         viewModel.setPlaybackRate(0.5)
         viewModel.setPitchShift(semitones: 7)
