@@ -394,6 +394,7 @@ struct NotationTrackView: View {
                 forStaffPosition: staffPosition,
                 staffTop: staffTop
             ),
+            stemDirection: NotationStemDirection.direction(forStaffPosition: staffPosition),
             color: color,
             opacity: opacity,
             in: &context
@@ -430,13 +431,17 @@ struct NotationTrackView: View {
         duration: NotationDuration,
         x: CGFloat,
         y: CGFloat,
+        stemDirection: NotationStemDirection,
         color: Color,
         opacity: Double,
         in context: inout GraphicsContext
     ) {
         let spacing = AppTheme.Timeline.notationStaffLineSpacing
         let fontSize = spacing * 3.25
-        guard let symbol = NotationStaffNoteSymbol(duration: duration),
+        guard let symbol = NotationStaffNoteSymbol(
+            duration: duration,
+            stemDirection: stemDirection
+        ),
               let glyphPath = NotationMusicFontRegistry.glyphPath(for: symbol, fontSize: fontSize),
               let anchor = NotationMusicFontRegistry.noteheadAnchor(for: symbol, fontSize: fontSize)
         else {
@@ -497,7 +502,7 @@ struct NotationTrackView: View {
             return line3Y - spacing * 0.08
         case .restQuarter:
             return line3Y + spacing * 0.06
-        case .rest8th:
+        case .rest8th, .rest16th:
             return line3Y - spacing * 0.12
         }
     }
@@ -1599,12 +1604,12 @@ struct NotationTrackView: View {
     private func notationItemAccessibilityLabel(_ item: NotationItemLayoutItem) -> String {
         switch item.notationItem.kind {
         case .rest:
-            return "\(item.notationItem.displayDuration.displayName.capitalized) rest in measure \(item.selection.measureNumber)"
+            return "\(item.notationItem.displayDuration.capitalizedDisplayName) rest in measure \(item.selection.measureNumber)"
         case .note:
             let pitchText = item.notationItem.pitch.map {
                 "\($0.step.rawValue)\($0.alter == 1 ? " sharp" : $0.alter == -1 ? " flat" : "")\($0.octave)"
             } ?? "note"
-            return "\(item.notationItem.displayDuration.displayName.capitalized) \(pitchText) in measure \(item.selection.measureNumber)"
+            return "\(item.notationItem.displayDuration.capitalizedDisplayName) \(pitchText) in measure \(item.selection.measureNumber)"
         }
     }
 

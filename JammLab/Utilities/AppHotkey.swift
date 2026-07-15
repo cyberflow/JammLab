@@ -20,17 +20,15 @@ enum AppHotkey: CaseIterable, Hashable {
     case toggleNotationNoteEntryMode
     case moveSelectedNotationNotePitchUp
     case moveSelectedNotationNotePitchDown
+    case setNotationDurationSixteenth
     case setNotationDurationEighth
     case setNotationDurationQuarter
     case setNotationDurationHalf
     case setNotationDurationWhole
 
-    static let notationDurationHotkeys: Set<AppHotkey> = [
-        .setNotationDurationEighth,
-        .setNotationDurationQuarter,
-        .setNotationDurationHalf,
-        .setNotationDurationWhole
-    ]
+    static let notationDurationHotkeys = Set(allCases.filter {
+        $0.notationDurationDenominator != nil
+    })
 
     // Keep this enum as the single source of truth for keyboard shortcuts.
     // When adding a new handled hotkey, add a case here with its help metadata
@@ -86,6 +84,8 @@ enum AppHotkey: CaseIterable, Hashable {
             self = .setBeatOne
         case 8:
             self = .toggleClick
+        case 20, 85:
+            self = .setNotationDurationSixteenth
         case 21, 86:
             self = .setNotationDurationEighth
         case 23, 87:
@@ -139,6 +139,8 @@ enum AppHotkey: CaseIterable, Hashable {
             return "Arrow Up"
         case .moveSelectedNotationNotePitchDown:
             return "Arrow Down"
+        case .setNotationDurationSixteenth:
+            return "3"
         case .setNotationDurationEighth:
             return "4"
         case .setNotationDurationQuarter:
@@ -188,6 +190,8 @@ enum AppHotkey: CaseIterable, Hashable {
             return "Move Notation Note Up"
         case .moveSelectedNotationNotePitchDown:
             return "Move Notation Note Down"
+        case .setNotationDurationSixteenth:
+            return "Set Sixteenth Note Duration"
         case .setNotationDurationEighth:
             return "Set Eighth Note Duration"
         case .setNotationDurationQuarter:
@@ -237,6 +241,8 @@ enum AppHotkey: CaseIterable, Hashable {
             return "Move the selected notation note to the next higher staff position."
         case .moveSelectedNotationNotePitchDown:
             return "Move the selected notation note to the next lower staff position."
+        case .setNotationDurationSixteenth:
+            return "Set notation duration to sixteenth notes for the selected notation item."
         case .setNotationDurationEighth:
             return "Set notation duration to eighth notes for the selected notation item."
         case .setNotationDurationQuarter:
@@ -250,6 +256,8 @@ enum AppHotkey: CaseIterable, Hashable {
 
     var notationDurationDenominator: Int? {
         switch self {
+        case .setNotationDurationSixteenth:
+            return 16
         case .setNotationDurationEighth:
             return 8
         case .setNotationDurationQuarter:
@@ -265,8 +273,7 @@ enum AppHotkey: CaseIterable, Hashable {
 
     static func notationDurationShortcutText(for denominator: Int) -> String? {
         guard let hotkey = allCases.first(where: {
-            notationDurationHotkeys.contains($0)
-                && $0.notationDurationDenominator == denominator
+            $0.notationDurationDenominator == denominator
         }) else { return nil }
         return "\(hotkey.key); Num\(hotkey.key)"
     }

@@ -102,6 +102,57 @@ final class NotationMusicXMLRestExportTests: XCTestCase {
         XCTAssertTrue(note.elements(forName: "beam").isEmpty)
     }
 
+    func testMusicXMLExportIncludesSixteenthNoteAndRestWithoutBeams() throws {
+        let state = NotationViewportFactory().scoreState(
+            tempoMap: fourFourTempoMap(duration: 4),
+            duration: 4,
+            currentTime: 0,
+            playbackMarkerTime: 0,
+            isPlaying: false,
+            keyName: "C major",
+            notationItems: [
+                NotationMeasureItem(
+                    kind: .note,
+                    pitch: NotationPitch(step: .c, octave: 5),
+                    measureNumber: 1,
+                    measureStartTime: 0,
+                    offsetInQuarterNotes: 0,
+                    durationInQuarterNotes: 0.25,
+                    displayDuration: NotationDuration(denominator: 16)
+                ),
+                NotationMeasureItem(
+                    measureNumber: 1,
+                    measureStartTime: 0,
+                    offsetInQuarterNotes: 0.25,
+                    durationInQuarterNotes: 0.25,
+                    displayDuration: NotationDuration(denominator: 16)
+                ),
+                NotationMeasureItem(
+                    measureNumber: 1,
+                    measureStartTime: 0,
+                    offsetInQuarterNotes: 0.5,
+                    durationInQuarterNotes: 3.5,
+                    displayDuration: NotationDuration(denominator: 2)
+                )
+            ]
+        )
+
+        let document = try exportedMusicXMLDocument(for: state)
+        let part = try XCTUnwrap(document.rootElement()?.elements(forName: "part").first)
+        let firstMeasure = try XCTUnwrap(part.elements(forName: "measure").first)
+        let notes = firstMeasure.elements(forName: "note")
+        let sixteenthNote = try XCTUnwrap(notes.first)
+        let sixteenthRest = try XCTUnwrap(notes.dropFirst().first)
+
+        XCTAssertNotNil(sixteenthNote.elements(forName: "pitch").first)
+        XCTAssertNotNil(sixteenthRest.elements(forName: "rest").first)
+        for item in [sixteenthNote, sixteenthRest] {
+            XCTAssertEqual(try firstXMLChild(named: "duration", in: item).stringValue, "120")
+            XCTAssertEqual(try firstXMLChild(named: "type", in: item).stringValue, "16th")
+            XCTAssertTrue(item.elements(forName: "beam").isEmpty)
+        }
+    }
+
     private func exportedMusicXMLDocument(for state: NotationScoreState) throws -> XMLDocument {
         let data = try NotationExportService().export(
             NotationExportRequest(displayName: "Song", score: state),

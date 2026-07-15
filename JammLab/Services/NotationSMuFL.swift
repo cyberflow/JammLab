@@ -7,6 +7,7 @@ enum NotationSMuFLSymbol: Equatable {
     case restHalf
     case restQuarter
     case rest8th
+    case rest16th
 
     init?(duration: NotationDuration) {
         switch duration.denominator {
@@ -18,6 +19,8 @@ enum NotationSMuFLSymbol: Equatable {
             self = .restQuarter
         case 8:
             self = .rest8th
+        case 16:
+            self = .rest16th
         default:
             return nil
         }
@@ -33,6 +36,8 @@ enum NotationSMuFLSymbol: Equatable {
             return 0xE4E5
         case .rest8th:
             return 0xE4E6
+        case .rest16th:
+            return 0xE4E7
         }
     }
 
@@ -47,6 +52,7 @@ enum NotationDurationControlSymbol: Equatable {
     case half
     case quarter
     case eighth
+    case sixteenth
 
     init?(duration: NotationDuration) {
         switch duration.denominator {
@@ -58,6 +64,8 @@ enum NotationDurationControlSymbol: Equatable {
             self = .quarter
         case 8:
             self = .eighth
+        case 16:
+            self = .sixteenth
         default:
             return nil
         }
@@ -73,6 +81,8 @@ enum NotationDurationControlSymbol: Equatable {
             return 0xECA5
         case .eighth:
             return 0xECA7
+        case .sixteenth:
+            return 0xECA9
         }
     }
 
@@ -82,42 +92,52 @@ enum NotationDurationControlSymbol: Equatable {
     }
 }
 
+enum NotationStemDirection: Equatable {
+    case up
+    case down
+
+    static func direction(forStaffPosition staffPosition: Int) -> NotationStemDirection {
+        staffPosition < 4 ? .down : .up
+    }
+}
+
 enum NotationStaffNoteSymbol: Equatable {
     case whole
-    case half
-    case quarter
-    case eighth
+    case half(NotationStemDirection)
+    case quarter(NotationStemDirection)
+    case eighth(NotationStemDirection)
+    case sixteenth(NotationStemDirection)
 
-    init?(duration: NotationDuration) {
+    init?(duration: NotationDuration, stemDirection: NotationStemDirection = .up) {
         switch duration.denominator {
         case 1:
             self = .whole
         case 2:
-            self = .half
+            self = .half(stemDirection)
         case 4:
-            self = .quarter
+            self = .quarter(stemDirection)
         case 8:
-            self = .eighth
+            self = .eighth(stemDirection)
+        case 16:
+            self = .sixteenth(stemDirection)
         default:
             return nil
         }
     }
 
-    var durationControlSymbol: NotationDurationControlSymbol {
+    var codepoint: UInt32 {
         switch self {
         case .whole:
-            return .whole
-        case .half:
-            return .half
-        case .quarter:
-            return .quarter
-        case .eighth:
-            return .eighth
+            return 0xE1D2
+        case .half(let direction):
+            return Self.directionalCodepoint(up: 0xE1D3, direction: direction)
+        case .quarter(let direction):
+            return Self.directionalCodepoint(up: 0xE1D5, direction: direction)
+        case .eighth(let direction):
+            return Self.directionalCodepoint(up: 0xE1D7, direction: direction)
+        case .sixteenth(let direction):
+            return Self.directionalCodepoint(up: 0xE1D9, direction: direction)
         }
-    }
-
-    var codepoint: UInt32 {
-        durationControlSymbol.codepoint
     }
 
     fileprivate var anchorReferenceCodepoint: UInt32? {
@@ -126,13 +146,21 @@ enum NotationStaffNoteSymbol: Equatable {
             return nil
         case .half:
             return 0xE0A3
-        case .quarter, .eighth:
+        case .quarter, .eighth, .sixteenth:
             return 0xE0A4
         }
     }
 
     var glyph: String {
-        durationControlSymbol.glyph
+        guard let scalar = UnicodeScalar(codepoint) else { return "" }
+        return String(Character(scalar))
+    }
+
+    private static func directionalCodepoint(
+        up: UInt32,
+        direction: NotationStemDirection
+    ) -> UInt32 {
+        up + (direction == .down ? 1 : 0)
     }
 }
 

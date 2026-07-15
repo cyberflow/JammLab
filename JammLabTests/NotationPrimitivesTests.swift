@@ -3,6 +3,23 @@ import XCTest
 @testable import JammLab
 
 final class NotationPrimitivesTests: XCTestCase {
+    private let directionalStaffSymbolExpectations: [(
+        denominator: Int,
+        up: NotationStaffNoteSymbol,
+        down: NotationStaffNoteSymbol,
+        upCodepoint: UInt32,
+        downCodepoint: UInt32
+    )] = [
+        (2, .half(.up), .half(.down), 0xE1D3, 0xE1D4),
+        (4, .quarter(.up), .quarter(.down), 0xE1D5, 0xE1D6),
+        (8, .eighth(.up), .eighth(.down), 0xE1D7, 0xE1D8),
+        (16, .sixteenth(.up), .sixteenth(.down), 0xE1D9, 0xE1DA)
+    ]
+
+    private var allStaffNoteSymbols: [NotationStaffNoteSymbol] {
+        [.whole] + directionalStaffSymbolExpectations.flatMap { [$0.up, $0.down] }
+    }
+
     func testNotationPartDescriptorsProvideMusicXMLMetadata() {
         let descriptors: [(NotationPartDescriptor, String, String, String?)] = [
             (.main, "Main", "Main", nil),
@@ -28,6 +45,7 @@ final class NotationPrimitivesTests: XCTestCase {
         let half = try XCTUnwrap(NotationSMuFLSymbol(duration: NotationDuration(denominator: 2)))
         let quarter = try XCTUnwrap(NotationSMuFLSymbol(duration: NotationDuration(denominator: 4)))
         let eighth = try XCTUnwrap(NotationSMuFLSymbol(duration: NotationDuration(denominator: 8)))
+        let sixteenth = try XCTUnwrap(NotationSMuFLSymbol(duration: NotationDuration(denominator: 16)))
 
         XCTAssertEqual(whole, .restWhole)
         XCTAssertEqual(whole.codepoint, 0xE4E3)
@@ -37,6 +55,8 @@ final class NotationPrimitivesTests: XCTestCase {
         XCTAssertEqual(quarter.codepoint, 0xE4E5)
         XCTAssertEqual(eighth, .rest8th)
         XCTAssertEqual(eighth.codepoint, 0xE4E6)
+        XCTAssertEqual(sixteenth, .rest16th)
+        XCTAssertEqual(sixteenth.codepoint, 0xE4E7)
         XCTAssertEqual(quarter.glyph.unicodeScalars.first?.value, 0xE4E5)
     }
 
@@ -75,6 +95,7 @@ final class NotationPrimitivesTests: XCTestCase {
         let half = try XCTUnwrap(NotationDurationControlSymbol(duration: NotationDuration(denominator: 2)))
         let quarter = try XCTUnwrap(NotationDurationControlSymbol(duration: NotationDuration(denominator: 4)))
         let eighth = try XCTUnwrap(NotationDurationControlSymbol(duration: NotationDuration(denominator: 8)))
+        let sixteenth = try XCTUnwrap(NotationDurationControlSymbol(duration: NotationDuration(denominator: 16)))
 
         XCTAssertEqual(whole, .whole)
         XCTAssertEqual(whole.codepoint, 0xECA2)
@@ -84,19 +105,57 @@ final class NotationPrimitivesTests: XCTestCase {
         XCTAssertEqual(quarter.codepoint, 0xECA5)
         XCTAssertEqual(eighth, .eighth)
         XCTAssertEqual(eighth.codepoint, 0xECA7)
+        XCTAssertEqual(sixteenth, .sixteenth)
+        XCTAssertEqual(sixteenth.codepoint, 0xECA9)
         XCTAssertEqual(eighth.glyph.unicodeScalars.first?.value, 0xECA7)
     }
 
-    func testNotationStaffNoteSymbolsReuseLelandMetNoteCodepoints() throws {
+    func testNotationStaffNoteSymbolsUseDirectionSpecificLelandCodepoints() throws {
         let whole = try XCTUnwrap(NotationStaffNoteSymbol(duration: NotationDuration(denominator: 1)))
-        let half = try XCTUnwrap(NotationStaffNoteSymbol(duration: NotationDuration(denominator: 2)))
-        let quarter = try XCTUnwrap(NotationStaffNoteSymbol(duration: NotationDuration(denominator: 4)))
-        let eighth = try XCTUnwrap(NotationStaffNoteSymbol(duration: NotationDuration(denominator: 8)))
+        let wholeWithDownDirection = try XCTUnwrap(NotationStaffNoteSymbol(
+            duration: NotationDuration(denominator: 1),
+            stemDirection: .down
+        ))
 
-        XCTAssertEqual(whole.codepoint, 0xECA2)
-        XCTAssertEqual(half.codepoint, 0xECA3)
-        XCTAssertEqual(quarter.codepoint, 0xECA5)
-        XCTAssertEqual(eighth.codepoint, 0xECA7)
+        XCTAssertEqual(whole, .whole)
+        XCTAssertEqual(wholeWithDownDirection, .whole)
+        XCTAssertEqual(whole.codepoint, 0xE1D2)
+        for expectation in directionalStaffSymbolExpectations {
+            let duration = NotationDuration(denominator: expectation.denominator)
+            let up = try XCTUnwrap(NotationStaffNoteSymbol(duration: duration, stemDirection: .up))
+            let down = try XCTUnwrap(NotationStaffNoteSymbol(duration: duration, stemDirection: .down))
+            XCTAssertEqual(up, expectation.up)
+            XCTAssertEqual(down, expectation.down)
+            XCTAssertEqual(up.codepoint, expectation.upCodepoint)
+            XCTAssertEqual(down.codepoint, expectation.downCodepoint)
+        }
+    }
+
+    func testNotationStemDirectionChangesOnlyAboveMiddleStaffLine() {
+        XCTAssertEqual(NotationStemDirection.direction(forStaffPosition: 3), .down)
+        XCTAssertEqual(NotationStemDirection.direction(forStaffPosition: 4), .up)
+        XCTAssertEqual(NotationStemDirection.direction(forStaffPosition: 5), .up)
+    }
+
+    func testSixteenthDurationUsesQuarterBeatAndDisplayNames() {
+        let duration = NotationDuration(denominator: 16)
+
+        XCTAssertEqual(duration.denominator, 16)
+        XCTAssertEqual(duration.durationInQuarterNotes, 0.25, accuracy: 0.0001)
+        XCTAssertEqual(duration.displayName, "16th")
+        XCTAssertEqual(duration.capitalizedDisplayName, "16th")
+        XCTAssertEqual(duration.pluralDisplayName, "16th notes")
+    }
+
+    func testFiveDurationButtonsFitNotationTrackControls() {
+        let buttonCount = CGFloat(NotationDuration.allowedDenominators.count)
+        let spacingCount = max(0, buttonCount - 1)
+        let controlWidth = buttonCount * AppTheme.ControlSize.notationDurationButtonWidth
+            + spacingCount * AppTheme.ControlSize.notationDurationButtonSpacing
+        let availableWidth = AppTheme.Timeline.trackControlWidth - 2 * AppTheme.Spacing.md
+
+        XCTAssertLessThanOrEqual(controlWidth, availableWidth)
+        XCTAssertEqual(AppTheme.ControlSize.notationEntryModeButtonWidth, 32)
     }
 
     func testNotationRestItemFactoryUsesGreedyAllowedDurationDecomposition() {
@@ -113,16 +172,24 @@ final class NotationPrimitivesTests: XCTestCase {
 
         let withinTolerance = NotationRestItemFactory.greedySegments(
             startOffset: 1,
-            remaining: 0.5 - tolerance / 2
+            remaining: 0.25 - tolerance / 2
         )
         let outsideTolerance = NotationRestItemFactory.greedySegments(
             startOffset: 1,
-            remaining: 0.5 - tolerance * 2
+            remaining: 0.25 - tolerance * 2
         )
 
-        XCTAssertEqual(withinTolerance.map(\.displayDuration.denominator), [8])
+        XCTAssertEqual(withinTolerance.map(\.displayDuration.denominator), [16])
         XCTAssertEqual(withinTolerance.map(\.offsetInQuarterNotes), [1])
         XCTAssertTrue(outsideTolerance.isEmpty)
+    }
+
+    func testNotationRestItemFactoryUsesSixteenthAsMinimumExactDuration() {
+        let segments = NotationRestItemFactory.greedySegments(startOffset: 1.5, remaining: 0.25)
+
+        XCTAssertEqual(segments.map(\.displayDuration.denominator), [16])
+        XCTAssertEqual(segments.map(\.offsetInQuarterNotes), [1.5])
+        XCTAssertEqual(segments.map(\.durationInQuarterNotes), [0.25])
     }
 
     func testNotationRestItemFactoryLetsCallerControlIDsAndSynthesizedState() throws {
@@ -903,15 +970,23 @@ final class NotationPrimitivesTests: XCTestCase {
         XCTAssertEqual(NotationMusicFontRegistry.fontName, "Leland")
     }
 
-    func testLelandWholeRestGlyphPathHasBounds() throws {
-        let glyphPath = try XCTUnwrap(NotationMusicFontRegistry.glyphPath(
-            for: .restWhole,
-            fontSize: 32.5
-        ))
+    func testLelandRestGlyphPathsHaveBounds() throws {
+        for symbol in [
+            NotationSMuFLSymbol.restWhole,
+            .restHalf,
+            .restQuarter,
+            .rest8th,
+            .rest16th
+        ] {
+            let glyphPath = try XCTUnwrap(NotationMusicFontRegistry.glyphPath(
+                for: symbol,
+                fontSize: 32.5
+            ))
 
-        XCTAssertFalse(glyphPath.path.isEmpty)
-        XCTAssertGreaterThan(glyphPath.bounds.width, 0)
-        XCTAssertGreaterThan(glyphPath.bounds.height, 0)
+            XCTAssertFalse(glyphPath.path.isEmpty)
+            XCTAssertGreaterThan(glyphPath.bounds.width, 0)
+            XCTAssertGreaterThan(glyphPath.bounds.height, 0)
+        }
     }
 
     func testNotationClefLayoutUsesExpectedFrameAndStaffTargets() {
@@ -969,7 +1044,8 @@ final class NotationPrimitivesTests: XCTestCase {
             NotationDurationControlSymbol.whole,
             .half,
             .quarter,
-            .eighth
+            .eighth,
+            .sixteenth
         ] {
             let glyphPath = try XCTUnwrap(NotationMusicFontRegistry.glyphPath(
                 for: symbol,
@@ -983,12 +1059,7 @@ final class NotationPrimitivesTests: XCTestCase {
     }
 
     func testLelandStaffNoteGlyphPathsHaveBounds() throws {
-        for symbol in [
-            NotationStaffNoteSymbol.whole,
-            .half,
-            .quarter,
-            .eighth
-        ] {
+        for symbol in allStaffNoteSymbols {
             let glyphPath = try XCTUnwrap(NotationMusicFontRegistry.glyphPath(
                 for: symbol,
                 fontSize: 32.5
@@ -1003,12 +1074,7 @@ final class NotationPrimitivesTests: XCTestCase {
     func testLelandStaffNoteGlyphTransformAnchorsNoteheadAtTargetPoint() throws {
         let target = CGPoint(x: 42, y: 73)
 
-        for symbol in [
-            NotationStaffNoteSymbol.whole,
-            .half,
-            .quarter,
-            .eighth
-        ] {
+        for symbol in allStaffNoteSymbols {
             let glyphPath = try XCTUnwrap(NotationMusicFontRegistry.glyphPath(
                 for: symbol,
                 fontSize: 32.5
@@ -1027,6 +1093,26 @@ final class NotationPrimitivesTests: XCTestCase {
         }
     }
 
+    func testDirectionSpecificStaffGlyphsExtendFromOppositeSidesOfNotehead() throws {
+        let target = CGPoint(x: 42, y: 73)
+
+        for expectation in directionalStaffSymbolExpectations {
+            let upSymbol = expectation.up
+            let downSymbol = expectation.down
+            let upPath = try XCTUnwrap(NotationMusicFontRegistry.glyphPath(for: upSymbol, fontSize: 32.5))
+            let downPath = try XCTUnwrap(NotationMusicFontRegistry.glyphPath(for: downSymbol, fontSize: 32.5))
+            let upAnchor = try XCTUnwrap(NotationMusicFontRegistry.noteheadAnchor(for: upSymbol, fontSize: 32.5))
+            let downAnchor = try XCTUnwrap(NotationMusicFontRegistry.noteheadAnchor(for: downSymbol, fontSize: 32.5))
+            let upBounds = upPath.bounds.applying(upPath.anchoredTransform(anchor: upAnchor, target: target))
+            let downBounds = downPath.bounds.applying(downPath.anchoredTransform(anchor: downAnchor, target: target))
+
+            XCTAssertLessThan(upBounds.minY, target.y - 10)
+            XCTAssertGreaterThan(downBounds.maxY, target.y + 10)
+            XCTAssertGreaterThan(target.y - upBounds.minY, upBounds.maxY - target.y)
+            XCTAssertGreaterThan(downBounds.maxY - target.y, target.y - downBounds.minY)
+        }
+    }
+
     func testLelandDurationControlGlyphPathsCenterInsideButtonFrame() throws {
         let buttonSize = CGSize(
             width: AppTheme.ControlSize.notationDurationButtonWidth,
@@ -1037,7 +1123,8 @@ final class NotationPrimitivesTests: XCTestCase {
             NotationDurationControlSymbol.whole,
             .half,
             .quarter,
-            .eighth
+            .eighth,
+            .sixteenth
         ] {
             let glyphPath = try XCTUnwrap(NotationMusicFontRegistry.glyphPath(
                 for: symbol,
@@ -1069,6 +1156,10 @@ final class NotationPrimitivesTests: XCTestCase {
             (
                 8,
                 "Eighth (quaver) note (4; Num4)\nSet duration: eighth (quaver) note"
+            ),
+            (
+                16,
+                "16th (semiquaver) note (3; Num3)\nSet duration: 16th (semiquaver) note"
             )
         ]
 

@@ -194,7 +194,9 @@ enum AppTheme {
         static let hotkeyKeyWidth: CGFloat = 70
         static let controlHeight: CGFloat = 28
         static let buttonHeight: CGFloat = 28
-        static let notationDurationButtonWidth: CGFloat = 32
+        static let notationDurationButtonWidth: CGFloat = 27
+        static let notationDurationButtonSpacing: CGFloat = AppTheme.Spacing.xxxs
+        static let notationEntryModeButtonWidth: CGFloat = 32
         static let notationDurationControlHeight: CGFloat = controlHeight
         static let notationDurationGlyphSize: CGFloat = 20
         static let transportBarMinHeight: CGFloat = 70

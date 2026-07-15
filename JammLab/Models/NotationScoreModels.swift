@@ -324,7 +324,7 @@ enum HarmonyNavigationDirection: Equatable {
 }
 
 struct NotationDuration: Codable, Equatable, Identifiable {
-    static let allowedDenominators = [1, 2, 4, 8]
+    static let allowedDenominators = [1, 2, 4, 8, 16]
     static let defaultDenominator = 1
 
     var denominator: Int
@@ -349,6 +349,8 @@ struct NotationDuration: Codable, Equatable, Identifiable {
             return "quarter"
         case 8:
             return "eighth"
+        case 16:
+            return "16th"
         default:
             return "duration"
         }
@@ -356,6 +358,10 @@ struct NotationDuration: Codable, Equatable, Identifiable {
 
     var pluralDisplayName: String {
         "\(displayName) notes"
+    }
+
+    var capitalizedDisplayName: String {
+        displayName.prefix(1).uppercased() + displayName.dropFirst()
     }
 
     static func normalizedDenominator(_ denominator: Int) -> Int {

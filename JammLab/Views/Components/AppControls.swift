@@ -28,7 +28,7 @@ struct NotationDurationControl: View {
     }
 
     var body: some View {
-        HStack(spacing: AppTheme.Spacing.xs) {
+        HStack(spacing: AppTheme.ControlSize.notationDurationButtonSpacing) {
             ForEach(options) { option in
                 durationButton(for: option)
             }
@@ -106,7 +106,7 @@ struct NotationEntryModeButton: View {
                 }
             }
             .frame(
-                width: AppTheme.ControlSize.notationDurationButtonWidth,
+                width: AppTheme.ControlSize.notationEntryModeButtonWidth,
                 height: AppTheme.ControlSize.notationDurationControlHeight
             )
             .background(backgroundColor)
@@ -219,7 +219,7 @@ enum NotationDurationControlHelpText {
     }
 
     static func accessibilityLabel(for duration: NotationDuration) -> String {
-        "\(duration.displayName.capitalized) note duration"
+        "\(duration.capitalizedDisplayName) note duration"
     }
 
     static func accessibilityHint(for duration: NotationDuration) -> String {
@@ -227,7 +227,7 @@ enum NotationDurationControlHelpText {
     }
 
     private static func title(for duration: NotationDuration) -> String {
-        "\(duration.displayName.capitalized) (\(traditionalName(for: duration))) note"
+        "\(duration.capitalizedDisplayName) (\(traditionalName(for: duration))) note"
     }
 
     private static func lowercaseTitle(for duration: NotationDuration) -> String {
@@ -244,6 +244,8 @@ enum NotationDurationControlHelpText {
             return "crotchet"
         case 8:
             return "quaver"
+        case 16:
+            return "semiquaver"
         default:
             return duration.displayName
         }

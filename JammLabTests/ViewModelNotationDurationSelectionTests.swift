@@ -4,6 +4,96 @@ import XCTest
 
 final class ViewModelNotationDurationSelectionTests: XCTestCase {
     @MainActor
+    func testChangingSelectedWholeRestToSixteenthCreatesTwoSixteenthsAndCanUndo() throws {
+        let viewModel = try loadedNotationViewModel(duration: 8)
+        let undoManager = UndoManager()
+        viewModel.undoManager = undoManager
+        let measure = try notationMeasure(1, in: viewModel)
+        let item = try XCTUnwrap(measure.notationItems.first)
+
+        viewModel.selectNotationItem(NotationItemSelection(measure: measure, item: item))
+        viewModel.setNotationDurationDenominator(16)
+
+        let updatedMeasure = try notationMeasure(1, in: viewModel)
+        XCTAssertEqual(updatedMeasure.notationItems.map(\.displayDuration.denominator), [16, 16, 2, 4, 8])
+        XCTAssertEqual(updatedMeasure.notationItems.map(\.offsetInQuarterNotes), [0, 0.25, 0.5, 2.5, 3.5])
+        XCTAssertEqual(updatedMeasure.notationItems.map(\.durationInQuarterNotes), [0.25, 0.25, 2, 1, 0.5])
+        XCTAssertEqual(viewModel.selectedNotationItem?.durationInQuarterNotes, 0.25)
+
+        viewModel.undoLastEdit()
+
+        let undoneMeasure = try notationMeasure(1, in: viewModel)
+        XCTAssertEqual(undoneMeasure.notationItems.count, 1)
+        XCTAssertEqual(undoneMeasure.notationItems.first?.displayDuration.denominator, 1)
+    }
+
+    @MainActor
+    func testAddingSixteenthNoteRecomposesRestsAndCanUndo() throws {
+        let viewModel = try loadedNotationViewModel(duration: 8)
+        let undoManager = UndoManager()
+        viewModel.undoManager = undoManager
+        let measure = try notationMeasure(1, in: viewModel)
+        let rest = try XCTUnwrap(measure.notationItems.first)
+        let pitch = NotationPitch(step: .g, octave: 5)
+        let placement = NotationNotePlacement(
+            measure: measure,
+            targetRestID: rest.id,
+            offsetInQuarterNotes: 0,
+            durationInQuarterNotes: 0.25,
+            displayDuration: NotationDuration(denominator: 16),
+            pitch: pitch,
+            x: 0,
+            y: 0
+        )
+
+        XCTAssertTrue(viewModel.insertNotationNote(placement))
+
+        let updatedMeasure = try notationMeasure(1, in: viewModel)
+        XCTAssertEqual(updatedMeasure.notationItems.first?.kind, .note)
+        XCTAssertEqual(updatedMeasure.notationItems.first?.pitch, pitch)
+        XCTAssertEqual(updatedMeasure.notationItems.first?.displayDuration.denominator, 16)
+        XCTAssertEqual(updatedMeasure.notationItems.first?.durationInQuarterNotes, 0.25)
+        XCTAssertEqual(updatedMeasure.notationItems.map(\.durationInQuarterNotes).reduce(0, +), 4, accuracy: 0.0001)
+
+        viewModel.undoLastEdit()
+
+        let undoneMeasure = try notationMeasure(1, in: viewModel)
+        XCTAssertEqual(undoneMeasure.notationItems.count, 1)
+        XCTAssertEqual(undoneMeasure.notationItems.first?.kind, .rest)
+    }
+
+    @MainActor
+    func testAddingSixteenthRestRecomposesRestsAndCanUndo() throws {
+        let viewModel = try loadedNotationViewModel(duration: 8)
+        let undoManager = UndoManager()
+        viewModel.undoManager = undoManager
+        let measure = try notationMeasure(1, in: viewModel)
+        let rest = try XCTUnwrap(measure.notationItems.first)
+        let placement = NotationRestPlacement(
+            measure: measure,
+            targetRestID: rest.id,
+            offsetInQuarterNotes: 0,
+            durationInQuarterNotes: 0.25,
+            displayDuration: NotationDuration(denominator: 16),
+            x: 0
+        )
+
+        XCTAssertTrue(viewModel.insertNotationRest(placement))
+
+        let updatedMeasure = try notationMeasure(1, in: viewModel)
+        XCTAssertEqual(updatedMeasure.notationItems.first?.kind, .rest)
+        XCTAssertEqual(updatedMeasure.notationItems.first?.displayDuration.denominator, 16)
+        XCTAssertEqual(updatedMeasure.notationItems.first?.durationInQuarterNotes, 0.25)
+        XCTAssertEqual(updatedMeasure.notationItems.map(\.durationInQuarterNotes).reduce(0, +), 4, accuracy: 0.0001)
+
+        viewModel.undoLastEdit()
+
+        let undoneMeasure = try notationMeasure(1, in: viewModel)
+        XCTAssertEqual(undoneMeasure.notationItems.count, 1)
+        XCTAssertEqual(undoneMeasure.notationItems.first?.displayDuration.denominator, 1)
+    }
+
+    @MainActor
     func testChangingSelectedWholeRestToQuarterCreatesTwoQuartersAndHalfInFourFour() throws {
         let viewModel = try loadedNotationViewModel(duration: 8)
         let measure = try notationMeasure(1, in: viewModel)

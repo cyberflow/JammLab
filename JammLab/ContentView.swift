@@ -256,7 +256,8 @@ struct ContentView: View {
             return viewModel.changeSelectedNotationNotePitch(byStaffPositionDelta: -1)
         case .moveSelectedNotationNotePitchDown:
             return viewModel.changeSelectedNotationNotePitch(byStaffPositionDelta: 1)
-        case .setNotationDurationEighth,
+        case .setNotationDurationSixteenth,
+                .setNotationDurationEighth,
                 .setNotationDurationQuarter,
                 .setNotationDurationHalf,
                 .setNotationDurationWhole:

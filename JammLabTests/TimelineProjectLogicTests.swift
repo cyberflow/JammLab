@@ -106,15 +106,24 @@ final class TimelineProjectLogicTests: XCTestCase {
             measureNumber: 1,
             measureStartTime: 0,
             offsetInQuarterNotes: 0,
-            durationInQuarterNotes: 1,
-            displayDuration: NotationDuration(denominator: 4)
+            durationInQuarterNotes: 0.25,
+            displayDuration: NotationDuration(denominator: 16)
+        )
+        let notationRest = NotationMeasureItem(
+            id: "main-rest",
+            kind: .rest,
+            measureNumber: 1,
+            measureStartTime: 0,
+            offsetInQuarterNotes: 0.25,
+            durationInQuarterNotes: 0.25,
+            displayDuration: NotationDuration(denominator: 16)
         )
         let project = JammLabProject(
             audioBookmarkData: Data([1, 2, 3]),
             audioDisplayName: "song.wav",
             audioDuration: 12,
             notes: [],
-            notationItems: [notationItem],
+            notationItems: [notationItem, notationRest],
             loopStart: 0,
             loopEnd: 4,
             playbackRate: 1,
@@ -129,6 +138,9 @@ final class TimelineProjectLogicTests: XCTestCase {
         )
 
         XCTAssertEqual(decoded.notationItems.first?.partID, .stem(.bass))
+        XCTAssertEqual(decoded.notationItems.map(\.kind), [.note, .rest])
+        XCTAssertEqual(decoded.notationItems.map(\.displayDuration.denominator), [16, 16])
+        XCTAssertEqual(decoded.notationItems.map(\.durationInQuarterNotes), [0.25, 0.25])
         XCTAssertEqual(decoded.stemNotationTrackCollapsed, [.bass: false, .drums: true])
         XCTAssertEqual(decoded.visibleNotationPartIDs, [.main, .stem(.bass), .stem(.drums)])
     }
