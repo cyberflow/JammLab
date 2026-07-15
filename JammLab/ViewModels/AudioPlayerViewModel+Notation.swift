@@ -159,10 +159,6 @@ extension AudioPlayerViewModel {
         }
     }
 
-    func clearNotationNoteEntryMode() {
-        clearNotationEntryMode()
-    }
-
     @discardableResult
     func requestEditSelectedNotationItem() -> Bool {
         guard duration > 0,
@@ -740,129 +736,24 @@ extension AudioPlayerViewModel {
         else { return }
 
         let measure = match.measure
-        let measureLength = NotationMeasureTiming.quarterLength(for: measure.attributes.timeSignature)
         let startOffset = match.item.offsetInQuarterNotes
-        let remaining = measureLength - startOffset
-        guard remaining > NotationMeasureTiming.timelineTolerance else { return }
+        guard let suffix = NotationDurationEditor.replacementSuffix(
+            in: measure,
+            selectedItem: match.item,
+            selectedDuration: selectedDuration
+        ) else { return }
 
         performUndoableEdit("Change Notation Duration") {
             let prefix = measure.notationItems
                 .filter { $0.offsetInQuarterNotes < startOffset - NotationMeasureTiming.timelineTolerance }
                 .filter { !$0.isSynthesized }
 
-            let suffix = notationDurationSuffix(
-                measure: measure,
-                selectedItem: match.item,
-                startOffset: startOffset,
-                remaining: remaining,
-                selectedDuration: selectedDuration
-            )
             replaceNotationMeasureItems(in: measure, with: prefix + suffix)
 
             if let selected = suffix.first {
                 selectedNotationItem = NotationItemSelection(measure: measure, item: selected)
             }
         }
-    }
-
-    private func notationDurationSuffix(
-        measure: ScoreMeasure,
-        selectedItem: NotationMeasureItem,
-        startOffset: Double,
-        remaining: Double,
-        selectedDuration: NotationDuration
-    ) -> [NotationMeasureItem] {
-        var items: [NotationMeasureItem] = []
-        var cursor = startOffset
-        var rest = remaining
-        let selectedLength = selectedDuration.durationInQuarterNotes
-
-        if selectedItem.kind == .note {
-            guard selectedLength <= rest + NotationMeasureTiming.timelineTolerance,
-                  let pitch = selectedItem.pitch
-            else {
-                return [selectedItem.persistedCopy()]
-            }
-
-            let duration = min(selectedLength, rest)
-            items.append(NotationMeasureItem(
-                id: selectedItem.id,
-                partID: selectedItem.partID,
-                kind: .note,
-                pitch: pitch,
-                measureNumber: measure.number,
-                measureStartTime: measure.startTime,
-                offsetInQuarterNotes: cursor,
-                durationInQuarterNotes: duration,
-                displayDuration: selectedDuration
-            ))
-            cursor += duration
-            rest -= duration
-            items.append(contentsOf: fillerNotationItems(
-                measure: measure,
-                partID: selectedItem.partID,
-                startOffset: cursor,
-                remaining: rest
-            ))
-            return items
-        }
-
-        let selectedCount = min(2, Int(floor((rest + NotationMeasureTiming.timelineTolerance) / selectedLength)))
-
-        if selectedCount > 0 {
-            for _ in 0..<selectedCount {
-                let duration = min(selectedLength, rest)
-                items.append(NotationRestItemFactory.restItem(
-                    partID: selectedItem.partID,
-                    measureNumber: measure.number,
-                    measureStartTime: measure.startTime,
-                    offsetInQuarterNotes: cursor,
-                    durationInQuarterNotes: duration,
-                    displayDuration: selectedDuration
-                ))
-                cursor += duration
-                rest -= duration
-            }
-        } else if let largest = largestNotationDuration(fitting: rest) {
-            let duration = min(largest.durationInQuarterNotes, rest)
-            items.append(NotationRestItemFactory.restItem(
-                partID: selectedItem.partID,
-                measureNumber: measure.number,
-                measureStartTime: measure.startTime,
-                offsetInQuarterNotes: cursor,
-                durationInQuarterNotes: duration,
-                displayDuration: largest
-            ))
-            cursor += duration
-            rest -= duration
-        }
-
-        items.append(contentsOf: fillerNotationItems(
-            measure: measure,
-            partID: selectedItem.partID,
-            startOffset: cursor,
-            remaining: rest
-        ))
-        return items
-    }
-
-    private func fillerNotationItems(
-        measure: ScoreMeasure,
-        partID: NotationPartID,
-        startOffset: Double,
-        remaining: Double
-    ) -> [NotationMeasureItem] {
-        NotationRestItemFactory.restItems(
-            measureNumber: measure.number,
-            measureStartTime: measure.startTime,
-            startOffset: startOffset,
-            remaining: remaining,
-            partID: partID
-        )
-    }
-
-    private func largestNotationDuration(fitting remaining: Double) -> NotationDuration? {
-        NotationRestItemFactory.greedySegments(startOffset: 0, remaining: remaining).first?.displayDuration
     }
 
     private func harmonySymbolID(at time: TimeInterval) -> HarmonySymbol.ID? {

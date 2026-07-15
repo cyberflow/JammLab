@@ -211,10 +211,6 @@ struct JammLabProject: Codable {
         try container.encode(visibleNotationPartIDs, forKey: .visibleNotationPartIDs)
     }
 
-    func resolvedAudioURL() throws -> URL {
-        try resolvedMediaURL()
-    }
-
     func resolvedMediaURL() throws -> URL {
         var isStale = false
         return try URL(

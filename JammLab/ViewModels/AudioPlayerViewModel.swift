@@ -75,7 +75,7 @@ final class AudioPlayerViewModel: ObservableObject {
     @Published var stemNotationTrackCollapsed: [StemType: Bool] = [:]
     @Published var visibleNotationPartIDs: Set<NotationPartID> = [.main]
     @Published var mainTrackVolume: Float = AppSliderDefaults.mainTrackVolume
-    @Published var clickVolume: Float = AudioPlayerViewModel.restoredClickVolume()
+    @Published var clickVolume: Float = AppSliderDefaults.clickVolume
     @Published var undoStateRevision = 0
     @Published var isProjectModified = false
     @Published var errorMessage: String?
@@ -119,16 +119,6 @@ final class AudioPlayerViewModel: ObservableObject {
     var isRestoringVideoWindowState = false
     var userTimelineVisibleRange: ClosedRange<TimeInterval> = 0...0
     var lastSavedProjectState: ProjectPersistedEditableState?
-
-    private static func restoredClickVolume() -> Float {
-        let key = "metronome.volume"
-
-        guard UserDefaults.standard.object(forKey: key) != nil else {
-            return AppSliderDefaults.clickVolume
-        }
-
-        return min(1, max(0, UserDefaults.standard.float(forKey: key)))
-    }
 
     nonisolated private static func defaultSandboxDetection() -> Bool {
         ProcessInfo.processInfo.environment["APP_SANDBOX_CONTAINER_ID"] != nil
@@ -212,6 +202,7 @@ final class AudioPlayerViewModel: ObservableObject {
         self.notationNoteAuditioner = notationNoteAuditioner ?? SamplerNotationNoteAuditioner()
         self.recentProjectsStore = recentProjectsStore ?? .shared
         self.isSandboxed = isSandboxed
+        self.clickVolume = appSettingsStore.restoredClickVolume()
         self.playbackEngine.setClickVolume(clickVolume)
         self.playbackEngine.setMainVolume(mainTrackVolume)
         self.playbackEngine.setClickSettings(beatGridSettings)

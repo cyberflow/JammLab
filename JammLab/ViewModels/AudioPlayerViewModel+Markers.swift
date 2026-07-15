@@ -9,19 +9,6 @@ extension AudioPlayerViewModel {
         addNote(at: currentTime)
     }
 
-    func addTempoTimeSignatureMarkerAtCurrentTime(
-        bpm: Double,
-        beatsPerBar: Int,
-        setsNewFirstBeat: Bool = false
-    ) {
-        addTempoTimeSignatureMarker(
-            at: currentTime,
-            bpm: bpm,
-            beatsPerBar: beatsPerBar,
-            setsNewFirstBeat: setsNewFirstBeat
-        )
-    }
-
     func addNote(at time: TimeInterval) {
         performUndoableEdit("Add Marker") {
             guard duration > 0 else { return }

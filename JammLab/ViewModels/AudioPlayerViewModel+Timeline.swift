@@ -129,11 +129,6 @@ extension AudioPlayerViewModel {
         applyTempoMapToPlaybackEngine()
     }
 
-    func loopRegionContains(_ time: TimeInterval) -> Bool {
-        time >= loopRegion.start && time <= loopRegion.end
-    }
-
-
     func snappedTimelineTime(_ time: TimeInterval) -> TimeInterval {
         let clampedTime = max(0, min(time, duration))
         guard

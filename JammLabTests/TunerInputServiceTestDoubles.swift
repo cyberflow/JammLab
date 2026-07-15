@@ -217,14 +217,7 @@ extension XCTestCase {
         timeout: TimeInterval = 2,
         condition: @escaping () -> Bool
     ) async -> Bool {
-        let deadline = Date().addingTimeInterval(timeout)
-        while Date() < deadline {
-            if condition() {
-                return true
-            }
-            try? await Task.sleep(nanoseconds: 20_000_000)
-        }
-        return condition()
+        await waitForMainActorCondition(timeout: timeout, condition: condition)
     }
 
     func makeTunerInt16Buffer(samples: [Int16], sampleRate: Double = 44_100) throws -> AVAudioPCMBuffer {

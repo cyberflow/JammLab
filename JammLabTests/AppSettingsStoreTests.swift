@@ -2,6 +2,19 @@ import XCTest
 @testable import JammLab
 
 final class AppSettingsStoreTests: XCTestCase {
+    func testAppSettingsStoreDefaultsAndClampsRestoredClickVolume() throws {
+        let defaults = try temporaryUserDefaults()
+        let store = AppSettingsStore(defaults: defaults)
+
+        XCTAssertEqual(store.restoredClickVolume(), AppSliderDefaults.clickVolume)
+
+        defaults.set(1.5, forKey: AppSettingsStore.clickVolumeKey)
+        XCTAssertEqual(store.restoredClickVolume(), 1)
+
+        defaults.set(-0.5, forKey: AppSettingsStore.clickVolumeKey)
+        XCTAssertEqual(store.restoredClickVolume(), 0)
+    }
+
     func testAppSettingsStoreDefaultsAndPersistsStemBackendComputeMode() throws {
         let defaults = try temporaryUserDefaults()
         let store = AppSettingsStore(defaults: defaults)
