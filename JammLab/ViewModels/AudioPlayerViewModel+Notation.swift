@@ -1,5 +1,27 @@
 import Foundation
 
+private struct TiedNotationNoteInput {
+    var measures: [ScoreMeasure]
+    var sourceItem: NotationMeasureItem
+}
+
+private enum TiedNotationNoteCommandResolution {
+    case unavailable
+    case blocked(NotationTieCommandBlockReason)
+    case ready(NotationNoteInsertionPlan)
+
+    var status: NotationTieCommandStatus {
+        switch self {
+        case .unavailable:
+            return .unavailable
+        case let .blocked(reason):
+            return .blocked(reason)
+        case .ready:
+            return .ready
+        }
+    }
+}
+
 extension AudioPlayerViewModel {
     var canShowNotationWindow: Bool {
         duration > 0
@@ -163,6 +185,40 @@ extension AudioPlayerViewModel {
 
     var isNotationRestEntryModeEnabled: Bool {
         notationEntryMode == .rest
+    }
+
+    var tieCommandStatus: NotationTieCommandStatus {
+        resolveTiedNotationNoteCommand().status
+    }
+
+    var isTieCommandInScope: Bool {
+        tieCommandStatus.isInCommandScope
+    }
+
+    /// Returns whether the command should consume its input event, including a blocked no-op.
+    @discardableResult
+    func handleAddTiedNotationNoteCommand() -> Bool {
+        switch resolveTiedNotationNoteCommand() {
+        case .unavailable:
+            return false
+        case .blocked:
+            return true
+        case let .ready(plan):
+            performUndoableEdit("Add Tied Notation Note") {
+                applyNotationNoteInsertionPlan(plan)
+                selectedNotationMeasures = []
+                notationMeasureSelectionAnchor = nil
+                selectedHarmonySymbolID = nil
+                reselectNotationItem(
+                    inMeasureNumber: plan.finalMeasureNumber,
+                    measureStartTime: plan.finalMeasureStartTime,
+                    itemID: plan.finalItemID,
+                    partID: plan.partID
+                )
+            }
+
+            return true
+        }
     }
 
     func toggleNotationNoteEntryMode() {
@@ -330,48 +386,31 @@ extension AudioPlayerViewModel {
 
     @discardableResult
     func insertNotationNote(_ placement: NotationNotePlacement) -> Bool {
-        guard duration > 0,
-              let measure = currentNotationScoreMeasures(partID: placement.partID).first(where: {
-                  $0.number == placement.measure.number
-                      && abs($0.startTime - placement.measure.startTime) < NotationMeasureTiming.timelineTolerance
-                      && abs($0.endTime - placement.measure.endTime) < NotationMeasureTiming.timelineTolerance
-              }),
-              let restSpan = NotationNotePlacementResolver.restSpan(in: measure, matching: placement)
-        else {
-            return false
-        }
-
-        let noteItem = NotationMeasureItem(
-            partID: placement.partID,
-            kind: .note,
-            pitch: placement.pitch,
-            measureNumber: measure.number,
-            measureStartTime: measure.startTime,
-            offsetInQuarterNotes: restSpan.startOffsetInQuarterNotes,
-            durationInQuarterNotes: placement.durationInQuarterNotes,
-            displayDuration: placement.displayDuration
-        )
-        let recomposedItems = NotationEntryRecomposer.recomposedItems(
-            in: measure,
-            replacing: restSpan,
-            with: noteItem
-        )
+        guard let plan = notationNoteInsertionPlan(for: placement) else { return false }
 
         performUndoableEdit("Add Notation Note") {
-            replaceNotationMeasureItems(in: measure, with: recomposedItems)
+            applyNotationNoteInsertionPlan(plan)
             selectedNotationMeasures = []
             notationMeasureSelectionAnchor = nil
             selectedHarmonySymbolID = nil
             reselectNotationItem(
-                inMeasureNumber: measure.number,
-                measureStartTime: measure.startTime,
-                itemID: noteItem.id,
-                partID: placement.partID
+                inMeasureNumber: plan.firstMeasureNumber,
+                measureStartTime: plan.firstMeasureStartTime,
+                itemID: plan.firstItemID,
+                partID: plan.partID
             )
         }
 
         try? notationNoteAuditioner.audition(pitch: placement.pitch)
         return true
+    }
+
+    func canInsertNotationNote(_ placement: NotationNotePlacement) -> Bool {
+        guard duration > 0 else { return false }
+        return NotationNoteInsertionPlanner.canPlanInsertion(
+            in: currentNotationScoreMeasures(partID: placement.partID),
+            placement: placement
+        )
     }
 
     @discardableResult
@@ -456,7 +495,8 @@ extension AudioPlayerViewModel {
             measureStartTime: item.measureStartTime,
             offsetInQuarterNotes: item.offsetInQuarterNotes,
             durationInQuarterNotes: item.durationInQuarterNotes,
-            displayDuration: item.displayDuration
+            displayDuration: item.displayDuration,
+            tieTargetItemID: item.tieTargetItemID
         )
 
         performUndoableEdit("Change Notation Note Pitch") {
@@ -548,12 +588,18 @@ extension AudioPlayerViewModel {
     @discardableResult
     func copySelectedNotationMeasure() -> Bool {
         guard let measures = validatedSelectedNotationMeasures() else { return false }
+        let copiedNotationItemIDs = Set(measures.flatMap { measure in
+            measure.notationItems.filter { !$0.isSynthesized }.map(\.id)
+        })
 
         notationMeasureClipboard = NotationMeasureClipboard(
             measures: measures.map { measure in
                 NotationMeasureClipboardMeasure(
                     items: notationClipboardItems(in: measure),
-                    notationItems: notationClipboardNotationItems(in: measure)
+                    notationItems: notationClipboardNotationItems(
+                        in: measure,
+                        copiedItemIDs: copiedNotationItemIDs
+                    )
                 )
             }
         )
@@ -592,16 +638,29 @@ extension AudioPlayerViewModel {
                 .sorted(by: notationClipboardNotationItemSort)
         }
         let currentItemsByMeasure = targetMeasures.map { notationClipboardItems(in: $0) }
-        let currentNotationItemsByMeasure = targetMeasures.map { notationClipboardNotationItems(in: $0) }
+        let targetItemIDs = Set(targetMeasures.flatMap { measure in
+            measure.notationItems.filter { !$0.isSynthesized }.map(\.id)
+        })
+        let currentNotationItemsByMeasure = targetMeasures.map {
+            notationClipboardNotationItems(in: $0, copiedItemIDs: targetItemIDs)
+        }
 
         guard currentItemsByMeasure != pastedItemsByMeasure
-                || currentNotationItemsByMeasure != pastedNotationItemsByMeasure
+                || !notationClipboardContentsAreEqual(
+                    currentNotationItemsByMeasure,
+                    pastedNotationItemsByMeasure
+                )
         else {
             selectedHarmonySymbolID = nil
             selectedNotationItem = nil
             selectedNotationMeasures = targetMeasures.map { NotationMeasureSelection(measure: $0, partID: targetPartID) }
             notationMeasureSelectionAnchor = selectedNotationMeasures.first
             return true
+        }
+
+        let pastedSourceItemIDs = pastedNotationItemsByMeasure.flatMap { $0.map(\.sourceItemID) }
+        let pastedItemIDsBySourceID = pastedSourceItemIDs.reduce(into: [String: String]()) {
+            if $0[$1] == nil { $0[$1] = UUID().uuidString }
         }
 
         performUndoableEdit(targetMeasures.count == 1 ? "Paste Measure" : "Paste Measures") {
@@ -633,6 +692,7 @@ extension AudioPlayerViewModel {
                 })
                 notationItems.append(contentsOf: pastedNotationItems.map { item in
                     NotationMeasureItem(
+                        id: pastedItemIDsBySourceID[item.sourceItemID] ?? UUID().uuidString,
                         partID: targetPartID,
                         kind: item.kind,
                         pitch: item.kind == .note ? item.pitch : nil,
@@ -640,13 +700,17 @@ extension AudioPlayerViewModel {
                         measureStartTime: targetMeasure.startTime,
                         offsetInQuarterNotes: item.offsetInQuarterNotes,
                         durationInQuarterNotes: item.durationInQuarterNotes,
-                        displayDuration: item.displayDuration
+                        displayDuration: item.displayDuration,
+                        tieTargetItemID: item.tieTargetItemID.flatMap {
+                            pastedItemIDsBySourceID[$0]
+                        }
                     )
                 })
             }
 
             harmonySymbols = ProjectStateNormalizer.normalizedHarmonySymbols(harmonySymbols, duration: duration)
             notationItems = ProjectStateNormalizer.normalizedNotationItems(notationItems, duration: duration)
+            sanitizeNotationTieRelationships()
             selectedHarmonySymbolID = nil
             selectedNotationItem = nil
             selectedNotationMeasures = targetMeasures.map { NotationMeasureSelection(measure: $0, partID: targetPartID) }
@@ -856,19 +920,64 @@ extension AudioPlayerViewModel {
             }
     }
 
-    private func notationClipboardNotationItems(in measure: ScoreMeasure) -> [NotationMeasureClipboardNotationItem] {
+    private func notationClipboardNotationItems(
+        in measure: ScoreMeasure,
+        copiedItemIDs: Set<String>
+    ) -> [NotationMeasureClipboardNotationItem] {
         measure.notationItems
             .filter { !$0.isSynthesized }
             .map {
                 NotationMeasureClipboardNotationItem(
+                    sourceItemID: $0.id,
                     kind: $0.kind,
                     pitch: $0.pitch,
                     offsetInQuarterNotes: $0.offsetInQuarterNotes,
                     durationInQuarterNotes: $0.durationInQuarterNotes,
-                    displayDuration: $0.displayDuration
+                    displayDuration: $0.displayDuration,
+                    tieTargetItemID: $0.tieTargetItemID.flatMap {
+                        copiedItemIDs.contains($0) ? $0 : nil
+                    }
                 )
             }
             .sorted(by: notationClipboardNotationItemSort)
+    }
+
+    private struct NotationClipboardSemanticItem: Equatable {
+        var kind: NotationMeasureItem.Kind
+        var pitch: NotationPitch?
+        var offsetInQuarterNotes: Double
+        var durationInQuarterNotes: Double
+        var displayDuration: NotationDuration
+        var tieTargetPosition: String?
+    }
+
+    private func notationClipboardContentsAreEqual(
+        _ lhs: [[NotationMeasureClipboardNotationItem]],
+        _ rhs: [[NotationMeasureClipboardNotationItem]]
+    ) -> Bool {
+        canonicalNotationClipboardContents(lhs) == canonicalNotationClipboardContents(rhs)
+    }
+
+    private func canonicalNotationClipboardContents(
+        _ contents: [[NotationMeasureClipboardNotationItem]]
+    ) -> [[NotationClipboardSemanticItem]] {
+        let positionsBySourceID = contents.enumerated().reduce(into: [String: String]()) { output, measure in
+            for (itemIndex, item) in measure.element.enumerated() where output[item.sourceItemID] == nil {
+                output[item.sourceItemID] = "\(measure.offset):\(itemIndex)"
+            }
+        }
+        return contents.map { measureItems in
+            measureItems.map { item in
+                NotationClipboardSemanticItem(
+                    kind: item.kind,
+                    pitch: item.pitch,
+                    offsetInQuarterNotes: item.offsetInQuarterNotes,
+                    durationInQuarterNotes: item.durationInQuarterNotes,
+                    displayDuration: item.displayDuration,
+                    tieTargetPosition: item.tieTargetItemID.flatMap { positionsBySourceID[$0] }
+                )
+            }
+        }
     }
 
     private func validatedSelectedNotationMeasures() -> [ScoreMeasure]? {
@@ -979,6 +1088,99 @@ extension AudioPlayerViewModel {
         }
         notationItems.append(contentsOf: replacementItems)
         notationItems = ProjectStateNormalizer.normalizedNotationItems(notationItems, duration: duration)
+        sanitizeNotationTieRelationships()
+    }
+
+    func sanitizeNotationTieRelationships() {
+        guard notationItems.contains(where: { $0.tieTargetItemID != nil }) else { return }
+        let partIDs = Set(notationItems.map(\.partID))
+        let validConnections = partIDs.flatMap { partID in
+            NotationTieResolver.connections(in: currentNotationScoreMeasures(partID: partID))
+        }
+        notationItems = NotationTieResolver.sanitizedPersistedItems(
+            notationItems,
+            validConnections: validConnections
+        )
+    }
+
+    private func applyNotationNoteInsertionPlan(_ plan: NotationNoteInsertionPlan) {
+        for replacement in plan.replacements {
+            notationItems.removeAll { item in
+                item.partID == replacement.partID
+                    && item.measureNumber == replacement.measureNumber
+                    && abs(item.measureStartTime - replacement.measureStartTime)
+                        < NotationMeasureTiming.timelineTolerance
+            }
+            notationItems.append(contentsOf: replacement.items)
+        }
+        notationItems = ProjectStateNormalizer.normalizedNotationItems(
+            notationItems,
+            duration: duration
+        )
+        sanitizeNotationTieRelationships()
+    }
+
+    private func notationNoteInsertionPlan(
+        for placement: NotationNotePlacement
+    ) -> NotationNoteInsertionPlan? {
+        guard duration > 0 else { return nil }
+        return NotationNoteInsertionPlanner.planInsertion(
+            in: currentNotationScoreMeasures(partID: placement.partID),
+            placement: placement
+        )
+    }
+
+    private func tiedNotationNoteInput() -> TiedNotationNoteInput? {
+        guard duration > 0,
+              let selection = selectedNotationItem
+        else {
+            return nil
+        }
+
+        let measures = currentNotationScoreMeasures(partID: selection.partID)
+        guard let measure = measures.first(where: {
+            $0.number == selection.measureNumber
+                && abs($0.startTime - selection.measureStartTime) < NotationMeasureTiming.timelineTolerance
+        }), let item = measure.notationItems.first(where: {
+            $0.id == selection.itemID && $0.partID == selection.partID
+        }), item.kind == .note, !item.isSynthesized, item.pitch != nil else {
+            return nil
+        }
+
+        return TiedNotationNoteInput(
+            measures: measures,
+            sourceItem: item
+        )
+    }
+
+    private func resolveTiedNotationNoteCommand() -> TiedNotationNoteCommandResolution {
+        guard let input = tiedNotationNoteInput() else {
+            return isNotationNoteEntryModeEnabled
+                ? .blocked(.selectNote)
+                : .unavailable
+        }
+
+        guard input.sourceItem.tieTargetItemID == nil else {
+            return .blocked(.alreadyTied)
+        }
+
+        guard let continuationEndTime = NotationTieContinuationBoundary.endTime(
+            in: input.measures,
+            sourceItemID: input.sourceItem.id,
+            continuationDurationInQuarterNotes: input.sourceItem.displayDuration.durationInQuarterNotes
+        ), continuationEndTime <= duration + NotationMeasureTiming.timelineTolerance else {
+            return .blocked(.audioBoundary)
+        }
+
+        guard let plan = NotationNoteInsertionPlanner.plan(
+            in: input.measures,
+            sourceItemID: input.sourceItem.id,
+            selectedDuration: input.sourceItem.displayDuration
+        ) else {
+            return .blocked(.noFreeFollowingDuration)
+        }
+
+        return .ready(plan)
     }
 
     private func selectedNotationNotePitchChange(byStaffPositionDelta staffPositionDelta: Int) -> NotationPitch? {

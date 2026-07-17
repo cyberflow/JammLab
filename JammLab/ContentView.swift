@@ -188,6 +188,9 @@ struct ContentView: View {
         if !viewModel.canChangeNotationDuration {
             hotkeys.subtract(AppHotkey.notationDurationEditingHotkeys)
         }
+        if !viewModel.isTieCommandInScope {
+            hotkeys.remove(.addTiedNotationNote)
+        }
         if !viewModel.canChangeSelectedNotationNotePitch(byStaffPositionDelta: -1) {
             hotkeys.remove(.moveSelectedNotationNotePitchUp)
         }
@@ -266,6 +269,8 @@ struct ContentView: View {
             return true
         case .toggleNotationDurationDot:
             return viewModel.toggleNotationDurationDot()
+        case .addTiedNotationNote:
+            return viewModel.handleAddTiedNotationNoteCommand()
         }
     }
 

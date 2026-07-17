@@ -227,6 +227,7 @@ final class MusicXMLNotationExportRenderer: NotationExportRenderer {
     ) throws -> XMLElement {
         let part = element("part", attributes: ["id": id])
         var previousAttributes: MeasureAttributes?
+        let tieRoles = musicXMLTieRoles(in: measures)
 
         for (measureIndex, measure) in measures.enumerated() {
             let measureElement = element("measure", attributes: ["number": "\(measure.number)"])
@@ -263,7 +264,11 @@ final class MusicXMLNotationExportRenderer: NotationExportRenderer {
                     includeBoundaryHarmony: false,
                     harmonyIndex: &harmonyIndex
                 )
-                measureElement.addChild(notationNote(for: item, isOnlyItem: sortedItems.count == 1))
+                measureElement.addChild(notationNote(
+                    for: item,
+                    isOnlyItem: sortedItems.count == 1,
+                    tieRole: tieRoles[item.id]
+                ))
                 notationCursorOffsetInQuarterNotes = restEndOffsetInQuarterNotes
             }
 
@@ -432,12 +437,16 @@ final class MusicXMLNotationExportRenderer: NotationExportRenderer {
         return pitchElement
     }
 
-    private func notationNote(for item: NotationMeasureItem, isOnlyItem: Bool) -> XMLElement {
+    private func notationNote(
+        for item: NotationMeasureItem,
+        isOnlyItem: Bool,
+        tieRole: MusicXMLTieRole?
+    ) -> XMLElement {
         switch item.kind {
         case .rest:
             return restNote(for: item, isOnlyItem: isOnlyItem)
         case .note:
-            return pitchNote(for: item)
+            return pitchNote(for: item, tieRole: tieRole)
         }
     }
 
@@ -449,7 +458,10 @@ final class MusicXMLNotationExportRenderer: NotationExportRenderer {
         return note
     }
 
-    private func pitchNote(for item: NotationMeasureItem) -> XMLElement {
+    private func pitchNote(
+        for item: NotationMeasureItem,
+        tieRole: MusicXMLTieRole?
+    ) -> XMLElement {
         let note = element("note")
         let pitch = item.pitch ?? NotationPitch(step: .c, octave: 4)
         let pitchElement = element("pitch")
@@ -459,17 +471,46 @@ final class MusicXMLNotationExportRenderer: NotationExportRenderer {
         }
         pitchElement.addChild(element("octave", stringValue: "\(pitch.octave)"))
         note.addChild(pitchElement)
-        appendDurationElements(to: note, for: item)
+        appendDurationElements(to: note, for: item, tieRole: tieRole)
         return note
     }
 
-    private func appendDurationElements(to note: XMLElement, for item: NotationMeasureItem) {
+    private func appendDurationElements(
+        to note: XMLElement,
+        for item: NotationMeasureItem,
+        tieRole: MusicXMLTieRole? = nil
+    ) {
         note.addChild(element("duration", stringValue: "\(durationValue(forQuarterOffset: item.durationInQuarterNotes))"))
+        if tieRole?.stops == true {
+            note.addChild(element("tie", attributes: ["type": "stop"]))
+        }
+        if tieRole?.starts == true {
+            note.addChild(element("tie", attributes: ["type": "start"]))
+        }
         note.addChild(element("voice", stringValue: "1"))
         note.addChild(element("type", stringValue: item.displayDuration.displayName))
         if item.displayDuration.isDotted {
             note.addChild(element("dot"))
         }
+        if let tieRole, tieRole.starts || tieRole.stops {
+            let notations = element("notations")
+            if tieRole.stops {
+                notations.addChild(element("tied", attributes: ["type": "stop"]))
+            }
+            if tieRole.starts {
+                notations.addChild(element("tied", attributes: ["type": "start"]))
+            }
+            note.addChild(notations)
+        }
+    }
+
+    private func musicXMLTieRoles(in measures: [ScoreMeasure]) -> [String: MusicXMLTieRole] {
+        var roles: [String: MusicXMLTieRole] = [:]
+        for connection in NotationTieResolver.connections(in: measures) {
+            roles[connection.source.item.id, default: MusicXMLTieRole()].starts = true
+            roles[connection.target.item.id, default: MusicXMLTieRole()].stops = true
+        }
+        return roles
     }
 
     private func durationValue(forQuarterOffset offset: Double) -> Int {
@@ -497,6 +538,11 @@ final class MusicXMLNotationExportRenderer: NotationExportRenderer {
         let insertionIndex = xml.index(after: firstLineEnd)
         return String(xml[..<insertionIndex]) + doctype + "\n" + String(xml[insertionIndex...])
     }
+}
+
+private struct MusicXMLTieRole {
+    var starts = false
+    var stops = false
 }
 
 struct MusicXMLChord: Equatable {

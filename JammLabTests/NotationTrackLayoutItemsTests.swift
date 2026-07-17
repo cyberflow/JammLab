@@ -285,6 +285,8 @@ private func timelineViewActions(
         notationDurationDotToggled: {},
         notationNoteEntryModeToggled: {},
         notationRestEntryModeToggled: {},
+        addTiedNotationNote: {},
+        canInsertNotationNote: { _ in true },
         insertNotationNote: { _ in
             recorder.notationInsertionCount += 1
             return true

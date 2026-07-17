@@ -36,6 +36,7 @@ struct TimelineViewState: Equatable {
     var notationDurationDenominator: Int
     var notationDurationIsDotted: Bool
     var canChangeNotationDuration: Bool
+    var tieCommandStatus: NotationTieCommandStatus
     var notationEntryMode: NotationEntryMode?
     var isNotationTrackCollapsed: Bool
     var stemNotationTrackCollapsed: [StemType: Bool]
@@ -80,6 +81,8 @@ struct TimelineViewActions {
     var notationDurationDotToggled: () -> Void
     var notationNoteEntryModeToggled: () -> Void
     var notationRestEntryModeToggled: () -> Void
+    var addTiedNotationNote: () -> Void
+    var canInsertNotationNote: (NotationNotePlacement) -> Bool
     var insertNotationNote: (NotationNotePlacement) -> Bool
     var insertNotationRest: (NotationRestPlacement) -> Bool
     var changeSelectedNotePitch: (NotationPitch, Bool) -> Bool
@@ -108,6 +111,7 @@ extension TimelineViewActions {
             selectHarmony: selectHarmonyAction,
             selectMeasure: selectNotationMeasure,
             selectItem: selectNotationItem,
+            canInsertNotationNote: canInsertNotationNote,
             insertNotationNote: insertNotationNote,
             insertNotationRest: insertNotationRest,
             changeSelectedNotePitch: changeSelectedNotePitch,
@@ -178,6 +182,7 @@ struct WaveformTimelineView: View {
             ),
             entryMode: state.notationEntryMode,
             canChangeNotationDuration: state.canChangeNotationDuration,
+            tieCommandStatus: state.tieCommandStatus,
             notationDurationDenominator: state.notationDurationDenominator,
             notationDurationIsDotted: state.notationDurationIsDotted,
             notationViewports: state.stemNotationViewports,
@@ -420,6 +425,11 @@ struct WaveformTimelineView: View {
                         action: actions.notationDurationDotToggled
                     )
                     .disabled(!state.canChangeNotationDuration)
+
+                    NotationTieButton(
+                        status: state.tieCommandStatus,
+                        action: actions.addTiedNotationNote
+                    )
                 }
             }
         }
@@ -564,6 +574,7 @@ private struct StemTracksSection: View {
     let selectedDuration: NotationDuration
     let entryMode: NotationEntryMode?
     let canChangeNotationDuration: Bool
+    let tieCommandStatus: NotationTieCommandStatus
     let notationDurationDenominator: Int
     let notationDurationIsDotted: Bool
     let notationViewports: [StemType: NotationViewportState]
@@ -785,6 +796,11 @@ private struct StemTracksSection: View {
                     action: notationActions.notationDurationDotToggled
                 )
                 .disabled(!canChangeNotationDuration)
+
+                NotationTieButton(
+                    status: tieCommandStatus,
+                    action: notationActions.addTiedNotationNote
+                )
             }
         }
         .padding(.horizontal, AppTheme.Spacing.md)

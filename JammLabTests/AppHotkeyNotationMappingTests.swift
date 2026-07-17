@@ -70,6 +70,39 @@ final class AppHotkeyNotationMappingTests: XCTestCase {
         XCTAssertTrue(AppHotkey.allCases.contains(.toggleNotationNoteEntryMode))
     }
 
+    func testAppHotkeyRecognizesTieCommandAndMetadata() throws {
+        let event = try keyEvent(key: "t", keyCode: 17)
+
+        XCTAssertEqual(AppHotkey(event: event), .addTiedNotationNote)
+        XCTAssertEqual(AppHotkey.addTiedNotationNote.key, "T")
+        XCTAssertEqual(AppHotkey.addTiedNotationNote.title, "Tie")
+        XCTAssertEqual(AppHotkey.addTiedNotationNote.detail, "Add tied note")
+        XCTAssertEqual(
+            NotationTieHelpText.tooltip(for: .ready),
+            "Tie (T)\nAdd tied note"
+        )
+        XCTAssertEqual(
+            NotationTieHelpText.tooltip(for: .blocked(.selectNote)),
+            "Tie (T)\nAdd tied note\nSelect a note to add a tie."
+        )
+        XCTAssertEqual(
+            NotationTieHelpText.tooltip(for: .blocked(.alreadyTied)),
+            "Tie (T)\nAdd tied note\nThe selected note already starts a tie."
+        )
+        XCTAssertEqual(
+            NotationTieHelpText.tooltip(for: .blocked(.noFreeFollowingDuration)),
+            "Tie (T)\nAdd tied note\nThere is not enough empty notation time after the selected note."
+        )
+        XCTAssertEqual(
+            NotationTieHelpText.tooltip(for: .blocked(.audioBoundary)),
+            "Tie (T)\nAdd tied note\nThere is not enough audio time after the selected note."
+        )
+        XCTAssertEqual(
+            NotationTieHelpText.accessibilityHint(for: .blocked(.audioBoundary)),
+            "There is not enough audio time after the selected note."
+        )
+    }
+
     func testAppHotkeyRecognizesNotationNotePitchArrowKeys() throws {
         let upEvent = try XCTUnwrap(NSEvent.keyEvent(
             with: .keyDown,

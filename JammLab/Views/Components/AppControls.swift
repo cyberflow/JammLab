@@ -124,6 +124,22 @@ struct NotationAugmentationDotButton: View {
     }
 }
 
+struct NotationTieButton: View {
+    let status: NotationTieCommandStatus
+    let action: () -> Void
+
+    var body: some View {
+        NotationSelectableButton(isActive: false, action: action) { iconColor in
+            NotationTieControlGlyphView(color: iconColor)
+                .accessibilityHidden(true)
+        }
+        .disabled(!status.isInCommandScope)
+        .help(Text(NotationTieHelpText.tooltip(for: status)))
+        .accessibilityLabel(NotationTieHelpText.accessibilityLabel)
+        .accessibilityHint(Text(NotationTieHelpText.accessibilityHint(for: status)))
+    }
+}
+
 private struct NotationSelectableButton<Label: View>: View {
     let isActive: Bool
     let action: () -> Void
@@ -173,6 +189,75 @@ enum NotationAugmentationDotHelpText {
     ].joined(separator: "\n")
     static let accessibilityLabel = AppHotkey.toggleNotationDurationDot.title
     static let accessibilityHint = AppHotkey.toggleNotationDurationDot.detail
+}
+
+enum NotationTieHelpText {
+    private static let defaultTooltip = [
+        "\(AppHotkey.addTiedNotationNote.title) (\(AppHotkey.addTiedNotationNote.key))",
+        AppHotkey.addTiedNotationNote.detail
+    ].joined(separator: "\n")
+    static let accessibilityLabel = AppHotkey.addTiedNotationNote.title
+
+    static func tooltip(for status: NotationTieCommandStatus) -> String {
+        guard let blockedExplanation = blockedExplanation(for: status) else {
+            return defaultTooltip
+        }
+        return [defaultTooltip, blockedExplanation].joined(separator: "\n")
+    }
+
+    static func accessibilityHint(for status: NotationTieCommandStatus) -> String {
+        blockedExplanation(for: status) ?? AppHotkey.addTiedNotationNote.detail
+    }
+
+    private static func blockedExplanation(
+        for status: NotationTieCommandStatus
+    ) -> String? {
+        guard case let .blocked(reason) = status else { return nil }
+        switch reason {
+        case .selectNote:
+            return "Select a note to add a tie."
+        case .alreadyTied:
+            return "The selected note already starts a tie."
+        case .noFreeFollowingDuration:
+            return "There is not enough empty notation time after the selected note."
+        case .audioBoundary:
+            return "There is not enough audio time after the selected note."
+        }
+    }
+}
+
+private struct NotationTieControlGlyphView: View {
+    let color: Color
+
+    var body: some View {
+        Canvas { context, size in
+            let fontSize = AppTheme.ControlSize.notationDurationGlyphSize
+            if let notePath = NotationMusicFontRegistry.glyphPath(
+                for: NotationDurationControlSymbol.quarter,
+                fontSize: fontSize
+            ) {
+                for direction in [-1.0, 1.0] {
+                    let transform = notePath.centeredTransform(in: size)
+                        .translatedBy(
+                            x: CGFloat(direction) * AppTheme.ControlSize.notationTieNoteOffsetX,
+                            y: 0
+                        )
+                    context.fill(Path(notePath.path).applying(transform), with: .color(color))
+                }
+            }
+
+            let centerY = size.height / 2 + AppTheme.ControlSize.notationTieArcOffsetY
+            let tiePath = NotationTiePath.path(
+                start: CGPoint(x: size.width / 2 - AppTheme.ControlSize.notationTieNoteOffsetX, y: centerY),
+                end: CGPoint(x: size.width / 2 + AppTheme.ControlSize.notationTieNoteOffsetX, y: centerY),
+                placement: .below,
+                arcHeight: AppTheme.ControlSize.notationTieArcHeight,
+                endpointThickness: AppTheme.ControlSize.notationTieEndpointThickness,
+                midpointThickness: AppTheme.ControlSize.notationTieMidpointThickness
+            )
+            context.fill(Path(tiePath), with: .color(color))
+        }
+    }
 }
 
 private struct NotationAugmentationDotGlyphView: View {

@@ -58,7 +58,8 @@ enum NotationDurationEditor {
             measureStartTime: measure.startTime,
             offsetInQuarterNotes: startOffset,
             durationInQuarterNotes: selectedDuration.durationInQuarterNotes,
-            displayDuration: selectedDuration
+            displayDuration: selectedDuration,
+            tieTargetItemID: selected.tieTargetItemID
         )
         let fillerEnd = max(sourceEnd, consumedEnd)
         let fillerItems = NotationRestItemFactory.metricAwareRestItems(

@@ -258,6 +258,7 @@ extension AudioPlayerViewModel {
                 duration: resolvedProjectDuration
             )
             notationPartClefs = NotationPartClefOverrides.normalized(project.notationPartClefs)
+            sanitizeNotationTieRelationships()
             projectKeySelection = project.projectKeySelection
             clearTransientEditingState()
             loopRegion = ProjectStateNormalizer.normalizedLoopRegion(

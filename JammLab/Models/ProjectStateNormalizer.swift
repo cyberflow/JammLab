@@ -123,17 +123,20 @@ struct ProjectStateNormalizer {
         duration: TimeInterval
     ) -> [NotationMeasureItem] {
         let duration = normalizedDuration(duration)
-        return items
-            .filter { item in
-                !item.isSynthesized
-                    && (item.kind == .rest || item.pitch != nil)
-                    && item.measureStartTime.isFinite
-                    && item.measureStartTime >= 0
-                    && item.measureStartTime <= duration
-                    && item.offsetInQuarterNotes.isFinite
-                    && item.durationInQuarterNotes.isFinite
-                    && item.durationInQuarterNotes > 0
-            }
+        let persistedItems = items.filter { item in
+            !item.isSynthesized
+                && (item.kind == .rest || item.pitch != nil)
+                && item.measureStartTime.isFinite
+                && item.measureStartTime >= 0
+                && item.measureStartTime <= duration
+                && item.offsetInQuarterNotes.isFinite
+                && item.durationInQuarterNotes.isFinite
+                && item.durationInQuarterNotes > 0
+        }
+        let availableItemsByID = persistedItems.reduce(into: [String: NotationMeasureItem]()) {
+            if $0[$1.id] == nil { $0[$1.id] = $1 }
+        }
+        return persistedItems
             .map { item in
                 NotationMeasureItem(
                     id: item.id,
@@ -145,6 +148,10 @@ struct ProjectStateNormalizer {
                     offsetInQuarterNotes: max(0, finiteTime(item.offsetInQuarterNotes)),
                     durationInQuarterNotes: max(0, finiteTime(item.durationInQuarterNotes)),
                     displayDuration: item.displayDuration,
+                    tieTargetItemID: normalizedTieTargetItemID(
+                        for: item,
+                        availableItemsByID: availableItemsByID
+                    ),
                     isSynthesized: false
                 )
             }
@@ -167,6 +174,23 @@ struct ProjectStateNormalizer {
 
                 return $0.id < $1.id
             }
+    }
+
+    private static func normalizedTieTargetItemID(
+        for item: NotationMeasureItem,
+        availableItemsByID: [String: NotationMeasureItem]
+    ) -> String? {
+        guard item.kind == .note,
+              let targetID = item.tieTargetItemID,
+              targetID != item.id,
+              let target = availableItemsByID[targetID],
+              target.kind == .note,
+              target.partID == item.partID,
+              target.pitch == item.pitch
+        else {
+            return nil
+        }
+        return targetID
     }
 
     private static func notationPartSortKey(_ partID: NotationPartID) -> String {

@@ -77,6 +77,10 @@ struct NotationWindowView: View {
             }
             .disabled(!viewModel.canChangeNotationDuration)
 
+            NotationTieButton(status: viewModel.tieCommandStatus) {
+                viewModel.handleAddTiedNotationNoteCommand()
+            }
+
             NotationEntryModeButton(
                 mode: .rest,
                 isActive: viewModel.isNotationRestEntryModeEnabled
@@ -285,6 +289,7 @@ struct NotationWindowView: View {
             selectHarmony: { viewModel.selectHarmonySymbol(id: $0) },
             selectMeasure: { viewModel.selectNotationMeasure($0, extendingSelection: $1, partID: $2) },
             selectItem: { viewModel.selectNotationItem($0, shouldAudition: $1) },
+            canInsertNotationNote: { viewModel.canInsertNotationNote($0) },
             insertNotationNote: { viewModel.insertNotationNote($0) },
             insertNotationRest: { viewModel.insertNotationRest($0) },
             changeSelectedNotePitch: { viewModel.changeSelectedNotationNotePitch(to: $0, shouldAudition: $1) },
@@ -314,6 +319,9 @@ struct NotationWindowView: View {
         }
         if viewModel.canChangeNotationDuration {
             hotkeys.formUnion(AppHotkey.notationDurationEditingHotkeys)
+        }
+        if viewModel.isTieCommandInScope {
+            hotkeys.insert(.addTiedNotationNote)
         }
         if viewModel.duration > 0 {
             hotkeys.insert(.toggleNotationNoteEntryMode)
@@ -363,6 +371,8 @@ struct NotationWindowView: View {
             return true
         case .toggleNotationDurationDot:
             return viewModel.toggleNotationDurationDot()
+        case .addTiedNotationNote:
+            return viewModel.handleAddTiedNotationNoteCommand()
         default:
             return false
         }

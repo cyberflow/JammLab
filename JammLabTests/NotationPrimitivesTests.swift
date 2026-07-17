@@ -13,7 +13,8 @@ final class NotationPrimitivesTests: XCTestCase {
         (2, .half(.up), .half(.down), 0xE1D3, 0xE1D4),
         (4, .quarter(.up), .quarter(.down), 0xE1D5, 0xE1D6),
         (8, .eighth(.up), .eighth(.down), 0xE1D7, 0xE1D8),
-        (16, .sixteenth(.up), .sixteenth(.down), 0xE1D9, 0xE1DA)
+        (16, .sixteenth(.up), .sixteenth(.down), 0xE1D9, 0xE1DA),
+        (32, .thirtySecond(.up), .thirtySecond(.down), 0xE1DB, 0xE1DC)
     ]
 
     private var allStaffNoteSymbols: [NotationStaffNoteSymbol] {
@@ -637,6 +638,68 @@ final class NotationPrimitivesTests: XCTestCase {
         XCTAssertEqual(placement.targetRestID, "second-eighth-rest")
         XCTAssertEqual(placement.offsetInQuarterNotes, 1.5, accuracy: 0.0001)
         XCTAssertEqual(placement.durationInQuarterNotes, 1, accuracy: 0.0001)
+    }
+
+    func testNotationNotePlacementAllowsOverflowFromTrailingRestWithoutChangingRestPlacement() throws {
+        let measure = ScoreMeasure(
+            number: 1,
+            startTime: 0,
+            endTime: 2,
+            attributes: .defaultTreble,
+            notationItems: [
+                NotationMeasureItem(
+                    id: "existing-note",
+                    kind: .note,
+                    pitch: NotationPitch(step: .c, octave: 5),
+                    measureNumber: 1,
+                    measureStartTime: 0,
+                    offsetInQuarterNotes: 0,
+                    durationInQuarterNotes: 3,
+                    displayDuration: NotationDuration(denominator: 2, isDotted: true)
+                ),
+                NotationMeasureItem(
+                    id: "trailing-quarter-rest",
+                    measureNumber: 1,
+                    measureStartTime: 0,
+                    offsetInQuarterNotes: 3,
+                    durationInQuarterNotes: 1,
+                    displayDuration: NotationDuration(denominator: 4)
+                )
+            ]
+        )
+        let geometry = NotationMeasureCanvasGeometry(
+            measureIndex: 0,
+            cellStartX: 0,
+            cellEndX: 200,
+            contentStartX: 20,
+            contentEndX: 180,
+            staffStartX: 0,
+            staffEndX: 200
+        )
+        let xInsideTrailingRest = NotationMeasureLayout.notationAnchorX(
+            geometry: geometry,
+            offsetInQuarterNotes: 3.5,
+            timeSignature: measure.attributes.timeSignature
+        )
+        let duration = NotationDuration(denominator: 2)
+
+        let placement = try XCTUnwrap(NotationNotePlacementResolver.placement(
+            in: measure,
+            geometry: geometry,
+            point: CGPoint(x: xInsideTrailingRest, y: 72),
+            staffTop: 40,
+            selectedDuration: duration
+        ))
+
+        XCTAssertEqual(placement.targetRestID, "trailing-quarter-rest")
+        XCTAssertEqual(placement.offsetInQuarterNotes, 3, accuracy: 0.0001)
+        XCTAssertNil(NotationNotePlacementResolver.restPlacement(
+            in: measure,
+            geometry: geometry,
+            point: CGPoint(x: xInsideTrailingRest, y: 72),
+            staffTop: 40,
+            selectedDuration: duration
+        ))
     }
 
     func testNotationRestPlacementResolverTargetsContainingShortRestWithFollowingCapacity() throws {

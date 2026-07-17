@@ -141,11 +141,13 @@ struct NotationMeasureClipboardItem: Equatable {
 }
 
 struct NotationMeasureClipboardNotationItem: Equatable {
+    var sourceItemID: String
     var kind: NotationMeasureItem.Kind = .rest
     var pitch: NotationPitch? = nil
     var offsetInQuarterNotes: Double
     var durationInQuarterNotes: Double
     var displayDuration: NotationDuration
+    var tieTargetItemID: String? = nil
 }
 
 struct NotationPartID: Codable, Hashable, Identifiable, Equatable {
@@ -422,6 +424,7 @@ struct NotationMeasureItem: Identifiable, Codable, Equatable {
     var offsetInQuarterNotes: Double
     var durationInQuarterNotes: Double
     var displayDuration: NotationDuration
+    var tieTargetItemID: String?
     var isSynthesized: Bool
 
     init(
@@ -434,6 +437,7 @@ struct NotationMeasureItem: Identifiable, Codable, Equatable {
         offsetInQuarterNotes: Double,
         durationInQuarterNotes: Double,
         displayDuration: NotationDuration,
+        tieTargetItemID: String? = nil,
         isSynthesized: Bool = false
     ) {
         self.id = id
@@ -445,6 +449,7 @@ struct NotationMeasureItem: Identifiable, Codable, Equatable {
         self.offsetInQuarterNotes = offsetInQuarterNotes
         self.durationInQuarterNotes = durationInQuarterNotes
         self.displayDuration = displayDuration
+        self.tieTargetItemID = kind == .note ? tieTargetItemID : nil
         self.isSynthesized = isSynthesized
     }
 
@@ -466,7 +471,8 @@ struct NotationMeasureItem: Identifiable, Codable, Equatable {
             measureStartTime: measureStartTime,
             offsetInQuarterNotes: offsetInQuarterNotes,
             durationInQuarterNotes: durationInQuarterNotes,
-            displayDuration: displayDuration
+            displayDuration: displayDuration,
+            tieTargetItemID: tieTargetItemID
         )
     }
 
@@ -480,6 +486,7 @@ struct NotationMeasureItem: Identifiable, Codable, Equatable {
         case offsetInQuarterNotes
         case durationInQuarterNotes
         case displayDuration
+        case tieTargetItemID
         case isSynthesized
     }
 
@@ -495,6 +502,8 @@ struct NotationMeasureItem: Identifiable, Codable, Equatable {
         offsetInQuarterNotes = try container.decode(Double.self, forKey: .offsetInQuarterNotes)
         durationInQuarterNotes = try container.decode(Double.self, forKey: .durationInQuarterNotes)
         displayDuration = try container.decode(NotationDuration.self, forKey: .displayDuration)
+        let decodedTieTargetItemID = try container.decodeIfPresent(String.self, forKey: .tieTargetItemID)
+        tieTargetItemID = kind == .note ? decodedTieTargetItemID : nil
         isSynthesized = try container.decodeIfPresent(Bool.self, forKey: .isSynthesized) ?? false
     }
 }

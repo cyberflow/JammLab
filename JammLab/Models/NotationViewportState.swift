@@ -15,6 +15,7 @@ struct NotationViewportState: Equatable {
     var visibleMeasures: [ScoreMeasure]
     var anchorTime: TimeInterval
     var activeMeasureNumber: Int?
+    var tieConnections: [NotationTieConnection] = []
 
     var isReady: Bool {
         availability == .ready
@@ -44,6 +45,7 @@ struct NotationScoreState: Equatable {
     var measures: [ScoreMeasure]
     var anchorTime: TimeInterval
     var activeMeasureNumber: Int?
+    var tieConnections: [NotationTieConnection] = []
 
     var isReady: Bool {
         availability == .ready
@@ -55,7 +57,8 @@ struct NotationScoreState: Equatable {
             keySignature: keySignature,
             measures: [],
             anchorTime: 0,
-            activeMeasureNumber: nil
+            activeMeasureNumber: nil,
+            tieConnections: []
         )
     }
 
@@ -78,7 +81,11 @@ struct NotationScoreState: Equatable {
                     visibleMeasureCount: systemMeasures.count,
                     visibleMeasures: systemMeasures,
                     anchorTime: anchorTime,
-                    activeMeasureNumber: activeMeasureNumber
+                    activeMeasureNumber: activeMeasureNumber,
+                    tieConnections: NotationTieResolver.connections(
+                        tieConnections,
+                        visibleIn: systemMeasures
+                    )
                 )
             )
         }

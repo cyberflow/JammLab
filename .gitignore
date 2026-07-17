@@ -28,3 +28,9 @@ dist/
 # Others
 AGENTS.local.md
 .codex/
+
+# Graphify
+graphify-out/
+
+# Xcode asset catalog metadata
+**/*.xcassets/

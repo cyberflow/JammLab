@@ -26,6 +26,7 @@ enum AppHotkey: CaseIterable, Hashable {
     case setNotationDurationHalf
     case setNotationDurationWhole
     case toggleNotationDurationDot
+    case addTiedNotationNote
 
     static let notationDurationHotkeys = Set(allCases.filter {
         $0.notationDurationDenominator != nil
@@ -101,6 +102,8 @@ enum AppHotkey: CaseIterable, Hashable {
             self = .setNotationDurationWhole
         case 47, 65:
             self = .toggleNotationDurationDot
+        case 17:
+            self = .addTiedNotationNote
         case 53:
             self = .clearNotationMeasureSelection
         default:
@@ -158,6 +161,8 @@ enum AppHotkey: CaseIterable, Hashable {
             return "7"
         case .toggleNotationDurationDot:
             return ".; Num.; Num,"
+        case .addTiedNotationNote:
+            return "T"
         }
     }
 
@@ -211,6 +216,8 @@ enum AppHotkey: CaseIterable, Hashable {
             return "Set Whole Note Duration"
         case .toggleNotationDurationDot:
             return "Augmentation dot"
+        case .addTiedNotationNote:
+            return "Tie"
         }
     }
 
@@ -264,6 +271,8 @@ enum AppHotkey: CaseIterable, Hashable {
             return "Set notation duration to whole notes for the selected notation item."
         case .toggleNotationDurationDot:
             return "Toggle duration dot"
+        case .addTiedNotationNote:
+            return "Add tied note"
         }
     }
 

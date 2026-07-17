@@ -7,6 +7,7 @@ struct NotationTrackActions {
     var selectHarmony: (HarmonySymbol.ID?) -> Void
     var selectMeasure: (ScoreMeasure?, Bool, NotationPartID) -> Void
     var selectItem: (NotationItemSelection?, Bool) -> Void
+    var canInsertNotationNote: (NotationNotePlacement) -> Bool
     var insertNotationNote: (NotationNotePlacement) -> Bool
     var insertNotationRest: (NotationRestPlacement) -> Bool
     var changeSelectedNotePitch: (NotationPitch, Bool) -> Bool
@@ -240,6 +241,11 @@ struct NotationTrackView: View {
                 staffTop: staffTop,
                 in: &context
             )
+            drawNotationTies(
+                geometries: geometries,
+                staffTop: staffTop,
+                in: &context
+            )
             drawBarlines(
                 geometries: geometries,
                 staffTop: staffTop,
@@ -369,6 +375,33 @@ struct NotationTrackView: View {
                 color: appColors.accent.opacity(0.56),
                 in: &context
             )
+        }
+    }
+
+    private func drawNotationTies(
+        geometries: [NotationMeasureCanvasGeometry],
+        staffTop: CGFloat,
+        in context: inout GraphicsContext
+    ) {
+        let selectedItemID = selectedItem?.itemID
+        for item in NotationTrackLayoutItems.ties(
+            visibleMeasures: state.visibleMeasures,
+            geometries: geometries,
+            connections: state.tieConnections,
+            staffTop: staffTop
+        ) {
+            let isSelected = selectedItemID == item.connection.source.item.id
+                || selectedItemID == item.connection.target.item.id
+            let color = isSelected ? appColors.accent : appColors.notationSymbolsAndLines
+            let path = NotationTiePath.path(
+                start: item.start,
+                end: item.end,
+                placement: item.placement,
+                arcHeight: AppTheme.Timeline.notationTieArcHeight,
+                endpointThickness: AppTheme.Timeline.notationTieEndpointThickness,
+                midpointThickness: AppTheme.Timeline.notationTieMidpointThickness
+            )
+            context.fill(Path(path), with: .color(color))
         }
     }
 
@@ -1564,14 +1597,15 @@ struct NotationTrackView: View {
             attributeDisplays: attributeDisplays
         ) else { return nil }
 
-        return NotationNotePlacementResolver.placement(
+        guard let placement = NotationNotePlacementResolver.placement(
             in: target.measure,
             geometry: target.geometry,
             point: point,
             staffTop: staffTop(in: height),
             selectedDuration: selectedDuration,
             partID: partID
-        )
+        ), actions.canInsertNotationNote(placement) else { return nil }
+        return placement
     }
 
     private func restPlacement(
@@ -1767,6 +1801,7 @@ private extension NotationTrackActions {
         selectHarmony: { _ in },
         selectMeasure: { _, _, _ in },
         selectItem: { _, _ in },
+        canInsertNotationNote: { _ in false },
         insertNotationNote: { _ in false },
         insertNotationRest: { _ in false },
         changeSelectedNotePitch: { _, _ in false },

@@ -149,12 +149,55 @@ enum NotationStemDirection: Equatable {
     }
 }
 
+enum NotationTiePlacement: Equatable {
+    case above
+    case below
+}
+
+enum NotationTiePath {
+    static func path(
+        start: CGPoint,
+        end: CGPoint,
+        placement: NotationTiePlacement,
+        arcHeight: CGFloat,
+        endpointThickness: CGFloat,
+        midpointThickness: CGFloat
+    ) -> CGPath {
+        let direction: CGFloat = placement == .below ? 1 : -1
+        let controlY = (start.y + end.y) / 2 + direction * arcHeight
+        let upperControlY = controlY - midpointThickness / 2
+        let lowerControlY = controlY + midpointThickness / 2
+        let startUpper = CGPoint(x: start.x, y: start.y - endpointThickness / 2)
+        let endUpper = CGPoint(x: end.x, y: end.y - endpointThickness / 2)
+        let startLower = CGPoint(x: start.x, y: start.y + endpointThickness / 2)
+        let endLower = CGPoint(x: end.x, y: end.y + endpointThickness / 2)
+        let horizontalDistance = end.x - start.x
+
+        let path = CGMutablePath()
+        path.move(to: startUpper)
+        path.addCurve(
+            to: endUpper,
+            control1: CGPoint(x: start.x + horizontalDistance * 0.33, y: upperControlY),
+            control2: CGPoint(x: start.x + horizontalDistance * 0.67, y: upperControlY)
+        )
+        path.addLine(to: endLower)
+        path.addCurve(
+            to: startLower,
+            control1: CGPoint(x: start.x + horizontalDistance * 0.67, y: lowerControlY),
+            control2: CGPoint(x: start.x + horizontalDistance * 0.33, y: lowerControlY)
+        )
+        path.closeSubpath()
+        return path
+    }
+}
+
 enum NotationStaffNoteSymbol: Equatable {
     case whole
     case half(NotationStemDirection)
     case quarter(NotationStemDirection)
     case eighth(NotationStemDirection)
     case sixteenth(NotationStemDirection)
+    case thirtySecond(NotationStemDirection)
 
     init?(duration: NotationDuration, stemDirection: NotationStemDirection = .up) {
         switch duration.denominator {
@@ -168,6 +211,8 @@ enum NotationStaffNoteSymbol: Equatable {
             self = .eighth(stemDirection)
         case 16:
             self = .sixteenth(stemDirection)
+        case 32:
+            self = .thirtySecond(stemDirection)
         default:
             return nil
         }
@@ -185,6 +230,8 @@ enum NotationStaffNoteSymbol: Equatable {
             return Self.directionalCodepoint(up: 0xE1D7, direction: direction)
         case .sixteenth(let direction):
             return Self.directionalCodepoint(up: 0xE1D9, direction: direction)
+        case .thirtySecond(let direction):
+            return Self.directionalCodepoint(up: 0xE1DB, direction: direction)
         }
     }
 
@@ -194,7 +241,7 @@ enum NotationStaffNoteSymbol: Equatable {
             return nil
         case .half:
             return 0xE0A3
-        case .quarter, .eighth, .sixteenth:
+        case .quarter, .eighth, .sixteenth, .thirtySecond:
             return 0xE0A4
         }
     }

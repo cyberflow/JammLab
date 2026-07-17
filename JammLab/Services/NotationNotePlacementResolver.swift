@@ -110,7 +110,8 @@ enum NotationNotePlacementResolver {
             in: measure,
             geometry: geometry,
             x: point.x,
-            requiredDurationInQuarterNotes: selectedLength
+            requiredDurationInQuarterNotes: selectedLength,
+            allowsOverflowToNextMeasure: true
         ) else { return nil }
 
         let pitch = NotationPitchMapper.pitch(
@@ -311,13 +312,19 @@ enum NotationNotePlacementResolver {
         in measure: ScoreMeasure,
         geometry: NotationMeasureCanvasGeometry,
         x: CGFloat,
-        requiredDurationInQuarterNotes requiredDuration: Double
+        requiredDurationInQuarterNotes requiredDuration: Double,
+        allowsOverflowToNextMeasure: Bool = false
     ) -> NotationMeasureItem? {
+        let requiredDurationForRest: (NotationMeasureItem) -> Double = { rest in
+            guard allowsOverflowToNextMeasure else { return requiredDuration }
+            let measureLength = NotationMeasureTiming.quarterLength(for: measure.attributes.timeSignature)
+            return min(requiredDuration, max(0, measureLength - rest.offsetInQuarterNotes))
+        }
         if let fullMeasureWholeRest = singleFullMeasureWholeRest(in: measure),
            restSpan(
                in: measure,
                from: fullMeasureWholeRest,
-               requiredDurationInQuarterNotes: requiredDuration
+               requiredDurationInQuarterNotes: requiredDurationForRest(fullMeasureWholeRest)
            ) != nil {
             return fullMeasureWholeRest
         }
@@ -333,7 +340,7 @@ enum NotationNotePlacementResolver {
                     && restSpan(
                         in: measure,
                         from: $0,
-                        requiredDurationInQuarterNotes: requiredDuration
+                        requiredDurationInQuarterNotes: requiredDurationForRest($0)
                     ) != nil
             }
         guard !eligibleRests.isEmpty else { return nil }

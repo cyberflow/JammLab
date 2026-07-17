@@ -8,6 +8,7 @@ development artifact builds use `vMAJOR.MINOR.PATCH-dev.N`.
 
 ## Unreleased
 
+- Added tied-note entry with the `T` shortcut, Leland-based controls, automatic note splitting and tie chains across measure boundaries, selected-note continuation outside note-entry mode, blocked-state tooltips without system alert sounds, score rendering, project persistence, and MusicXML export.
 - Added persistent augmentation-dot entry and editing for Notation notes and rests, with Leland glyphs, keyboard shortcuts, and MusicXML export.
 - Added sixteenth-note and rest entry with `3`/`Num3` duration shortcuts, plus downward stems for notes above the middle staff line.
 - Added Notation note-entry mode for placing pitched notes with Leland-rendered note glyphs, note selection preview, cross-rest insertion, rest recomposition, and MusicXML export.

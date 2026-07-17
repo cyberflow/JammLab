@@ -70,8 +70,12 @@ final class AppHotkeyMonitorNSView: NSView {
             guard let self else { return event }
             guard let hotkey = self.hotkey(for: event) else { return event }
 
-            return self.onHotkey?(hotkey) == true ? nil : event
+            return self.eventAfterHandling(event, hotkey: hotkey)
         }
+    }
+
+    func eventAfterHandling(_ event: NSEvent, hotkey: AppHotkey) -> NSEvent? {
+        onHotkey?(hotkey) == true ? nil : event
     }
 
     func removeMonitor() {

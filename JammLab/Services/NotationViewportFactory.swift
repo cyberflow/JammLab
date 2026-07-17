@@ -120,7 +120,8 @@ struct NotationViewportFactory {
             keySignature: content.keySignature,
             measures: content.measures,
             anchorTime: Self.viewportAnchorTime(rawAnchorTime, in: activeMeasure),
-            activeMeasureNumber: activeMeasure.number
+            activeMeasureNumber: activeMeasure.number,
+            tieConnections: NotationTieResolver.connections(in: content.measures)
         )
     }
 
@@ -197,6 +198,7 @@ struct NotationViewportFactory {
         }
 
         let activeMeasure = content.measures[activeMeasureIndex]
+        let scoreTieConnections = NotationTieResolver.connections(in: content.measures)
         return NotationViewportState(
             availability: .ready,
             clef: firstVisibleMeasure.attributes.clef,
@@ -206,7 +208,11 @@ struct NotationViewportFactory {
             visibleMeasureCount: safeVisibleMeasureCount,
             visibleMeasures: visibleMeasures,
             anchorTime: Self.viewportAnchorTime(rawAnchorTime, in: activeMeasure),
-            activeMeasureNumber: activeMeasure.number
+            activeMeasureNumber: activeMeasure.number,
+            tieConnections: NotationTieResolver.connections(
+                scoreTieConnections,
+                visibleIn: visibleMeasures
+            )
         )
     }
 

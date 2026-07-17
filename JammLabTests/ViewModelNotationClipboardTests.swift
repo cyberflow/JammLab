@@ -81,6 +81,7 @@ final class ViewModelNotationClipboardTests: XCTestCase {
         ])
         XCTAssertEqual(copiedMeasure.notationItems, [
             NotationMeasureClipboardNotationItem(
+                sourceItemID: "note",
                 kind: .note,
                 pitch: pitch,
                 offsetInQuarterNotes: 0,
@@ -88,6 +89,7 @@ final class ViewModelNotationClipboardTests: XCTestCase {
                 displayDuration: NotationDuration(denominator: 4)
             ),
             NotationMeasureClipboardNotationItem(
+                sourceItemID: "rest",
                 offsetInQuarterNotes: 1,
                 durationInQuarterNotes: 2,
                 displayDuration: NotationDuration(denominator: 2)

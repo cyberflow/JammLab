@@ -84,6 +84,7 @@ extension AudioPlayerViewModel {
         harmonySymbols = ProjectStateNormalizer.normalizedHarmonySymbols(state.harmonySymbols, duration: duration)
         notationItems = ProjectStateNormalizer.normalizedNotationItems(state.notationItems, duration: duration)
         notationPartClefs = NotationPartClefOverrides.normalized(state.notationPartClefs)
+        sanitizeNotationTieRelationships()
         stemNotationTrackCollapsed = state.stemNotationTrackCollapsed
         visibleNotationPartIDs = normalizedVisibleNotationPartIDs(from: state.visibleNotationPartIDs)
         projectKeySelection = state.projectKeySelection

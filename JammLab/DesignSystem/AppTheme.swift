@@ -202,6 +202,11 @@ enum AppTheme {
         static let notationAugmentationDotNoteOffsetX: CGFloat = -3
         static let notationAugmentationDotGlyphOffsetX: CGFloat = 7
         static let notationAugmentationDotGlyphOffsetY: CGFloat = 5
+        static let notationTieNoteOffsetX: CGFloat = 6
+        static let notationTieArcOffsetY: CGFloat = 5
+        static let notationTieArcHeight: CGFloat = 3
+        static let notationTieEndpointThickness: CGFloat = 0.6
+        static let notationTieMidpointThickness: CGFloat = 1.4
         static let transportBarMinHeight: CGFloat = 70
         static let abletonNumberFieldHeight: CGFloat = 24
         static let jammValueSliderWidth: CGFloat = 70
@@ -311,6 +316,11 @@ enum AppTheme {
         static let notationSlashLineWidth: CGFloat = 3
         static let notationSlashMinimumBeatSpacing: CGFloat = 16
         static let notationItemAnchorInset: CGFloat = AppTheme.Spacing.lg
+        static let notationTieNoteheadInset: CGFloat = 5
+        static let notationTieVerticalOffset: CGFloat = 5
+        static let notationTieArcHeight: CGFloat = 5
+        static let notationTieEndpointThickness: CGFloat = 0.7
+        static let notationTieMidpointThickness: CGFloat = 1.7
         static let notationHarmonyAnchorLeadingOffset: CGFloat = AppTheme.Spacing.md
         static let notationHarmonySymbolWidth: CGFloat = 84
         static let notationHarmonyEditorWidth: CGFloat = 64
