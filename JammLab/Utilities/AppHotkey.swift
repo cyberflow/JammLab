@@ -17,17 +17,24 @@ enum AppHotkey: CaseIterable, Hashable {
     case pasteMeasure
     case clearNotationMeasureSelection
     case editHarmonyAtSelectedNotationItem
+    case toggleNotationNoteEntryMode
+    case moveSelectedNotationNotePitchUp
+    case moveSelectedNotationNotePitchDown
+    case setNotationDurationSixteenth
     case setNotationDurationEighth
     case setNotationDurationQuarter
     case setNotationDurationHalf
     case setNotationDurationWhole
+    case toggleNotationDurationDot
+    case addTiedNotationNote
 
-    static let notationDurationHotkeys: Set<AppHotkey> = [
-        .setNotationDurationEighth,
-        .setNotationDurationQuarter,
-        .setNotationDurationHalf,
-        .setNotationDurationWhole
-    ]
+    static let notationDurationHotkeys = Set(allCases.filter {
+        $0.notationDurationDenominator != nil
+    })
+
+    static let notationDurationEditingHotkeys = notationDurationHotkeys.union([
+        .toggleNotationDurationDot
+    ])
 
     // Keep this enum as the single source of truth for keyboard shortcuts.
     // When adding a new handled hotkey, add a case here with its help metadata
@@ -73,10 +80,18 @@ enum AppHotkey: CaseIterable, Hashable {
             self = .setLoopEnd
         case 46:
             self = .addNote
+        case 45:
+            self = .toggleNotationNoteEntryMode
+        case 126:
+            self = .moveSelectedNotationNotePitchUp
+        case 125:
+            self = .moveSelectedNotationNotePitchDown
         case 11:
             self = .setBeatOne
         case 8:
             self = .toggleClick
+        case 20, 85:
+            self = .setNotationDurationSixteenth
         case 21, 86:
             self = .setNotationDurationEighth
         case 23, 87:
@@ -85,6 +100,10 @@ enum AppHotkey: CaseIterable, Hashable {
             self = .setNotationDurationHalf
         case 26, 89:
             self = .setNotationDurationWhole
+        case 47, 65:
+            self = .toggleNotationDurationDot
+        case 17:
+            self = .addTiedNotationNote
         case 53:
             self = .clearNotationMeasureSelection
         default:
@@ -124,6 +143,14 @@ enum AppHotkey: CaseIterable, Hashable {
             return "Esc"
         case .editHarmonyAtSelectedNotationItem:
             return "Cmd+K"
+        case .toggleNotationNoteEntryMode:
+            return "N"
+        case .moveSelectedNotationNotePitchUp:
+            return "Arrow Up"
+        case .moveSelectedNotationNotePitchDown:
+            return "Arrow Down"
+        case .setNotationDurationSixteenth:
+            return "3"
         case .setNotationDurationEighth:
             return "4"
         case .setNotationDurationQuarter:
@@ -132,6 +159,10 @@ enum AppHotkey: CaseIterable, Hashable {
             return "6"
         case .setNotationDurationWhole:
             return "7"
+        case .toggleNotationDurationDot:
+            return ".; Num.; Num,"
+        case .addTiedNotationNote:
+            return "T"
         }
     }
 
@@ -167,6 +198,14 @@ enum AppHotkey: CaseIterable, Hashable {
             return "Clear Measure Selection"
         case .editHarmonyAtSelectedNotationItem:
             return "Edit Harmony"
+        case .toggleNotationNoteEntryMode:
+            return "Notation Note Entry"
+        case .moveSelectedNotationNotePitchUp:
+            return "Move Notation Note Up"
+        case .moveSelectedNotationNotePitchDown:
+            return "Move Notation Note Down"
+        case .setNotationDurationSixteenth:
+            return "Set Sixteenth Note Duration"
         case .setNotationDurationEighth:
             return "Set Eighth Note Duration"
         case .setNotationDurationQuarter:
@@ -175,6 +214,10 @@ enum AppHotkey: CaseIterable, Hashable {
             return "Set Half Note Duration"
         case .setNotationDurationWhole:
             return "Set Whole Note Duration"
+        case .toggleNotationDurationDot:
+            return "Augmentation dot"
+        case .addTiedNotationNote:
+            return "Tie"
         }
     }
 
@@ -210,6 +253,14 @@ enum AppHotkey: CaseIterable, Hashable {
             return "Clear the selected notation measure or measure range."
         case .editHarmonyAtSelectedNotationItem:
             return "Open harmony entry for the selected notation item."
+        case .toggleNotationNoteEntryMode:
+            return "Enable or disable adding notes to Notation."
+        case .moveSelectedNotationNotePitchUp:
+            return "Move the selected notation note to the next higher staff position."
+        case .moveSelectedNotationNotePitchDown:
+            return "Move the selected notation note to the next lower staff position."
+        case .setNotationDurationSixteenth:
+            return "Set notation duration to sixteenth notes for the selected notation item."
         case .setNotationDurationEighth:
             return "Set notation duration to eighth notes for the selected notation item."
         case .setNotationDurationQuarter:
@@ -218,11 +269,17 @@ enum AppHotkey: CaseIterable, Hashable {
             return "Set notation duration to half notes for the selected notation item."
         case .setNotationDurationWhole:
             return "Set notation duration to whole notes for the selected notation item."
+        case .toggleNotationDurationDot:
+            return "Toggle duration dot"
+        case .addTiedNotationNote:
+            return "Add tied note"
         }
     }
 
     var notationDurationDenominator: Int? {
         switch self {
+        case .setNotationDurationSixteenth:
+            return 16
         case .setNotationDurationEighth:
             return 8
         case .setNotationDurationQuarter:
@@ -238,8 +295,7 @@ enum AppHotkey: CaseIterable, Hashable {
 
     static func notationDurationShortcutText(for denominator: Int) -> String? {
         guard let hotkey = allCases.first(where: {
-            notationDurationHotkeys.contains($0)
-                && $0.notationDurationDenominator == denominator
+            $0.notationDurationDenominator == denominator
         }) else { return nil }
         return "\(hotkey.key); Num\(hotkey.key)"
     }

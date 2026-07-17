@@ -162,4 +162,75 @@ final class StemWorkflowLogicTests: XCTestCase {
         XCTAssertGreaterThan(sixStemCollapsedHeight, collapsedHeight)
     }
 
+    func testTimelineHeightHelpersIncludeExpandedStemNotationRowsOnce() {
+        let rowCount = StemSeparationMethod.fourStem.stemTypes.count
+        let baseStemHeight = AppTheme.Timeline.stemTracksHeight(rowCount: rowCount)
+        let oneExpandedHeight = AppTheme.Timeline.stemTracksHeight(
+            rowCount: rowCount,
+            expandedStemNotationCount: 1
+        )
+        let allExpandedHeight = AppTheme.Timeline.stemTracksHeight(
+            rowCount: rowCount,
+            expandedStemNotationCount: rowCount
+        )
+        let clampedExpandedHeight = AppTheme.Timeline.stemTracksHeight(
+            rowCount: rowCount,
+            expandedStemNotationCount: rowCount + 3
+        )
+        let notationRowExpansion = AppTheme.Timeline.trackSpacing
+            + AppTheme.Timeline.notationTrackHeight
+
+        XCTAssertEqual(
+            AppTheme.Timeline.stemRowHeight(isNotationExpanded: false),
+            AppTheme.Timeline.stemTrackHeight
+        )
+        XCTAssertEqual(
+            AppTheme.Timeline.stemRowHeight(isNotationExpanded: true),
+            AppTheme.Timeline.stemTrackHeight + notationRowExpansion
+        )
+        XCTAssertEqual(oneExpandedHeight - baseStemHeight, notationRowExpansion)
+        XCTAssertEqual(
+            allExpandedHeight - baseStemHeight,
+            CGFloat(rowCount) * notationRowExpansion
+        )
+        XCTAssertEqual(clampedExpandedHeight, allExpandedHeight)
+        XCTAssertEqual(
+            AppTheme.Timeline.tracksMinimumHeight(
+                stemRowCount: rowCount,
+                isNotationTrackCollapsed: true,
+                expandedStemNotationCount: 1
+            ) - AppTheme.Timeline.tracksMinimumHeight(
+                stemRowCount: rowCount,
+                isNotationTrackCollapsed: true
+            ),
+            notationRowExpansion
+        )
+        XCTAssertEqual(
+            AppTheme.Timeline.timelineBlockMinimumHeight(
+                stemRowCount: rowCount,
+                isNotationTrackCollapsed: true,
+                expandedStemNotationCount: 1
+            ),
+            AppTheme.Timeline.tracksMinimumHeight(
+                stemRowCount: rowCount,
+                isNotationTrackCollapsed: true,
+                expandedStemNotationCount: 1
+            )
+                + AppTheme.Timeline.viewportFooterGap
+                + AppTheme.Timeline.viewportControlBarHeight
+        )
+        XCTAssertEqual(
+            AppTheme.Timeline.minimumContentHeight(
+                stemRowCount: rowCount,
+                isNotationTrackCollapsed: true,
+                expandedStemNotationCount: 1
+            ),
+            AppTheme.Timeline.timelineBlockMinimumHeight(
+                stemRowCount: rowCount,
+                isNotationTrackCollapsed: true,
+                expandedStemNotationCount: 1
+            )
+        )
+    }
+
 }

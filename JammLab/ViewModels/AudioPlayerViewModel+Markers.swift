@@ -9,19 +9,6 @@ extension AudioPlayerViewModel {
         addNote(at: currentTime)
     }
 
-    func addTempoTimeSignatureMarkerAtCurrentTime(
-        bpm: Double,
-        beatsPerBar: Int,
-        setsNewFirstBeat: Bool = false
-    ) {
-        addTempoTimeSignatureMarker(
-            at: currentTime,
-            bpm: bpm,
-            beatsPerBar: beatsPerBar,
-            setsNewFirstBeat: setsNewFirstBeat
-        )
-    }
-
     func addNote(at time: TimeInterval) {
         performUndoableEdit("Add Marker") {
             guard duration > 0 else { return }
@@ -60,7 +47,7 @@ extension AudioPlayerViewModel {
             notes.append(note)
             notes.sort { $0.time < $1.time }
             clearNotationMeasureSelection()
-            applyTempoMapToPlaybackEngine()
+            applyNotationAffectingTempoMapChange()
         }
     }
 
@@ -189,7 +176,7 @@ extension AudioPlayerViewModel {
             ) else {
                 notes.remove(at: index)
                 clearNotationMeasureSelection()
-                applyTempoMapToPlaybackEngine()
+                applyNotationAffectingTempoMapChange()
                 return
             }
 
@@ -197,7 +184,7 @@ extension AudioPlayerViewModel {
             notes[index].title = payload.title
             notes.sort { $0.time < $1.time }
             clearNotationMeasureSelection()
-            applyTempoMapToPlaybackEngine()
+            applyNotationAffectingTempoMapChange()
         }
     }
 
@@ -228,7 +215,7 @@ extension AudioPlayerViewModel {
             notes.sort { $0.time < $1.time }
             if notes.contains(where: { $0.id == id && $0.isTempoTimeSignatureMarker }) {
                 clearNotationMeasureSelection()
-                applyTempoMapToPlaybackEngine()
+                applyNotationAffectingTempoMapChange()
             }
         }
     }
@@ -249,8 +236,10 @@ extension AudioPlayerViewModel {
 
             if deletesTempoMapMarker {
                 clearNotationMeasureSelection()
+                applyNotationAffectingTempoMapChange()
+            } else {
+                applyTempoMapToPlaybackEngine()
             }
-            applyTempoMapToPlaybackEngine()
         }
     }
 

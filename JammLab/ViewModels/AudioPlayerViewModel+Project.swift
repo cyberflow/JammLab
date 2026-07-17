@@ -115,6 +115,9 @@ extension AudioPlayerViewModel {
         notes = []
         harmonySymbols = []
         notationItems = []
+        notationPartClefs = [:]
+        stemNotationTrackCollapsed = [:]
+        visibleNotationPartIDs = [.main]
         projectKeySelection = nil
         clearTransientEditingState()
         loopRegion = .empty
@@ -173,6 +176,9 @@ extension AudioPlayerViewModel {
         notes = []
         harmonySymbols = []
         notationItems = []
+        notationPartClefs = [:]
+        stemNotationTrackCollapsed = [:]
+        visibleNotationPartIDs = [.main]
         projectKeySelection = nil
         clearTransientEditingState()
         loopRegion = LoopRegion(start: 0, end: file.duration).clamped(to: file.duration)
@@ -251,6 +257,8 @@ extension AudioPlayerViewModel {
                 project.notationItems,
                 duration: resolvedProjectDuration
             )
+            notationPartClefs = NotationPartClefOverrides.normalized(project.notationPartClefs)
+            sanitizeNotationTieRelationships()
             projectKeySelection = project.projectKeySelection
             clearTransientEditingState()
             loopRegion = ProjectStateNormalizer.normalizedLoopRegion(
@@ -272,6 +280,8 @@ extension AudioPlayerViewModel {
             setPlaybackMarkerExactly(to: restoredPlaybackMarkerTime)
             restoreVideoWindowOpenState(file.mediaKind == .video && project.isVideoWindowOpen == true)
             isNotationTrackCollapsed = project.isNotationTrackCollapsed ?? true
+            stemNotationTrackCollapsed = project.stemNotationTrackCollapsed
+            visibleNotationPartIDs = normalizedVisibleNotationPartIDs(from: project.visibleNotationPartIDs)
             isImporting = false
             clearUndoHistory()
             markProjectClean()
@@ -304,6 +314,8 @@ extension AudioPlayerViewModel {
         clearNotationMeasureSelectionAndClipboard()
         pendingHarmonyEditorRequest = nil
         notationDurationDenominator = NotationDuration.defaultDenominator
+        notationEntryDurationIsDotted = false
+        notationEntryMode = nil
         activeLoopRegionID = nil
     }
 
@@ -386,6 +398,7 @@ extension AudioPlayerViewModel {
             notes: notes,
             harmonySymbols: harmonySymbols,
             notationItems: notationItems,
+            notationPartClefs: NotationPartClefOverrides.normalized(notationPartClefs),
             projectKeySelection: projectKeySelection,
             loopRegion: loopRegion,
             loopMinimumLength: activeRangeMinimumLength,
@@ -403,7 +416,9 @@ extension AudioPlayerViewModel {
             timelineVisibleRange: userTimelineVisibleRange,
             stemState: makeStemProjectState(),
             isVideoWindowOpen: isVideoWindowOpen,
-            isNotationTrackCollapsed: isNotationTrackCollapsed
+            isNotationTrackCollapsed: isNotationTrackCollapsed,
+            stemNotationTrackCollapsed: stemNotationTrackCollapsed,
+            visibleNotationPartIDs: normalizedVisibleNotationPartIDs()
         )
     }
 

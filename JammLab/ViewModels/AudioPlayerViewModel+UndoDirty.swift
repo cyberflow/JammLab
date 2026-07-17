@@ -6,6 +6,9 @@ extension AudioPlayerViewModel {
             notes: notes,
             harmonySymbols: harmonySymbols,
             notationItems: notationItems,
+            notationPartClefs: NotationPartClefOverrides.normalized(notationPartClefs),
+            stemNotationTrackCollapsed: stemNotationTrackCollapsed,
+            visibleNotationPartIDs: normalizedVisibleNotationPartIDs(),
             projectKeySelection: projectKeySelection,
             selectedRegionID: selectedRegionID,
             selectedHarmonySymbolID: selectedHarmonySymbolID,
@@ -34,6 +37,9 @@ extension AudioPlayerViewModel {
             notes: ProjectStateNormalizer.normalizedNotes(notes, duration: duration),
             harmonySymbols: ProjectStateNormalizer.normalizedHarmonySymbols(harmonySymbols, duration: duration),
             notationItems: ProjectStateNormalizer.normalizedNotationItems(notationItems, duration: duration),
+            notationPartClefs: NotationPartClefOverrides.normalized(notationPartClefs),
+            stemNotationTrackCollapsed: stemNotationTrackCollapsed,
+            visibleNotationPartIDs: normalizedVisibleNotationPartIDs(),
             projectKeySelection: projectKeySelection,
             loopRegion: clampedLoop,
             isLooping: isLooping,
@@ -77,6 +83,10 @@ extension AudioPlayerViewModel {
         notes = ProjectStateNormalizer.normalizedNotes(state.notes, duration: duration)
         harmonySymbols = ProjectStateNormalizer.normalizedHarmonySymbols(state.harmonySymbols, duration: duration)
         notationItems = ProjectStateNormalizer.normalizedNotationItems(state.notationItems, duration: duration)
+        notationPartClefs = NotationPartClefOverrides.normalized(state.notationPartClefs)
+        sanitizeNotationTieRelationships()
+        stemNotationTrackCollapsed = state.stemNotationTrackCollapsed
+        visibleNotationPartIDs = normalizedVisibleNotationPartIDs(from: state.visibleNotationPartIDs)
         projectKeySelection = state.projectKeySelection
         selectedRegionID = availableRegionID(state.selectedRegionID)
         selectedHarmonySymbolID = availableHarmonySymbolID(state.selectedHarmonySymbolID)
@@ -128,6 +138,12 @@ extension AudioPlayerViewModel {
     func setNotationTrackCollapsed(_ isCollapsed: Bool) {
         guard isNotationTrackCollapsed != isCollapsed else { return }
         isNotationTrackCollapsed = isCollapsed
+        refreshProjectModifiedState()
+    }
+
+    func setStemNotationTrackCollapsed(_ stemType: StemType, isCollapsed: Bool) {
+        guard stemNotationTrackCollapsed[stemType] != isCollapsed else { return }
+        stemNotationTrackCollapsed[stemType] = isCollapsed
         refreshProjectModifiedState()
     }
 

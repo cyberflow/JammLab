@@ -32,9 +32,14 @@ struct TimelineViewState: Equatable {
     var selectedRegionID: TimecodedNote.ID?
     var beatGrid: BeatGridConfiguration
     var notationViewport: NotationViewportState
+    var stemNotationViewports: [StemType: NotationViewportState]
     var notationDurationDenominator: Int
+    var notationDurationIsDotted: Bool
     var canChangeNotationDuration: Bool
+    var tieCommandStatus: NotationTieCommandStatus
+    var notationEntryMode: NotationEntryMode?
     var isNotationTrackCollapsed: Bool
+    var stemNotationTrackCollapsed: [StemType: Bool]
     var isLoadingPeakform: Bool
     var mainTrackVolume: Float
     var playbackMode: PlaybackMode
@@ -49,8 +54,8 @@ struct TimelineViewActions {
     var locatePlaybackMarkerExactly: (TimeInterval) -> Void
     var addNote: (TimeInterval) -> Void
     var selectHarmony: (HarmonySymbol.ID?) -> Void
-    var selectNotationMeasure: (ScoreMeasure?, Bool) -> Void
-    var selectNotationItem: (NotationItemSelection?) -> Void
+    var selectNotationMeasure: (ScoreMeasure?, Bool, NotationPartID) -> Void
+    var selectNotationItem: (NotationItemSelection?, Bool) -> Void
     var saveHarmony: (HarmonySymbol) -> Void
     var deleteHarmony: (HarmonySymbol.ID) -> Void
     var adjacentHarmonyPlacement: (TimeInterval, HarmonyNavigationDirection) -> HarmonyPlacement?
@@ -71,8 +76,60 @@ struct TimelineViewActions {
     var timelineScroll: (Double, Double, TimeInterval?) -> Void
     var mainTrackVolumeChanged: (Float) -> Void
     var notationTrackCollapsedChanged: (Bool) -> Void
+    var stemNotationTrackCollapsedChanged: (StemType, Bool) -> Void
     var notationDurationChanged: (Int) -> Void
+    var notationDurationDotToggled: () -> Void
+    var notationNoteEntryModeToggled: () -> Void
+    var notationRestEntryModeToggled: () -> Void
+    var addTiedNotationNote: () -> Void
+    var canInsertNotationNote: (NotationNotePlacement) -> Bool
+    var insertNotationNote: (NotationNotePlacement) -> Bool
+    var insertNotationRest: (NotationRestPlacement) -> Bool
+    var changeSelectedNotePitch: (NotationPitch, Bool) -> Bool
+    var changeNotationClef: (NotationPartID, Clef) -> Void
+    var auditionNotePitch: (NotationPitch) -> Void
+    var deleteSelectedNotationNote: () -> Bool
     var showNotationWindow: () -> Void
+}
+
+extension TimelineViewActions {
+    func notationTrackActions(allowsHarmony: Bool) -> NotationTrackActions {
+        let selectHarmonyAction: (HarmonySymbol.ID?) -> Void = allowsHarmony
+            ? selectHarmony
+            : { _ in }
+        let saveHarmonyAction: (HarmonySymbol) -> Void = allowsHarmony
+            ? saveHarmony
+            : { _ in }
+        let deleteHarmonyAction: (HarmonySymbol.ID) -> Void = allowsHarmony
+            ? deleteHarmony
+            : { _ in }
+        let adjacentHarmonyAction: (TimeInterval, HarmonyNavigationDirection) -> HarmonyPlacement? = allowsHarmony
+            ? adjacentHarmonyPlacement
+            : { _, _ in nil }
+
+        return NotationTrackActions(
+            selectHarmony: selectHarmonyAction,
+            selectMeasure: selectNotationMeasure,
+            selectItem: selectNotationItem,
+            canInsertNotationNote: canInsertNotationNote,
+            insertNotationNote: insertNotationNote,
+            insertNotationRest: insertNotationRest,
+            changeSelectedNotePitch: changeSelectedNotePitch,
+            changeClef: changeNotationClef,
+            auditionNotePitch: auditionNotePitch,
+            deleteSelectedNotationNote: deleteSelectedNotationNote,
+            locatePlaybackMarkerExactly: locatePlaybackMarkerExactly,
+            saveHarmony: saveHarmonyAction,
+            deleteHarmony: deleteHarmonyAction,
+            adjacentHarmonyPlacement: adjacentHarmonyAction
+        )
+    }
+}
+
+enum NotationTrackTogglePresentation {
+    static func systemName(isCollapsed: Bool) -> String {
+        isCollapsed ? "music.note.list" : "music.note"
+    }
 }
 
 struct StemTrackActions {
@@ -117,6 +174,20 @@ struct WaveformTimelineView: View {
             duration: state.duration,
             viewport: viewport,
             trackControlWidth: trackControlWidth,
+            selectedMeasures: state.selectedNotationMeasures,
+            selectedItem: state.selectedNotationItem,
+            selectedDuration: NotationDuration(
+                denominator: state.notationDurationDenominator,
+                isDotted: state.notationDurationIsDotted
+            ),
+            entryMode: state.notationEntryMode,
+            canChangeNotationDuration: state.canChangeNotationDuration,
+            tieCommandStatus: state.tieCommandStatus,
+            notationDurationDenominator: state.notationDurationDenominator,
+            notationDurationIsDotted: state.notationDurationIsDotted,
+            notationViewports: state.stemNotationViewports,
+            notationCollapsed: state.stemNotationTrackCollapsed,
+            notationActions: actions,
             actions: stemActions
         )
         .frame(height: stemTracksHeight, alignment: .top)
@@ -127,13 +198,23 @@ struct WaveformTimelineView: View {
     }
 
     private var stemTracksHeight: CGFloat {
-        AppTheme.Timeline.stemTracksHeight(rowCount: visibleStemRowCount)
+        AppTheme.Timeline.stemTracksHeight(
+            rowCount: visibleStemRowCount,
+            expandedStemNotationCount: expandedStemNotationRowCount
+        )
+    }
+
+    private var expandedStemNotationRowCount: Int {
+        state.stemFiles.filter {
+            state.stemNotationTrackCollapsed[$0.type] == false
+        }.count
     }
 
     private var tracksHeight: CGFloat {
         AppTheme.Timeline.tracksMinimumHeight(
             stemRowCount: visibleStemRowCount,
-            isNotationTrackCollapsed: state.isNotationTrackCollapsed
+            isNotationTrackCollapsed: state.isNotationTrackCollapsed,
+            expandedStemNotationCount: expandedStemNotationRowCount
         )
     }
 
@@ -147,6 +228,14 @@ struct WaveformTimelineView: View {
         AppTheme.Timeline.notationTrackCurrentHeight(
             isCollapsed: state.isNotationTrackCollapsed
         )
+    }
+
+    private var isNotationNoteEntryModeEnabled: Bool {
+        state.notationEntryMode == .note
+    }
+
+    private var isNotationRestEntryModeEnabled: Bool {
+        state.notationEntryMode == .rest
     }
 
     private var upperTrackStack: some View {
@@ -265,20 +354,18 @@ struct WaveformTimelineView: View {
         if !state.isNotationTrackCollapsed {
             NotationTrackView(
                 state: state.notationViewport,
+                partID: .main,
                 playbackDisplayState: state.playbackDisplayState,
                 selectedHarmonySymbolID: state.selectedHarmonySymbolID,
                 selectedMeasures: state.selectedNotationMeasures,
                 selectedItem: state.selectedNotationItem,
+                selectedDuration: NotationDuration(
+                    denominator: state.notationDurationDenominator,
+                    isDotted: state.notationDurationIsDotted
+                ),
+                entryMode: state.notationEntryMode,
                 pendingEditorRequest: state.pendingHarmonyEditorRequest,
-                actions: NotationTrackActions(
-                    selectHarmony: actions.selectHarmony,
-                    selectMeasure: actions.selectNotationMeasure,
-                    selectItem: actions.selectNotationItem,
-                    locatePlaybackMarkerExactly: actions.locatePlaybackMarkerExactly,
-                    saveHarmony: actions.saveHarmony,
-                    deleteHarmony: actions.deleteHarmony,
-                    adjacentHarmonyPlacement: actions.adjacentHarmonyPlacement
-                )
+                actions: actions.notationTrackActions(allowsHarmony: true)
             )
             .frame(height: AppTheme.Timeline.notationTrackHeight)
             .overlay {
@@ -309,6 +396,41 @@ struct WaveformTimelineView: View {
                     ),
                     isEnabled: state.canChangeNotationDuration
                 )
+
+                HStack(spacing: AppTheme.Spacing.xs) {
+                    NotationEntryModeButton(
+                        mode: .note,
+                        isActive: isNotationNoteEntryModeEnabled
+                    ) {
+                        actions.notationNoteEntryModeToggled()
+                    }
+                    .disabled(state.duration <= 0)
+                    .help("Add notes to Notation (N)")
+                    .accessibilityLabel("Notation Note Entry")
+                    .accessibilityValue(isNotationNoteEntryModeEnabled ? "Enabled" : "Disabled")
+
+                    NotationEntryModeButton(
+                        mode: .rest,
+                        isActive: isNotationRestEntryModeEnabled
+                    ) {
+                        actions.notationRestEntryModeToggled()
+                    }
+                    .disabled(state.duration <= 0)
+                    .help("Add rests to Notation")
+                    .accessibilityLabel("Notation Rest Entry")
+                    .accessibilityValue(isNotationRestEntryModeEnabled ? "Enabled" : "Disabled")
+
+                    NotationAugmentationDotButton(
+                        isActive: state.notationDurationIsDotted,
+                        action: actions.notationDurationDotToggled
+                    )
+                    .disabled(!state.canChangeNotationDuration)
+
+                    NotationTieButton(
+                        status: state.tieCommandStatus,
+                        action: actions.addTiedNotationNote
+                    )
+                }
             }
         }
         .padding(.horizontal, AppTheme.Spacing.md)
@@ -325,7 +447,9 @@ struct WaveformTimelineView: View {
             Spacer(minLength: AppTheme.Spacing.sm)
 
             TimelineIconButton(
-                systemName: state.isNotationTrackCollapsed ? "plus" : "minus",
+                systemName: NotationTrackTogglePresentation.systemName(
+                    isCollapsed: state.isNotationTrackCollapsed
+                ),
                 helpText: notationTrackToggleHelpText,
                 accessibilityLabel: notationTrackToggleHelpText,
                 accessibilityValue: state.isNotationTrackCollapsed ? "Collapsed" : "Expanded"
@@ -445,6 +569,17 @@ private struct StemTracksSection: View {
     let duration: TimeInterval
     let viewport: TimelineViewport
     let trackControlWidth: CGFloat
+    let selectedMeasures: [NotationMeasureSelection]
+    let selectedItem: NotationItemSelection?
+    let selectedDuration: NotationDuration
+    let entryMode: NotationEntryMode?
+    let canChangeNotationDuration: Bool
+    let tieCommandStatus: NotationTieCommandStatus
+    let notationDurationDenominator: Int
+    let notationDurationIsDotted: Bool
+    let notationViewports: [StemType: NotationViewportState]
+    let notationCollapsed: [StemType: Bool]
+    let notationActions: TimelineViewActions
     let actions: StemTrackActions
     @Environment(\.appColors) private var appColors
 
@@ -465,23 +600,34 @@ private struct StemTracksSection: View {
         let isRowEnabled = item.isAvailable && areStemTracksActive
         let isLaneActive = isRowEnabled && mixState.isAudible(type)
 
-        return HStack(spacing: AppTheme.Spacing.md) {
-            controls(type: type, item: item)
-                .frame(width: trackControlWidth)
-                .frame(height: AppTheme.Timeline.stemTrackHeight)
+        return VStack(spacing: AppTheme.Timeline.trackSpacing) {
+            HStack(spacing: AppTheme.Spacing.md) {
+                controls(type: type, item: item)
+                    .frame(width: trackControlWidth)
+                    .frame(height: AppTheme.Timeline.stemTrackHeight)
 
-            StemPeakformLaneView(
-                peakformData: stemPeakforms[type],
-                duration: duration,
-                viewport: viewport,
-                isLoading: isLoadingStemPeakforms,
-                isAvailable: item.isAvailable,
-                isActive: isLaneActive
-            )
+                StemPeakformLaneView(
+                    peakformData: stemPeakforms[type],
+                    duration: duration,
+                    viewport: viewport,
+                    isLoading: isLoadingStemPeakforms,
+                    isAvailable: item.isAvailable,
+                    isActive: isLaneActive
+                )
+                .frame(height: AppTheme.Timeline.stemTrackHeight)
+                .opacity(isRowEnabled ? 1 : 0.45)
+            }
             .frame(height: AppTheme.Timeline.stemTrackHeight)
-            .opacity(isRowEnabled ? 1 : 0.45)
+
+            if item.isAvailable && !isNotationCollapsed(type) {
+                stemNotationRow(type)
+            }
         }
-        .frame(height: AppTheme.Timeline.stemTrackHeight)
+        .frame(
+            height: AppTheme.Timeline.stemRowHeight(
+                isNotationExpanded: item.isAvailable && !isNotationCollapsed(type)
+            )
+        )
         .controlSize(.small)
     }
 
@@ -502,17 +648,31 @@ private struct StemTracksSection: View {
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)
 
-                AppLetterToggleButton(
-                    title: "M",
-                    isActive: item.isMuted,
-                    activeFillColor: appColors.statusButtonCriticalFill,
-                    inactiveTextColor: appColors.statusButtonCriticalFill
-                ) {
-                    actions.muteToggled(type)
+                HStack(spacing: AppTheme.Spacing.md) {
+                    AppLetterToggleButton(
+                        title: "M",
+                        isActive: item.isMuted,
+                        activeFillColor: appColors.statusButtonCriticalFill,
+                        inactiveTextColor: appColors.statusButtonCriticalFill
+                    ) {
+                        actions.muteToggled(type)
+                    }
+                    .disabled(!isRowEnabled)
+                    .help(ControlHelpText.muteTrack(type.title))
+                    .accessibilityLabel("Mute \(type.title)")
+
+                    TimelineIconButton(
+                        systemName: NotationTrackTogglePresentation.systemName(
+                            isCollapsed: isNotationCollapsed(type)
+                        ),
+                        helpText: notationToggleHelpText(type),
+                        accessibilityLabel: notationToggleHelpText(type),
+                        accessibilityValue: isNotationCollapsed(type) ? "Collapsed" : "Expanded"
+                    ) {
+                        notationActions.stemNotationTrackCollapsedChanged(type, !isNotationCollapsed(type))
+                    }
+                    .disabled(!item.isAvailable)
                 }
-                .disabled(!isRowEnabled)
-                .help(ControlHelpText.muteTrack(type.title))
-                .accessibilityLabel("Mute \(type.title)")
             }
 
             HStack(spacing: AppTheme.Spacing.md) {
@@ -539,17 +699,27 @@ private struct StemTracksSection: View {
 
                 Spacer(minLength: AppTheme.Spacing.none)
 
-                AppLetterToggleButton(
-                    title: "S",
-                    isActive: item.isSoloed,
-                    activeFillColor: appColors.statusButtonAttentionFill,
-                    inactiveTextColor: appColors.statusButtonAttentionFill
-                ) {
-                    actions.soloToggled(type)
+                HStack(spacing: AppTheme.Spacing.md) {
+                    AppLetterToggleButton(
+                        title: "S",
+                        isActive: item.isSoloed,
+                        activeFillColor: appColors.statusButtonAttentionFill,
+                        inactiveTextColor: appColors.statusButtonAttentionFill
+                    ) {
+                        actions.soloToggled(type)
+                    }
+                    .disabled(!isRowEnabled)
+                    .help(ControlHelpText.soloTrack(type.title))
+                    .accessibilityLabel("Solo \(type.title)")
+
+                    Color.clear
+                        .frame(
+                            width: AppTheme.Timeline.viewportControlButtonSize,
+                            height: AppTheme.Timeline.viewportControlButtonSize
+                        )
+                        .allowsHitTesting(false)
+                        .accessibilityHidden(true)
                 }
-                .disabled(!isRowEnabled)
-                .help(ControlHelpText.soloTrack(type.title))
-                .accessibilityLabel("Solo \(type.title)")
             }
         }
         .padding(.horizontal, AppTheme.Spacing.md)
@@ -558,6 +728,93 @@ private struct StemTracksSection: View {
 
     private var areStemTracksActive: Bool {
         playbackMode == .stems
+    }
+
+    private func stemNotationRow(_ type: StemType) -> some View {
+        HStack(alignment: .top, spacing: AppTheme.Spacing.md) {
+            stemNotationControls(type)
+                .frame(width: trackControlWidth)
+                .frame(height: AppTheme.Timeline.notationTrackHeight, alignment: .topLeading)
+
+            NotationTrackView(
+                state: notationViewports[type] ?? .pending(
+                    visibleMeasureCount: 1,
+                    keySignature: .cMajor
+                ),
+                partID: .stem(type),
+                playbackDisplayState: nil,
+                selectedHarmonySymbolID: nil,
+                selectedMeasures: selectedMeasures,
+                selectedItem: selectedItem,
+                selectedDuration: selectedDuration,
+                entryMode: entryMode,
+                pendingEditorRequest: nil,
+                actions: notationActions.notationTrackActions(allowsHarmony: false)
+            )
+            .frame(height: AppTheme.Timeline.notationTrackHeight)
+        }
+    }
+
+    private func stemNotationControls(_ type: StemType) -> some View {
+        VStack(alignment: .leading, spacing: AppTheme.Spacing.sm) {
+            Text("Notation")
+                .font(AppTheme.Typography.noteTitle)
+                .lineLimit(1)
+                .frame(maxWidth: .infinity, alignment: .leading)
+
+            NotationDurationControl(
+                denominator: Binding(
+                    get: { notationDurationDenominator },
+                    set: { notationActions.notationDurationChanged($0) }
+                ),
+                isEnabled: canChangeNotationDuration
+            )
+
+            HStack(spacing: AppTheme.Spacing.xs) {
+                NotationEntryModeButton(
+                    mode: .note,
+                    isActive: entryMode == .note
+                ) {
+                    notationActions.notationNoteEntryModeToggled()
+                }
+                .disabled(duration <= 0)
+                .help("Add notes to \(type.title) Notation (N)")
+                .accessibilityLabel("\(type.title) Notation Note Entry")
+
+                NotationEntryModeButton(
+                    mode: .rest,
+                    isActive: entryMode == .rest
+                ) {
+                    notationActions.notationRestEntryModeToggled()
+                }
+                .disabled(duration <= 0)
+                .help("Add rests to \(type.title) Notation")
+                .accessibilityLabel("\(type.title) Notation Rest Entry")
+
+                NotationAugmentationDotButton(
+                    isActive: notationDurationIsDotted,
+                    action: notationActions.notationDurationDotToggled
+                )
+                .disabled(!canChangeNotationDuration)
+
+                NotationTieButton(
+                    status: tieCommandStatus,
+                    action: notationActions.addTiedNotationNote
+                )
+            }
+        }
+        .padding(.horizontal, AppTheme.Spacing.md)
+        .padding(.vertical, AppTheme.Spacing.sm)
+    }
+
+    private func isNotationCollapsed(_ type: StemType) -> Bool {
+        notationCollapsed[type] ?? true
+    }
+
+    private func notationToggleHelpText(_ type: StemType) -> String {
+        isNotationCollapsed(type)
+            ? "Expand \(type.title) Notation"
+            : "Collapse \(type.title) Notation"
     }
 }
 

@@ -8,8 +8,22 @@ development artifact builds use `vMAJOR.MINOR.PATCH-dev.N`.
 
 ## Unreleased
 
+- Added tied-note entry with the `T` shortcut, Leland-based controls, automatic note splitting and tie chains across measure boundaries, selected-note continuation outside note-entry mode, blocked-state tooltips without system alert sounds, score rendering, project persistence, and MusicXML export.
+- Added persistent augmentation-dot entry and editing for Notation notes and rests, with Leland glyphs, keyboard shortcuts, and MusicXML export.
+- Added sixteenth-note and rest entry with `3`/`Num3` duration shortcuts, plus downward stems for notes above the middle staff line.
+- Added Notation note-entry mode for placing pitched notes with Leland-rendered note glyphs, note selection preview, cross-rest insertion, rest recomposition, and MusicXML export.
+- Expanded Notation entry to ledger-line pitches from G3 through D6 and added rest-entry controls for inserting selected rest durations.
+- Added Notation note editing for dragging note pitch, arrow-key pitch changes, and deleting selected notes back to rests.
+- Added per-stem Notation parts with collapsible stem notation tracks, score-aligned multi-part Notation systems, shared Region labels, part visibility controls, and multi-part MusicXML export.
 - Added clearer hover tooltips and numpad shortcuts for Notation duration buttons.
 - Added a bar/beat position readout to the transport time display.
+- Fixed multi-part Notation accessibility selection announcements and prevented harmony editing from clearing a selected stem note.
+- Prevented an oversized Notation duration change from removing later notes or rests in the measure.
+- Stabilized the Rest entry icon, matched Notation track controls, aligned stem Mute/Solo buttons, and limited MusicXML export to the selected Parts.
+- Added full instrument names, abbreviations, and standard instrument sounds to exported MusicXML parts and Notation score labels.
+- Added vertical workspace scrolling when expanded Notation tracks exceed the main window height.
+- Changed Rest entry mode to replace a selected note with its corresponding rest without recomposing the measure.
+- Added per-part treble and bass clefs with Leland glyphs, clef-aware note editing, pitch transposition, and MusicXML export.
 
 ## 1.1.0
 

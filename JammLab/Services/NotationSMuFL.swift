@@ -7,6 +7,8 @@ enum NotationSMuFLSymbol: Equatable {
     case restHalf
     case restQuarter
     case rest8th
+    case rest16th
+    case rest32nd
 
     init?(duration: NotationDuration) {
         switch duration.denominator {
@@ -18,6 +20,10 @@ enum NotationSMuFLSymbol: Equatable {
             self = .restQuarter
         case 8:
             self = .rest8th
+        case 16:
+            self = .rest16th
+        case 32:
+            self = .rest32nd
         default:
             return nil
         }
@@ -33,6 +39,10 @@ enum NotationSMuFLSymbol: Equatable {
             return 0xE4E5
         case .rest8th:
             return 0xE4E6
+        case .rest16th:
+            return 0xE4E7
+        case .rest32nd:
+            return 0xE4E8
         }
     }
 
@@ -42,11 +52,55 @@ enum NotationSMuFLSymbol: Equatable {
     }
 }
 
+enum NotationAugmentationDotSymbol: Equatable {
+    case augmentationDot
+
+    var codepoint: UInt32 { 0xE1E7 }
+
+    var glyph: String {
+        guard let scalar = UnicodeScalar(codepoint) else { return "" }
+        return String(Character(scalar))
+    }
+}
+
+enum NotationAugmentationDotLayout {
+    static func noteDotStaffPosition(for noteStaffPosition: Int) -> Int {
+        noteStaffPosition.isMultiple(of: 2) ? noteStaffPosition - 1 : noteStaffPosition
+    }
+
+    static func noteTarget(
+        noteX: CGFloat,
+        noteStaffPosition: Int,
+        staffTop: CGFloat
+    ) -> CGPoint {
+        let spacing = AppTheme.Timeline.notationStaffLineSpacing
+        return CGPoint(
+            x: noteX + spacing,
+            y: NotationNotePlacementResolver.yPosition(
+                forStaffPosition: noteDotStaffPosition(for: noteStaffPosition),
+                staffTop: staffTop
+            )
+        )
+    }
+
+    static func restTarget(restX: CGFloat, staffTop: CGFloat) -> CGPoint {
+        let spacing = AppTheme.Timeline.notationStaffLineSpacing
+        return CGPoint(
+            x: restX + spacing,
+            y: NotationNotePlacementResolver.yPosition(
+                forStaffPosition: 3,
+                staffTop: staffTop
+            )
+        )
+    }
+}
+
 enum NotationDurationControlSymbol: Equatable {
     case whole
     case half
     case quarter
     case eighth
+    case sixteenth
 
     init?(duration: NotationDuration) {
         switch duration.denominator {
@@ -58,6 +112,8 @@ enum NotationDurationControlSymbol: Equatable {
             self = .quarter
         case 8:
             self = .eighth
+        case 16:
+            self = .sixteenth
         default:
             return nil
         }
@@ -73,6 +129,8 @@ enum NotationDurationControlSymbol: Equatable {
             return 0xECA5
         case .eighth:
             return 0xECA7
+        case .sixteenth:
+            return 0xECA9
         }
     }
 
@@ -82,8 +140,200 @@ enum NotationDurationControlSymbol: Equatable {
     }
 }
 
+enum NotationStemDirection: Equatable {
+    case up
+    case down
+
+    static func direction(forStaffPosition staffPosition: Int) -> NotationStemDirection {
+        staffPosition < 4 ? .down : .up
+    }
+}
+
+enum NotationTiePlacement: Equatable {
+    case above
+    case below
+}
+
+enum NotationTiePath {
+    static func path(
+        start: CGPoint,
+        end: CGPoint,
+        placement: NotationTiePlacement,
+        arcHeight: CGFloat,
+        endpointThickness: CGFloat,
+        midpointThickness: CGFloat
+    ) -> CGPath {
+        let direction: CGFloat = placement == .below ? 1 : -1
+        let controlY = (start.y + end.y) / 2 + direction * arcHeight
+        let upperControlY = controlY - midpointThickness / 2
+        let lowerControlY = controlY + midpointThickness / 2
+        let startUpper = CGPoint(x: start.x, y: start.y - endpointThickness / 2)
+        let endUpper = CGPoint(x: end.x, y: end.y - endpointThickness / 2)
+        let startLower = CGPoint(x: start.x, y: start.y + endpointThickness / 2)
+        let endLower = CGPoint(x: end.x, y: end.y + endpointThickness / 2)
+        let horizontalDistance = end.x - start.x
+
+        let path = CGMutablePath()
+        path.move(to: startUpper)
+        path.addCurve(
+            to: endUpper,
+            control1: CGPoint(x: start.x + horizontalDistance * 0.33, y: upperControlY),
+            control2: CGPoint(x: start.x + horizontalDistance * 0.67, y: upperControlY)
+        )
+        path.addLine(to: endLower)
+        path.addCurve(
+            to: startLower,
+            control1: CGPoint(x: start.x + horizontalDistance * 0.67, y: lowerControlY),
+            control2: CGPoint(x: start.x + horizontalDistance * 0.33, y: lowerControlY)
+        )
+        path.closeSubpath()
+        return path
+    }
+}
+
+enum NotationStaffNoteSymbol: Equatable {
+    case whole
+    case half(NotationStemDirection)
+    case quarter(NotationStemDirection)
+    case eighth(NotationStemDirection)
+    case sixteenth(NotationStemDirection)
+    case thirtySecond(NotationStemDirection)
+
+    init?(duration: NotationDuration, stemDirection: NotationStemDirection = .up) {
+        switch duration.denominator {
+        case 1:
+            self = .whole
+        case 2:
+            self = .half(stemDirection)
+        case 4:
+            self = .quarter(stemDirection)
+        case 8:
+            self = .eighth(stemDirection)
+        case 16:
+            self = .sixteenth(stemDirection)
+        case 32:
+            self = .thirtySecond(stemDirection)
+        default:
+            return nil
+        }
+    }
+
+    var codepoint: UInt32 {
+        switch self {
+        case .whole:
+            return 0xE1D2
+        case .half(let direction):
+            return Self.directionalCodepoint(up: 0xE1D3, direction: direction)
+        case .quarter(let direction):
+            return Self.directionalCodepoint(up: 0xE1D5, direction: direction)
+        case .eighth(let direction):
+            return Self.directionalCodepoint(up: 0xE1D7, direction: direction)
+        case .sixteenth(let direction):
+            return Self.directionalCodepoint(up: 0xE1D9, direction: direction)
+        case .thirtySecond(let direction):
+            return Self.directionalCodepoint(up: 0xE1DB, direction: direction)
+        }
+    }
+
+    fileprivate var anchorReferenceCodepoint: UInt32? {
+        switch self {
+        case .whole:
+            return nil
+        case .half:
+            return 0xE0A3
+        case .quarter, .eighth, .sixteenth, .thirtySecond:
+            return 0xE0A4
+        }
+    }
+
+    var glyph: String {
+        guard let scalar = UnicodeScalar(codepoint) else { return "" }
+        return String(Character(scalar))
+    }
+
+    private static func directionalCodepoint(
+        up: UInt32,
+        direction: NotationStemDirection
+    ) -> UInt32 {
+        up + (direction == .down ? 1 : 0)
+    }
+}
+
+enum NotationClefSymbol: Equatable {
+    case treble
+    case bass
+
+    init(_ clef: Clef) {
+        switch clef {
+        case .treble:
+            self = .treble
+        case .bass:
+            self = .bass
+        }
+    }
+
+    var codepoint: UInt32 {
+        switch self {
+        case .treble:
+            return 0xE050
+        case .bass:
+            return 0xE062
+        }
+    }
+
+    var referenceStaffLineFromTop: Int {
+        switch self {
+        case .treble:
+            return 3
+        case .bass:
+            return 1
+        }
+    }
+}
+
+enum NotationClefLayout {
+    static let referenceAnchorY: CGFloat = 0
+
+    static var frameSize: CGSize {
+        CGSize(
+            width: AppTheme.Timeline.notationClefWidth,
+            height: AppTheme.Timeline.notationAttributeStaffTopInset * 2
+                + AppTheme.Timeline.notationStaffLineSpacing * 4
+        )
+    }
+
+    static func targetY(for symbol: NotationClefSymbol) -> CGFloat {
+        AppTheme.Timeline.notationAttributeStaffTopInset
+            + CGFloat(symbol.referenceStaffLineFromTop)
+                * AppTheme.Timeline.notationStaffLineSpacing
+    }
+
+    static func target(
+        for symbol: NotationClefSymbol,
+        in size: CGSize
+    ) -> CGPoint {
+        CGPoint(x: size.width / 2, y: targetY(for: symbol))
+    }
+
+    static func referenceAnchor(for glyphPath: NotationSMuFLGlyphPath) -> CGPoint {
+        CGPoint(x: glyphPath.bounds.midX, y: referenceAnchorY)
+    }
+
+    static func transform(
+        for glyphPath: NotationSMuFLGlyphPath,
+        symbol: NotationClefSymbol,
+        in size: CGSize
+    ) -> CGAffineTransform {
+        glyphPath.anchoredTransform(
+            anchor: referenceAnchor(for: glyphPath),
+            target: target(for: symbol, in: size)
+        )
+    }
+}
+
 enum NotationMusicFontRegistry {
     static let fallbackFontName = "Leland"
+    private static let glyphPathCache = NSCache<NSString, NotationSMuFLGlyphPathBox>()
 
     static var fontName: String {
         registeredFontName ?? fallbackFontName
@@ -115,7 +365,47 @@ enum NotationMusicFontRegistry {
         glyphPath(forCodepoint: symbol.codepoint, fontSize: fontSize)
     }
 
+    static func glyphPath(
+        for symbol: NotationStaffNoteSymbol,
+        fontSize: CGFloat
+    ) -> NotationSMuFLGlyphPath? {
+        glyphPath(forCodepoint: symbol.codepoint, fontSize: fontSize)
+    }
+
+    static func glyphPath(
+        for symbol: NotationAugmentationDotSymbol,
+        fontSize: CGFloat
+    ) -> NotationSMuFLGlyphPath? {
+        glyphPath(forCodepoint: symbol.codepoint, fontSize: fontSize)
+    }
+
+    static func glyphPath(
+        for symbol: NotationClefSymbol,
+        fontSize: CGFloat
+    ) -> NotationSMuFLGlyphPath? {
+        glyphPath(forCodepoint: symbol.codepoint, fontSize: fontSize)
+    }
+
+    static func noteheadAnchor(
+        for symbol: NotationStaffNoteSymbol,
+        fontSize: CGFloat
+    ) -> CGPoint? {
+        let glyphPath: NotationSMuFLGlyphPath?
+        if let anchorCodepoint = symbol.anchorReferenceCodepoint {
+            glyphPath = self.glyphPath(forCodepoint: anchorCodepoint, fontSize: fontSize)
+        } else {
+            glyphPath = self.glyphPath(for: symbol, fontSize: fontSize)
+        }
+
+        return glyphPath.map { CGPoint(x: $0.bounds.midX, y: $0.bounds.midY) }
+    }
+
     private static func glyphPath(forCodepoint codepoint: UInt32, fontSize: CGFloat) -> NotationSMuFLGlyphPath? {
+        let cacheKey = NSString(string: "\(codepoint)-\(fontSize)")
+        if let cached = glyphPathCache.object(forKey: cacheKey) {
+            return cached.value
+        }
+
         guard let character = UniChar(exactly: codepoint) else { return nil }
 
         let font = CTFontCreateWithName(fontName as CFString, fontSize, nil)
@@ -130,7 +420,17 @@ enum NotationMusicFontRegistry {
         let bounds = CTFontGetBoundingRectsForGlyphs(font, .default, &glyph, nil, 1)
         guard !bounds.isEmpty else { return nil }
 
-        return NotationSMuFLGlyphPath(path: path, bounds: bounds)
+        let glyphPath = NotationSMuFLGlyphPath(path: path, bounds: bounds)
+        glyphPathCache.setObject(NotationSMuFLGlyphPathBox(glyphPath), forKey: cacheKey)
+        return glyphPath
+    }
+}
+
+private final class NotationSMuFLGlyphPathBox {
+    let value: NotationSMuFLGlyphPath
+
+    init(_ value: NotationSMuFLGlyphPath) {
+        self.value = value
     }
 }
 
@@ -147,6 +447,18 @@ struct NotationSMuFLGlyphPath {
             d: -1,
             tx: size.width / 2 - bounds.midX,
             ty: size.height / 2 + bounds.midY
+        )
+    }
+
+    func anchoredTransform(anchor: CGPoint, target: CGPoint) -> CGAffineTransform {
+        // CoreText glyph paths use y-up coordinates; Canvas uses y-down.
+        CGAffineTransform(
+            a: 1,
+            b: 0,
+            c: 0,
+            d: -1,
+            tx: target.x - anchor.x,
+            ty: target.y + anchor.y
         )
     }
 }

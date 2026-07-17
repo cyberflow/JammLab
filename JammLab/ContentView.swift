@@ -25,9 +25,7 @@ struct ContentView: View {
 
             Divider()
 
-            workspaceContent
-                .padding(AppTheme.Spacing.pagePadding)
-                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+            scrollableWorkspaceContent
                 .background(appColors.appBackground)
         }
         .background(WindowTitleUpdater(title: viewModel.windowTitle))
@@ -181,14 +179,23 @@ struct ContentView: View {
         if !viewModel.canPasteNotationMeasureClipboard {
             hotkeys.remove(.pasteMeasure)
         }
-        if !viewModel.hasSelectedNotationMeasures {
+        if !viewModel.hasSelectedNotationMeasures && !viewModel.isNotationEntryModeEnabled {
             hotkeys.remove(.clearNotationMeasureSelection)
         }
-        if !viewModel.canEditSelectedNotationItem {
+        if !viewModel.canEditHarmonyAtSelectedNotationItem {
             hotkeys.remove(.editHarmonyAtSelectedNotationItem)
         }
         if !viewModel.canChangeNotationDuration {
-            hotkeys.subtract(AppHotkey.notationDurationHotkeys)
+            hotkeys.subtract(AppHotkey.notationDurationEditingHotkeys)
+        }
+        if !viewModel.isTieCommandInScope {
+            hotkeys.remove(.addTiedNotationNote)
+        }
+        if !viewModel.canChangeSelectedNotationNotePitch(byStaffPositionDelta: -1) {
+            hotkeys.remove(.moveSelectedNotationNotePitchUp)
+        }
+        if !viewModel.canChangeSelectedNotationNotePitch(byStaffPositionDelta: 1) {
+            hotkeys.remove(.moveSelectedNotationNotePitchDown)
         }
         return hotkeys
     }
@@ -237,17 +244,33 @@ struct ContentView: View {
         case .pasteMeasure:
             return viewModel.pasteNotationMeasureClipboard()
         case .clearNotationMeasureSelection:
-            viewModel.clearNotationMeasureSelection()
+            if viewModel.isNotationEntryModeEnabled {
+                viewModel.clearNotationEntryMode()
+            } else {
+                viewModel.clearNotationMeasureSelection()
+            }
             return true
         case .editHarmonyAtSelectedNotationItem:
             return viewModel.requestEditSelectedNotationItem()
-        case .setNotationDurationEighth,
+        case .toggleNotationNoteEntryMode:
+            viewModel.toggleNotationNoteEntryMode()
+            return true
+        case .moveSelectedNotationNotePitchUp:
+            return viewModel.changeSelectedNotationNotePitch(byStaffPositionDelta: -1)
+        case .moveSelectedNotationNotePitchDown:
+            return viewModel.changeSelectedNotationNotePitch(byStaffPositionDelta: 1)
+        case .setNotationDurationSixteenth,
+                .setNotationDurationEighth,
                 .setNotationDurationQuarter,
                 .setNotationDurationHalf,
                 .setNotationDurationWhole:
             guard let denominator = hotkey.notationDurationDenominator else { return false }
             viewModel.setNotationDurationDenominator(denominator)
             return true
+        case .toggleNotationDurationDot:
+            return viewModel.toggleNotationDurationDot()
+        case .addTiedNotationNote:
+            return viewModel.handleAddTiedNotationNoteCommand()
         }
     }
 

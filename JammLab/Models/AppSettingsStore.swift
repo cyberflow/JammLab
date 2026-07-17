@@ -323,6 +323,7 @@ struct AppColorPalette: Codable, Equatable {
 }
 
 final class AppSettingsStore: ObservableObject {
+    static let clickVolumeKey = "metronome.volume"
     static let clickSoundSettingsKey = "click.soundSettings"
     static let stemBackendComputeModeKey = "stemBackend.computeMode"
     static let colorPaletteKey = "theme.colorPalette"
@@ -355,6 +356,14 @@ final class AppSettingsStore: ObservableObject {
 
     func resetClickSoundSettingsToDefaults() {
         updateClickSoundSettings(.defaultValue)
+    }
+
+    func restoredClickVolume(defaultValue: Float = AppSliderDefaults.clickVolume) -> Float {
+        guard defaults.object(forKey: Self.clickVolumeKey) != nil else {
+            return defaultValue
+        }
+
+        return Self.clampedVolume(defaults.float(forKey: Self.clickVolumeKey))
     }
 
     func updateColor(_ role: AppColorRole, hex: String) {
@@ -445,5 +454,9 @@ final class AppSettingsStore: ObservableObject {
         }
 
         return settings.normalized()
+    }
+
+    private static func clampedVolume(_ volume: Float) -> Float {
+        min(1, max(0, volume))
     }
 }

@@ -2,6 +2,75 @@
 import AudioToolbox
 import Foundation
 
+private final class SingleUseAudioBufferProvider: @unchecked Sendable {
+    private let lock = NSLock()
+    private var buffer: AVAudioPCMBuffer?
+
+    init(buffer: AVAudioPCMBuffer) {
+        self.buffer = buffer
+    }
+
+    func take() -> AVAudioPCMBuffer? {
+        lock.lock()
+        defer { lock.unlock() }
+
+        let nextBuffer = buffer
+        buffer = nil
+        return nextBuffer
+    }
+}
+
+enum AudioFileBufferDecoder {
+    static func decode(file: AVAudioFile, to outputFormat: AVAudioFormat) throws -> AVAudioPCMBuffer {
+        let inputFormat = file.processingFormat
+        guard let inputBuffer = AVAudioPCMBuffer(
+            pcmFormat: inputFormat,
+            frameCapacity: AVAudioFrameCount(file.length)
+        ) else {
+            throw MultiTrackAudioPlayerError.audioConversionFailed
+        }
+
+        try file.read(into: inputBuffer)
+        if formatsMatch(inputFormat, outputFormat), inputBuffer.floatChannelData != nil {
+            return inputBuffer
+        }
+
+        guard let converter = AVAudioConverter(from: inputFormat, to: outputFormat) else {
+            throw MultiTrackAudioPlayerError.audioConversionFailed
+        }
+
+        let ratio = outputFormat.sampleRate / inputFormat.sampleRate
+        let outputCapacity = AVAudioFrameCount(Double(inputBuffer.frameLength) * ratio) + 1_024
+        guard let outputBuffer = AVAudioPCMBuffer(pcmFormat: outputFormat, frameCapacity: outputCapacity) else {
+            throw MultiTrackAudioPlayerError.audioConversionFailed
+        }
+
+        let inputProvider = SingleUseAudioBufferProvider(buffer: inputBuffer)
+        var conversionError: NSError?
+        converter.convert(to: outputBuffer, error: &conversionError) { _, status in
+            guard let nextBuffer = inputProvider.take() else {
+                status.pointee = .noDataNow
+                return nil
+            }
+
+            status.pointee = .haveData
+            return nextBuffer
+        }
+
+        if conversionError != nil || outputBuffer.floatChannelData == nil {
+            throw MultiTrackAudioPlayerError.audioConversionFailed
+        }
+        return outputBuffer
+    }
+
+    private static func formatsMatch(_ lhs: AVAudioFormat, _ rhs: AVAudioFormat) -> Bool {
+        lhs.commonFormat == rhs.commonFormat &&
+            lhs.sampleRate == rhs.sampleRate &&
+            lhs.channelCount == rhs.channelCount &&
+            lhs.isInterleaved == rhs.isInterleaved
+    }
+}
+
 enum MultiTrackAudioPlayerError: LocalizedError {
     case noStems
     case unsupportedStemLoad
@@ -331,50 +400,8 @@ final class MultiTrackAudioPlayer: AudioPlaybackControlling {
         volume: Float
     ) throws -> AudioRenderTrack {
         let file = try AVAudioFile(forReading: url)
-        let buffer = try decode(file: file, to: outputFormat)
+        let buffer = try AudioFileBufferDecoder.decode(file: file, to: outputFormat)
         return AudioRenderTrack(id: id, buffer: buffer, volume: volume)
-    }
-
-    private func decode(file: AVAudioFile, to outputFormat: AVAudioFormat) throws -> AVAudioPCMBuffer {
-        let inputFormat = file.processingFormat
-        guard let inputBuffer = AVAudioPCMBuffer(pcmFormat: inputFormat, frameCapacity: AVAudioFrameCount(file.length)) else {
-            throw MultiTrackAudioPlayerError.audioConversionFailed
-        }
-
-        try file.read(into: inputBuffer)
-
-        if formatsMatch(inputFormat, outputFormat), inputBuffer.floatChannelData != nil {
-            return inputBuffer
-        }
-
-        guard let converter = AVAudioConverter(from: inputFormat, to: outputFormat) else {
-            throw MultiTrackAudioPlayerError.audioConversionFailed
-        }
-
-        let ratio = outputFormat.sampleRate / inputFormat.sampleRate
-        let outputCapacity = AVAudioFrameCount(Double(inputBuffer.frameLength) * ratio) + 1_024
-        guard let outputBuffer = AVAudioPCMBuffer(pcmFormat: outputFormat, frameCapacity: outputCapacity) else {
-            throw MultiTrackAudioPlayerError.audioConversionFailed
-        }
-
-        var didProvideInput = false
-        var conversionError: NSError?
-        converter.convert(to: outputBuffer, error: &conversionError) { _, status in
-            if didProvideInput {
-                status.pointee = .noDataNow
-                return nil
-            }
-
-            didProvideInput = true
-            status.pointee = .haveData
-            return inputBuffer
-        }
-
-        if conversionError != nil || outputBuffer.floatChannelData == nil {
-            throw MultiTrackAudioPlayerError.audioConversionFailed
-        }
-
-        return outputBuffer
     }
 
     private func renderFormat(for sourceFormat: AVAudioFormat) throws -> AVAudioFormat {
@@ -388,13 +415,6 @@ final class MultiTrackAudioPlayer: AudioPlaybackControlling {
         }
 
         return format
-    }
-
-    private func formatsMatch(_ lhs: AVAudioFormat, _ rhs: AVAudioFormat) -> Bool {
-        lhs.commonFormat == rhs.commonFormat &&
-            lhs.sampleRate == rhs.sampleRate &&
-            lhs.channelCount == rhs.channelCount &&
-            lhs.isInterleaved == rhs.isInterleaved
     }
 
     private func applyLoopState() {

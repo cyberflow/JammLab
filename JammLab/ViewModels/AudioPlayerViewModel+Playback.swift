@@ -68,10 +68,6 @@ extension AudioPlayerViewModel {
         }
     }
 
-    func togglePlayPause() {
-        togglePlayStop()
-    }
-
     func seek(to time: TimeInterval) {
         guard canPlay else { return }
         let targetTime = snappedTimelineTime(time)
@@ -160,21 +156,19 @@ extension AudioPlayerViewModel {
 
     func setClickVolume(_ volume: Float) {
         performUndoableEdit("Change Click Volume") {
-            applyClickVolume(volume, shouldPersist: false)
+            applyClickVolume(volume)
         }
     }
 
     func resetClickVolumeToDefault() {
         performUndoableEdit("Reset Click Volume") {
-            applyClickVolume(AppSliderDefaults.clickVolume, shouldPersist: false)
+            applyClickVolume(AppSliderDefaults.clickVolume)
         }
     }
 
-    func applyClickVolume(_ volume: Float, shouldPersist: Bool) {
+    func applyClickVolume(_ volume: Float) {
         clickVolume = clampedVolume(volume)
         playbackEngine.setClickVolume(clickVolume)
-        guard shouldPersist else { return }
-        UserDefaults.standard.set(clickVolume, forKey: "metronome.volume")
     }
 
     func setMainTrackVolume(_ volume: Float) {

@@ -194,9 +194,19 @@ enum AppTheme {
         static let hotkeyKeyWidth: CGFloat = 70
         static let controlHeight: CGFloat = 28
         static let buttonHeight: CGFloat = 28
-        static let notationDurationButtonWidth: CGFloat = 32
+        static let notationDurationButtonWidth: CGFloat = 27
+        static let notationDurationButtonSpacing: CGFloat = AppTheme.Spacing.xxxs
+        static let notationModeButtonWidth: CGFloat = 32
         static let notationDurationControlHeight: CGFloat = controlHeight
         static let notationDurationGlyphSize: CGFloat = 20
+        static let notationAugmentationDotNoteOffsetX: CGFloat = -3
+        static let notationAugmentationDotGlyphOffsetX: CGFloat = 7
+        static let notationAugmentationDotGlyphOffsetY: CGFloat = 5
+        static let notationTieNoteOffsetX: CGFloat = 6
+        static let notationTieArcOffsetY: CGFloat = 5
+        static let notationTieArcHeight: CGFloat = 3
+        static let notationTieEndpointThickness: CGFloat = 0.6
+        static let notationTieMidpointThickness: CGFloat = 1.4
         static let transportBarMinHeight: CGFloat = 70
         static let abletonNumberFieldHeight: CGFloat = 24
         static let jammValueSliderWidth: CGFloat = 70
@@ -295,9 +305,8 @@ enum AppTheme {
         static let notationStaffLineSpacing: CGFloat = 8
         static let notationStaffHorizontalInset: CGFloat = 10
         static let notationAttributeStaffTopInset: CGFloat = AppTheme.Spacing.xxl
-        static let notationClefFontSize: CGFloat = 48
+        static let notationClefFontSize: CGFloat = 33
         static let notationClefWidth: CGFloat = 38
-        static let notationTrebleClefVerticalOffset: CGFloat = -6
         static let notationTimeSignatureWidth: CGFloat = 26
         static let notationAccidentalWidth: CGFloat = 11
         static let notationMinimumMeasureContentWidth: CGFloat = 28
@@ -307,6 +316,11 @@ enum AppTheme {
         static let notationSlashLineWidth: CGFloat = 3
         static let notationSlashMinimumBeatSpacing: CGFloat = 16
         static let notationItemAnchorInset: CGFloat = AppTheme.Spacing.lg
+        static let notationTieNoteheadInset: CGFloat = 5
+        static let notationTieVerticalOffset: CGFloat = 5
+        static let notationTieArcHeight: CGFloat = 5
+        static let notationTieEndpointThickness: CGFloat = 0.7
+        static let notationTieMidpointThickness: CGFloat = 1.7
         static let notationHarmonyAnchorLeadingOffset: CGFloat = AppTheme.Spacing.md
         static let notationHarmonySymbolWidth: CGFloat = 84
         static let notationHarmonyEditorWidth: CGFloat = 64
@@ -333,18 +347,34 @@ enum AppTheme {
         static var upperTrackStackHeight: CGFloat {
             upperTrackStackHeight(isNotationTrackCollapsed: false)
         }
-        static func stemTracksHeight(rowCount: Int) -> CGFloat {
+        static func stemRowHeight(isNotationExpanded: Bool) -> CGFloat {
+            stemTrackHeight
+                + (isNotationExpanded ? trackSpacing + notationTrackHeight : 0)
+        }
+        static func stemTracksHeight(
+            rowCount: Int,
+            expandedStemNotationCount: Int = 0
+        ) -> CGFloat {
             let visibleRows = max(defaultVisibleStemRows, rowCount)
+            let expandedRows = min(max(0, expandedStemNotationCount), max(0, rowCount))
             return CGFloat(visibleRows) * stemTrackHeight
                 + CGFloat(max(0, visibleRows - 1)) * AppTheme.Spacing.md
+                + CGFloat(expandedRows) * (trackSpacing + notationTrackHeight)
         }
         static var stemTracksHeight: CGFloat {
             stemTracksHeight(rowCount: defaultVisibleStemRows)
         }
-        static func tracksMinimumHeight(stemRowCount: Int, isNotationTrackCollapsed: Bool = false) -> CGFloat {
+        static func tracksMinimumHeight(
+            stemRowCount: Int,
+            isNotationTrackCollapsed: Bool = false,
+            expandedStemNotationCount: Int = 0
+        ) -> CGFloat {
             upperTrackStackHeight(isNotationTrackCollapsed: isNotationTrackCollapsed)
                 + trackSpacing
-                + stemTracksHeight(rowCount: stemRowCount)
+                + stemTracksHeight(
+                    rowCount: stemRowCount,
+                    expandedStemNotationCount: expandedStemNotationCount
+                )
         }
         static var tracksMinimumHeight: CGFloat {
             tracksMinimumHeight(stemRowCount: defaultVisibleStemRows)
@@ -355,11 +385,13 @@ enum AppTheme {
         }
         static func timelineBlockMinimumHeight(
             stemRowCount: Int,
-            isNotationTrackCollapsed: Bool = false
+            isNotationTrackCollapsed: Bool = false,
+            expandedStemNotationCount: Int = 0
         ) -> CGFloat {
             tracksMinimumHeight(
                 stemRowCount: stemRowCount,
-                isNotationTrackCollapsed: isNotationTrackCollapsed
+                isNotationTrackCollapsed: isNotationTrackCollapsed,
+                expandedStemNotationCount: expandedStemNotationCount
             ) + viewportFooterGap + viewportControlBarHeight
         }
         static var timelineBlockMinimumHeight: CGFloat {
@@ -367,11 +399,13 @@ enum AppTheme {
         }
         static func minimumContentHeight(
             stemRowCount: Int,
-            isNotationTrackCollapsed: Bool = false
+            isNotationTrackCollapsed: Bool = false,
+            expandedStemNotationCount: Int = 0
         ) -> CGFloat {
             timelineBlockMinimumHeight(
                 stemRowCount: stemRowCount,
-                isNotationTrackCollapsed: isNotationTrackCollapsed
+                isNotationTrackCollapsed: isNotationTrackCollapsed,
+                expandedStemNotationCount: expandedStemNotationCount
             )
         }
         static var minimumContentHeight: CGFloat {
@@ -441,7 +475,18 @@ enum AppTheme {
     enum NotationWindow {
         static let maximumMeasuresPerSystem = 4
         static let systemHeight: CGFloat = 124
-        static let systemSpacing: CGFloat = AppTheme.Spacing.none
+        static let staffSpacing: CGFloat = AppTheme.Spacing.none
+        static let systemSpacing: CGFloat = AppTheme.Spacing.xxl
         static let pagePadding: CGFloat = 28
+        static let partLabelWidth: CGFloat = 104
+        static let partGutterSpacing: CGFloat = AppTheme.Spacing.xl
+        static let systemConnectorWidth: CGFloat = AppTheme.Spacing.sm
+        static let systemConnectorTopInset: CGFloat = max(
+            AppTheme.Spacing.xxl,
+            (systemHeight - AppTheme.Timeline.notationStaffLineSpacing * 4) / 2 + AppTheme.Spacing.xs
+        )
+        static let systemConnectorBottomInset: CGFloat = systemHeight
+            - systemConnectorTopInset
+            - AppTheme.Timeline.notationStaffLineSpacing * 4
     }
 }

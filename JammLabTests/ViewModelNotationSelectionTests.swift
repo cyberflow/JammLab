@@ -3,6 +3,59 @@ import XCTest
 
 final class ViewModelNotationSelectionTests: XCTestCase {
     @MainActor
+    func testNotationWindowPartVisibilityCanShowOnlyStemPartButNeverEmpty() throws {
+        let viewModel = try loadedNotationViewModel(duration: 8)
+        viewModel.visibleNotationPartIDs = [.main, .stem(.bass)]
+
+        viewModel.toggleNotationWindowPartVisibility(.main)
+
+        XCTAssertEqual(viewModel.normalizedVisibleNotationPartIDs(), [.stem(.bass)])
+
+        viewModel.toggleNotationWindowPartVisibility(.stem(.bass))
+
+        XCTAssertEqual(viewModel.normalizedVisibleNotationPartIDs(), [.main])
+    }
+
+    @MainActor
+    func testStemSelectionCannotEditHarmonyAndIsPreservedWhenRequested() throws {
+        let viewModel = try loadedNotationViewModel(duration: 8)
+        viewModel.notationItems = [
+            NotationMeasureItem(
+                id: "bass-note",
+                partID: .stem(.bass),
+                kind: .note,
+                pitch: NotationPitch(step: .e, octave: 2),
+                measureNumber: 1,
+                measureStartTime: 0,
+                offsetInQuarterNotes: 0,
+                durationInQuarterNotes: 1,
+                displayDuration: NotationDuration(denominator: 4)
+            )
+        ]
+        let measure = try notationMeasure(1, in: viewModel, partID: .stem(.bass))
+        let item = try XCTUnwrap(measure.notationItems.first { $0.id == "bass-note" })
+        let selection = NotationItemSelection(measure: measure, item: item)
+        viewModel.selectNotationItem(selection)
+
+        XCTAssertTrue(viewModel.canEditSelectedNotationItem)
+        XCTAssertFalse(viewModel.canEditHarmonyAtSelectedNotationItem)
+        XCTAssertFalse(viewModel.requestEditSelectedNotationItem())
+        XCTAssertEqual(viewModel.selectedNotationItem, selection)
+    }
+
+    @MainActor
+    func testMainSelectionRemainsEligibleForHarmonyEditing() throws {
+        let viewModel = try loadedNotationViewModel(duration: 8)
+        let measure = try notationMeasure(1, in: viewModel)
+        let item = try XCTUnwrap(measure.notationItems.first)
+        viewModel.selectNotationItem(NotationItemSelection(measure: measure, item: item))
+
+        XCTAssertTrue(viewModel.canEditHarmonyAtSelectedNotationItem)
+        XCTAssertTrue(viewModel.requestEditSelectedNotationItem())
+        XCTAssertNotNil(viewModel.pendingHarmonyEditorRequest)
+    }
+
+    @MainActor
     func testSelectingNotationMeasureAtCurrentMarkerDoesNotMarkProjectModified() throws {
         let viewModel = try loadedNotationViewModel(duration: 8)
         let measure = try notationMeasure(1, in: viewModel)
@@ -45,6 +98,137 @@ final class ViewModelNotationSelectionTests: XCTestCase {
         XCTAssertEqual(viewModel.selectedNotationItem?.measureNumber, 1)
         XCTAssertEqual(viewModel.selectedNotationItem?.offsetInQuarterNotes, 0)
         XCTAssertFalse(viewModel.isProjectModified)
+    }
+
+    @MainActor
+    func testSelectingNotationNoteAuditionsWhenRequested() throws {
+        let auditioner = MockNotationNoteAuditioner()
+        let viewModel = try loadedNotationViewModel(
+            duration: 8,
+            notationNoteAuditioner: auditioner
+        )
+        let pitch = NotationPitch(step: .e, octave: 4)
+        viewModel.notationItems = [
+            NotationMeasureItem(
+                id: "selected-note",
+                kind: .note,
+                pitch: pitch,
+                measureNumber: 1,
+                measureStartTime: 0,
+                offsetInQuarterNotes: 0,
+                durationInQuarterNotes: 1,
+                displayDuration: NotationDuration(denominator: 4)
+            ),
+            NotationMeasureItem(
+                id: "rest",
+                measureNumber: 1,
+                measureStartTime: 0,
+                offsetInQuarterNotes: 1,
+                durationInQuarterNotes: 1,
+                displayDuration: NotationDuration(denominator: 4)
+            )
+        ]
+        viewModel.markProjectClean()
+        let measure = try notationMeasure(1, in: viewModel)
+        let note = try XCTUnwrap(measure.notationItems.first { $0.id == "selected-note" })
+        let rest = try XCTUnwrap(measure.notationItems.first { $0.id == "rest" })
+
+        viewModel.selectNotationItem(
+            NotationItemSelection(measure: measure, item: note),
+            shouldAudition: true
+        )
+        viewModel.selectNotationItem(
+            NotationItemSelection(measure: measure, item: note),
+            shouldAudition: true
+        )
+        viewModel.selectNotationItem(
+            NotationItemSelection(measure: measure, item: rest),
+            shouldAudition: true
+        )
+        viewModel.clearNotationItemSelection()
+
+        XCTAssertEqual(auditioner.auditionedPitches, [pitch, pitch])
+        XCTAssertFalse(viewModel.isProjectModified)
+    }
+
+    @MainActor
+    func testSelectingNotationNoteDoesNotAuditionWhenSuppressed() throws {
+        let auditioner = MockNotationNoteAuditioner()
+        let viewModel = try loadedNotationViewModel(
+            duration: 8,
+            notationNoteAuditioner: auditioner
+        )
+        viewModel.notationItems = [
+            NotationMeasureItem(
+                id: "selected-note",
+                kind: .note,
+                pitch: NotationPitch(step: .e, octave: 4),
+                measureNumber: 1,
+                measureStartTime: 0,
+                offsetInQuarterNotes: 0,
+                durationInQuarterNotes: 1,
+                displayDuration: NotationDuration(denominator: 4)
+            )
+        ]
+        viewModel.markProjectClean()
+        let measure = try notationMeasure(1, in: viewModel)
+        let note = try XCTUnwrap(measure.notationItems.first { $0.id == "selected-note" })
+
+        viewModel.selectNotationItem(
+            NotationItemSelection(measure: measure, item: note),
+            shouldAudition: false
+        )
+
+        XCTAssertTrue(auditioner.auditionedPitches.isEmpty)
+        XCTAssertFalse(viewModel.isProjectModified)
+    }
+
+    @MainActor
+    func testNotationEntryModesAreMutuallyExclusiveAndClearEditingState() throws {
+        let viewModel = try loadedNotationViewModel(duration: 8)
+        let measure = try notationMeasure(1, in: viewModel)
+        let item = try XCTUnwrap(measure.notationItems.first)
+        let harmony = HarmonySymbol(
+            time: measure.startTime,
+            measureNumber: measure.number,
+            offsetInQuarterNotes: 0,
+            rawText: "C"
+        )
+        viewModel.harmonySymbols = [harmony]
+        viewModel.selectedNotationMeasures = [NotationMeasureSelection(measure: measure)]
+        viewModel.notationMeasureSelectionAnchor = NotationMeasureSelection(measure: measure)
+        viewModel.selectedNotationItem = NotationItemSelection(measure: measure, item: item)
+        viewModel.selectedHarmonySymbolID = harmony.id
+        viewModel.pendingHarmonyEditorRequest = HarmonyEditorRequest(time: measure.startTime)
+
+        viewModel.setNotationNoteEntryModeEnabled(true)
+
+        XCTAssertEqual(viewModel.notationEntryMode, .note)
+        XCTAssertTrue(viewModel.isNotationNoteEntryModeEnabled)
+        XCTAssertFalse(viewModel.isNotationRestEntryModeEnabled)
+        XCTAssertTrue(viewModel.selectedNotationMeasures.isEmpty)
+        XCTAssertNil(viewModel.notationMeasureSelectionAnchor)
+        XCTAssertNil(viewModel.selectedNotationItem)
+        XCTAssertNil(viewModel.selectedHarmonySymbolID)
+        XCTAssertNil(viewModel.pendingHarmonyEditorRequest)
+
+        viewModel.setNotationRestEntryModeEnabled(true)
+
+        XCTAssertEqual(viewModel.notationEntryMode, .rest)
+        XCTAssertFalse(viewModel.isNotationNoteEntryModeEnabled)
+        XCTAssertTrue(viewModel.isNotationRestEntryModeEnabled)
+
+        viewModel.toggleNotationRestEntryMode()
+
+        XCTAssertNil(viewModel.notationEntryMode)
+        XCTAssertFalse(viewModel.isNotationEntryModeEnabled)
+
+        viewModel.setNotationNoteEntryModeEnabled(true)
+        viewModel.clearNotationEntryMode()
+
+        XCTAssertNil(viewModel.notationEntryMode)
+        XCTAssertFalse(viewModel.isNotationNoteEntryModeEnabled)
+        XCTAssertFalse(viewModel.isNotationRestEntryModeEnabled)
     }
 
     @MainActor
@@ -184,14 +368,16 @@ extension XCTestCase {
     @MainActor
     func loadedNotationViewModel(
         duration: TimeInterval,
-        playbackEngine: MockPlaybackEngine? = nil
+        playbackEngine: MockPlaybackEngine? = nil,
+        notationNoteAuditioner: NotationNoteAuditioning? = nil
     ) throws -> AudioPlayerViewModel {
         let audioURL = try temporaryAudioFile(duration: duration)
         let playbackEngine = playbackEngine ?? MockPlaybackEngine()
         let viewModel = AudioPlayerViewModel(
             analyzer: MockAnalyzer(),
             peakformProvider: MockPeakformProvider(),
-            playbackEngine: playbackEngine
+            playbackEngine: playbackEngine,
+            notationNoteAuditioner: notationNoteAuditioner ?? NoopNotationNoteAuditioner()
         )
         let media = ImportedAudioFile(url: audioURL, displayName: "notation.wav", duration: duration)
         try viewModel.loadImportedAudio(media)
@@ -203,7 +389,11 @@ extension XCTestCase {
     }
 
     @MainActor
-    func notationMeasure(_ number: Int, in viewModel: AudioPlayerViewModel) throws -> ScoreMeasure {
+    func notationMeasure(
+        _ number: Int,
+        in viewModel: AudioPlayerViewModel,
+        partID: NotationPartID = .main
+    ) throws -> ScoreMeasure {
         let score = NotationViewportFactory().scoreState(
             tempoMap: viewModel.tempoMap,
             duration: viewModel.duration,
@@ -211,6 +401,9 @@ extension XCTestCase {
             playbackMarkerTime: viewModel.playbackMarkerTime,
             isPlaying: viewModel.playbackState == .playing,
             keyName: viewModel.effectiveKeyName,
+            clef: viewModel.notationClef(for: partID),
+            partID: partID,
+            includesHarmonies: partID.isMain,
             notationItems: viewModel.notationItems,
             harmonySymbols: viewModel.harmonySymbols,
             notes: viewModel.notes

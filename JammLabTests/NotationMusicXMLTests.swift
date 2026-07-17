@@ -41,6 +41,9 @@ final class NotationMusicXMLTests: XCTestCase {
         let software = try firstXMLChild(named: "software", in: encoding)
         let scorePart = try firstXMLChild(named: "score-part", in: partList)
         let partName = try firstXMLChild(named: "part-name", in: scorePart)
+        let partAbbreviation = try firstXMLChild(named: "part-abbreviation", in: scorePart)
+        let scoreInstrument = try firstXMLChild(named: "score-instrument", in: scorePart)
+        let instrumentName = try firstXMLChild(named: "instrument-name", in: scoreInstrument)
         let creditWords = try firstXMLChild(named: "credit-words", in: credit)
         let part = try XCTUnwrap(rootElements.first { $0.name == "part" })
         let measures = part.elements(forName: "measure")
@@ -105,6 +108,12 @@ final class NotationMusicXMLTests: XCTestCase {
         XCTAssertEqual(creditWords.attribute(forName: "font-size")?.stringValue, "22")
         XCTAssertEqual(partName.stringValue, "Song")
         XCTAssertEqual(partName.attribute(forName: "print-object")?.stringValue, "no")
+        XCTAssertEqual(partAbbreviation.stringValue, "Main")
+        XCTAssertEqual(scoreInstrument.attribute(forName: "id")?.stringValue, "P1-I1")
+        XCTAssertEqual(instrumentName.stringValue, "Main")
+        XCTAssertTrue(scoreInstrument.elements(forName: "instrument-sound").isEmpty)
+        try assertXMLChild(partName, precedes: partAbbreviation, in: scorePart)
+        try assertXMLChild(partAbbreviation, precedes: scoreInstrument, in: scorePart)
         XCTAssertEqual(firstMeasure.attribute(forName: "number")?.stringValue, "1")
 
         let firstMeasureAttributes = try firstXMLChild(named: "attributes", in: firstMeasure)
@@ -149,8 +158,134 @@ final class NotationMusicXMLTests: XCTestCase {
         XCTAssertEqual(try firstXMLChild(named: "type", in: firstMeasureRest).stringValue, "whole")
     }
 
+    func testMusicXMLExportIncludesStemNotationAsSeparatePart() throws {
+        let tempoMap = fourFourTempoMap(duration: 4)
+        let mainNote = NotationMeasureItem(
+            id: "main-note",
+            kind: .note,
+            pitch: NotationPitch(step: .c, octave: 4),
+            measureNumber: 1,
+            measureStartTime: 0,
+            offsetInQuarterNotes: 0,
+            durationInQuarterNotes: 1,
+            displayDuration: NotationDuration(denominator: 4)
+        )
+        let bassNote = NotationMeasureItem(
+            id: "bass-note",
+            partID: .stem(.bass),
+            kind: .note,
+            pitch: NotationPitch(step: .e, octave: 2),
+            measureNumber: 1,
+            measureStartTime: 0,
+            offsetInQuarterNotes: 0,
+            durationInQuarterNotes: 1,
+            displayDuration: NotationDuration(denominator: 4)
+        )
+        let notationItems = [mainNote, bassNote]
+        let region = TimecodedNote(
+            kind: .region,
+            time: 0.5,
+            duration: 2,
+            title: "Intro"
+        )
+        let mainScore = NotationViewportFactory().scoreState(
+            tempoMap: tempoMap,
+            duration: 4,
+            currentTime: 0,
+            playbackMarkerTime: 0,
+            isPlaying: false,
+            keyName: nil,
+            partID: .main,
+            notationItems: notationItems,
+            harmonySymbols: [
+                HarmonySymbol(time: 0, measureNumber: 1, offsetInQuarterNotes: 0, rawText: "C")
+            ],
+            notes: [region]
+        )
+        let bassScore = NotationViewportFactory().scoreState(
+            tempoMap: tempoMap,
+            duration: 4,
+            currentTime: 0,
+            playbackMarkerTime: 0,
+            isPlaying: false,
+            keyName: nil,
+            clef: .bass,
+            partID: .stem(.bass),
+            includesHarmonies: false,
+            notationItems: notationItems,
+            notes: [region]
+        )
+
+        let data = try NotationExportService(renderers: [
+            MusicXMLNotationExportRenderer(appVersionProvider: { nil })
+        ]).export(
+            NotationExportRequest(
+                displayName: "Song",
+                score: mainScore,
+                parts: [
+                    NotationExportPart(descriptor: .main, score: mainScore),
+                    NotationExportPart(descriptor: .stem(.bass), score: bassScore)
+                ]
+            ),
+            format: .musicXML
+        )
+        let document = try XMLDocument(data: data)
+        let root = try XCTUnwrap(document.rootElement())
+        let partList = try XCTUnwrap(root.elements(forName: "part-list").first)
+        let scoreParts = partList.elements(forName: "score-part")
+        let mainPart = try partElement(id: "P1", in: root)
+        let bassPart = try partElement(id: "P2", in: root)
+        let mainPitch = try firstXMLChild(named: "pitch", in: try firstXMLChild(named: "note", in: try XCTUnwrap(mainPart.elements(forName: "measure").first)))
+        let bassPitch = try firstXMLChild(named: "pitch", in: try firstXMLChild(named: "note", in: try XCTUnwrap(bassPart.elements(forName: "measure").first)))
+        let mainAttributes = try firstXMLChild(named: "attributes", in: try XCTUnwrap(mainPart.elements(forName: "measure").first))
+        let bassAttributes = try firstXMLChild(named: "attributes", in: try XCTUnwrap(bassPart.elements(forName: "measure").first))
+        let mainClef = try firstXMLChild(named: "clef", in: mainAttributes)
+        let bassClef = try firstXMLChild(named: "clef", in: bassAttributes)
+
+        XCTAssertEqual(scoreParts.map { $0.attribute(forName: "id")?.stringValue }, ["P1", "P2"])
+        let bassScorePart = try XCTUnwrap(scoreParts.last)
+        let bassPartName = try firstXMLChild(named: "part-name", in: bassScorePart)
+        let bassPartAbbreviation = try firstXMLChild(named: "part-abbreviation", in: bassScorePart)
+        let bassScoreInstrument = try firstXMLChild(named: "score-instrument", in: bassScorePart)
+        let bassInstrumentName = try firstXMLChild(named: "instrument-name", in: bassScoreInstrument)
+        let bassInstrumentSound = try firstXMLChild(named: "instrument-sound", in: bassScoreInstrument)
+
+        XCTAssertEqual(scoreParts.compactMap { $0.elements(forName: "part-name").first?.stringValue }, ["Song", "Bass Guitar"])
+        XCTAssertEqual(bassPartName.stringValue, "Bass Guitar")
+        XCTAssertEqual(bassPartAbbreviation.stringValue, "B. Guit.")
+        XCTAssertEqual(bassScoreInstrument.attribute(forName: "id")?.stringValue, "P2-I1")
+        XCTAssertEqual(bassInstrumentName.stringValue, "Bass Guitar")
+        XCTAssertEqual(bassInstrumentSound.stringValue, "pluck.bass")
+        try assertXMLChild(bassPartName, precedes: bassPartAbbreviation, in: bassScorePart)
+        try assertXMLChild(bassPartAbbreviation, precedes: bassScoreInstrument, in: bassScorePart)
+        try assertXMLChild(bassInstrumentName, precedes: bassInstrumentSound, in: bassScoreInstrument)
+        XCTAssertEqual(try firstXMLChild(named: "step", in: mainPitch).stringValue, "C")
+        XCTAssertEqual(try firstXMLChild(named: "step", in: bassPitch).stringValue, "E")
+        XCTAssertEqual(try firstXMLChild(named: "octave", in: mainPitch).stringValue, "4")
+        XCTAssertEqual(try firstXMLChild(named: "octave", in: bassPitch).stringValue, "2")
+        XCTAssertEqual(try firstXMLChild(named: "sign", in: mainClef).stringValue, "G")
+        XCTAssertEqual(try firstXMLChild(named: "line", in: mainClef).stringValue, "2")
+        XCTAssertEqual(try firstXMLChild(named: "sign", in: bassClef).stringValue, "F")
+        XCTAssertEqual(try firstXMLChild(named: "line", in: bassClef).stringValue, "4")
+        XCTAssertFalse(mainPart.elements(forName: "measure").flatMap { $0.elements(forName: "harmony") }.isEmpty)
+        XCTAssertTrue(bassPart.elements(forName: "measure").flatMap { $0.elements(forName: "harmony") }.isEmpty)
+        XCTAssertEqual(mainPart.elements(forName: "measure").flatMap { $0.elements(forName: "direction") }.count, 1)
+        XCTAssertTrue(bassPart.elements(forName: "measure").flatMap { $0.elements(forName: "direction") }.isEmpty)
+    }
+
     private func childElements(in element: XMLElement) -> [XMLElement] {
         (element.children ?? []).compactMap { $0 as? XMLElement }
+    }
+
+    private func partElement(
+        id: String,
+        in root: XMLElement,
+        file: StaticString = #filePath,
+        line: UInt = #line
+    ) throws -> XMLElement {
+        try XCTUnwrap(root.elements(forName: "part").first {
+            $0.attribute(forName: "id")?.stringValue == id
+        }, file: file, line: line)
     }
 
     private func assertXMLChild(

@@ -3,6 +3,31 @@ import XCTest
 @testable import JammLab
 
 extension XCTestCase {
+    @MainActor
+    func waitForMainActorCondition(
+        timeout: TimeInterval = 2,
+        pollIntervalNanoseconds: UInt64 = 20_000_000,
+        condition: @escaping () -> Bool
+    ) async -> Bool {
+        let clock = ContinuousClock()
+        let timeoutMilliseconds = Int64(max(0, timeout) * 1_000)
+        let deadline = clock.now.advanced(by: .milliseconds(timeoutMilliseconds))
+        while clock.now < deadline {
+            guard !Task.isCancelled else { return false }
+            if condition() {
+                return true
+            }
+            do {
+                try await clock.sleep(for: .nanoseconds(Int64(pollIntervalNanoseconds)))
+            } catch is CancellationError {
+                return false
+            } catch {
+                return false
+            }
+        }
+        return condition()
+    }
+
     func temporaryDirectory() -> URL {
         FileManager.default.temporaryDirectory
             .appendingPathComponent("JammLabTests", isDirectory: true)
@@ -99,6 +124,21 @@ final class MockAnalyzer: AudioAnalyzing {
             keyName: includesKey ? result.keyName : nil,
             keyConfidence: includesKey ? result.keyConfidence : 0
         )
+    }
+}
+
+@MainActor
+final class MockNotationNoteAuditioner: NotationNoteAuditioning {
+    var errorToThrow: Error?
+    private(set) var attemptedPitches: [NotationPitch] = []
+    private(set) var auditionedPitches: [NotationPitch] = []
+
+    func audition(pitch: NotationPitch) throws {
+        attemptedPitches.append(pitch)
+        if let errorToThrow {
+            throw errorToThrow
+        }
+        auditionedPitches.append(pitch)
     }
 }
 

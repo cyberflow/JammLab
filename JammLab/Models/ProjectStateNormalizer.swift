@@ -123,29 +123,43 @@ struct ProjectStateNormalizer {
         duration: TimeInterval
     ) -> [NotationMeasureItem] {
         let duration = normalizedDuration(duration)
-        return items
-            .filter { item in
-                !item.isSynthesized
-                    && item.measureStartTime.isFinite
-                    && item.measureStartTime >= 0
-                    && item.measureStartTime <= duration
-                    && item.offsetInQuarterNotes.isFinite
-                    && item.durationInQuarterNotes.isFinite
-                    && item.durationInQuarterNotes > 0
-            }
+        let persistedItems = items.filter { item in
+            !item.isSynthesized
+                && (item.kind == .rest || item.pitch != nil)
+                && item.measureStartTime.isFinite
+                && item.measureStartTime >= 0
+                && item.measureStartTime <= duration
+                && item.offsetInQuarterNotes.isFinite
+                && item.durationInQuarterNotes.isFinite
+                && item.durationInQuarterNotes > 0
+        }
+        let availableItemsByID = persistedItems.reduce(into: [String: NotationMeasureItem]()) {
+            if $0[$1.id] == nil { $0[$1.id] = $1 }
+        }
+        return persistedItems
             .map { item in
                 NotationMeasureItem(
                     id: item.id,
+                    partID: item.partID,
                     kind: item.kind,
+                    pitch: item.kind == .note ? item.pitch : nil,
                     measureNumber: max(1, item.measureNumber),
                     measureStartTime: min(max(0, finiteTime(item.measureStartTime)), duration),
                     offsetInQuarterNotes: max(0, finiteTime(item.offsetInQuarterNotes)),
                     durationInQuarterNotes: max(0, finiteTime(item.durationInQuarterNotes)),
                     displayDuration: item.displayDuration,
+                    tieTargetItemID: normalizedTieTargetItemID(
+                        for: item,
+                        availableItemsByID: availableItemsByID
+                    ),
                     isSynthesized: false
                 )
             }
             .sorted {
+                if $0.partID.rawValue != $1.partID.rawValue {
+                    return notationPartSortKey($0.partID) < notationPartSortKey($1.partID)
+                }
+
                 if $0.measureNumber != $1.measureNumber {
                     return $0.measureNumber < $1.measureNumber
                 }
@@ -160,6 +174,36 @@ struct ProjectStateNormalizer {
 
                 return $0.id < $1.id
             }
+    }
+
+    private static func normalizedTieTargetItemID(
+        for item: NotationMeasureItem,
+        availableItemsByID: [String: NotationMeasureItem]
+    ) -> String? {
+        guard item.kind == .note,
+              let targetID = item.tieTargetItemID,
+              targetID != item.id,
+              let target = availableItemsByID[targetID],
+              target.kind == .note,
+              target.partID == item.partID,
+              target.pitch == item.pitch
+        else {
+            return nil
+        }
+        return targetID
+    }
+
+    private static func notationPartSortKey(_ partID: NotationPartID) -> String {
+        if partID == .main {
+            return "0-main"
+        }
+
+        if let stemType = partID.stemType,
+           let index = StemType.allCases.firstIndex(of: stemType) {
+            return "1-\(String(format: "%02d", index))-\(stemType.rawValue)"
+        }
+
+        return "9-\(partID.rawValue)"
     }
 
     static func normalizedNote(_ note: TimecodedNote, duration: TimeInterval) -> TimecodedNote {

@@ -1,10 +1,19 @@
 import AppKit
 import SwiftUI
 
+private let notationTrackCoordinateSpaceName = "NotationTrackCoordinateSpace"
+
 struct NotationTrackActions {
     var selectHarmony: (HarmonySymbol.ID?) -> Void
-    var selectMeasure: (ScoreMeasure?, Bool) -> Void
-    var selectItem: (NotationItemSelection?) -> Void
+    var selectMeasure: (ScoreMeasure?, Bool, NotationPartID) -> Void
+    var selectItem: (NotationItemSelection?, Bool) -> Void
+    var canInsertNotationNote: (NotationNotePlacement) -> Bool
+    var insertNotationNote: (NotationNotePlacement) -> Bool
+    var insertNotationRest: (NotationRestPlacement) -> Bool
+    var changeSelectedNotePitch: (NotationPitch, Bool) -> Bool
+    var changeClef: (NotationPartID, Clef) -> Void
+    var auditionNotePitch: (NotationPitch) -> Void
+    var deleteSelectedNotationNote: () -> Bool
     var locatePlaybackMarkerExactly: (TimeInterval) -> Void
     var saveHarmony: (HarmonySymbol) -> Void
     var deleteHarmony: (HarmonySymbol.ID) -> Void
@@ -13,34 +22,49 @@ struct NotationTrackActions {
 
 struct NotationTrackView: View {
     let state: NotationViewportState
+    let partID: NotationPartID
     let playbackDisplayState: PlaybackDisplayState?
     let selectedHarmonySymbolID: HarmonySymbol.ID?
     let selectedMeasures: [NotationMeasureSelection]
     let selectedItem: NotationItemSelection?
+    let selectedDuration: NotationDuration
+    let entryMode: NotationEntryMode?
     let pendingEditorRequest: HarmonyEditorRequest?
+    let showsRegionLabels: Bool
     let actions: NotationTrackActions
     let cornerRadius: CGFloat
 
     @Environment(\.appColors) private var appColors
     @FocusState private var isTrackFocused: Bool
     @State private var editingDraft: HarmonyEditorDraft?
+    @State private var hoveredNotePlacement: NotationNotePlacement?
+    @State private var hoveredRestPlacement: NotationRestPlacement?
+    @State private var draggedNotePitchPreview: NotationDraggedNotePitchPreview?
 
     init(
         state: NotationViewportState,
+        partID: NotationPartID = .main,
         playbackDisplayState: PlaybackDisplayState? = nil,
         selectedHarmonySymbolID: HarmonySymbol.ID? = nil,
         selectedMeasures: [NotationMeasureSelection] = [],
         selectedItem: NotationItemSelection? = nil,
+        selectedDuration: NotationDuration = NotationDuration(),
+        entryMode: NotationEntryMode? = nil,
         pendingEditorRequest: HarmonyEditorRequest? = nil,
+        showsRegionLabels: Bool = true,
         actions: NotationTrackActions = .noop,
         cornerRadius: CGFloat = AppTheme.Radius.small
     ) {
         self.state = state
+        self.partID = partID
         self.playbackDisplayState = playbackDisplayState
         self.selectedHarmonySymbolID = selectedHarmonySymbolID
         self.selectedMeasures = selectedMeasures
         self.selectedItem = selectedItem
+        self.selectedDuration = selectedDuration
+        self.entryMode = entryMode
         self.pendingEditorRequest = pendingEditorRequest
+        self.showsRegionLabels = showsRegionLabels
         self.actions = actions
         self.cornerRadius = cornerRadius
     }
@@ -80,17 +104,14 @@ struct NotationTrackView: View {
                     height: proxy.size.height,
                     attributeDisplays: attributeDisplays
                 )
-                regionLabelsLayer(
-                    width: contentWidth,
-                    height: proxy.size.height,
-                    attributeDisplays: attributeDisplays
-                )
+                if showsRegionLabels {
+                    regionLabelsLayer(
+                        width: contentWidth,
+                        height: proxy.size.height,
+                        attributeDisplays: attributeDisplays
+                    )
+                }
                 harmonySymbolsLayer(
-                    width: contentWidth,
-                    height: proxy.size.height,
-                    attributeDisplays: attributeDisplays
-                )
-                attributeLabels(
                     width: contentWidth,
                     height: proxy.size.height,
                     attributeDisplays: attributeDisplays
@@ -100,12 +121,25 @@ struct NotationTrackView: View {
                     height: proxy.size.height,
                     attributeDisplays: attributeDisplays
                 )
-                harmonyEditorLayer(
+                if partID.isMain {
+                    harmonyEditorLayer(
+                        width: contentWidth,
+                        height: proxy.size.height,
+                        attributeDisplays: attributeDisplays
+                    )
+                }
+                notationEntryLayer(
+                    width: contentWidth,
+                    height: proxy.size.height,
+                    attributeDisplays: attributeDisplays
+                )
+                attributeLabels(
                     width: contentWidth,
                     height: proxy.size.height,
                     attributeDisplays: attributeDisplays
                 )
             }
+            .coordinateSpace(name: notationTrackCoordinateSpaceName)
             .frame(width: contentWidth, height: proxy.size.height)
             .id(scrollResetIdentity)
             .contentShape(Rectangle())
@@ -117,10 +151,29 @@ struct NotationTrackView: View {
             .focused($isTrackFocused)
             .focusEffectDisabled(true)
             .onDeleteCommand {
-                deleteSelectedHarmony()
+                deleteSelectedNotationItemOrHarmony()
             }
             .onChange(of: pendingEditorRequest?.id) { _, _ in
-                handlePendingEditorRequest()
+                if partID.isMain {
+                    handlePendingEditorRequest()
+                }
+            }
+            .onChange(of: entryMode) { _, mode in
+                draggedNotePitchPreview = nil
+                if mode == nil {
+                    hoveredNotePlacement = nil
+                    hoveredRestPlacement = nil
+                } else if mode == .note {
+                    hoveredRestPlacement = nil
+                } else {
+                    hoveredNotePlacement = nil
+                }
+            }
+            .onChange(of: selectedItem) { _, newSelection in
+                if let draggedNotePitchPreview,
+                   newSelection != draggedNotePitchPreview.selection {
+                    self.draggedNotePitchPreview = nil
+                }
             }
             .accessibilityElement(children: .contain)
             .accessibilityLabel("Notation Track")
@@ -130,6 +183,10 @@ struct NotationTrackView: View {
 
     private var renderedMeasureCount: Int {
         max(1, state.visibleMeasures.isEmpty ? state.visibleMeasureCount : state.visibleMeasures.count)
+    }
+
+    private var isEntryModeEnabled: Bool {
+        entryMode != nil
     }
 
     private var visibleAttributeDisplays: [NotationAttributeDisplay] {
@@ -179,7 +236,12 @@ struct NotationTrackView: View {
                 staffTop: staffTop,
                 in: &context
             )
-            drawNotationRests(
+            drawNotationItems(
+                geometries: geometries,
+                staffTop: staffTop,
+                in: &context
+            )
+            drawNotationTies(
                 geometries: geometries,
                 staffTop: staffTop,
                 in: &context
@@ -243,7 +305,7 @@ struct NotationTrackView: View {
         }
     }
 
-    private func drawNotationRests(
+    private func drawNotationItems(
         geometries: [NotationMeasureCanvasGeometry],
         staffTop: CGFloat,
         in context: inout GraphicsContext
@@ -255,21 +317,197 @@ struct NotationTrackView: View {
             ) == true
                 ? appColors.accent
                 : appColors.notationSymbolsAndLines
-            guard let symbol = NotationSMuFLSymbol(duration: item.notationItem.displayDuration) else {
-                continue
+            switch item.notationItem.kind {
+            case .rest:
+                guard let symbol = NotationSMuFLSymbol(duration: item.notationItem.displayDuration) else {
+                    continue
+                }
+                drawRestGlyph(
+                    symbol: symbol,
+                    duration: item.notationItem.displayDuration,
+                    x: item.x,
+                    staffTop: staffTop,
+                    color: color,
+                    in: &context
+                )
+            case .note:
+                let pitch = draggedNotePitchPreview?.matches(item.selection) == true
+                    ? draggedNotePitchPreview?.pitch
+                    : item.notationItem.pitch
+                guard let pitch else { continue }
+                let staffPosition = NotationPitchMapper.staffPosition(
+                    for: pitch,
+                    clef: item.measure.attributes.clef
+                )
+                drawNoteGlyphWithLedgerLines(
+                    duration: item.notationItem.displayDuration,
+                    x: item.x,
+                    staffPosition: staffPosition,
+                    staffTop: staffTop,
+                    color: color,
+                    opacity: 1,
+                    in: &context
+                )
             }
+        }
+
+        if let hoveredNotePlacement {
+            let staffPosition = NotationPitchMapper.staffPosition(
+                for: hoveredNotePlacement.pitch,
+                clef: hoveredNotePlacement.measure.attributes.clef
+            )
+            drawNoteGlyphWithLedgerLines(
+                duration: hoveredNotePlacement.displayDuration,
+                x: hoveredNotePlacement.x,
+                staffPosition: staffPosition,
+                staffTop: staffTop,
+                color: appColors.accent,
+                opacity: 0.56,
+                in: &context
+            )
+        } else if let hoveredRestPlacement,
+                  let symbol = NotationSMuFLSymbol(duration: hoveredRestPlacement.displayDuration) {
             drawRestGlyph(
                 symbol: symbol,
-                x: item.x,
+                duration: hoveredRestPlacement.displayDuration,
+                x: hoveredRestPlacement.x,
                 staffTop: staffTop,
-                color: color,
+                color: appColors.accent.opacity(0.56),
                 in: &context
             )
         }
     }
 
+    private func drawNotationTies(
+        geometries: [NotationMeasureCanvasGeometry],
+        staffTop: CGFloat,
+        in context: inout GraphicsContext
+    ) {
+        let selectedItemID = selectedItem?.itemID
+        for item in NotationTrackLayoutItems.ties(
+            visibleMeasures: state.visibleMeasures,
+            geometries: geometries,
+            connections: state.tieConnections,
+            staffTop: staffTop
+        ) {
+            let isSelected = selectedItemID == item.connection.source.item.id
+                || selectedItemID == item.connection.target.item.id
+            let color = isSelected ? appColors.accent : appColors.notationSymbolsAndLines
+            let path = NotationTiePath.path(
+                start: item.start,
+                end: item.end,
+                placement: item.placement,
+                arcHeight: AppTheme.Timeline.notationTieArcHeight,
+                endpointThickness: AppTheme.Timeline.notationTieEndpointThickness,
+                midpointThickness: AppTheme.Timeline.notationTieMidpointThickness
+            )
+            context.fill(Path(path), with: .color(color))
+        }
+    }
+
+    private func drawNoteGlyphWithLedgerLines(
+        duration: NotationDuration,
+        x: CGFloat,
+        staffPosition: Int,
+        staffTop: CGFloat,
+        color: Color,
+        opacity: Double,
+        in context: inout GraphicsContext
+    ) {
+        drawLedgerLines(
+            staffPosition: staffPosition,
+            x: x,
+            staffTop: staffTop,
+            color: color,
+            opacity: opacity,
+            in: &context
+        )
+        drawNoteGlyph(
+            duration: duration,
+            x: x,
+            y: NotationNotePlacementResolver.yPosition(
+                forStaffPosition: staffPosition,
+                staffTop: staffTop
+            ),
+            stemDirection: NotationStemDirection.direction(forStaffPosition: staffPosition),
+            color: color,
+            opacity: opacity,
+            in: &context
+        )
+        if duration.isDotted {
+            drawAugmentationDot(
+                at: NotationAugmentationDotLayout.noteTarget(
+                    noteX: x,
+                    noteStaffPosition: staffPosition,
+                    staffTop: staffTop
+                ),
+                color: color,
+                opacity: opacity,
+                in: &context
+            )
+        }
+    }
+
+    private func drawLedgerLines(
+        staffPosition: Int,
+        x: CGFloat,
+        staffTop: CGFloat,
+        color: Color,
+        opacity: Double,
+        in context: inout GraphicsContext
+    ) {
+        let spacing = AppTheme.Timeline.notationStaffLineSpacing
+        let halfWidth = spacing * 1.28
+        for ledgerPosition in NotationNotePlacementResolver.ledgerLineStaffPositions(forStaffPosition: staffPosition) {
+            let y = NotationNotePlacementResolver.yPosition(
+                forStaffPosition: ledgerPosition,
+                staffTop: staffTop
+            )
+            var path = Path()
+            path.move(to: CGPoint(x: x - halfWidth, y: y))
+            path.addLine(to: CGPoint(x: x + halfWidth, y: y))
+            context.stroke(
+                path,
+                with: .color(color.opacity(opacity)),
+                lineWidth: AppTheme.Stroke.thin
+            )
+        }
+    }
+
+    private func drawNoteGlyph(
+        duration: NotationDuration,
+        x: CGFloat,
+        y: CGFloat,
+        stemDirection: NotationStemDirection,
+        color: Color,
+        opacity: Double,
+        in context: inout GraphicsContext
+    ) {
+        let spacing = AppTheme.Timeline.notationStaffLineSpacing
+        let fontSize = spacing * 3.25
+        guard let symbol = NotationStaffNoteSymbol(
+            duration: duration,
+            stemDirection: stemDirection
+        ),
+              let glyphPath = NotationMusicFontRegistry.glyphPath(for: symbol, fontSize: fontSize),
+              let anchor = NotationMusicFontRegistry.noteheadAnchor(for: symbol, fontSize: fontSize)
+        else {
+            return
+        }
+
+        let transform = glyphPath.anchoredTransform(
+            anchor: anchor,
+            target: CGPoint(x: x, y: y)
+        )
+        context.fill(
+            Path(glyphPath.path).applying(transform),
+            with: .color(color.opacity(opacity))
+        )
+    }
+
     private func drawRestGlyph(
         symbol: NotationSMuFLSymbol,
+        duration: NotationDuration,
         x: CGFloat,
         staffTop: CGFloat,
         color: Color,
@@ -288,16 +526,42 @@ struct NotationTrackView: View {
                 Path(glyphPath.path).applying(transform),
                 with: .color(color)
             )
-            return
+        } else {
+            let text = Text(symbol.glyph)
+                .font(.custom(NotationMusicFontRegistry.fontName, size: fontSize))
+                .foregroundStyle(color)
+            context.draw(
+                text,
+                at: CGPoint(x: x, y: restGlyphY(symbol: symbol, staffTop: staffTop)),
+                anchor: .center
+            )
         }
 
-        let text = Text(symbol.glyph)
-            .font(.custom(NotationMusicFontRegistry.fontName, size: fontSize))
-            .foregroundStyle(color)
-        context.draw(
-            text,
-            at: CGPoint(x: x, y: restGlyphY(symbol: symbol, staffTop: staffTop)),
-            anchor: .center
+        if duration.isDotted {
+            drawAugmentationDot(
+                at: NotationAugmentationDotLayout.restTarget(restX: x, staffTop: staffTop),
+                color: color,
+                opacity: 1,
+                in: &context
+            )
+        }
+    }
+
+    private func drawAugmentationDot(
+        at target: CGPoint,
+        color: Color,
+        opacity: Double,
+        in context: inout GraphicsContext
+    ) {
+        let fontSize = AppTheme.Timeline.notationStaffLineSpacing * 3.25
+        guard let glyphPath = NotationMusicFontRegistry.glyphPath(
+            for: NotationAugmentationDotSymbol.augmentationDot,
+            fontSize: fontSize
+        ) else { return }
+        let anchor = CGPoint(x: glyphPath.bounds.midX, y: glyphPath.bounds.midY)
+        context.fill(
+            Path(glyphPath.path).applying(glyphPath.anchoredTransform(anchor: anchor, target: target)),
+            with: .color(color.opacity(opacity))
         )
     }
 
@@ -312,7 +576,7 @@ struct NotationTrackView: View {
             return line3Y - spacing * 0.08
         case .restQuarter:
             return line3Y + spacing * 0.06
-        case .rest8th:
+        case .rest8th, .rest16th, .rest32nd:
             return line3Y - spacing * 0.12
         }
     }
@@ -388,9 +652,11 @@ struct NotationTrackView: View {
             + AppTheme.Timeline.notationStaffLineSpacing * 4
             + AppTheme.Spacing.lg
         let overlayHeight = max(1, overlayBottom - overlayY)
-        let selectedMeasureIndices = state.visibleMeasures.indices.filter { index in
-            selectedMeasures.contains(where: { $0.matches(state.visibleMeasures[index]) })
-        }
+        let selectedMeasureIndices = NotationTrackLayoutItems.selectedMeasureIndices(
+            visibleMeasures: state.visibleMeasures,
+            selectedMeasures: selectedMeasures,
+            partID: partID
+        )
         let selectionRuns = NotationMeasureLayout.selectionOverlayRuns(
             selectedMeasureIndices: selectedMeasureIndices,
             geometries: geometries
@@ -441,7 +707,7 @@ struct NotationTrackView: View {
                         .onTapGesture {
                             isTrackFocused = true
                             editingDraft = nil
-                            actions.selectMeasure(state.visibleMeasures[index], isShiftClickActive)
+                            actions.selectMeasure(state.visibleMeasures[index], isShiftClickActive, partID)
                         }
                         .accessibilityHidden(true)
                 }
@@ -460,7 +726,6 @@ struct NotationTrackView: View {
             attributeDisplays: attributeDisplays
         )
         let staffTop = staffTop(in: height)
-        let hitY = max(0, staffTop - AppTheme.Spacing.sm)
         let hitHeight = AppTheme.Timeline.notationStaffLineSpacing * 4 + AppTheme.Spacing.md
         let hitWidth = max(
             AppTheme.ControlSize.abletonNumberFieldHeight,
@@ -469,20 +734,25 @@ struct NotationTrackView: View {
 
         return ZStack(alignment: .topLeading) {
             ForEach(notationItemLayoutItems(geometries: geometries), id: \.id) { item in
+                let hitCenterY = notationItemHitCenterY(item, staffTop: staffTop)
                 Rectangle()
                     .fill(Color.clear)
                     .contentShape(Rectangle())
                     .frame(width: hitWidth, height: hitHeight)
                     .offset(
                         x: item.x - hitWidth / 2,
-                        y: hitY
+                        y: max(0, hitCenterY - hitHeight / 2)
                     )
                     .onTapGesture {
                         isTrackFocused = true
                         editingDraft = nil
-                        actions.selectItem(item.selection)
+                        actions.selectItem(item.selection, true)
                     }
-                    .accessibilityLabel("\(item.notationItem.displayDuration.displayName.capitalized) rest in measure \(item.selection.measureNumber)")
+                    .simultaneousGesture(notePitchDragGesture(
+                        item: item,
+                        staffTop: staffTop
+                    ))
+                    .accessibilityLabel(notationItemAccessibilityLabel(item))
                     .accessibilityValue(
                         selectedItem?.matches(
                             item.measure,
@@ -491,6 +761,191 @@ struct NotationTrackView: View {
                     )
             }
         }
+    }
+
+    private func notationItemHitCenterY(
+        _ item: NotationItemLayoutItem,
+        staffTop: CGFloat
+    ) -> CGFloat {
+        if item.notationItem.kind == .note,
+           let pitch = item.notationItem.pitch {
+            let staffPosition = NotationPitchMapper.staffPosition(
+                for: pitch,
+                clef: item.measure.attributes.clef
+            )
+            return NotationNotePlacementResolver.yPosition(
+                forStaffPosition: staffPosition,
+                staffTop: staffTop
+            )
+        }
+
+        return restGlyphY(
+            symbol: NotationSMuFLSymbol(duration: item.notationItem.displayDuration) ?? .restQuarter,
+            staffTop: staffTop
+        )
+    }
+
+    @ViewBuilder
+    private func notationEntryLayer(
+        width: CGFloat,
+        height: CGFloat,
+        attributeDisplays: [NotationAttributeDisplay]
+    ) -> some View {
+        if let entryMode {
+            Rectangle()
+                .fill(Color.clear)
+                .contentShape(Rectangle())
+                .frame(width: width, height: height)
+                .onContinuousHover { phase in
+                    switch phase {
+                    case .active(let point):
+                        updateHoveredEntryPlacement(
+                            mode: entryMode,
+                            point: point,
+                            width: width,
+                            height: height,
+                            attributeDisplays: attributeDisplays
+                        )
+                    case .ended:
+                        hoveredNotePlacement = nil
+                        hoveredRestPlacement = nil
+                    }
+                }
+                .gesture(
+                    DragGesture(minimumDistance: 0)
+                        .onEnded { value in
+                            isTrackFocused = true
+                            editingDraft = nil
+                            switch entryMode {
+                            case .note:
+                                guard let placement = notePlacement(
+                                    at: value.location,
+                                    width: width,
+                                    height: height,
+                                    attributeDisplays: attributeDisplays
+                                ) else { return }
+                                if actions.insertNotationNote(placement) {
+                                    hoveredNotePlacement = placement
+                                    hoveredRestPlacement = nil
+                                }
+                            case .rest:
+                                guard let placement = restPlacement(
+                                    at: value.location,
+                                    width: width,
+                                    height: height,
+                                    attributeDisplays: attributeDisplays
+                                ) else { return }
+                                if actions.insertNotationRest(placement) {
+                                    hoveredNotePlacement = nil
+                                    hoveredRestPlacement = placement
+                                }
+                            }
+                        }
+                )
+                .cursor(.crosshair)
+                .help(entryMode == .note ? "Add notation note" : "Add notation rest")
+                .accessibilityLabel(entryMode == .note ? "Notation note entry area" : "Notation rest entry area")
+        }
+    }
+
+    private func updateHoveredEntryPlacement(
+        mode: NotationEntryMode,
+        point: CGPoint,
+        width: CGFloat,
+        height: CGFloat,
+        attributeDisplays: [NotationAttributeDisplay]
+    ) {
+        switch mode {
+        case .note:
+            hoveredNotePlacement = notePlacement(
+                at: point,
+                width: width,
+                height: height,
+                attributeDisplays: attributeDisplays
+            )
+            hoveredRestPlacement = nil
+        case .rest:
+            hoveredNotePlacement = nil
+            hoveredRestPlacement = restPlacement(
+                at: point,
+                width: width,
+                height: height,
+                attributeDisplays: attributeDisplays
+            )
+        }
+    }
+
+    private func notePitchDragGesture(
+        item: NotationItemLayoutItem,
+        staffTop: CGFloat
+    ) -> some Gesture {
+        DragGesture(minimumDistance: 3, coordinateSpace: .named(notationTrackCoordinateSpaceName))
+            .onChanged { value in
+                guard !isEntryModeEnabled,
+                      item.notationItem.kind == .note,
+                      let pitch = notePitch(
+                          forDragY: value.location.y,
+                          measure: item.measure,
+                          staffTop: staffTop
+                      )
+                else {
+                    return
+                }
+
+                isTrackFocused = true
+                editingDraft = nil
+                if draggedNotePitchPreview?.matches(item.selection) != true {
+                    actions.selectItem(item.selection, false)
+                }
+
+                let didAudition: Bool
+                if draggedNotePitchPreview?.matches(item.selection) == true,
+                   draggedNotePitchPreview?.pitch == pitch {
+                    didAudition = draggedNotePitchPreview?.didAudition == true
+                } else if item.notationItem.pitch != pitch {
+                    actions.auditionNotePitch(pitch)
+                    didAudition = true
+                } else {
+                    didAudition = false
+                }
+
+                draggedNotePitchPreview = NotationDraggedNotePitchPreview(
+                    selection: item.selection,
+                    pitch: pitch,
+                    didAudition: didAudition
+                )
+            }
+            .onEnded { _ in
+                guard let preview = draggedNotePitchPreview,
+                      preview.matches(item.selection)
+                else {
+                    draggedNotePitchPreview = nil
+                    return
+                }
+
+                _ = actions.changeSelectedNotePitch(preview.pitch, !preview.didAudition)
+                draggedNotePitchPreview = nil
+            }
+    }
+
+    private func notePitch(
+        forDragY y: CGFloat,
+        measure: ScoreMeasure,
+        staffTop: CGFloat
+    ) -> NotationPitch? {
+        guard let staffPosition = NotationNotePlacementResolver.clampedStaffPosition(
+            forY: y,
+            staffTop: staffTop,
+            clef: measure.attributes.clef
+        ) else {
+            return nil
+        }
+
+        return NotationPitchMapper.pitch(
+            forStaffPosition: staffPosition,
+            keySignature: measure.attributes.keySignature,
+            clef: measure.attributes.clef
+        )
     }
 
     private func barlineHitLayer(
@@ -662,14 +1117,14 @@ struct NotationTrackView: View {
             .contentShape(Rectangle())
             .onTapGesture {
                 isTrackFocused = true
-                actions.selectItem(itemSelection(for: symbol))
+                actions.selectItem(itemSelection(for: symbol), false)
                 if !isShiftClickActive {
                     actions.selectHarmony(symbol.id)
                 }
             }
             .onTapGesture(count: 2) {
                 isTrackFocused = true
-                actions.selectItem(itemSelection(for: symbol))
+                actions.selectItem(itemSelection(for: symbol), false)
                 beginEditingHarmony(symbol)
             }
             .accessibilityLabel("Harmony \(symbol.rawText)")
@@ -731,7 +1186,7 @@ struct NotationTrackView: View {
             display: display
         )
         let visibleSpacingWidth = NotationMeasureLayout.spacingWidth(forVisibleComponentCount: visibleComponentCount)
-        let fixedComponentWidth = (display.showsClef ? AppTheme.Timeline.notationClefWidth : 0)
+        let fixedComponentWidth = (display.showsClef ? NotationClefLayout.frameSize.width : 0)
             + (display.showsTimeSignature ? AppTheme.Timeline.notationTimeSignatureWidth : 0)
         let availableAccidentalWidth = max(
             0,
@@ -743,12 +1198,28 @@ struct NotationTrackView: View {
 
         return HStack(alignment: .center, spacing: AppTheme.Spacing.xs) {
             if display.showsClef {
-                Text(attributes.clef.displaySymbol)
-                    .font(.system(size: AppTheme.Timeline.notationClefFontSize))
-                    .foregroundStyle(appColors.notationSymbolsAndLines)
-                    .frame(width: AppTheme.Timeline.notationClefWidth, alignment: .center)
-                    .offset(y: clefVerticalOffset(for: attributes.clef))
-                    .accessibilityLabel("Treble clef")
+                ClefGlyphView(
+                    clef: attributes.clef,
+                    color: appColors.notationSymbolsAndLines
+                )
+                    .contentShape(Rectangle())
+                    .contextMenu {
+                        ForEach(Clef.allCases) { clef in
+                            Button {
+                                actions.changeClef(partID, clef)
+                            } label: {
+                                Label(
+                                    clef.displayName,
+                                    systemImage: clef == attributes.clef ? "checkmark" : "music.note"
+                                )
+                            }
+                            .disabled(clef == attributes.clef)
+                        }
+                    }
+                    .menuOrder(.fixed)
+                    .help("Change clef")
+                    .accessibilityLabel("Notation clef")
+                    .accessibilityValue(attributes.clef.displayName)
             }
 
             if display.showsKeySignature && !keySignatureGlyphs.isEmpty {
@@ -765,6 +1236,7 @@ struct NotationTrackView: View {
                 )
                 .accessibilityElement(children: .ignore)
                 .accessibilityLabel("\(attributes.keySignature.displayName) key signature")
+                .allowsHitTesting(false)
             }
 
             if display.showsTimeSignature {
@@ -777,17 +1249,11 @@ struct NotationTrackView: View {
                 .lineLimit(1)
                 .frame(width: AppTheme.Timeline.notationTimeSignatureWidth)
                 .accessibilityLabel("Time signature \(attributes.timeSignature.displayText)")
+                .allowsHitTesting(false)
             }
         }
         .frame(width: max(0, blockWidth), alignment: .leading)
         .clipped()
-    }
-
-    private func clefVerticalOffset(for clef: Clef) -> CGFloat {
-        switch clef {
-        case .treble:
-            return AppTheme.Timeline.notationTrebleClefVerticalOffset
-        }
     }
 
     @ViewBuilder
@@ -1009,6 +1475,16 @@ struct NotationTrackView: View {
         editingDraft = nil
     }
 
+    private func deleteSelectedNotationItemOrHarmony() {
+        if actions.deleteSelectedNotationNote() {
+            editingDraft = nil
+            draggedNotePitchPreview = nil
+            return
+        }
+
+        deleteSelectedHarmony()
+    }
+
     private func deleteSelectedHarmony() {
         guard let selectedHarmonySymbolID else { return }
         editingDraft = nil
@@ -1109,23 +1585,83 @@ struct NotationTrackView: View {
         )
     }
 
-    private var accessibilityValue: String {
-        guard let first = state.visibleMeasures.first, let last = state.visibleMeasures.last else {
-            return "Pending tempo"
+    private func notePlacement(
+        at point: CGPoint,
+        width: CGFloat,
+        height: CGFloat,
+        attributeDisplays: [NotationAttributeDisplay]
+    ) -> NotationNotePlacement? {
+        guard let target = notationEntryTarget(
+            at: point,
+            width: width,
+            attributeDisplays: attributeDisplays
+        ) else { return nil }
+
+        guard let placement = NotationNotePlacementResolver.placement(
+            in: target.measure,
+            geometry: target.geometry,
+            point: point,
+            staffTop: staffTop(in: height),
+            selectedDuration: selectedDuration,
+            partID: partID
+        ), actions.canInsertNotationNote(placement) else { return nil }
+        return placement
+    }
+
+    private func restPlacement(
+        at point: CGPoint,
+        width: CGFloat,
+        height: CGFloat,
+        attributeDisplays: [NotationAttributeDisplay]
+    ) -> NotationRestPlacement? {
+        guard let target = notationEntryTarget(
+            at: point,
+            width: width,
+            attributeDisplays: attributeDisplays
+        ) else { return nil }
+
+        return NotationNotePlacementResolver.restPlacement(
+            in: target.measure,
+            geometry: target.geometry,
+            point: point,
+            staffTop: staffTop(in: height),
+            selectedDuration: selectedDuration,
+            partID: partID
+        )
+    }
+
+    private func notationEntryTarget(
+        at point: CGPoint,
+        width: CGFloat,
+        attributeDisplays: [NotationAttributeDisplay]
+    ) -> (measure: ScoreMeasure, geometry: NotationMeasureCanvasGeometry)? {
+        guard renderedMeasureCount > 0, !state.visibleMeasures.isEmpty else { return nil }
+        let geometries = measureCanvasGeometries(
+            measureCount: renderedMeasureCount,
+            width: width,
+            attributeDisplays: attributeDisplays
+        )
+        guard let geometryIndex = NotationMeasureLayout.measureIndex(
+            atX: point.x,
+            in: geometries
+        ) else {
+            return nil
         }
 
-        let selectedMeasureText: String
-        if selectedMeasures.isEmpty {
-            selectedMeasureText = ""
-        } else if selectedMeasures.count == 1, let selectedMeasure = selectedMeasures.first {
-            selectedMeasureText = ", selected measure \(selectedMeasure.number)"
-        } else if let firstSelectedMeasure = selectedMeasures.first,
-                  let lastSelectedMeasure = selectedMeasures.last {
-            selectedMeasureText = ", selected measures \(firstSelectedMeasure.number) through \(lastSelectedMeasure.number)"
-        } else {
-            selectedMeasureText = ""
-        }
-        return "Measures \(first.number) through \(last.number), \(state.keySignature.displayName), \(state.timeSignature.displayText)\(selectedMeasureText)"
+        let measureIndex = min(max(0, geometryIndex), state.visibleMeasures.count - 1)
+        guard geometries.indices.contains(measureIndex) else { return nil }
+
+        return (measure: state.visibleMeasures[measureIndex], geometry: geometries[measureIndex])
+    }
+
+    private var accessibilityValue: String {
+        NotationTrackAccessibility.value(
+            visibleMeasures: state.visibleMeasures,
+            keySignature: state.keySignature,
+            timeSignature: state.timeSignature,
+            selectedMeasures: selectedMeasures,
+            partID: partID
+        )
     }
 
     private func barlineAccessibilityLabel(for target: NotationBarlineHitTarget) -> String {
@@ -1140,6 +1676,18 @@ struct NotationTrackView: View {
         }
     }
 
+    private func notationItemAccessibilityLabel(_ item: NotationItemLayoutItem) -> String {
+        switch item.notationItem.kind {
+        case .rest:
+            return "\(item.notationItem.displayDuration.capitalizedDisplayName) rest in measure \(item.selection.measureNumber)"
+        case .note:
+            let pitchText = item.notationItem.pitch.map {
+                "\($0.step.rawValue)\($0.alter == 1 ? " sharp" : $0.alter == -1 ? " flat" : "")\($0.octave)"
+            } ?? "note"
+            return "\(item.notationItem.displayDuration.capitalizedDisplayName) \(pitchText) in measure \(item.selection.measureNumber)"
+        }
+    }
+
     private var isShiftClickActive: Bool {
         NSApp.currentEvent?.modifierFlags.contains(.shift) == true
     }
@@ -1150,6 +1698,34 @@ struct NotationTrackView: View {
         }
 
         return "\(first.number)-\(first.startTime)"
+    }
+}
+
+private struct ClefGlyphView: View {
+    let clef: Clef
+    let color: Color
+
+    var body: some View {
+        Canvas { context, size in
+            let symbol = NotationClefSymbol(clef)
+            guard let glyphPath = NotationMusicFontRegistry.glyphPath(
+                for: symbol,
+                fontSize: AppTheme.Timeline.notationClefFontSize
+            ) else {
+                return
+            }
+
+            let transform = NotationClefLayout.transform(
+                for: glyphPath,
+                symbol: symbol,
+                in: size
+            )
+            context.fill(Path(glyphPath.path).applying(transform), with: .color(color))
+        }
+        .frame(
+            width: NotationClefLayout.frameSize.width,
+            height: NotationClefLayout.frameSize.height
+        )
     }
 }
 
@@ -1210,11 +1786,28 @@ private struct NotationHarmonyPlacement: Equatable {
     }
 }
 
+private struct NotationDraggedNotePitchPreview: Equatable {
+    var selection: NotationItemSelection
+    var pitch: NotationPitch
+    var didAudition: Bool
+
+    func matches(_ selection: NotationItemSelection) -> Bool {
+        self.selection == selection
+    }
+}
+
 private extension NotationTrackActions {
     static let noop = NotationTrackActions(
         selectHarmony: { _ in },
-        selectMeasure: { _, _ in },
-        selectItem: { _ in },
+        selectMeasure: { _, _, _ in },
+        selectItem: { _, _ in },
+        canInsertNotationNote: { _ in false },
+        insertNotationNote: { _ in false },
+        insertNotationRest: { _ in false },
+        changeSelectedNotePitch: { _, _ in false },
+        changeClef: { _, _ in },
+        auditionNotePitch: { _ in },
+        deleteSelectedNotationNote: { false },
         locatePlaybackMarkerExactly: { _ in },
         saveHarmony: { _ in },
         deleteHarmony: { _ in },

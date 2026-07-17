@@ -32,6 +32,7 @@ struct ProjectDocumentSnapshot {
     let notes: [TimecodedNote]
     let harmonySymbols: [HarmonySymbol]
     let notationItems: [NotationMeasureItem]
+    let notationPartClefs: [NotationPartID: Clef]
     let projectKeySelection: ProjectKeySelection?
     let loopRegion: LoopRegion
     let loopMinimumLength: TimeInterval
@@ -50,6 +51,8 @@ struct ProjectDocumentSnapshot {
     let stemState: StemProjectState?
     let isVideoWindowOpen: Bool
     let isNotationTrackCollapsed: Bool
+    let stemNotationTrackCollapsed: [StemType: Bool]
+    let visibleNotationPartIDs: Set<NotationPartID>
 }
 
 struct ProjectPersistenceCoordinator {
@@ -212,6 +215,7 @@ struct ProjectPersistenceCoordinator {
             notes: ProjectStateNormalizer.normalizedNotes(snapshot.notes, duration: snapshot.duration),
             harmonySymbols: ProjectStateNormalizer.normalizedHarmonySymbols(snapshot.harmonySymbols, duration: snapshot.duration),
             notationItems: ProjectStateNormalizer.normalizedNotationItems(snapshot.notationItems, duration: snapshot.duration),
+            notationPartClefs: NotationPartClefOverrides.normalized(snapshot.notationPartClefs),
             projectKeySelection: snapshot.projectKeySelection,
             loopStart: snapshot.loopRegion.clamped(to: snapshot.duration, minimumLength: snapshot.loopMinimumLength).start,
             loopEnd: snapshot.loopRegion.clamped(to: snapshot.duration, minimumLength: snapshot.loopMinimumLength).end,
@@ -231,7 +235,9 @@ struct ProjectPersistenceCoordinator {
             ),
             stemState: snapshot.stemState,
             isVideoWindowOpen: snapshot.importedFile.mediaKind == .video ? snapshot.isVideoWindowOpen : nil,
-            isNotationTrackCollapsed: snapshot.isNotationTrackCollapsed
+            isNotationTrackCollapsed: snapshot.isNotationTrackCollapsed,
+            stemNotationTrackCollapsed: snapshot.stemNotationTrackCollapsed,
+            visibleNotationPartIDs: snapshot.visibleNotationPartIDs
         )
     }
 

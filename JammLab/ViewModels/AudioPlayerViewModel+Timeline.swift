@@ -27,6 +27,11 @@ extension AudioPlayerViewModel {
         playbackEngine.setTempoMap(tempoMap)
     }
 
+    func applyNotationAffectingTempoMapChange() {
+        applyTempoMapToPlaybackEngine()
+        sanitizeNotationTieRelationships()
+    }
+
     func setTempoBPM(_ bpm: Double) {
         performUndoableEdit("Change Tempo") {
             tempoBPM = ProjectStateNormalizer.normalizedTempo(bpm)
@@ -34,7 +39,7 @@ extension AudioPlayerViewModel {
             beatGridSettings.lastChangedAt = Date()
             shouldAcceptAnalyzedTempo = false
             clearNotationMeasureSelection()
-            applyTempoMapToPlaybackEngine()
+            applyNotationAffectingTempoMapChange()
         }
     }
 
@@ -44,7 +49,7 @@ extension AudioPlayerViewModel {
             beatGridSettings.lastChangedAt = Date()
             shouldAcceptAnalyzedTempo = false
             clearNotationMeasureSelection()
-            applyTempoMapToPlaybackEngine()
+            applyNotationAffectingTempoMapChange()
         }
     }
 
@@ -126,13 +131,8 @@ extension AudioPlayerViewModel {
         beatGridSettings.firstBeatTime = max(0, min(time, duration))
         beatGridSettings.alignmentSource = source
         beatGridSettings.lastChangedAt = Date()
-        applyTempoMapToPlaybackEngine()
+        applyNotationAffectingTempoMapChange()
     }
-
-    func loopRegionContains(_ time: TimeInterval) -> Bool {
-        time >= loopRegion.start && time <= loopRegion.end
-    }
-
 
     func snappedTimelineTime(_ time: TimeInterval) -> TimeInterval {
         let clampedTime = max(0, min(time, duration))

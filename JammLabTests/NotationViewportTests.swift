@@ -180,6 +180,158 @@ final class NotationViewportTests: XCTestCase {
 
         XCTAssertEqual(second, first)
         XCTAssertTrue(second.isReady)
+        XCTAssertEqual(cache.cachedScopeCount, 1)
+        XCTAssertEqual(cache.cacheMissCount, 1)
+    }
+
+    func testNotationProjectionCacheInvalidatesWhenPartClefChanges() throws {
+        let tempoMap = fourFourTempoMap(duration: 8)
+        let cache = NotationProjectionCache()
+
+        let treble = cache.content(
+            tempoMap: tempoMap,
+            duration: tempoMap.duration,
+            keyName: "G major",
+            clef: .treble,
+            partID: .stem(.bass),
+            includesHarmonies: false,
+            notationItems: [],
+            harmonySymbols: [],
+            notes: []
+        )
+        let bass = cache.content(
+            tempoMap: tempoMap,
+            duration: tempoMap.duration,
+            keyName: "G major",
+            clef: .bass,
+            partID: .stem(.bass),
+            includesHarmonies: false,
+            notationItems: [],
+            harmonySymbols: [],
+            notes: []
+        )
+
+        XCTAssertEqual(try XCTUnwrap(treble.measures.first).attributes.clef, .treble)
+        XCTAssertEqual(try XCTUnwrap(bass.measures.first).attributes.clef, .bass)
+        XCTAssertEqual(cache.cachedScopeCount, 1)
+        XCTAssertEqual(cache.cacheMissCount, 2)
+    }
+
+    func testNotationProjectionCacheKeepsPartScopesAndGlobalRegionsIndependent() throws {
+        let tempoMap = fourFourTempoMap(duration: 8)
+        let cache = NotationProjectionCache()
+        let regionID = UUID(uuidString: "00000000-0000-0000-0000-000000000401")!
+        let harmony = HarmonySymbol(
+            time: 0,
+            measureNumber: 1,
+            offsetInQuarterNotes: 0,
+            rawText: "C"
+        )
+
+        let main = cache.content(
+            tempoMap: tempoMap,
+            duration: tempoMap.duration,
+            keyName: "C major",
+            partID: .main,
+            includesHarmonies: true,
+            notationItems: [],
+            harmonySymbols: [harmony],
+            notes: [TimecodedNote(id: regionID, kind: .region, time: 0.5, duration: 2, title: "Intro")]
+        )
+        let bass = cache.content(
+            tempoMap: tempoMap,
+            duration: tempoMap.duration,
+            keyName: "C major",
+            partID: .stem(.bass),
+            includesHarmonies: false,
+            notationItems: [],
+            harmonySymbols: [harmony],
+            notes: [TimecodedNote(id: regionID, kind: .region, time: 0.5, duration: 2, title: "Intro")]
+        )
+        let mainAgain = cache.content(
+            tempoMap: tempoMap,
+            duration: tempoMap.duration,
+            keyName: "C major",
+            partID: .main,
+            includesHarmonies: true,
+            notationItems: [],
+            harmonySymbols: [harmony],
+            notes: [TimecodedNote(id: regionID, kind: .region, time: 0.5, duration: 2, title: "Intro")]
+        )
+        let mainOnlyItem = NotationMeasureItem(
+            id: "main-note",
+            partID: .main,
+            kind: .note,
+            pitch: NotationPitch(step: .c, octave: 4),
+            measureNumber: 1,
+            measureStartTime: 0,
+            offsetInQuarterNotes: 0,
+            durationInQuarterNotes: 1,
+            displayDuration: NotationDuration(denominator: 4)
+        )
+        let bassWithUnrelatedChanges = cache.content(
+            tempoMap: tempoMap,
+            duration: tempoMap.duration,
+            keyName: "C major",
+            partID: .stem(.bass),
+            includesHarmonies: false,
+            notationItems: [mainOnlyItem],
+            harmonySymbols: [
+                HarmonySymbol(time: 1, measureNumber: 1, offsetInQuarterNotes: 2, rawText: "G7")
+            ],
+            notes: [
+                TimecodedNote(id: regionID, kind: .region, time: 0.5, duration: 2, title: "Intro"),
+                TimecodedNote(kind: .marker, time: 1, title: "Marker")
+            ]
+        )
+
+        XCTAssertEqual(cache.cachedScopeCount, 2)
+        XCTAssertEqual(cache.cacheMissCount, 2)
+        XCTAssertEqual(mainAgain, main)
+        XCTAssertEqual(bassWithUnrelatedChanges, bass)
+        XCTAssertEqual(main.measures.flatMap(\.harmonies).map(\.id), [harmony.id])
+        XCTAssertTrue(bass.measures.flatMap(\.harmonies).isEmpty)
+        XCTAssertEqual(main.measures.flatMap(\.regionLabels).map(\.id), [regionID])
+        XCTAssertEqual(bass.measures.flatMap(\.regionLabels).map(\.id), [regionID])
+
+        let bassItem = NotationMeasureItem(
+            id: "bass-note",
+            partID: .stem(.bass),
+            kind: .note,
+            pitch: NotationPitch(step: .e, octave: 2),
+            measureNumber: 1,
+            measureStartTime: 0,
+            offsetInQuarterNotes: 0,
+            durationInQuarterNotes: 1,
+            displayDuration: NotationDuration(denominator: 4)
+        )
+        _ = cache.content(
+            tempoMap: tempoMap,
+            duration: tempoMap.duration,
+            keyName: "C major",
+            partID: .stem(.bass),
+            includesHarmonies: false,
+            notationItems: [bassItem],
+            harmonySymbols: [],
+            notes: [TimecodedNote(id: regionID, kind: .region, time: 0.5, duration: 2, title: "Intro")]
+        )
+        XCTAssertEqual(cache.cacheMissCount, 3)
+
+        _ = cache.content(
+            tempoMap: tempoMap,
+            duration: tempoMap.duration,
+            keyName: "C major",
+            partID: .stem(.bass),
+            includesHarmonies: false,
+            notationItems: [bassItem],
+            harmonySymbols: [],
+            notes: [TimecodedNote(id: regionID, kind: .region, time: 0.5, duration: 2, title: "Renamed Intro")]
+        )
+        XCTAssertEqual(cache.cacheMissCount, 4)
+
+        cache.invalidate()
+        XCTAssertEqual(cache.cachedScopeCount, 0)
+        XCTAssertEqual(cache.cacheMissCount, 0)
     }
 
     private func fourFourTempoMap(

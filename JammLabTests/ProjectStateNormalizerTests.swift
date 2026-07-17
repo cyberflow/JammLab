@@ -51,6 +51,34 @@ final class ProjectStateNormalizerTests: XCTestCase {
         XCTAssertEqual(symbols[1].rawText, "G7 alt")
     }
 
+    func testProjectStateNormalizerPreservesNotationNotePitchAndDropsInvalidNotes() {
+        let note = NotationMeasureItem(
+            id: "note",
+            kind: .note,
+            pitch: NotationPitch(step: .f, octave: 5, alter: 1),
+            measureNumber: 1,
+            measureStartTime: 0,
+            offsetInQuarterNotes: 0,
+            durationInQuarterNotes: 1,
+            displayDuration: NotationDuration(denominator: 4)
+        )
+        let invalidNote = NotationMeasureItem(
+            id: "invalid",
+            kind: .note,
+            measureNumber: 1,
+            measureStartTime: 0,
+            offsetInQuarterNotes: 1,
+            durationInQuarterNotes: 1,
+            displayDuration: NotationDuration(denominator: 4)
+        )
+
+        let items = ProjectStateNormalizer.normalizedNotationItems([invalidNote, note], duration: 4)
+
+        XCTAssertEqual(items.map(\.id), ["note"])
+        XCTAssertEqual(items.first?.kind, .note)
+        XCTAssertEqual(items.first?.pitch, NotationPitch(step: .f, octave: 5, alter: 1))
+    }
+
     func testProjectStateNormalizerUsesSliderDefaultsForPlaybackControls() {
         XCTAssertEqual(
             ProjectStateNormalizer.normalizedPlaybackRate(0),

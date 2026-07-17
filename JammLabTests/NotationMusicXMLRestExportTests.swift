@@ -33,6 +33,7 @@ final class NotationMusicXMLRestExportTests: XCTestCase {
         XCTAssertTrue(notes.allSatisfy { note in
             note.elements(forName: "rest").first?.attribute(forName: "measure") == nil
         })
+        XCTAssertTrue(notes.allSatisfy { $0.elements(forName: "dot").isEmpty })
     }
 
     func testMusicXMLHarmonyAtNotationItemBoundaryUsesNextItemCursor() throws {
@@ -58,6 +59,168 @@ final class NotationMusicXMLRestExportTests: XCTestCase {
 
         XCTAssertEqual(try firstXMLChild(named: "offset", in: harmony).stringValue, "0")
         try assertXMLChild(harmony, precedes: thirdRest, in: firstMeasure)
+    }
+
+    func testMusicXMLExportIncludesPitchedNotationNoteWithoutBeam() throws {
+        let state = NotationViewportFactory().scoreState(
+            tempoMap: fourFourTempoMap(duration: 4),
+            duration: 4,
+            currentTime: 0,
+            playbackMarkerTime: 0,
+            isPlaying: false,
+            keyName: "G major",
+            notationItems: [
+                NotationMeasureItem(
+                    kind: .note,
+                    pitch: NotationPitch(step: .f, octave: 5, alter: 1),
+                    measureNumber: 1,
+                    measureStartTime: 0,
+                    offsetInQuarterNotes: 0,
+                    durationInQuarterNotes: 0.5,
+                    displayDuration: NotationDuration(denominator: 8)
+                ),
+                NotationMeasureItem(
+                    measureNumber: 1,
+                    measureStartTime: 0,
+                    offsetInQuarterNotes: 0.5,
+                    durationInQuarterNotes: 3.5,
+                    displayDuration: NotationDuration(denominator: 2)
+                )
+            ]
+        )
+
+        let document = try exportedMusicXMLDocument(for: state)
+        let part = try XCTUnwrap(document.rootElement()?.elements(forName: "part").first)
+        let firstMeasure = try XCTUnwrap(part.elements(forName: "measure").first)
+        let note = try XCTUnwrap(firstMeasure.elements(forName: "note").first)
+        let pitch = try firstXMLChild(named: "pitch", in: note)
+
+        XCTAssertEqual(try firstXMLChild(named: "step", in: pitch).stringValue, "F")
+        XCTAssertEqual(try firstXMLChild(named: "alter", in: pitch).stringValue, "1")
+        XCTAssertEqual(try firstXMLChild(named: "octave", in: pitch).stringValue, "5")
+        XCTAssertEqual(try firstXMLChild(named: "duration", in: note).stringValue, "240")
+        XCTAssertEqual(try firstXMLChild(named: "type", in: note).stringValue, "eighth")
+        XCTAssertTrue(note.elements(forName: "dot").isEmpty)
+        XCTAssertTrue(note.elements(forName: "beam").isEmpty)
+    }
+
+    func testMusicXMLExportIncludesSixteenthNoteAndRestWithoutBeams() throws {
+        let state = NotationViewportFactory().scoreState(
+            tempoMap: fourFourTempoMap(duration: 4),
+            duration: 4,
+            currentTime: 0,
+            playbackMarkerTime: 0,
+            isPlaying: false,
+            keyName: "C major",
+            notationItems: [
+                NotationMeasureItem(
+                    kind: .note,
+                    pitch: NotationPitch(step: .c, octave: 5),
+                    measureNumber: 1,
+                    measureStartTime: 0,
+                    offsetInQuarterNotes: 0,
+                    durationInQuarterNotes: 0.25,
+                    displayDuration: NotationDuration(denominator: 16)
+                ),
+                NotationMeasureItem(
+                    measureNumber: 1,
+                    measureStartTime: 0,
+                    offsetInQuarterNotes: 0.25,
+                    durationInQuarterNotes: 0.25,
+                    displayDuration: NotationDuration(denominator: 16)
+                ),
+                NotationMeasureItem(
+                    measureNumber: 1,
+                    measureStartTime: 0,
+                    offsetInQuarterNotes: 0.5,
+                    durationInQuarterNotes: 3.5,
+                    displayDuration: NotationDuration(denominator: 2)
+                )
+            ]
+        )
+
+        let document = try exportedMusicXMLDocument(for: state)
+        let part = try XCTUnwrap(document.rootElement()?.elements(forName: "part").first)
+        let firstMeasure = try XCTUnwrap(part.elements(forName: "measure").first)
+        let notes = firstMeasure.elements(forName: "note")
+        let sixteenthNote = try XCTUnwrap(notes.first)
+        let sixteenthRest = try XCTUnwrap(notes.dropFirst().first)
+
+        XCTAssertNotNil(sixteenthNote.elements(forName: "pitch").first)
+        XCTAssertNotNil(sixteenthRest.elements(forName: "rest").first)
+        for item in [sixteenthNote, sixteenthRest] {
+            XCTAssertEqual(try firstXMLChild(named: "duration", in: item).stringValue, "120")
+            XCTAssertEqual(try firstXMLChild(named: "type", in: item).stringValue, "16th")
+            XCTAssertTrue(item.elements(forName: "beam").isEmpty)
+        }
+    }
+
+    func testMusicXMLExportIncludesAugmentationDotForDottedNoteAndRest() throws {
+        let dottedQuarter = NotationDuration(denominator: 4, isDotted: true)
+        let state = NotationViewportFactory().scoreState(
+            tempoMap: fourFourTempoMap(duration: 4),
+            duration: 4,
+            currentTime: 0,
+            playbackMarkerTime: 0,
+            isPlaying: false,
+            keyName: "C major",
+            notationItems: [
+                NotationMeasureItem(
+                    kind: .note,
+                    pitch: NotationPitch(step: .c, octave: 5),
+                    measureNumber: 1,
+                    measureStartTime: 0,
+                    offsetInQuarterNotes: 0,
+                    durationInQuarterNotes: dottedQuarter.durationInQuarterNotes,
+                    displayDuration: dottedQuarter
+                ),
+                NotationMeasureItem(
+                    measureNumber: 1,
+                    measureStartTime: 0,
+                    offsetInQuarterNotes: 1.5,
+                    durationInQuarterNotes: dottedQuarter.durationInQuarterNotes,
+                    displayDuration: dottedQuarter
+                ),
+                NotationMeasureItem(
+                    measureNumber: 1,
+                    measureStartTime: 0,
+                    offsetInQuarterNotes: 3,
+                    durationInQuarterNotes: 1,
+                    displayDuration: NotationDuration(denominator: 4)
+                )
+            ]
+        )
+
+        let document = try exportedMusicXMLDocument(for: state)
+        let part = try XCTUnwrap(document.rootElement()?.elements(forName: "part").first)
+        let firstMeasure = try XCTUnwrap(part.elements(forName: "measure").first)
+        let exportedItems = firstMeasure.elements(forName: "note")
+        let dottedItems = Array(exportedItems.prefix(2))
+
+        XCTAssertEqual(dottedItems.count, 2)
+        for item in dottedItems {
+            XCTAssertEqual(try firstXMLChild(named: "duration", in: item).stringValue, "720")
+            XCTAssertEqual(try firstXMLChild(named: "type", in: item).stringValue, "quarter")
+            XCTAssertEqual(item.elements(forName: "dot").count, 1)
+            let children = childElements(in: item)
+            let typeIndex = try XCTUnwrap(children.firstIndex { $0.name == "type" })
+            let dotIndex = try XCTUnwrap(children.firstIndex { $0.name == "dot" })
+            XCTAssertEqual(dotIndex, typeIndex + 1)
+        }
+        XCTAssertNotNil(dottedItems.first?.elements(forName: "pitch").first)
+        XCTAssertNotNil(dottedItems.last?.elements(forName: "rest").first)
+        XCTAssertEqual(childElements(in: dottedItems[0]).compactMap(\.name), [
+            "pitch", "duration", "voice", "type", "dot"
+        ])
+        XCTAssertEqual(childElements(in: dottedItems[1]).compactMap(\.name), [
+            "rest", "duration", "voice", "type", "dot"
+        ])
+
+        let undottedRest = try XCTUnwrap(exportedItems.last)
+        XCTAssertEqual(childElements(in: undottedRest).compactMap(\.name), [
+            "rest", "duration", "voice", "type"
+        ])
+        XCTAssertTrue(undottedRest.elements(forName: "dot").isEmpty)
     }
 
     private func exportedMusicXMLDocument(for state: NotationScoreState) throws -> XMLDocument {

@@ -22,6 +22,11 @@ enum PlaybackState: Equatable {
     }
 }
 
+enum NotationEntryMode: Equatable {
+    case note
+    case rest
+}
+
 @MainActor
 final class AudioPlayerViewModel: ObservableObject {
     @Published var importedFile: ImportedAudioFile?
@@ -45,7 +50,10 @@ final class AudioPlayerViewModel: ObservableObject {
     @Published var selectedNotationItem: NotationItemSelection?
     @Published var notationMeasureClipboard: NotationMeasureClipboard?
     @Published var notationDurationDenominator = NotationDuration.defaultDenominator
+    @Published var notationEntryDurationIsDotted = false
     @Published var notationItems: [NotationMeasureItem] = []
+    @Published var notationPartClefs: [NotationPartID: Clef] = [:]
+    @Published var notationEntryMode: NotationEntryMode?
     @Published var pendingHarmonyEditorRequest: HarmonyEditorRequest?
     @Published var activeLoopRegionID: TimecodedNote.ID?
     @Published var loopRegion: LoopRegion = .empty
@@ -65,8 +73,10 @@ final class AudioPlayerViewModel: ObservableObject {
     @Published var isSnapEnabled = false
     @Published var isVideoWindowOpen = false
     @Published var isNotationTrackCollapsed = true
+    @Published var stemNotationTrackCollapsed: [StemType: Bool] = [:]
+    @Published var visibleNotationPartIDs: Set<NotationPartID> = [.main]
     @Published var mainTrackVolume: Float = AppSliderDefaults.mainTrackVolume
-    @Published var clickVolume: Float = AudioPlayerViewModel.restoredClickVolume()
+    @Published var clickVolume: Float = AppSliderDefaults.clickVolume
     @Published var undoStateRevision = 0
     @Published var isProjectModified = false
     @Published var errorMessage: String?
@@ -89,6 +99,7 @@ final class AudioPlayerViewModel: ObservableObject {
     let projectPersistenceCoordinator: ProjectPersistenceCoordinator
     let notationExportService: NotationExportService
     let notationExportDocumentService: NotationExportDocumentService
+    let notationNoteAuditioner: NotationNoteAuditioning
     let recentProjectsStore: RecentProjectsStore
     let isSandboxed: () -> Bool
     var clockTask: Task<Void, Never>?
@@ -109,16 +120,6 @@ final class AudioPlayerViewModel: ObservableObject {
     var isRestoringVideoWindowState = false
     var userTimelineVisibleRange: ClosedRange<TimeInterval> = 0...0
     var lastSavedProjectState: ProjectPersistedEditableState?
-
-    private static func restoredClickVolume() -> Float {
-        let key = "metronome.volume"
-
-        guard UserDefaults.standard.object(forKey: key) != nil else {
-            return AppSliderDefaults.clickVolume
-        }
-
-        return min(1, max(0, UserDefaults.standard.float(forKey: key)))
-    }
 
     nonisolated private static func defaultSandboxDetection() -> Bool {
         ProcessInfo.processInfo.environment["APP_SANDBOX_CONTAINER_ID"] != nil
@@ -176,6 +177,7 @@ final class AudioPlayerViewModel: ObservableObject {
         projectPersistenceCoordinator: ProjectPersistenceCoordinator? = nil,
         notationExportService: NotationExportService = NotationExportService(),
         notationExportDocumentService: NotationExportDocumentService = NotationExportDocumentService(),
+        notationNoteAuditioner: NotationNoteAuditioning? = nil,
         recentProjectsStore: RecentProjectsStore? = nil,
         isSandboxed: @escaping () -> Bool = AudioPlayerViewModel.defaultSandboxDetection
     ) {
@@ -198,8 +200,10 @@ final class AudioPlayerViewModel: ObservableObject {
         )
         self.notationExportService = notationExportService
         self.notationExportDocumentService = notationExportDocumentService
+        self.notationNoteAuditioner = notationNoteAuditioner ?? SamplerNotationNoteAuditioner()
         self.recentProjectsStore = recentProjectsStore ?? .shared
         self.isSandboxed = isSandboxed
+        self.clickVolume = appSettingsStore.restoredClickVolume()
         self.playbackEngine.setClickVolume(clickVolume)
         self.playbackEngine.setMainVolume(mainTrackVolume)
         self.playbackEngine.setClickSettings(beatGridSettings)

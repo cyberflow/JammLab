@@ -22,13 +22,13 @@ struct NotationDurationControl: View {
     @Environment(\.appColors) private var appColors
 
     private var options: [NotationDurationOption] {
-        NotationDuration.allowedDenominators
+        NotationDuration.entryDenominators
             .reversed()
             .compactMap(NotationDurationOption.init)
     }
 
     var body: some View {
-        HStack(spacing: AppTheme.Spacing.xs) {
+        HStack(spacing: AppTheme.ControlSize.notationDurationButtonSpacing) {
             ForEach(options) { option in
                 durationButton(for: option)
             }
@@ -83,8 +83,249 @@ struct NotationDurationControl: View {
     }
 }
 
+struct NotationEntryModeButton: View {
+    let mode: NotationEntryMode
+    let isActive: Bool
+    let action: () -> Void
+
+    var body: some View {
+        NotationSelectableButton(isActive: isActive, action: action) { iconColor in
+            ZStack {
+                switch mode {
+                case .note:
+                    Image(systemName: "pencil")
+                        .font(.system(size: 14, weight: .semibold))
+                        .foregroundStyle(iconColor)
+                case .rest:
+                    NotationRestControlGlyphView(
+                        symbol: .restQuarter,
+                        color: iconColor
+                    )
+                }
+            }
+        }
+    }
+}
+
+struct NotationAugmentationDotButton: View {
+    let isActive: Bool
+    let action: () -> Void
+
+    var body: some View {
+        NotationSelectableButton(isActive: isActive, action: action) { iconColor in
+            NotationAugmentationDotGlyphView(color: iconColor)
+                .accessibilityHidden(true)
+        }
+        .help(Text(NotationAugmentationDotHelpText.tooltip))
+        .accessibilityLabel(NotationAugmentationDotHelpText.accessibilityLabel)
+        .accessibilityHint(NotationAugmentationDotHelpText.accessibilityHint)
+        .accessibilityValue(isActive ? "Enabled" : "Disabled")
+        .accessibilityAddTraits(isActive ? [.isSelected] : [])
+    }
+}
+
+struct NotationTieButton: View {
+    let status: NotationTieCommandStatus
+    let action: () -> Void
+
+    var body: some View {
+        NotationSelectableButton(isActive: false, action: action) { iconColor in
+            NotationTieControlGlyphView(color: iconColor)
+                .accessibilityHidden(true)
+        }
+        .disabled(!status.isInCommandScope)
+        .help(Text(NotationTieHelpText.tooltip(for: status)))
+        .accessibilityLabel(NotationTieHelpText.accessibilityLabel)
+        .accessibilityHint(Text(NotationTieHelpText.accessibilityHint(for: status)))
+    }
+}
+
+private struct NotationSelectableButton<Label: View>: View {
+    let isActive: Bool
+    let action: () -> Void
+    private let label: (Color) -> Label
+    @Environment(\.isEnabled) private var isEnabled
+    @Environment(\.appColors) private var appColors
+
+    init(
+        isActive: Bool,
+        action: @escaping () -> Void,
+        @ViewBuilder label: @escaping (Color) -> Label
+    ) {
+        self.isActive = isActive
+        self.action = action
+        self.label = label
+    }
+
+    var body: some View {
+        Button(action: action) {
+            label(iconColor)
+                .frame(
+                    width: AppTheme.ControlSize.notationModeButtonWidth,
+                    height: AppTheme.ControlSize.notationDurationControlHeight
+                )
+                .background(isActive ? appColors.accent : appColors.statusButtonFill)
+                .clipShape(RoundedRectangle(cornerRadius: AppTheme.Radius.small, style: .continuous))
+                .overlay {
+                    RoundedRectangle(cornerRadius: AppTheme.Radius.small, style: .continuous)
+                        .stroke(isActive ? appColors.accent : appColors.border, lineWidth: AppTheme.Stroke.thin)
+                }
+                .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .opacity(isEnabled ? 1 : 0.45)
+    }
+
+    private var iconColor: Color {
+        guard isEnabled else { return appColors.disabledText }
+        return isActive ? appColors.primaryText : appColors.secondaryText
+    }
+}
+
+enum NotationAugmentationDotHelpText {
+    static let tooltip = [
+        "\(AppHotkey.toggleNotationDurationDot.title) (\(AppHotkey.toggleNotationDurationDot.key))",
+        AppHotkey.toggleNotationDurationDot.detail
+    ].joined(separator: "\n")
+    static let accessibilityLabel = AppHotkey.toggleNotationDurationDot.title
+    static let accessibilityHint = AppHotkey.toggleNotationDurationDot.detail
+}
+
+enum NotationTieHelpText {
+    private static let defaultTooltip = [
+        "\(AppHotkey.addTiedNotationNote.title) (\(AppHotkey.addTiedNotationNote.key))",
+        AppHotkey.addTiedNotationNote.detail
+    ].joined(separator: "\n")
+    static let accessibilityLabel = AppHotkey.addTiedNotationNote.title
+
+    static func tooltip(for status: NotationTieCommandStatus) -> String {
+        guard let blockedExplanation = blockedExplanation(for: status) else {
+            return defaultTooltip
+        }
+        return [defaultTooltip, blockedExplanation].joined(separator: "\n")
+    }
+
+    static func accessibilityHint(for status: NotationTieCommandStatus) -> String {
+        blockedExplanation(for: status) ?? AppHotkey.addTiedNotationNote.detail
+    }
+
+    private static func blockedExplanation(
+        for status: NotationTieCommandStatus
+    ) -> String? {
+        guard case let .blocked(reason) = status else { return nil }
+        switch reason {
+        case .selectNote:
+            return "Select a note to add a tie."
+        case .alreadyTied:
+            return "The selected note already starts a tie."
+        case .noFreeFollowingDuration:
+            return "There is not enough empty notation time after the selected note."
+        case .audioBoundary:
+            return "There is not enough audio time after the selected note."
+        }
+    }
+}
+
+private struct NotationTieControlGlyphView: View {
+    let color: Color
+
+    var body: some View {
+        Canvas { context, size in
+            let fontSize = AppTheme.ControlSize.notationDurationGlyphSize
+            if let notePath = NotationMusicFontRegistry.glyphPath(
+                for: NotationDurationControlSymbol.quarter,
+                fontSize: fontSize
+            ) {
+                for direction in [-1.0, 1.0] {
+                    let transform = notePath.centeredTransform(in: size)
+                        .translatedBy(
+                            x: CGFloat(direction) * AppTheme.ControlSize.notationTieNoteOffsetX,
+                            y: 0
+                        )
+                    context.fill(Path(notePath.path).applying(transform), with: .color(color))
+                }
+            }
+
+            let centerY = size.height / 2 + AppTheme.ControlSize.notationTieArcOffsetY
+            let tiePath = NotationTiePath.path(
+                start: CGPoint(x: size.width / 2 - AppTheme.ControlSize.notationTieNoteOffsetX, y: centerY),
+                end: CGPoint(x: size.width / 2 + AppTheme.ControlSize.notationTieNoteOffsetX, y: centerY),
+                placement: .below,
+                arcHeight: AppTheme.ControlSize.notationTieArcHeight,
+                endpointThickness: AppTheme.ControlSize.notationTieEndpointThickness,
+                midpointThickness: AppTheme.ControlSize.notationTieMidpointThickness
+            )
+            context.fill(Path(tiePath), with: .color(color))
+        }
+    }
+}
+
+private struct NotationAugmentationDotGlyphView: View {
+    let color: Color
+
+    var body: some View {
+        Canvas { context, size in
+            let fontSize = AppTheme.ControlSize.notationDurationGlyphSize
+            if let notePath = NotationMusicFontRegistry.glyphPath(
+                for: NotationDurationControlSymbol.quarter,
+                fontSize: fontSize
+            ) {
+                let transform = notePath.centeredTransform(in: size)
+                    .translatedBy(
+                        x: AppTheme.ControlSize.notationAugmentationDotNoteOffsetX,
+                        y: 0
+                    )
+                context.fill(Path(notePath.path).applying(transform), with: .color(color))
+            }
+
+            if let dotPath = NotationMusicFontRegistry.glyphPath(
+                for: NotationAugmentationDotSymbol.augmentationDot,
+                fontSize: fontSize
+            ) {
+                let target = CGPoint(
+                    x: size.width / 2 + AppTheme.ControlSize.notationAugmentationDotGlyphOffsetX,
+                    y: size.height / 2 + AppTheme.ControlSize.notationAugmentationDotGlyphOffsetY
+                )
+                let anchor = CGPoint(x: dotPath.bounds.midX, y: dotPath.bounds.midY)
+                context.fill(
+                    Path(dotPath.path).applying(dotPath.anchoredTransform(anchor: anchor, target: target)),
+                    with: .color(color)
+                )
+            }
+        }
+    }
+}
+
 private struct NotationDurationGlyphView: View {
     let symbol: NotationDurationControlSymbol
+    let color: Color
+
+    var body: some View {
+        ZStack {
+            if let glyphPath = NotationMusicFontRegistry.glyphPath(
+                for: symbol,
+                fontSize: AppTheme.ControlSize.notationDurationGlyphSize
+            ) {
+                Canvas { context, size in
+                    context.fill(
+                        Path(glyphPath.path).applying(glyphPath.centeredTransform(in: size)),
+                        with: .color(color)
+                    )
+                }
+            } else {
+                Text(symbol.glyph)
+                    .font(.custom(
+                        NotationMusicFontRegistry.fontName,
+                        size: AppTheme.ControlSize.notationDurationGlyphSize
+                    ))
+                    .foregroundStyle(color)
+            }
+        }
+    }
+}
+
+private struct NotationRestControlGlyphView: View {
+    let symbol: NotationSMuFLSymbol
     let color: Color
 
     var body: some View {
@@ -139,7 +380,7 @@ enum NotationDurationControlHelpText {
     }
 
     static func accessibilityLabel(for duration: NotationDuration) -> String {
-        "\(duration.displayName.capitalized) note duration"
+        "\(duration.capitalizedDisplayName) note duration"
     }
 
     static func accessibilityHint(for duration: NotationDuration) -> String {
@@ -147,7 +388,7 @@ enum NotationDurationControlHelpText {
     }
 
     private static func title(for duration: NotationDuration) -> String {
-        "\(duration.displayName.capitalized) (\(traditionalName(for: duration))) note"
+        "\(duration.capitalizedDisplayName) (\(traditionalName(for: duration))) note"
     }
 
     private static func lowercaseTitle(for duration: NotationDuration) -> String {
@@ -164,6 +405,8 @@ enum NotationDurationControlHelpText {
             return "crotchet"
         case 8:
             return "quaver"
+        case 16:
+            return "semiquaver"
         default:
             return duration.displayName
         }

@@ -59,12 +59,14 @@ struct NotationRegionLabel: Identifiable, Equatable {
 }
 
 struct NotationMeasureSelection: Equatable, Identifiable {
+    var partID: NotationPartID
     var number: Int
     var startTime: TimeInterval
     var endTime: TimeInterval
     var attributes: MeasureAttributes
 
-    init(measure: ScoreMeasure) {
+    init(measure: ScoreMeasure, partID: NotationPartID = .main) {
+        self.partID = partID
         self.number = measure.number
         self.startTime = measure.startTime
         self.endTime = measure.endTime
@@ -72,17 +74,23 @@ struct NotationMeasureSelection: Equatable, Identifiable {
     }
 
     var id: String {
-        "\(number)-\(startTime)-\(endTime)"
+        "\(partID.rawValue)-\(number)-\(startTime)-\(endTime)"
     }
 
     func matches(_ measure: ScoreMeasure) -> Bool {
-        number == measure.number
+        matches(measure, partID: partID)
+    }
+
+    func matches(_ measure: ScoreMeasure, partID: NotationPartID) -> Bool {
+        self.partID == partID
+            && number == measure.number
             && abs(startTime - measure.startTime) < NotationMeasureTiming.timelineTolerance
             && abs(endTime - measure.endTime) < NotationMeasureTiming.timelineTolerance
     }
 }
 
 struct NotationItemSelection: Equatable, Identifiable {
+    var partID: NotationPartID
     var measureNumber: Int
     var measureStartTime: TimeInterval
     var measureEndTime: TimeInterval
@@ -91,7 +99,8 @@ struct NotationItemSelection: Equatable, Identifiable {
     var offsetInQuarterNotes: Double
     var durationInQuarterNotes: Double
 
-    init(measure: ScoreMeasure, item: NotationMeasureItem) {
+    init(measure: ScoreMeasure, item: NotationMeasureItem, partID: NotationPartID? = nil) {
+        self.partID = partID ?? item.partID
         self.measureNumber = measure.number
         self.measureStartTime = measure.startTime
         self.measureEndTime = measure.endTime
@@ -102,11 +111,12 @@ struct NotationItemSelection: Equatable, Identifiable {
     }
 
     var id: String {
-        "\(measureNumber)-\(measureStartTime)-\(measureEndTime)-\(itemID)-\(offsetInQuarterNotes)-\(durationInQuarterNotes)"
+        "\(partID.rawValue)-\(measureNumber)-\(measureStartTime)-\(measureEndTime)-\(itemID)-\(offsetInQuarterNotes)-\(durationInQuarterNotes)"
     }
 
     func matches(_ measure: ScoreMeasure, item: NotationMeasureItem) -> Bool {
-        measureNumber == measure.number
+        item.partID == partID
+            && measureNumber == measure.number
             && abs(measureStartTime - measure.startTime) < NotationMeasureTiming.timelineTolerance
             && abs(measureEndTime - measure.endTime) < NotationMeasureTiming.timelineTolerance
             && attributes == measure.attributes
@@ -131,9 +141,115 @@ struct NotationMeasureClipboardItem: Equatable {
 }
 
 struct NotationMeasureClipboardNotationItem: Equatable {
+    var sourceItemID: String
+    var kind: NotationMeasureItem.Kind = .rest
+    var pitch: NotationPitch? = nil
     var offsetInQuarterNotes: Double
     var durationInQuarterNotes: Double
     var displayDuration: NotationDuration
+    var tieTargetItemID: String? = nil
+}
+
+struct NotationPartID: Codable, Hashable, Identifiable, Equatable {
+    var rawValue: String
+
+    var id: String { rawValue }
+
+    static let main = NotationPartID(rawValue: "main")
+
+    static func stem(_ type: StemType) -> NotationPartID {
+        NotationPartID(rawValue: "stem:\(type.rawValue)")
+    }
+
+    var stemType: StemType? {
+        guard rawValue.hasPrefix("stem:") else { return nil }
+        return StemType(rawValue: String(rawValue.dropFirst("stem:".count)))
+    }
+
+    var isMain: Bool {
+        self == .main
+    }
+}
+
+struct NotationPartDescriptor: Equatable, Identifiable {
+    var id: NotationPartID
+    var title: String
+    var abbreviation: String
+    var instrumentName: String
+    var instrumentSound: String?
+
+    static let main = make(
+        id: .main,
+        title: "Main",
+        abbreviation: "Main"
+    )
+
+    static func stem(_ type: StemType) -> NotationPartDescriptor {
+        switch type {
+        case .vocals:
+            return make(
+                id: .stem(type),
+                title: "Vocals",
+                abbreviation: "Voc.",
+                instrumentSound: "voice.vocals"
+            )
+        case .instrumental:
+            return make(
+                id: .stem(type),
+                title: "Instrumental",
+                abbreviation: "Instr."
+            )
+        case .drums:
+            return make(
+                id: .stem(type),
+                title: "Drum Set",
+                abbreviation: "Dr.",
+                instrumentSound: "drum.group.set"
+            )
+        case .bass:
+            return make(
+                id: .stem(type),
+                title: "Bass Guitar",
+                abbreviation: "B. Guit.",
+                instrumentSound: "pluck.bass"
+            )
+        case .other:
+            return make(
+                id: .stem(type),
+                title: "Other",
+                abbreviation: "Other"
+            )
+        case .guitar:
+            return make(
+                id: .stem(type),
+                title: "Guitar",
+                abbreviation: "Guit.",
+                instrumentSound: "pluck.guitar"
+            )
+        case .piano:
+            return make(
+                id: .stem(type),
+                title: "Piano",
+                abbreviation: "Pno.",
+                instrumentSound: "keyboard.piano"
+            )
+        }
+    }
+
+    private static func make(
+        id: NotationPartID,
+        title: String,
+        abbreviation: String,
+        instrumentSound: String? = nil
+    ) -> NotationPartDescriptor {
+        NotationPartDescriptor(
+            id: id,
+            title: title,
+            abbreviation: abbreviation,
+            instrumentName: title,
+            instrumentSound: instrumentSound
+        )
+    }
 }
 
 enum NotationMeasureTiming {
@@ -210,19 +326,28 @@ enum HarmonyNavigationDirection: Equatable {
 }
 
 struct NotationDuration: Codable, Equatable, Identifiable {
-    static let allowedDenominators = [1, 2, 4, 8]
+    static let entryDenominators = [1, 2, 4, 8, 16]
+    static let restDecompositionDenominators = entryDenominators + [32]
     static let defaultDenominator = 1
 
     var denominator: Int
+    var isDotted: Bool
 
-    init(denominator: Int = Self.defaultDenominator) {
-        self.denominator = Self.normalizedDenominator(denominator)
+    init(denominator: Int = Self.defaultDenominator, isDotted: Bool = false) {
+        self.denominator = Self.restDecompositionDenominators.contains(denominator)
+            ? denominator
+            : Self.normalizedDenominator(denominator)
+        self.isDotted = isDotted
     }
 
-    var id: Int { denominator }
+    var id: String { "\(denominator)-\(isDotted ? 1 : 0)" }
+
+    var baseDurationInQuarterNotes: Double {
+        4.0 / Double(denominator)
+    }
 
     var durationInQuarterNotes: Double {
-        4.0 / Double(denominator)
+        baseDurationInQuarterNotes * (isDotted ? 1.5 : 1)
     }
 
     var displayName: String {
@@ -235,54 +360,267 @@ struct NotationDuration: Codable, Equatable, Identifiable {
             return "quarter"
         case 8:
             return "eighth"
+        case 16:
+            return "16th"
+        case 32:
+            return "32nd"
         default:
             return "duration"
         }
     }
 
+    var humanDisplayName: String {
+        isDotted ? "dotted \(displayName)" : displayName
+    }
+
     var pluralDisplayName: String {
-        "\(displayName) notes"
+        "\(humanDisplayName) notes"
+    }
+
+    var capitalizedDisplayName: String {
+        humanDisplayName.prefix(1).uppercased() + humanDisplayName.dropFirst()
     }
 
     static func normalizedDenominator(_ denominator: Int) -> Int {
-        allowedDenominators.min { lhs, rhs in
+        entryDenominators.min { lhs, rhs in
             abs(lhs - denominator) < abs(rhs - denominator)
         } ?? defaultDenominator
+    }
+
+    private enum CodingKeys: String, CodingKey {
+        case denominator
+        case isDotted
+    }
+
+    init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        self.init(
+            denominator: try container.decodeIfPresent(Int.self, forKey: .denominator) ?? Self.defaultDenominator,
+            isDotted: try container.decodeIfPresent(Bool.self, forKey: .isDotted) ?? false
+        )
+    }
+
+    func encode(to encoder: Encoder) throws {
+        var container = encoder.container(keyedBy: CodingKeys.self)
+        try container.encode(denominator, forKey: .denominator)
+        if isDotted {
+            try container.encode(true, forKey: .isDotted)
+        }
     }
 }
 
 struct NotationMeasureItem: Identifiable, Codable, Equatable {
     enum Kind: String, Codable, Equatable {
         case rest
+        case note
     }
 
     var id: String
+    var partID: NotationPartID
     var kind: Kind
+    var pitch: NotationPitch?
     var measureNumber: Int
     var measureStartTime: TimeInterval
     var offsetInQuarterNotes: Double
     var durationInQuarterNotes: Double
     var displayDuration: NotationDuration
+    var tieTargetItemID: String?
     var isSynthesized: Bool
 
     init(
         id: String = UUID().uuidString,
+        partID: NotationPartID = .main,
         kind: Kind = .rest,
+        pitch: NotationPitch? = nil,
         measureNumber: Int,
         measureStartTime: TimeInterval,
         offsetInQuarterNotes: Double,
         durationInQuarterNotes: Double,
         displayDuration: NotationDuration,
+        tieTargetItemID: String? = nil,
         isSynthesized: Bool = false
     ) {
         self.id = id
+        self.partID = partID
         self.kind = kind
+        self.pitch = kind == .note ? pitch : nil
         self.measureNumber = measureNumber
         self.measureStartTime = measureStartTime
         self.offsetInQuarterNotes = offsetInQuarterNotes
         self.durationInQuarterNotes = durationInQuarterNotes
         self.displayDuration = displayDuration
+        self.tieTargetItemID = kind == .note ? tieTargetItemID : nil
         self.isSynthesized = isSynthesized
+    }
+
+    var isNote: Bool {
+        kind == .note
+    }
+
+    var isRest: Bool {
+        kind == .rest
+    }
+
+    func persistedCopy() -> NotationMeasureItem {
+        NotationMeasureItem(
+            id: isSynthesized ? UUID().uuidString : id,
+            partID: partID,
+            kind: kind,
+            pitch: pitch,
+            measureNumber: measureNumber,
+            measureStartTime: measureStartTime,
+            offsetInQuarterNotes: offsetInQuarterNotes,
+            durationInQuarterNotes: durationInQuarterNotes,
+            displayDuration: displayDuration,
+            tieTargetItemID: tieTargetItemID
+        )
+    }
+
+    private enum CodingKeys: String, CodingKey {
+        case id
+        case partID
+        case kind
+        case pitch
+        case measureNumber
+        case measureStartTime
+        case offsetInQuarterNotes
+        case durationInQuarterNotes
+        case displayDuration
+        case tieTargetItemID
+        case isSynthesized
+    }
+
+    init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        id = try container.decodeIfPresent(String.self, forKey: .id) ?? UUID().uuidString
+        partID = try container.decodeIfPresent(NotationPartID.self, forKey: .partID) ?? .main
+        kind = try container.decodeIfPresent(Kind.self, forKey: .kind) ?? .rest
+        let decodedPitch = try container.decodeIfPresent(NotationPitch.self, forKey: .pitch)
+        pitch = kind == .note ? decodedPitch : nil
+        measureNumber = try container.decode(Int.self, forKey: .measureNumber)
+        measureStartTime = try container.decode(TimeInterval.self, forKey: .measureStartTime)
+        offsetInQuarterNotes = try container.decode(Double.self, forKey: .offsetInQuarterNotes)
+        durationInQuarterNotes = try container.decode(Double.self, forKey: .durationInQuarterNotes)
+        displayDuration = try container.decode(NotationDuration.self, forKey: .displayDuration)
+        let decodedTieTargetItemID = try container.decodeIfPresent(String.self, forKey: .tieTargetItemID)
+        tieTargetItemID = kind == .note ? decodedTieTargetItemID : nil
+        isSynthesized = try container.decodeIfPresent(Bool.self, forKey: .isSynthesized) ?? false
+    }
+}
+
+enum NotationPitchStep: String, Codable, CaseIterable, Equatable {
+    case c = "C"
+    case d = "D"
+    case e = "E"
+    case f = "F"
+    case g = "G"
+    case a = "A"
+    case b = "B"
+
+    var diatonicIndex: Int {
+        switch self {
+        case .c: return 0
+        case .d: return 1
+        case .e: return 2
+        case .f: return 3
+        case .g: return 4
+        case .a: return 5
+        case .b: return 6
+        }
+    }
+}
+
+struct NotationPitch: Codable, Equatable {
+    var step: NotationPitchStep
+    var octave: Int
+    var alter: Int
+
+    init(step: NotationPitchStep, octave: Int, alter: Int = 0) {
+        self.step = step
+        self.octave = octave
+        self.alter = min(1, max(-1, alter))
+    }
+
+    var midiNoteNumber: Int {
+        let semitone: Int
+        switch step {
+        case .c:
+            semitone = 0
+        case .d:
+            semitone = 2
+        case .e:
+            semitone = 4
+        case .f:
+            semitone = 5
+        case .g:
+            semitone = 7
+        case .a:
+            semitone = 9
+        case .b:
+            semitone = 11
+        }
+
+        return min(127, max(0, (octave + 1) * 12 + semitone + alter))
+    }
+}
+
+enum NotationPitchMapper {
+    static var minimumStaffPosition: Int {
+        Clef.treble.notationMetrics.editableStaffPositionRange.lowerBound
+    }
+
+    static var maximumStaffPosition: Int {
+        Clef.treble.notationMetrics.editableStaffPositionRange.upperBound
+    }
+
+    static func editableStaffPositionRange(for clef: Clef) -> ClosedRange<Int> {
+        clef.notationMetrics.editableStaffPositionRange
+    }
+
+    static func pitch(
+        forStaffPosition staffPosition: Int,
+        keySignature: KeySignature,
+        clef: Clef = .treble
+    ) -> NotationPitch {
+        let range = editableStaffPositionRange(for: clef)
+        let clampedPosition = min(range.upperBound, max(range.lowerBound, staffPosition))
+        let ordinal = clef.notationMetrics.topLineDiatonicOrdinal - clampedPosition
+        let octave = Int(floor(Double(ordinal) / Double(NotationPitchStep.allCases.count)))
+        let stepIndex = ordinal - octave * NotationPitchStep.allCases.count
+        var pitch = NotationPitch(
+            step: NotationPitchStep.allCases[stepIndex],
+            octave: octave
+        )
+        pitch.alter = keySignature.defaultAlter(for: pitch.step)
+        return pitch
+    }
+
+    static func staffPosition(for pitch: NotationPitch, clef: Clef = .treble) -> Int {
+        let ordinal = pitch.octave * NotationPitchStep.allCases.count + pitch.step.diatonicIndex
+        return clef.notationMetrics.topLineDiatonicOrdinal - ordinal
+    }
+
+    static func adjacentPitch(
+        from pitch: NotationPitch,
+        staffPositionDelta: Int,
+        keySignature: KeySignature,
+        clef: Clef = .treble
+    ) -> NotationPitch? {
+        guard staffPositionDelta != 0 else { return nil }
+
+        let currentPosition = staffPosition(for: pitch, clef: clef)
+        let targetPosition = currentPosition + staffPositionDelta
+        let range = editableStaffPositionRange(for: clef)
+        guard range.contains(targetPosition)
+        else {
+            return nil
+        }
+
+        return self.pitch(
+            forStaffPosition: targetPosition,
+            keySignature: keySignature,
+            clef: clef
+        )
     }
 }
 
@@ -303,7 +641,7 @@ enum NotationRestItemFactory {
         var segments: [Segment] = []
         var cursor = startOffset
         var rest = remaining
-        for denominator in NotationDuration.allowedDenominators {
+        for denominator in NotationDuration.restDecompositionDenominators {
             let duration = NotationDuration(denominator: denominator)
             let length = duration.durationInQuarterNotes
             while rest >= length - tolerance {
@@ -319,7 +657,7 @@ enum NotationRestItemFactory {
         }
 
         if includeTail, rest > tolerance {
-            let duration = NotationDuration(denominator: NotationDuration.allowedDenominators.last ?? 8)
+            let duration = NotationDuration(denominator: NotationDuration.entryDenominators.last ?? 8)
             segments.append(Segment(
                 offsetInQuarterNotes: cursor,
                 durationInQuarterNotes: rest,
@@ -336,6 +674,7 @@ enum NotationRestItemFactory {
         measureStartTime: TimeInterval,
         startOffset: Double,
         remaining: Double,
+        partID: NotationPartID = .main,
         isSynthesized: Bool = false,
         includeTail: Bool = false,
         id: (Segment) -> String? = { _ in nil }
@@ -344,6 +683,7 @@ enum NotationRestItemFactory {
             .map { segment in
                 restItem(
                     id: id(segment),
+                    partID: partID,
                     measureNumber: measureNumber,
                     measureStartTime: measureStartTime,
                     offsetInQuarterNotes: segment.offsetInQuarterNotes,
@@ -354,8 +694,62 @@ enum NotationRestItemFactory {
             }
     }
 
+    static func metricAwareRestItems(
+        in measure: ScoreMeasure,
+        partID: NotationPartID,
+        startOffset: Double,
+        remaining: Double
+    ) -> [NotationMeasureItem] {
+        guard remaining > NotationMeasureTiming.timelineTolerance else { return [] }
+
+        var output: [NotationMeasureItem] = []
+        var cursor = startOffset
+        var rest = remaining
+        let nextQuarterBoundary = floor(cursor + NotationMeasureTiming.timelineTolerance) + 1
+        let distanceToQuarterBoundary = nextQuarterBoundary - cursor
+        let isOnQuarterBoundary = abs(cursor.rounded() - cursor) <= NotationMeasureTiming.timelineTolerance
+
+        if !isOnQuarterBoundary,
+           distanceToQuarterBoundary > NotationMeasureTiming.timelineTolerance,
+           distanceToQuarterBoundary < rest - NotationMeasureTiming.timelineTolerance,
+           let duration = exactDuration(for: distanceToQuarterBoundary) {
+            output.append(restItem(
+                partID: partID,
+                measureNumber: measure.number,
+                measureStartTime: measure.startTime,
+                offsetInQuarterNotes: cursor,
+                durationInQuarterNotes: distanceToQuarterBoundary,
+                displayDuration: duration
+            ))
+            cursor += distanceToQuarterBoundary
+            rest -= distanceToQuarterBoundary
+        }
+
+        output.append(contentsOf: restItems(
+            measureNumber: measure.number,
+            measureStartTime: measure.startTime,
+            startOffset: cursor,
+            remaining: rest,
+            partID: partID
+        ))
+        return output
+    }
+
+    private static func exactDuration(for length: Double) -> NotationDuration? {
+        restDecompositionDurations.first {
+            abs($0.durationInQuarterNotes - length) <= NotationMeasureTiming.timelineTolerance
+        }
+    }
+
+    private static var restDecompositionDurations: [NotationDuration] {
+        NotationDuration.restDecompositionDenominators.map {
+            NotationDuration(denominator: $0)
+        }
+    }
+
     static func restItem(
         id: String? = nil,
+        partID: NotationPartID = .main,
         measureNumber: Int,
         measureStartTime: TimeInterval,
         offsetInQuarterNotes: Double,
@@ -366,6 +760,7 @@ enum NotationRestItemFactory {
         if let id {
             return NotationMeasureItem(
                 id: id,
+                partID: partID,
                 measureNumber: measureNumber,
                 measureStartTime: measureStartTime,
                 offsetInQuarterNotes: offsetInQuarterNotes,
@@ -376,6 +771,7 @@ enum NotationRestItemFactory {
         }
 
         return NotationMeasureItem(
+            partID: partID,
             measureNumber: measureNumber,
             measureStartTime: measureStartTime,
             offsetInQuarterNotes: offsetInQuarterNotes,
@@ -427,18 +823,34 @@ struct KeySignature: Equatable {
     }
 
     func notationAccidentalGlyphs(for clef: Clef) -> [KeySignatureAccidental] {
-        switch clef {
-        case .treble:
-            if fifths > 0 {
-                return Array(Self.trebleSharpAccidentals.prefix(accidentalCount))
-            }
-
-            if fifths < 0 {
-                return Array(Self.trebleFlatAccidentals.prefix(accidentalCount))
-            }
-
+        let source: ArraySlice<KeySignatureAccidental>
+        if fifths > 0 {
+            source = Self.trebleSharpAccidentals.prefix(accidentalCount)
+        } else if fifths < 0 {
+            source = Self.trebleFlatAccidentals.prefix(accidentalCount)
+        } else {
             return []
         }
+
+        let positionOffset = clef.notationMetrics.keySignatureStaffPositionOffset
+        return source.map { accidental in
+            KeySignatureAccidental(
+                symbol: accidental.symbol,
+                staffPositionFromTopLine: accidental.staffPositionFromTopLine + positionOffset
+            )
+        }
+    }
+
+    func defaultAlter(for step: NotationPitchStep) -> Int {
+        if fifths > 0 {
+            return Self.sharpSteps.prefix(accidentalCount).contains(step) ? 1 : 0
+        }
+
+        if fifths < 0 {
+            return Self.flatSteps.prefix(accidentalCount).contains(step) ? -1 : 0
+        }
+
+        return 0
     }
 
     static func normalized(from keyName: String?) -> KeySignature {
@@ -524,6 +936,9 @@ struct KeySignature: Equatable {
         "E": 1, "B": 2, "F#": 3, "C#": 4, "G#": 5, "D#": 6, "A#": 7
     ]
 
+    private static let sharpSteps: [NotationPitchStep] = [.f, .c, .g, .d, .a, .e, .b]
+    private static let flatSteps: [NotationPitchStep] = [.b, .e, .a, .d, .g, .c, .f]
+
     private static let trebleSharpAccidentals: [KeySignatureAccidental] = [
         KeySignatureAccidental(symbol: "♯", staffPositionFromTopLine: 0),
         KeySignatureAccidental(symbol: "♯", staffPositionFromTopLine: 3),
@@ -545,18 +960,69 @@ struct KeySignature: Equatable {
     ]
 }
 
-enum Clef: String, Equatable {
+struct NotationClefMetrics: Equatable {
+    let editableStaffPositionRange: ClosedRange<Int>
+    let topLineDiatonicOrdinal: Int
+    let keySignatureStaffPositionOffset: Int
+    let storedPitchOctaveOffset: Int
+}
+
+enum Clef: String, Codable, CaseIterable, Identifiable, Equatable {
     case treble
+    case bass
+
+    var id: String { rawValue }
 
     var sign: String {
-        "G"
+        switch self {
+        case .treble: return "G"
+        case .bass: return "F"
+        }
     }
 
     var line: Int {
-        2
+        switch self {
+        case .treble: return 2
+        case .bass: return 4
+        }
     }
 
-    var displaySymbol: String {
-        "𝄞"
+    var displayName: String {
+        switch self {
+        case .treble: return "Treble Clef"
+        case .bass: return "Bass Clef"
+        }
+    }
+
+    var notationMetrics: NotationClefMetrics {
+        switch self {
+        case .treble:
+            return NotationClefMetrics(
+                editableStaffPositionRange: -5...13,
+                topLineDiatonicOrdinal: 5 * NotationPitchStep.allCases.count + NotationPitchStep.f.diatonicIndex,
+                keySignatureStaffPositionOffset: 0,
+                storedPitchOctaveOffset: 0
+            )
+        case .bass:
+            return NotationClefMetrics(
+                editableStaffPositionRange: -3...15,
+                topLineDiatonicOrdinal: 3 * NotationPitchStep.allCases.count + NotationPitchStep.a.diatonicIndex,
+                keySignatureStaffPositionOffset: 2,
+                storedPitchOctaveOffset: -2
+            )
+        }
+    }
+}
+
+enum NotationPartClefOverrides {
+    static func normalized(_ overrides: [NotationPartID: Clef]) -> [NotationPartID: Clef] {
+        overrides.filter { $0.value != .treble }
+    }
+
+    static func clef(
+        for partID: NotationPartID,
+        in overrides: [NotationPartID: Clef]
+    ) -> Clef {
+        overrides[partID] ?? .treble
     }
 }

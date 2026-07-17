@@ -97,4 +97,88 @@ final class TimelineProjectLogicTests: XCTestCase {
         XCTAssertEqual(decoded.harmonySymbols, [symbol])
     }
 
+    func testProjectPersistsNotationPartState() throws {
+        let notationItem = NotationMeasureItem(
+            id: "bass-note",
+            partID: .stem(.bass),
+            kind: .note,
+            pitch: NotationPitch(step: .e, octave: 2),
+            measureNumber: 1,
+            measureStartTime: 0,
+            offsetInQuarterNotes: 0,
+            durationInQuarterNotes: 0.375,
+            displayDuration: NotationDuration(denominator: 16, isDotted: true)
+        )
+        let notationRest = NotationMeasureItem(
+            id: "main-rest",
+            kind: .rest,
+            measureNumber: 1,
+            measureStartTime: 0,
+            offsetInQuarterNotes: 0.375,
+            durationInQuarterNotes: 0.25,
+            displayDuration: NotationDuration(denominator: 16)
+        )
+        let notationFillerRest = NotationMeasureItem(
+            id: "main-filler-rest",
+            kind: .rest,
+            measureNumber: 1,
+            measureStartTime: 0,
+            offsetInQuarterNotes: 0.625,
+            durationInQuarterNotes: 0.125,
+            displayDuration: NotationDuration(denominator: 32)
+        )
+        let project = JammLabProject(
+            audioBookmarkData: Data([1, 2, 3]),
+            audioDisplayName: "song.wav",
+            audioDuration: 12,
+            notes: [],
+            notationItems: [notationItem, notationRest, notationFillerRest],
+            loopStart: 0,
+            loopEnd: 4,
+            playbackRate: 1,
+            pitchShiftSemitones: 0,
+            stemNotationTrackCollapsed: [.bass: false, .drums: true],
+            visibleNotationPartIDs: [.main, .stem(.bass), .stem(.drums)]
+        )
+
+        let decoded = try JSONDecoder().decode(
+            JammLabProject.self,
+            from: JSONEncoder().encode(project)
+        )
+
+        XCTAssertEqual(decoded.notationItems.first?.partID, .stem(.bass))
+        XCTAssertEqual(decoded.notationItems.map(\.kind), [.note, .rest, .rest])
+        XCTAssertEqual(decoded.notationItems.map(\.displayDuration.denominator), [16, 16, 32])
+        XCTAssertEqual(decoded.notationItems.map(\.displayDuration.isDotted), [true, false, false])
+        XCTAssertEqual(decoded.notationItems.map(\.durationInQuarterNotes), [0.375, 0.25, 0.125])
+        XCTAssertEqual(decoded.stemNotationTrackCollapsed, [.bass: false, .drums: true])
+        XCTAssertEqual(decoded.visibleNotationPartIDs, [.main, .stem(.bass), .stem(.drums)])
+    }
+
+    func testProjectDefaultsMissingNotationPartState() throws {
+        let project = JammLabProject(
+            audioBookmarkData: Data([1, 2, 3]),
+            audioDisplayName: "song.wav",
+            audioDuration: 12,
+            notes: [],
+            loopStart: 0,
+            loopEnd: 4,
+            playbackRate: 1,
+            pitchShiftSemitones: 0
+        )
+        var object = try XCTUnwrap(
+            JSONSerialization.jsonObject(with: JSONEncoder().encode(project)) as? [String: Any]
+        )
+        object.removeValue(forKey: "stemNotationTrackCollapsed")
+        object.removeValue(forKey: "visibleNotationPartIDs")
+
+        let decoded = try JSONDecoder().decode(
+            JammLabProject.self,
+            from: JSONSerialization.data(withJSONObject: object)
+        )
+
+        XCTAssertTrue(decoded.stemNotationTrackCollapsed.isEmpty)
+        XCTAssertEqual(decoded.visibleNotationPartIDs, [.main])
+    }
+
 }

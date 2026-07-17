@@ -24,6 +24,7 @@ struct JammLabProject: Codable {
     var notes: [TimecodedNote]
     var harmonySymbols: [HarmonySymbol]
     var notationItems: [NotationMeasureItem]
+    var notationPartClefs: [NotationPartID: Clef]
     var projectKeySelection: ProjectKeySelection?
     var loopStart: TimeInterval
     var loopEnd: TimeInterval
@@ -42,9 +43,11 @@ struct JammLabProject: Codable {
     var stemState: StemProjectState?
     var isVideoWindowOpen: Bool?
     var isNotationTrackCollapsed: Bool?
+    var stemNotationTrackCollapsed: [StemType: Bool]
+    var visibleNotationPartIDs: Set<NotationPartID>
 
     init(
-        formatVersion: Int = 10,
+        formatVersion: Int = 12,
         audioBookmarkData: Data,
         artifactRootBookmarkData: Data? = nil,
         audioDisplayName: String,
@@ -53,6 +56,7 @@ struct JammLabProject: Codable {
         notes: [TimecodedNote],
         harmonySymbols: [HarmonySymbol] = [],
         notationItems: [NotationMeasureItem] = [],
+        notationPartClefs: [NotationPartID: Clef] = [:],
         projectKeySelection: ProjectKeySelection? = nil,
         loopStart: TimeInterval,
         loopEnd: TimeInterval,
@@ -70,7 +74,9 @@ struct JammLabProject: Codable {
         timelineVisibleRange: ProjectTimelineVisibleRange? = nil,
         stemState: StemProjectState? = nil,
         isVideoWindowOpen: Bool? = nil,
-        isNotationTrackCollapsed: Bool? = nil
+        isNotationTrackCollapsed: Bool? = nil,
+        stemNotationTrackCollapsed: [StemType: Bool] = [:],
+        visibleNotationPartIDs: Set<NotationPartID> = [.main]
     ) {
         self.formatVersion = formatVersion
         self.audioBookmarkData = audioBookmarkData
@@ -81,6 +87,7 @@ struct JammLabProject: Codable {
         self.notes = notes
         self.harmonySymbols = harmonySymbols
         self.notationItems = notationItems
+        self.notationPartClefs = notationPartClefs
         self.projectKeySelection = projectKeySelection
         self.loopStart = loopStart
         self.loopEnd = loopEnd
@@ -99,6 +106,8 @@ struct JammLabProject: Codable {
         self.stemState = stemState
         self.isVideoWindowOpen = isVideoWindowOpen
         self.isNotationTrackCollapsed = isNotationTrackCollapsed
+        self.stemNotationTrackCollapsed = stemNotationTrackCollapsed
+        self.visibleNotationPartIDs = visibleNotationPartIDs
     }
 
     private enum CodingKeys: String, CodingKey {
@@ -111,6 +120,7 @@ struct JammLabProject: Codable {
         case notes
         case harmonySymbols
         case notationItems
+        case notationPartClefs
         case projectKeySelection
         case loopStart
         case loopEnd
@@ -129,6 +139,8 @@ struct JammLabProject: Codable {
         case stemState
         case isVideoWindowOpen
         case isNotationTrackCollapsed
+        case stemNotationTrackCollapsed
+        case visibleNotationPartIDs
     }
 
     init(from decoder: Decoder) throws {
@@ -142,6 +154,7 @@ struct JammLabProject: Codable {
         notes = try container.decode([TimecodedNote].self, forKey: .notes)
         harmonySymbols = try container.decodeIfPresent([HarmonySymbol].self, forKey: .harmonySymbols) ?? []
         notationItems = try container.decodeIfPresent([NotationMeasureItem].self, forKey: .notationItems) ?? []
+        notationPartClefs = try container.decodeIfPresent([NotationPartID: Clef].self, forKey: .notationPartClefs) ?? [:]
         projectKeySelection = try container.decodeIfPresent(ProjectKeySelection.self, forKey: .projectKeySelection)
         loopStart = try container.decode(TimeInterval.self, forKey: .loopStart)
         loopEnd = try container.decode(TimeInterval.self, forKey: .loopEnd)
@@ -160,6 +173,8 @@ struct JammLabProject: Codable {
         stemState = try container.decodeIfPresent(StemProjectState.self, forKey: .stemState)
         isVideoWindowOpen = try container.decodeIfPresent(Bool.self, forKey: .isVideoWindowOpen)
         isNotationTrackCollapsed = try container.decodeIfPresent(Bool.self, forKey: .isNotationTrackCollapsed)
+        stemNotationTrackCollapsed = try container.decodeIfPresent([StemType: Bool].self, forKey: .stemNotationTrackCollapsed) ?? [:]
+        visibleNotationPartIDs = try container.decodeIfPresent(Set<NotationPartID>.self, forKey: .visibleNotationPartIDs) ?? [.main]
     }
 
     func encode(to encoder: Encoder) throws {
@@ -173,6 +188,7 @@ struct JammLabProject: Codable {
         try container.encode(notes, forKey: .notes)
         try container.encode(harmonySymbols, forKey: .harmonySymbols)
         try container.encode(notationItems, forKey: .notationItems)
+        try container.encode(notationPartClefs, forKey: .notationPartClefs)
         try container.encodeIfPresent(projectKeySelection, forKey: .projectKeySelection)
         try container.encode(loopStart, forKey: .loopStart)
         try container.encode(loopEnd, forKey: .loopEnd)
@@ -191,10 +207,8 @@ struct JammLabProject: Codable {
         try container.encodeIfPresent(stemState, forKey: .stemState)
         try container.encodeIfPresent(isVideoWindowOpen, forKey: .isVideoWindowOpen)
         try container.encodeIfPresent(isNotationTrackCollapsed, forKey: .isNotationTrackCollapsed)
-    }
-
-    func resolvedAudioURL() throws -> URL {
-        try resolvedMediaURL()
+        try container.encode(stemNotationTrackCollapsed, forKey: .stemNotationTrackCollapsed)
+        try container.encode(visibleNotationPartIDs, forKey: .visibleNotationPartIDs)
     }
 
     func resolvedMediaURL() throws -> URL {

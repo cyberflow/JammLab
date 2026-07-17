@@ -22,7 +22,36 @@ struct NotationItemLayoutItem: Equatable, Identifiable {
     }
 }
 
+struct NotationTieLayoutItem: Equatable, Identifiable {
+    var connection: NotationTieConnection
+    var start: CGPoint
+    var end: CGPoint
+    var placement: NotationTiePlacement
+
+    var id: String { connection.id }
+}
+
 enum NotationTrackLayoutItems {
+    static func selectedMeasures(
+        _ selectedMeasures: [NotationMeasureSelection],
+        for partID: NotationPartID
+    ) -> [NotationMeasureSelection] {
+        selectedMeasures.filter { $0.partID == partID }
+    }
+
+    static func selectedMeasureIndices(
+        visibleMeasures: [ScoreMeasure],
+        selectedMeasures: [NotationMeasureSelection],
+        partID: NotationPartID
+    ) -> [Int] {
+        let partSelections = Self.selectedMeasures(selectedMeasures, for: partID)
+        return visibleMeasures.indices.filter { index in
+            partSelections.contains(where: {
+                $0.matches(visibleMeasures[index], partID: partID)
+            })
+        }
+    }
+
     static func regionLabels(
         visibleMeasures: [ScoreMeasure],
         geometries: [NotationMeasureCanvasGeometry]
@@ -111,6 +140,104 @@ enum NotationTrackLayoutItems {
                 )
             }
         }
+    }
+
+    static func ties(
+        visibleMeasures: [ScoreMeasure],
+        geometries: [NotationMeasureCanvasGeometry],
+        connections: [NotationTieConnection],
+        staffTop: CGFloat
+    ) -> [NotationTieLayoutItem] {
+        guard let firstGeometry = geometries.first,
+              let lastGeometry = geometries.last
+        else {
+            return []
+        }
+
+        let visibleItemsByID = notationItems(
+                visibleMeasures: visibleMeasures,
+                geometries: geometries
+            ).reduce(into: [String: NotationItemLayoutItem]()) {
+                if $0[$1.notationItem.id] == nil { $0[$1.notationItem.id] = $1 }
+            }
+
+        return connections.compactMap { connection in
+            let sourceVisible = visibleItemsByID[connection.source.item.id]
+            let targetVisible = visibleItemsByID[connection.target.item.id]
+            guard sourceVisible != nil || targetVisible != nil,
+                  let sourcePitch = connection.source.item.pitch,
+                  let targetPitch = connection.target.item.pitch
+            else {
+                return nil
+            }
+
+            let sourceStaffPosition = NotationPitchMapper.staffPosition(
+                for: sourcePitch,
+                clef: connection.source.measureAttributes.clef
+            )
+            let targetStaffPosition = NotationPitchMapper.staffPosition(
+                for: targetPitch,
+                clef: connection.target.measureAttributes.clef
+            )
+            let placement: NotationTiePlacement = NotationStemDirection.direction(
+                forStaffPosition: sourceStaffPosition
+            ) == .up ? .below : .above
+            let verticalDirection: CGFloat = placement == .below ? 1 : -1
+            let sourceY = NotationNotePlacementResolver.yPosition(
+                forStaffPosition: sourceStaffPosition,
+                staffTop: staffTop
+            ) + verticalDirection * AppTheme.Timeline.notationTieVerticalOffset
+            let targetY = NotationNotePlacementResolver.yPosition(
+                forStaffPosition: targetStaffPosition,
+                staffTop: staffTop
+            ) + verticalDirection * AppTheme.Timeline.notationTieVerticalOffset
+            let startX = sourceVisible.map {
+                $0.x + AppTheme.Timeline.notationTieNoteheadInset
+            } ?? firstGeometry.staffStartX
+            let endX = targetVisible.map {
+                $0.x - AppTheme.Timeline.notationTieNoteheadInset
+            } ?? lastGeometry.staffEndX
+            guard endX > startX + NotationMeasureTiming.timelineTolerance else { return nil }
+
+            return NotationTieLayoutItem(
+                connection: connection,
+                start: CGPoint(x: startX, y: sourceY),
+                end: CGPoint(x: endX, y: targetY),
+                placement: placement
+            )
+        }
+    }
+}
+
+enum NotationTrackAccessibility {
+    static func value(
+        visibleMeasures: [ScoreMeasure],
+        keySignature: KeySignature,
+        timeSignature: TimeSignature,
+        selectedMeasures: [NotationMeasureSelection],
+        partID: NotationPartID
+    ) -> String {
+        guard let first = visibleMeasures.first, let last = visibleMeasures.last else {
+            return "Pending tempo"
+        }
+
+        let partSelections = NotationTrackLayoutItems.selectedMeasures(
+            selectedMeasures,
+            for: partID
+        )
+        let selectedMeasureText: String
+        if partSelections.isEmpty {
+            selectedMeasureText = ""
+        } else if partSelections.count == 1, let selectedMeasure = partSelections.first {
+            selectedMeasureText = ", selected measure \(selectedMeasure.number)"
+        } else if let firstSelectedMeasure = partSelections.first,
+                  let lastSelectedMeasure = partSelections.last {
+            selectedMeasureText = ", selected measures \(firstSelectedMeasure.number) through \(lastSelectedMeasure.number)"
+        } else {
+            selectedMeasureText = ""
+        }
+
+        return "Measures \(first.number) through \(last.number), \(keySignature.displayName), \(timeSignature.displayText)\(selectedMeasureText)"
     }
 }
 

@@ -116,3 +116,96 @@ Do not use vague names such as `ai-work`, `codex-fix`, `changes`, `update`, or `
 - Audio access uses security-scoped bookmarks.
 - Recent projects are stored in user defaults and capped to 10 entries.
 - Project load must normalize/clamp duration-dependent state: beat grid, loop range, notes, regions, playback rate, pitch shift, and tempo.
+
+## Documentation lookup
+
+When working with Swift, SwiftUI, AppKit, AVFoundation, AVAudioEngine, CoreAudio, macOS sandboxing, GitHub Actions, or packaging, use Context7 to check current documentation before proposing or implementing changes.
+
+Prefer Context7 documentation lookup for:
+- Swift language APIs
+- SwiftUI macOS components
+- AppKit interoperability
+- AVFoundation and AVAudioEngine
+- macOS sandboxing and entitlements
+- GitHub Actions and release packaging
+
+When documentation is relevant, mention briefly which API or library was checked.
+
+## Test review workflow
+
+For implementation tasks that create, modify, rename, or delete source files, test files, project files, or behavior-affecting configuration:
+
+1. After the implementation is complete and before the final report, spawn the `test_reviewer` subagent.
+2. The `test_reviewer` subagent must be read-only and must not edit files.
+3. Ask `test_reviewer` to review:
+   - missing tests;
+   - weak or misleading tests;
+   - likely regressions not covered by tests;
+   - flaky or timing-sensitive tests;
+   - async/concurrency test risks;
+   - whether existing tests need updates.
+4. Wait for the review result.
+5. Address valid test reviewer findings before the final report when the fix is in scope.
+6. If a reviewer finding is rejected or deferred, explain why briefly in the final report.
+
+Use `test_reviewer` especially for changes involving:
+- Swift model or business logic;
+- SwiftUI state behavior;
+- AVAudioEngine, AVFoundation, CoreAudio, playback, timing, waveform rendering, BPM/key detection, or metronome logic;
+- MusicXML, notation, harmony, markers, regions, beats, measures, or time-signature logic;
+- persistence, project loading/saving, import/export, or migrations;
+- bug fixes;
+- refactoring that could change behavior.
+
+Do not spawn `test_reviewer` for pure analysis-only tasks, DISCUSS mode, documentation-only edits, comment-only edits, or formatting-only changes unless tests are explicitly part of the request.
+
+The main agent owns the final decision.
+The main agent must not silently ignore `test_reviewer` findings.
+
+## Maintainability review workflow
+
+For implementation tasks that create, modify, rename, or delete source files, project files, or behavior-affecting configuration:
+
+1. After the implementation is complete and before the final report, spawn the `maintainability_reviewer` subagent.
+2. The `maintainability_reviewer` subagent must be read-only and must not edit files.
+3. Ask `maintainability_reviewer` to review:
+   - maintainability risks;
+   - avoidable complexity;
+   - duplicated logic;
+   - unclear ownership boundaries;
+   - unnecessary coupling;
+   - premature or weak abstractions;
+   - oversized functions, types, SwiftUI views, services, or managers;
+   - duplicated or inconsistent state;
+   - whether a smaller refactor should be done before finalizing.
+4. Wait for the review result.
+5. Address valid maintainability reviewer findings before the final report when the fix is in scope.
+6. If a reviewer finding is rejected or deferred, explain why briefly in the final report.
+
+Use `maintainability_reviewer` especially for changes involving:
+- SwiftUI views or custom controls;
+- state management;
+- timeline, waveform, markers, regions, notation, harmony, or MusicXML logic;
+- AVAudioEngine, AVFoundation, CoreAudio, playback, timing, BPM/key detection, or metronome logic;
+- persistence, project loading/saving, import/export, or migrations;
+- refactoring tasks;
+- new services, managers, protocols, models, or shared utilities;
+- changes that touch several files or architectural boundaries.
+
+Do not spawn `maintainability_reviewer` for pure analysis-only tasks, DISCUSS mode, documentation-only edits, comment-only edits, formatting-only changes, or trivial one-line fixes unless maintainability/refactoring review is explicitly requested.
+
+The main agent owns the final decision.
+The main agent must not silently ignore `maintainability_reviewer` findings.
+
+## graphify
+
+This project has a knowledge graph at graphify-out/ with god nodes, community structure, and cross-file relationships.
+
+When the user types `/graphify`, use the installed graphify skill or instructions before doing anything else.
+
+Rules:
+- For codebase questions, first run `graphify query "<question>"` when graphify-out/graph.json exists. Use `graphify path "<A>" "<B>"` for relationships and `graphify explain "<concept>"` for focused concepts. These return a scoped subgraph, usually much smaller than GRAPH_REPORT.md or raw grep output.
+- Dirty graphify-out/ files are expected after hooks or incremental updates; dirty graph files are not a reason to skip graphify. Only skip graphify if the task is about stale or incorrect graph output, or the user explicitly says not to use it.
+- If graphify-out/wiki/index.md exists, use it for broad navigation instead of raw source browsing.
+- Read graphify-out/GRAPH_REPORT.md only for broad architecture review or when query/path/explain do not surface enough context.
+- After modifying code, run `graphify update .` to keep the graph current (AST-only, no API cost).
