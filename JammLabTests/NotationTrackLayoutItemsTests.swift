@@ -32,7 +32,6 @@ final class NotationTrackLayoutItemsTests: XCTestCase {
         )
         let notePlacement = NotationNotePlacement(
             measure: measure,
-            targetRestID: "rest",
             offsetInQuarterNotes: 0,
             durationInQuarterNotes: 1,
             displayDuration: NotationDuration(denominator: 4),
@@ -42,7 +41,6 @@ final class NotationTrackLayoutItemsTests: XCTestCase {
         )
         let restPlacement = NotationRestPlacement(
             measure: measure,
-            targetRestID: "rest",
             offsetInQuarterNotes: 0,
             durationInQuarterNotes: 1,
             displayDuration: NotationDuration(denominator: 4),
@@ -233,6 +231,99 @@ final class NotationTrackLayoutItemsTests: XCTestCase {
                 item: notationItem
             ),
             accuracy: 0.0001
+        )
+    }
+
+    func testChordLayoutOffsetsSecondsAndMixedDurationLanes() throws {
+        let geometry = NotationMeasureCanvasGeometry(
+            measureIndex: 0,
+            cellStartX: 0,
+            cellEndX: 240,
+            contentStartX: 20,
+            contentEndX: 220,
+            staffStartX: 20,
+            staffEndX: 220
+        )
+        let items = [
+            NotationMeasureItem(
+                id: "c-quarter",
+                kind: .note,
+                pitch: NotationPitch(step: .c, octave: 4),
+                measureNumber: 1,
+                measureStartTime: 0,
+                offsetInQuarterNotes: 0,
+                durationInQuarterNotes: 1,
+                displayDuration: NotationDuration(denominator: 4)
+            ),
+            NotationMeasureItem(
+                id: "d-quarter",
+                kind: .note,
+                pitch: NotationPitch(step: .d, octave: 4),
+                measureNumber: 1,
+                measureStartTime: 0,
+                offsetInQuarterNotes: 0,
+                durationInQuarterNotes: 1,
+                displayDuration: NotationDuration(denominator: 4)
+            ),
+            NotationMeasureItem(
+                id: "g-half",
+                kind: .note,
+                pitch: NotationPitch(step: .g, octave: 4),
+                measureNumber: 1,
+                measureStartTime: 0,
+                offsetInQuarterNotes: 0,
+                durationInQuarterNotes: 2,
+                displayDuration: NotationDuration(denominator: 2)
+            )
+        ]
+        let measure = ScoreMeasure(
+            number: 1,
+            startTime: 0,
+            endTime: 2,
+            attributes: .defaultTreble,
+            notationItems: items
+        )
+
+        let layout = NotationTrackLayoutItems.notationItems(
+            visibleMeasures: [measure],
+            geometries: [geometry]
+        )
+        let xByID: [String: CGFloat] = Dictionary(
+            uniqueKeysWithValues: layout.map { ($0.notationItem.id, $0.x) }
+        )
+
+        XCTAssertNotEqual(xByID["c-quarter"], xByID["d-quarter"])
+        let chordGroups = NotationTrackLayoutItems.chordRenderGroups(from: layout)
+        let quarterChord = try XCTUnwrap(chordGroups.first)
+        XCTAssertEqual(Set(quarterChord.items.map { $0.notationItem.id }), ["c-quarter", "d-quarter"])
+        XCTAssertEqual(quarterChord.duration, NotationDuration(denominator: 4))
+        XCTAssertEqual(Set(quarterChord.items.compactMap(\.stemDirection)).count, 1)
+        XCTAssertFalse(chordGroups.contains { group in
+            group.items.contains { $0.notationItem.id == "g-half" }
+        })
+        let quarterHitFrames = quarterChord.items.map { item -> CGRect in
+            let pitch = item.notationItem.pitch!
+            let staffPosition = NotationPitchMapper.staffPosition(
+                for: pitch,
+                clef: measure.attributes.clef
+            )
+            let centerY = NotationNotePlacementResolver.yPosition(
+                forStaffPosition: staffPosition,
+                staffTop: 40
+            )
+            return CGRect(
+                x: item.x - AppTheme.Timeline.notationNoteHitWidth / 2,
+                y: centerY - AppTheme.Timeline.notationNoteHitHeight / 2,
+                width: AppTheme.Timeline.notationNoteHitWidth,
+                height: AppTheme.Timeline.notationNoteHitHeight
+            )
+        }
+        XCTAssertEqual(quarterHitFrames.count, 2)
+        XCTAssertFalse(quarterHitFrames[0].intersects(quarterHitFrames[1]))
+        XCTAssertNotEqual(xByID["c-quarter"], xByID["g-half"])
+        XCTAssertEqual(
+            layout.filter { $0.notationItem.id != "g-half" }.compactMap { $0.stemDirection }.count,
+            2
         )
     }
 }

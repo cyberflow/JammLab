@@ -259,6 +259,51 @@ enum NotationStaffNoteSymbol: Equatable {
     }
 }
 
+enum NotationNoteheadSymbol: Equatable {
+    case whole
+    case half
+    case black
+
+    init(duration: NotationDuration) {
+        switch duration.denominator {
+        case 1: self = .whole
+        case 2: self = .half
+        default: self = .black
+        }
+    }
+
+    var codepoint: UInt32 {
+        switch self {
+        case .whole: return 0xE0A2
+        case .half: return 0xE0A3
+        case .black: return 0xE0A4
+        }
+    }
+}
+
+enum NotationFlagSymbol: Equatable {
+    case eighth(NotationStemDirection)
+    case sixteenth(NotationStemDirection)
+    case thirtySecond(NotationStemDirection)
+
+    init?(duration: NotationDuration, stemDirection: NotationStemDirection) {
+        switch duration.denominator {
+        case 8: self = .eighth(stemDirection)
+        case 16: self = .sixteenth(stemDirection)
+        case 32: self = .thirtySecond(stemDirection)
+        default: return nil
+        }
+    }
+
+    var codepoint: UInt32 {
+        switch self {
+        case .eighth(let direction): return direction == .up ? 0xE240 : 0xE241
+        case .sixteenth(let direction): return direction == .up ? 0xE242 : 0xE243
+        case .thirtySecond(let direction): return direction == .up ? 0xE244 : 0xE245
+        }
+    }
+}
+
 enum NotationClefSymbol: Equatable {
     case treble
     case bass
@@ -367,6 +412,20 @@ enum NotationMusicFontRegistry {
 
     static func glyphPath(
         for symbol: NotationStaffNoteSymbol,
+        fontSize: CGFloat
+    ) -> NotationSMuFLGlyphPath? {
+        glyphPath(forCodepoint: symbol.codepoint, fontSize: fontSize)
+    }
+
+    static func glyphPath(
+        for symbol: NotationNoteheadSymbol,
+        fontSize: CGFloat
+    ) -> NotationSMuFLGlyphPath? {
+        glyphPath(forCodepoint: symbol.codepoint, fontSize: fontSize)
+    }
+
+    static func glyphPath(
+        for symbol: NotationFlagSymbol,
         fontSize: CGFloat
     ) -> NotationSMuFLGlyphPath? {
         glyphPath(forCodepoint: symbol.codepoint, fontSize: fontSize)

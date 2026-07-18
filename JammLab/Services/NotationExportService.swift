@@ -228,6 +228,7 @@ final class MusicXMLNotationExportRenderer: NotationExportRenderer {
         let part = element("part", attributes: ["id": id])
         var previousAttributes: MeasureAttributes?
         let tieRoles = musicXMLTieRoles(in: measures)
+        let voiceByItemID = musicXMLVoiceAssignments(in: measures)
 
         for (measureIndex, measure) in measures.enumerated() {
             let measureElement = element("measure", attributes: ["number": "\(measure.number)"])
@@ -248,39 +249,54 @@ final class MusicXMLNotationExportRenderer: NotationExportRenderer {
             let sortedHarmonies = includesHarmonies
                 ? measure.harmonies.sorted(by: isHarmonyOrderedByNotationPosition)
                 : []
-            var harmonyIndex = sortedHarmonies.startIndex
-            var notationCursorOffsetInQuarterNotes = 0.0
             let sortedItems = measure.notationItems.sorted(by: isNotationItemOrderedByNotationPosition)
+            let noteEvents = musicXMLNoteEvents(in: measure, voiceByItemID: voiceByItemID)
+            let requiresPolyphonicCursor = noteEvents.contains { $0.items.count > 1 }
+                || Set(noteEvents.map(\.voice)).count > 1
+                || noteEvents.contains { $0.voice != 1 }
 
-            for item in sortedItems {
-                let restStartOffsetInQuarterNotes = max(notationCursorOffsetInQuarterNotes, item.offsetInQuarterNotes)
-                let restEndOffsetInQuarterNotes = restStartOffsetInQuarterNotes + max(0, item.durationInQuarterNotes)
+            if requiresPolyphonicCursor {
+                try addPolyphonicMeasureContent(
+                    measure: measure,
+                    items: sortedItems,
+                    noteEvents: noteEvents,
+                    harmonies: sortedHarmonies,
+                    tieRoles: tieRoles,
+                    to: measureElement
+                )
+            } else {
+                var harmonyIndex = sortedHarmonies.startIndex
+                var notationCursorOffsetInQuarterNotes = 0.0
+                for item in sortedItems {
+                    let itemStart = max(notationCursorOffsetInQuarterNotes, item.offsetInQuarterNotes)
+                    let itemEnd = itemStart + max(0, item.durationInQuarterNotes)
+                    try addHarmoniesBeforeRestBoundary(
+                        from: sortedHarmonies,
+                        to: measureElement,
+                        measureNumber: measure.number,
+                        notationCursorOffsetInQuarterNotes: notationCursorOffsetInQuarterNotes,
+                        restBoundaryOffsetInQuarterNotes: itemEnd,
+                        includeBoundaryHarmony: false,
+                        harmonyIndex: &harmonyIndex
+                    )
+                    measureElement.addChild(notationNote(
+                        for: item,
+                        isOnlyItem: sortedItems.count == 1,
+                        tieRole: tieRoles[item.id]
+                    ))
+                    notationCursorOffsetInQuarterNotes = itemEnd
+                }
+
                 try addHarmoniesBeforeRestBoundary(
                     from: sortedHarmonies,
                     to: measureElement,
                     measureNumber: measure.number,
                     notationCursorOffsetInQuarterNotes: notationCursorOffsetInQuarterNotes,
-                    restBoundaryOffsetInQuarterNotes: restEndOffsetInQuarterNotes,
-                    includeBoundaryHarmony: false,
+                    restBoundaryOffsetInQuarterNotes: .infinity,
+                    includeBoundaryHarmony: true,
                     harmonyIndex: &harmonyIndex
                 )
-                measureElement.addChild(notationNote(
-                    for: item,
-                    isOnlyItem: sortedItems.count == 1,
-                    tieRole: tieRoles[item.id]
-                ))
-                notationCursorOffsetInQuarterNotes = restEndOffsetInQuarterNotes
             }
-
-            try addHarmoniesBeforeRestBoundary(
-                from: sortedHarmonies,
-                to: measureElement,
-                measureNumber: measure.number,
-                notationCursorOffsetInQuarterNotes: notationCursorOffsetInQuarterNotes,
-                restBoundaryOffsetInQuarterNotes: .infinity,
-                includeBoundaryHarmony: true,
-                harmonyIndex: &harmonyIndex
-            )
 
             part.addChild(measureElement)
             previousAttributes = measure.attributes
@@ -306,6 +322,203 @@ final class MusicXMLNotationExportRenderer: NotationExportRenderer {
         }
 
         return lhs.id < rhs.id
+    }
+
+    private func addPolyphonicMeasureContent(
+        measure: ScoreMeasure,
+        items: [NotationMeasureItem],
+        noteEvents: [MusicXMLNoteEvent],
+        harmonies: [HarmonySymbol],
+        tieRoles: [String: MusicXMLTieRole],
+        to measureElement: XMLElement
+    ) throws {
+        for harmony in harmonies {
+            let chord = try MusicXMLChordParser.parse(harmony.rawText, measureNumber: measure.number)
+            measureElement.addChild(harmonyElement(
+                for: chord,
+                offsetInQuarterNotes: max(0, harmony.offsetInQuarterNotes)
+            ))
+        }
+
+        let rests = items.filter { $0.kind == .rest }
+        let voices = Array(Set(noteEvents.map(\.voice))).sorted()
+        let renderedVoices = voices.isEmpty ? [1] : voices
+        let restVoice = renderedVoices.first ?? 1
+        let measureLength = NotationMeasureTiming.quarterLength(for: measure.attributes.timeSignature)
+
+        for (voiceIndex, voice) in renderedVoices.enumerated() {
+            if voiceIndex > 0 {
+                measureElement.addChild(cursorElement("backup", duration: measureLength))
+            }
+
+            let events = musicXMLRenderEvents(
+                noteEvents: noteEvents.filter { $0.voice == voice },
+                rests: voice == restVoice ? rests : []
+            )
+            var cursor = 0.0
+            for event in events {
+                if event.start > cursor + NotationMeasureTiming.timelineTolerance {
+                    measureElement.addChild(cursorElement("forward", duration: event.start - cursor))
+                    cursor = event.start
+                }
+
+                if let rest = event.rest {
+                    measureElement.addChild(restNote(
+                        for: rest,
+                        isOnlyItem: items.count == 1,
+                        voice: voice
+                    ))
+                } else {
+                    for (index, item) in event.notes.enumerated() {
+                        measureElement.addChild(pitchNote(
+                            for: item,
+                            tieRole: tieRoles[item.id],
+                            voice: voice,
+                            isChordMember: index > 0
+                        ))
+                    }
+                }
+                cursor = max(cursor, event.end)
+            }
+
+            if voiceIndex < renderedVoices.count - 1,
+               cursor < measureLength - NotationMeasureTiming.timelineTolerance {
+                measureElement.addChild(cursorElement("forward", duration: measureLength - cursor))
+            }
+        }
+    }
+
+    private func musicXMLVoiceAssignments(in measures: [ScoreMeasure]) -> [String: Int] {
+        let tieSourceByTargetID = NotationTieResolver.connections(in: measures).reduce(into: [String: String]()) {
+            $0[$1.target.item.id] = $1.source.item.id
+        }
+        var assignments: [String: Int] = [:]
+
+        for measure in measures.sorted(by: { $0.number < $1.number }) {
+            var voiceEnd: [Int: Double] = [:]
+            var eventVoices: [MusicXMLNoteEventKey: Set<Int>] = [:]
+            let notes = measure.notationItems
+                .filter { $0.kind == .note && $0.pitch != nil }
+                .sorted { lhs, rhs in
+                    if abs(lhs.offsetInQuarterNotes - rhs.offsetInQuarterNotes) > NotationMeasureTiming.timelineTolerance {
+                        return lhs.offsetInQuarterNotes < rhs.offsetInQuarterNotes
+                    }
+                    let lhsPreferred = tieSourceByTargetID[lhs.id].flatMap { assignments[$0] }
+                    let rhsPreferred = tieSourceByTargetID[rhs.id].flatMap { assignments[$0] }
+                    if (lhsPreferred != nil) != (rhsPreferred != nil) { return lhsPreferred != nil }
+                    if abs(lhs.durationInQuarterNotes - rhs.durationInQuarterNotes) > NotationMeasureTiming.timelineTolerance {
+                        return lhs.durationInQuarterNotes > rhs.durationInQuarterNotes
+                    }
+                    return musicXMLPitchSort(lhs, rhs)
+                }
+
+            for item in notes {
+                let start = item.offsetInQuarterNotes
+                let end = start + item.durationInQuarterNotes
+                let key = MusicXMLNoteEventKey(
+                    start: durationValue(forQuarterOffset: start),
+                    duration: durationValue(forQuarterOffset: item.durationInQuarterNotes)
+                )
+                let preferredVoice = tieSourceByTargetID[item.id].flatMap { assignments[$0] }
+                let reservedIntervals = notes.compactMap { reservedItem -> (voice: Int, start: Double, end: Double)? in
+                    guard reservedItem.id != item.id,
+                          let sourceID = tieSourceByTargetID[reservedItem.id],
+                          let voice = assignments[sourceID]
+                    else { return nil }
+                    return (voice, reservedItem.offsetInQuarterNotes,
+                            reservedItem.offsetInQuarterNotes + reservedItem.durationInQuarterNotes)
+                }
+                let canUseVoice: (Int) -> Bool = { voice in
+                    guard (voiceEnd[voice] ?? 0) <= start + NotationMeasureTiming.timelineTolerance else {
+                        return false
+                    }
+                    return !reservedIntervals.contains { reservation in
+                        reservation.voice == voice
+                            && start < reservation.end - NotationMeasureTiming.timelineTolerance
+                            && reservation.start < end - NotationMeasureTiming.timelineTolerance
+                    }
+                }
+                let voice: Int
+                if let preferredVoice {
+                    voice = preferredVoice
+                } else if let chordVoice = eventVoices[key]?.sorted().first {
+                    voice = chordVoice
+                } else if let available = voiceEnd.keys.sorted().first(where: canUseVoice) {
+                    voice = available
+                } else {
+                    let upperBound = max(
+                        voiceEnd.keys.max() ?? 0,
+                        reservedIntervals.map(\.voice).max() ?? 0
+                    ) + 1
+                    voice = (1...upperBound).first(where: canUseVoice) ?? upperBound
+                }
+                voiceEnd[voice] = max(voiceEnd[voice] ?? 0, end)
+                eventVoices[key, default: []].insert(voice)
+                assignments[item.id] = voice
+            }
+        }
+        return assignments
+    }
+
+    private func musicXMLNoteEvents(
+        in measure: ScoreMeasure,
+        voiceByItemID: [String: Int]
+    ) -> [MusicXMLNoteEvent] {
+        let notes = measure.notationItems.filter { $0.kind == .note && $0.pitch != nil }
+        let grouped = Dictionary(grouping: notes) { item in
+            MusicXMLAssignedNoteEventKey(
+                start: durationValue(forQuarterOffset: item.offsetInQuarterNotes),
+                duration: durationValue(forQuarterOffset: item.durationInQuarterNotes),
+                voice: voiceByItemID[item.id] ?? 1
+            )
+        }
+        return grouped.map { key, items in
+            MusicXMLNoteEvent(
+                start: Double(key.start) / Double(divisions),
+                end: Double(key.start + key.duration) / Double(divisions),
+                voice: key.voice,
+                items: items.sorted(by: musicXMLPitchSort)
+            )
+        }.sorted {
+            if $0.voice != $1.voice { return $0.voice < $1.voice }
+            if abs($0.start - $1.start) > NotationMeasureTiming.timelineTolerance { return $0.start < $1.start }
+            if abs($0.end - $1.end) > NotationMeasureTiming.timelineTolerance { return $0.end > $1.end }
+            return ($0.items.first?.id ?? "") < ($1.items.first?.id ?? "")
+        }
+    }
+
+    private func musicXMLRenderEvents(
+        noteEvents: [MusicXMLNoteEvent],
+        rests: [NotationMeasureItem]
+    ) -> [MusicXMLRenderEvent] {
+        let noteOutput = noteEvents.map {
+            MusicXMLRenderEvent(start: $0.start, end: $0.end, notes: $0.items, rest: nil)
+        }
+        let restOutput = rests.map {
+            MusicXMLRenderEvent(
+                start: $0.offsetInQuarterNotes,
+                end: $0.offsetInQuarterNotes + $0.durationInQuarterNotes,
+                notes: [],
+                rest: $0
+            )
+        }
+        return (noteOutput + restOutput).sorted {
+            if abs($0.start - $1.start) > NotationMeasureTiming.timelineTolerance { return $0.start < $1.start }
+            if ($0.rest != nil) != ($1.rest != nil) { return $0.rest == nil }
+            return $0.end > $1.end
+        }
+    }
+
+    private func musicXMLPitchSort(_ lhs: NotationMeasureItem, _ rhs: NotationMeasureItem) -> Bool {
+        let lhsPitch = lhs.pitch?.midiNoteNumber ?? 0
+        let rhsPitch = rhs.pitch?.midiNoteNumber ?? 0
+        return lhsPitch == rhsPitch ? lhs.id < rhs.id : lhsPitch < rhsPitch
+    }
+
+    private func cursorElement(_ name: String, duration: Double) -> XMLElement {
+        let cursor = element(name)
+        cursor.addChild(element("duration", stringValue: "\(durationValue(forQuarterOffset: duration))"))
+        return cursor
     }
 
     private func addHarmoniesBeforeRestBoundary(
@@ -451,18 +664,25 @@ final class MusicXMLNotationExportRenderer: NotationExportRenderer {
     }
 
     private func restNote(for item: NotationMeasureItem, isOnlyItem: Bool) -> XMLElement {
+        restNote(for: item, isOnlyItem: isOnlyItem, voice: 1)
+    }
+
+    private func restNote(for item: NotationMeasureItem, isOnlyItem: Bool, voice: Int) -> XMLElement {
         let note = element("note")
         let isMeasureRest = isOnlyItem && item.isSynthesized && item.offsetInQuarterNotes == 0
         note.addChild(element("rest", attributes: isMeasureRest ? ["measure": "yes"] : [:]))
-        appendDurationElements(to: note, for: item)
+        appendDurationElements(to: note, for: item, voice: voice)
         return note
     }
 
     private func pitchNote(
         for item: NotationMeasureItem,
-        tieRole: MusicXMLTieRole?
+        tieRole: MusicXMLTieRole?,
+        voice: Int = 1,
+        isChordMember: Bool = false
     ) -> XMLElement {
         let note = element("note")
+        if isChordMember { note.addChild(element("chord")) }
         let pitch = item.pitch ?? NotationPitch(step: .c, octave: 4)
         let pitchElement = element("pitch")
         pitchElement.addChild(element("step", stringValue: pitch.step.rawValue))
@@ -471,14 +691,15 @@ final class MusicXMLNotationExportRenderer: NotationExportRenderer {
         }
         pitchElement.addChild(element("octave", stringValue: "\(pitch.octave)"))
         note.addChild(pitchElement)
-        appendDurationElements(to: note, for: item, tieRole: tieRole)
+        appendDurationElements(to: note, for: item, tieRole: tieRole, voice: voice)
         return note
     }
 
     private func appendDurationElements(
         to note: XMLElement,
         for item: NotationMeasureItem,
-        tieRole: MusicXMLTieRole? = nil
+        tieRole: MusicXMLTieRole? = nil,
+        voice: Int = 1
     ) {
         note.addChild(element("duration", stringValue: "\(durationValue(forQuarterOffset: item.durationInQuarterNotes))"))
         if tieRole?.stops == true {
@@ -487,7 +708,7 @@ final class MusicXMLNotationExportRenderer: NotationExportRenderer {
         if tieRole?.starts == true {
             note.addChild(element("tie", attributes: ["type": "start"]))
         }
-        note.addChild(element("voice", stringValue: "1"))
+        note.addChild(element("voice", stringValue: "\(voice)"))
         note.addChild(element("type", stringValue: item.displayDuration.displayName))
         if item.displayDuration.isDotted {
             note.addChild(element("dot"))
@@ -543,6 +764,31 @@ final class MusicXMLNotationExportRenderer: NotationExportRenderer {
 private struct MusicXMLTieRole {
     var starts = false
     var stops = false
+}
+
+private struct MusicXMLNoteEventKey: Hashable {
+    var start: Int
+    var duration: Int
+}
+
+private struct MusicXMLAssignedNoteEventKey: Hashable {
+    var start: Int
+    var duration: Int
+    var voice: Int
+}
+
+private struct MusicXMLNoteEvent {
+    var start: Double
+    var end: Double
+    var voice: Int
+    var items: [NotationMeasureItem]
+}
+
+private struct MusicXMLRenderEvent {
+    var start: Double
+    var end: Double
+    var notes: [NotationMeasureItem]
+    var rest: NotationMeasureItem?
 }
 
 struct MusicXMLChord: Equatable {

@@ -317,7 +317,7 @@ final class AppHotkeyNotationEventFilterTests: XCTestCase {
     }
 
     @MainActor
-    func testHotkeyMonitorConsumesBlockedTieCommandWithoutMutatingNotation() throws {
+    func testHotkeyMonitorAddsTieAcrossAnOverlappingNote() throws {
         let viewModel = try loadedNotationViewModel(duration: 8)
         viewModel.notationItems = [
             NotationMeasureItem(
@@ -345,8 +345,6 @@ final class AppHotkeyNotationEventFilterTests: XCTestCase {
         let source = try XCTUnwrap(measure.notationItems.first { $0.id == "source" })
         viewModel.selectNotationItem(NotationItemSelection(measure: measure, item: source))
         viewModel.markProjectClean()
-        let originalItems = viewModel.notationItems
-        let originalSelection = viewModel.selectedNotationItem
         let event = try XCTUnwrap(NSEvent.keyEvent(
             with: .keyDown,
             location: .zero,
@@ -365,11 +363,11 @@ final class AppHotkeyNotationEventFilterTests: XCTestCase {
                 && viewModel.handleAddTiedNotationNoteCommand()
         }
 
-        XCTAssertEqual(viewModel.tieCommandStatus, .blocked(.noFreeFollowingDuration))
+        XCTAssertEqual(viewModel.tieCommandStatus, .ready)
         XCTAssertNil(monitor.eventAfterHandling(event, hotkey: .addTiedNotationNote))
-        XCTAssertEqual(viewModel.notationItems, originalItems)
-        XCTAssertEqual(viewModel.selectedNotationItem, originalSelection)
-        XCTAssertFalse(viewModel.isProjectModified)
+        XCTAssertEqual(viewModel.notationItems.filter { $0.kind == .note }.count, 3)
+        XCTAssertNotNil(viewModel.notationItems.first { $0.id == "source" }?.tieTargetItemID)
+        XCTAssertTrue(viewModel.isProjectModified)
     }
 
 }

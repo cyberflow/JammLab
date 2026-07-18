@@ -218,8 +218,6 @@ enum NotationTieHelpText {
             return "Select a note to add a tie."
         case .alreadyTied:
             return "The selected note already starts a tie."
-        case .noFreeFollowingDuration:
-            return "There is not enough empty notation time after the selected note."
         case .audioBoundary:
             return "There is not enough audio time after the selected note."
         }

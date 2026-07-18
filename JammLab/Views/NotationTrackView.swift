@@ -310,7 +310,11 @@ struct NotationTrackView: View {
         staffTop: CGFloat,
         in context: inout GraphicsContext
     ) {
-        for item in notationItemLayoutItems(geometries: geometries) {
+        let layoutItems = notationItemLayoutItems(geometries: geometries)
+        let chordGroups = NotationTrackLayoutItems.chordRenderGroups(from: layoutItems)
+        let chordItemIDs = Set(chordGroups.flatMap { $0.items.map(\.notationItem.id) })
+
+        for item in layoutItems where !chordItemIDs.contains(item.notationItem.id) {
             let color = selectedItem?.matches(
                 item.measure,
                 item: item.notationItem
@@ -343,12 +347,17 @@ struct NotationTrackView: View {
                     duration: item.notationItem.displayDuration,
                     x: item.x,
                     staffPosition: staffPosition,
+                    stemDirection: item.stemDirection,
                     staffTop: staffTop,
                     color: color,
                     opacity: 1,
                     in: &context
                 )
             }
+        }
+
+        for group in chordGroups {
+            drawChordGroup(group, staffTop: staffTop, in: &context)
         }
 
         if let hoveredNotePlacement {
@@ -375,6 +384,100 @@ struct NotationTrackView: View {
                 color: appColors.accent.opacity(0.56),
                 in: &context
             )
+        }
+    }
+
+    private func drawChordGroup(
+        _ group: NotationChordRenderGroup,
+        staffTop: CGFloat,
+        in context: inout GraphicsContext
+    ) {
+        let spacing = AppTheme.Timeline.notationStaffLineSpacing
+        let fontSize = spacing * 3.25
+        let noteheadSymbol = NotationNoteheadSymbol(duration: group.duration)
+        guard let noteheadPath = NotationMusicFontRegistry.glyphPath(
+            for: noteheadSymbol,
+            fontSize: fontSize
+        ) else { return }
+
+        let positioned = group.items.compactMap { item -> (item: NotationItemLayoutItem, position: Int, y: CGFloat, color: Color)? in
+            let pitch = draggedNotePitchPreview?.matches(item.selection) == true
+                ? draggedNotePitchPreview?.pitch
+                : item.notationItem.pitch
+            guard let pitch else { return nil }
+            let position = NotationPitchMapper.staffPosition(for: pitch, clef: item.measure.attributes.clef)
+            let color = selectedItem?.matches(item.measure, item: item.notationItem) == true
+                ? appColors.accent
+                : appColors.notationSymbolsAndLines
+            return (
+                item,
+                position,
+                NotationNotePlacementResolver.yPosition(forStaffPosition: position, staffTop: staffTop),
+                color
+            )
+        }
+        guard !positioned.isEmpty else { return }
+
+        for member in positioned {
+            drawLedgerLines(
+                staffPosition: member.position,
+                x: member.item.x,
+                staffTop: staffTop,
+                color: member.color,
+                opacity: 1,
+                in: &context
+            )
+            let transform = noteheadPath.anchoredTransform(
+                anchor: CGPoint(x: noteheadPath.bounds.midX, y: noteheadPath.bounds.midY),
+                target: CGPoint(x: member.item.x, y: member.y)
+            )
+            context.fill(Path(noteheadPath.path).applying(transform), with: .color(member.color))
+            if group.duration.isDotted {
+                drawAugmentationDot(
+                    at: NotationAugmentationDotLayout.noteTarget(
+                        noteX: member.item.x,
+                        noteStaffPosition: member.position,
+                        staffTop: staffTop
+                    ),
+                    color: member.color,
+                    opacity: 1,
+                    in: &context
+                )
+            }
+        }
+
+        guard group.duration.denominator != 1 else { return }
+        let stemColor = positioned.contains { member in
+            selectedItem?.matches(member.item.measure, item: member.item.notationItem) == true
+        } ? appColors.accent : appColors.notationSymbolsAndLines
+        let xs = positioned.map { $0.item.x }
+        let ys = positioned.map(\.y)
+        let stemX: CGFloat
+        let attachmentY: CGFloat
+        let flagY: CGFloat
+        switch group.stemDirection {
+        case .up:
+            stemX = (xs.max() ?? 0) + spacing * 0.55
+            attachmentY = ys.max() ?? 0
+            flagY = (ys.min() ?? 0) - spacing * 3.5
+        case .down:
+            stemX = (xs.min() ?? 0) - spacing * 0.55
+            attachmentY = ys.min() ?? 0
+            flagY = (ys.max() ?? 0) + spacing * 3.5
+        }
+        var stemPath = Path()
+        stemPath.move(to: CGPoint(x: stemX, y: attachmentY))
+        stemPath.addLine(to: CGPoint(x: stemX, y: flagY))
+        context.stroke(stemPath, with: .color(stemColor), lineWidth: AppTheme.Stroke.medium)
+
+        if let flag = NotationFlagSymbol(duration: group.duration, stemDirection: group.stemDirection),
+           let flagPath = NotationMusicFontRegistry.glyphPath(for: flag, fontSize: fontSize) {
+            let anchorY = group.stemDirection == .up ? flagPath.bounds.minY : flagPath.bounds.maxY
+            let transform = flagPath.anchoredTransform(
+                anchor: CGPoint(x: flagPath.bounds.minX, y: anchorY),
+                target: CGPoint(x: stemX, y: flagY)
+            )
+            context.fill(Path(flagPath.path).applying(transform), with: .color(stemColor))
         }
     }
 
@@ -409,6 +512,7 @@ struct NotationTrackView: View {
         duration: NotationDuration,
         x: CGFloat,
         staffPosition: Int,
+        stemDirection: NotationStemDirection? = nil,
         staffTop: CGFloat,
         color: Color,
         opacity: Double,
@@ -429,7 +533,7 @@ struct NotationTrackView: View {
                 forStaffPosition: staffPosition,
                 staffTop: staffTop
             ),
-            stemDirection: NotationStemDirection.direction(forStaffPosition: staffPosition),
+            stemDirection: stemDirection ?? NotationStemDirection.direction(forStaffPosition: staffPosition),
             color: color,
             opacity: opacity,
             in: &context
@@ -735,13 +839,19 @@ struct NotationTrackView: View {
         return ZStack(alignment: .topLeading) {
             ForEach(notationItemLayoutItems(geometries: geometries), id: \.id) { item in
                 let hitCenterY = notationItemHitCenterY(item, staffTop: staffTop)
+                let itemHitWidth = item.notationItem.kind == .note
+                    ? AppTheme.Timeline.notationNoteHitWidth
+                    : hitWidth
+                let itemHitHeight = item.notationItem.kind == .note
+                    ? AppTheme.Timeline.notationNoteHitHeight
+                    : hitHeight
                 Rectangle()
                     .fill(Color.clear)
                     .contentShape(Rectangle())
-                    .frame(width: hitWidth, height: hitHeight)
+                    .frame(width: itemHitWidth, height: itemHitHeight)
                     .offset(
-                        x: item.x - hitWidth / 2,
-                        y: max(0, hitCenterY - hitHeight / 2)
+                        x: item.x - itemHitWidth / 2,
+                        y: max(0, hitCenterY - itemHitHeight / 2)
                     )
                     .onTapGesture {
                         isTrackFocused = true

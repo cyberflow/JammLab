@@ -559,71 +559,17 @@ struct NotationViewportFactory {
         from notationItems: [NotationMeasureItem],
         partID: NotationPartID = .main
     ) -> [NotationMeasureItem] {
-        let measureLength = NotationMeasureTiming.quarterLength(for: measure.attributes.timeSignature)
-        guard measureLength > 0 else { return [] }
-
-        let explicitItems = notationItems
-            .filter { item in
-                item.measureNumber == measure.number
-                    && item.partID == partID
-                    && abs(item.measureStartTime - measure.startTime) < timelineTolerance
-                    && (item.kind == .rest || item.pitch != nil)
-            }
-            .sorted(by: itemSort)
-        guard !explicitItems.isEmpty else {
-            return [
-                NotationRestItemFactory.restItem(
-                    id: "default-rest-\(measure.number)-\(measure.startTime)-\(measure.endTime)",
-                    partID: partID,
-                    measureNumber: measure.number,
-                    measureStartTime: measure.startTime,
-                    offsetInQuarterNotes: 0,
-                    durationInQuarterNotes: measureLength,
-                    displayDuration: NotationDuration(denominator: NotationDuration.defaultDenominator),
-                    isSynthesized: true
-                )
-            ]
+        let explicitItems = notationItems.filter { item in
+            item.measureNumber == measure.number
+                && item.partID == partID
+                && abs(item.measureStartTime - measure.startTime) < timelineTolerance
+                && (item.kind == .rest || item.pitch != nil)
         }
-
-        var normalized: [NotationMeasureItem] = []
-        var cursor = 0.0
-        for item in explicitItems {
-            let offset = max(cursor, min(item.offsetInQuarterNotes, measureLength))
-            if offset > cursor + timelineTolerance {
-                normalized.append(contentsOf: fillerItems(
-                    measure: measure,
-                    partID: partID,
-                    startOffset: cursor,
-                    remaining: offset - cursor
-                ))
-            }
-
-            let available = measureLength - offset
-            guard available > timelineTolerance else { continue }
-            let duration = min(max(0, item.durationInQuarterNotes), available)
-            guard duration > timelineTolerance else { continue }
-
-            var copy = item
-            copy.partID = partID
-            copy.measureNumber = measure.number
-            copy.measureStartTime = measure.startTime
-            copy.offsetInQuarterNotes = offset
-            copy.durationInQuarterNotes = duration
-            copy.isSynthesized = false
-            normalized.append(copy)
-            cursor = offset + duration
-        }
-
-        if cursor < measureLength - timelineTolerance {
-            normalized.append(contentsOf: fillerItems(
-                measure: measure,
-                partID: partID,
-                startOffset: cursor,
-                remaining: measureLength - cursor
-            ))
-        }
-
-        return normalized.sorted(by: itemSort)
+        return NotationMeasureRhythmRecomposer.projectedItems(
+            in: measure,
+            partID: partID,
+            items: explicitItems
+        )
     }
 
     static func fillerItems(
@@ -644,14 +590,6 @@ struct NotationViewportFactory {
             let suffix = segment.isTail ? "tail" : "\(segment.displayDuration.denominator)"
             return "fill-rest-\(measure.number)-\(measure.startTime)-\(segment.offsetInQuarterNotes)-\(suffix)"
         }
-    }
-
-    private static func itemSort(_ lhs: NotationMeasureItem, _ rhs: NotationMeasureItem) -> Bool {
-        if abs(lhs.offsetInQuarterNotes - rhs.offsetInQuarterNotes) > timelineTolerance {
-            return lhs.offsetInQuarterNotes < rhs.offsetInQuarterNotes
-        }
-
-        return lhs.id < rhs.id
     }
 
     private static let maximumMeasureTraversalCount = 100_000

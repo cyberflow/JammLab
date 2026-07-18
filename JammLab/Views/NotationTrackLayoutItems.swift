@@ -16,6 +16,7 @@ struct NotationItemLayoutItem: Equatable, Identifiable {
     var notationItem: NotationMeasureItem
     var selection: NotationItemSelection
     var x: CGFloat
+    var stemDirection: NotationStemDirection?
 
     var id: String {
         selection.id
@@ -29,6 +30,15 @@ struct NotationTieLayoutItem: Equatable, Identifiable {
     var placement: NotationTiePlacement
 
     var id: String { connection.id }
+}
+
+struct NotationChordRenderGroup: Equatable, Identifiable {
+    var measure: ScoreMeasure
+    var items: [NotationItemLayoutItem]
+    var duration: NotationDuration
+    var stemDirection: NotationStemDirection
+
+    var id: String { items.map(\.id).sorted().joined(separator: "|") }
 }
 
 enum NotationTrackLayoutItems {
@@ -124,6 +134,14 @@ enum NotationTrackLayoutItems {
         visibleMeasures.indices.flatMap { index -> [NotationItemLayoutItem] in
             guard geometries.indices.contains(index) else { return [] }
             let measure = visibleMeasures[index]
+            let baseXByItemID = measure.notationItems.reduce(into: [String: CGFloat]()) { output, notationItem in
+                output[notationItem.id] = NotationMeasureLayout.notationItemX(
+                    geometry: geometries[index],
+                    measure: measure,
+                    item: notationItem
+                )
+            }
+            let chordLayout = chordLayout(in: measure)
             return measure.notationItems.map { notationItem in
                 NotationItemLayoutItem(
                     measure: measure,
@@ -132,14 +150,97 @@ enum NotationTrackLayoutItems {
                         measure: measure,
                         item: notationItem
                     ),
-                    x: NotationMeasureLayout.notationItemX(
-                        geometry: geometries[index],
-                        measure: measure,
-                        item: notationItem
-                    )
+                    x: (baseXByItemID[notationItem.id] ?? 0)
+                        + (chordLayout.xOffsetByItemID[notationItem.id] ?? 0),
+                    stemDirection: chordLayout.stemDirectionByItemID[notationItem.id]
                 )
             }
         }
+    }
+
+    static func chordRenderGroups(
+        from layoutItems: [NotationItemLayoutItem]
+    ) -> [NotationChordRenderGroup] {
+        let notes = layoutItems.filter { $0.notationItem.kind == .note && $0.notationItem.pitch != nil }
+        let grouped = Dictionary(grouping: notes) { item in
+            NotationChordRenderKey(
+                measureNumber: item.measure.number,
+                measureStartTick: Int((item.measure.startTime * 1_000_000).rounded()),
+                onsetTick: Int((item.notationItem.offsetInQuarterNotes * 1_000_000).rounded()),
+                durationTick: Int((item.notationItem.durationInQuarterNotes * 1_000_000).rounded())
+            )
+        }
+        return grouped.values.compactMap { items in
+            guard items.count > 1,
+                  let first = items.first,
+                  let direction = first.stemDirection
+            else { return nil }
+            return NotationChordRenderGroup(
+                measure: first.measure,
+                items: items.sorted { $0.notationItem.id < $1.notationItem.id },
+                duration: first.notationItem.displayDuration,
+                stemDirection: direction
+            )
+        }.sorted { $0.id < $1.id }
+    }
+
+    private static func chordLayout(in measure: ScoreMeasure) -> NotationChordLayout {
+        let notes = measure.notationItems.filter { $0.kind == .note && $0.pitch != nil }
+        let onsetGroups = Dictionary(grouping: notes) {
+            Int(($0.offsetInQuarterNotes * 1_000_000).rounded())
+        }
+        var layout = NotationChordLayout()
+
+        for onsetGroup in onsetGroups.values where onsetGroup.count > 1 {
+            let durationGroups = Dictionary(grouping: onsetGroup) {
+                Int(($0.durationInQuarterNotes * 1_000_000).rounded())
+            }.values.sorted {
+                let lhsDuration = $0.first?.durationInQuarterNotes ?? 0
+                let rhsDuration = $1.first?.durationInQuarterNotes ?? 0
+                if abs(lhsDuration - rhsDuration) > NotationMeasureTiming.timelineTolerance {
+                    return lhsDuration > rhsDuration
+                }
+                return ($0.first?.id ?? "") < ($1.first?.id ?? "")
+            }
+
+            for (laneIndex, durationGroup) in durationGroups.enumerated() {
+                let laneOffset = (CGFloat(laneIndex) - CGFloat(durationGroups.count - 1) / 2)
+                    * AppTheme.Timeline.notationPolyphonicLaneSpacing
+                let positioned = durationGroup.sorted {
+                    let lhs = NotationPitchMapper.staffPosition(
+                        for: $0.pitch!,
+                        clef: measure.attributes.clef
+                    )
+                    let rhs = NotationPitchMapper.staffPosition(
+                        for: $1.pitch!,
+                        clef: measure.attributes.clef
+                    )
+                    return lhs == rhs ? $0.id < $1.id : lhs < rhs
+                }
+                let staffPositions = positioned.map {
+                    NotationPitchMapper.staffPosition(for: $0.pitch!, clef: measure.attributes.clef)
+                }
+                let averagePosition = staffPositions.isEmpty
+                    ? 4
+                    : Int((Double(staffPositions.reduce(0, +)) / Double(staffPositions.count)).rounded())
+                let stemDirection = NotationStemDirection.direction(forStaffPosition: averagePosition)
+                var shiftsRight = stemDirection == .up
+
+                for (noteIndex, note) in positioned.enumerated() {
+                    var noteOffset = laneOffset
+                    if noteIndex > 0,
+                       abs(staffPositions[noteIndex] - staffPositions[noteIndex - 1]) == 1 {
+                        noteOffset += shiftsRight
+                            ? AppTheme.Timeline.notationChordSecondOffset
+                            : -AppTheme.Timeline.notationChordSecondOffset
+                        shiftsRight.toggle()
+                    }
+                    layout.xOffsetByItemID[note.id] = noteOffset
+                    layout.stemDirectionByItemID[note.id] = stemDirection
+                }
+            }
+        }
+        return layout
     }
 
     static func ties(
@@ -207,6 +308,18 @@ enum NotationTrackLayoutItems {
             )
         }
     }
+}
+
+private struct NotationChordLayout {
+    var xOffsetByItemID: [String: CGFloat] = [:]
+    var stemDirectionByItemID: [String: NotationStemDirection] = [:]
+}
+
+private struct NotationChordRenderKey: Hashable {
+    var measureNumber: Int
+    var measureStartTick: Int
+    var onsetTick: Int
+    var durationTick: Int
 }
 
 enum NotationTrackAccessibility {

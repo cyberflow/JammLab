@@ -19,7 +19,6 @@ struct NotationTieConnection: Equatable, Identifiable {
 enum NotationTieCommandBlockReason: Equatable {
     case selectNote
     case alreadyTied
-    case noFreeFollowingDuration
     case audioBoundary
 }
 
@@ -41,27 +40,25 @@ enum NotationTieResolver {
                 .sorted(by: notationTieItemSort)
                 .map { (measure: measure, item: $0) }
         }
-        let targetIndexByID = flattened.enumerated().reduce(into: [String: Int]()) {
-            if $0[$1.element.item.id] == nil { $0[$1.element.item.id] = $1.offset }
+        let entriesByID = flattened.reduce(into: [String: (measure: ScoreMeasure, item: NotationMeasureItem)]()) {
+            if $0[$1.item.id] == nil { $0[$1.item.id] = $1 }
         }
         var claimedTargetIDs: Set<String> = []
         var output: [NotationTieConnection] = []
 
-        for (sourceIndex, entry) in flattened.enumerated() {
+        for entry in flattened {
             let source = entry.item
             guard !source.isSynthesized,
                   source.kind == .note,
                   let sourcePitch = source.pitch,
                   let targetID = source.tieTargetItemID,
-                  sourceIndex + 1 < flattened.count,
-                  let targetIndex = targetIndexByID[targetID],
-                  targetIndex == sourceIndex + 1,
+                  targetID != source.id,
+                  let targetEntry = entriesByID[targetID],
                   !claimedTargetIDs.contains(targetID)
             else {
                 continue
             }
 
-            let targetEntry = flattened[targetIndex]
             let target = targetEntry.item
             guard !target.isSynthesized,
                   target.kind == .note,
@@ -84,7 +81,16 @@ enum NotationTieResolver {
             ))
         }
 
-        return output
+        return output.sorted {
+            if $0.source.measureNumber != $1.source.measureNumber {
+                return $0.source.measureNumber < $1.source.measureNumber
+            }
+            if abs($0.source.item.offsetInQuarterNotes - $1.source.item.offsetInQuarterNotes)
+                > NotationMeasureTiming.timelineTolerance {
+                return $0.source.item.offsetInQuarterNotes < $1.source.item.offsetInQuarterNotes
+            }
+            return $0.source.item.id < $1.source.item.id
+        }
     }
 
     static func sanitizedPersistedItems(
@@ -214,24 +220,14 @@ enum NotationNoteInsertionPlanner {
             $0.number == placement.measure.number
                 && abs($0.startTime - placement.measure.startTime) < NotationMeasureTiming.timelineTolerance
                 && abs($0.endTime - placement.measure.endTime) < NotationMeasureTiming.timelineTolerance
-        }), orderedMeasures[measureIndex].notationItems.contains(where: {
-            let itemEnd = $0.offsetInQuarterNotes + $0.durationInQuarterNotes
-            return $0.kind == .rest
-                && $0.partID == placement.partID
-                && $0.id == placement.targetRestID
-                && $0.offsetInQuarterNotes <= placement.offsetInQuarterNotes
-                    + NotationMeasureTiming.timelineTolerance
-                && itemEnd > placement.offsetInQuarterNotes
-                    + NotationMeasureTiming.timelineTolerance
         }), placement.displayDuration.durationInQuarterNotes > NotationMeasureTiming.timelineTolerance,
            abs(
                placement.durationInQuarterNotes - placement.displayDuration.durationInQuarterNotes
            ) < NotationMeasureTiming.timelineTolerance,
-           let consumedSpans = consumedRestSpans(
+           let consumedSpans = consumedMeasureSpans(
                in: orderedMeasures,
                startMeasureIndex: measureIndex,
                startOffset: placement.offsetInQuarterNotes,
-               partID: placement.partID,
                requiredDuration: placement.durationInQuarterNotes
            )
         else {
@@ -316,13 +312,12 @@ enum NotationNoteInsertionPlanner {
         }
         let replacements = affectedMeasureIndices.sorted().compactMap { measureIndex -> NotationNoteInsertionMeasureReplacement? in
             let measure = orderedMeasures[measureIndex]
-            let span = consumedSpans.first { $0.measureIndex == measureIndex }
             let inserted = insertedByMeasureIndex[measureIndex, default: []].compactMap {
                 linkedItemsByID[$0.id]
             }
             let items = replacementItems(
                 in: measure,
-                consumedSpan: span,
+                partID: context.partID,
                 insertedItems: inserted,
                 linkedItemsByID: linkedItemsByID
             )
@@ -383,13 +378,19 @@ enum NotationNoteInsertionPlanner {
               let pitch = sourceLocation.item.pitch,
               sourceLocation.item.tieTargetItemID == nil,
               selectedDuration.durationInQuarterNotes > NotationMeasureTiming.timelineTolerance,
-              let consumedSpans = consumedRestSpans(
+              let consumedSpans = consumedMeasureSpans(
                 in: orderedMeasures,
                 startMeasureIndex: sourceLocation.measureIndex,
                 startOffset: sourceLocation.item.offsetInQuarterNotes
                     + sourceLocation.item.durationInQuarterNotes,
-                partID: sourceLocation.item.partID,
                 requiredDuration: selectedDuration.durationInQuarterNotes
+              ),
+              !containsExactLogicalNote(
+                in: orderedMeasures,
+                excluding: sourceLocation.item.id,
+                partID: sourceLocation.item.partID,
+                pitch: pitch,
+                spans: consumedSpans
               )
         else {
             return nil
@@ -417,11 +418,10 @@ enum NotationNoteInsertionPlanner {
         return nil
     }
 
-    private static func consumedRestSpans(
+    private static func consumedMeasureSpans(
         in measures: [ScoreMeasure],
         startMeasureIndex: Int,
         startOffset: Double,
-        partID: NotationPartID,
         requiredDuration: Double
     ) -> [ConsumedSpan]? {
         var measureIndex = startMeasureIndex
@@ -439,22 +439,7 @@ enum NotationNoteInsertionPlanner {
                 continue
             }
 
-            let orderedItems = measure.notationItems.sorted(by: notationTieItemSort)
-            guard let rest = orderedItems.first(where: { item in
-                let end = item.offsetInQuarterNotes + item.durationInQuarterNotes
-                return item.kind == .rest
-                    && item.partID == partID
-                    && item.offsetInQuarterNotes <= cursor + NotationMeasureTiming.timelineTolerance
-                    && end > cursor + NotationMeasureTiming.timelineTolerance
-            }) else {
-                return nil
-            }
-
-            let restEnd = min(
-                measureLength,
-                rest.offsetInQuarterNotes + rest.durationInQuarterNotes
-            )
-            let consumed = min(remaining, restEnd - cursor)
+            let consumed = min(remaining, measureLength - cursor)
             guard consumed > NotationMeasureTiming.timelineTolerance else { return nil }
 
             if let lastIndex = spans.indices.last, spans[lastIndex].measureIndex == measureIndex {
@@ -475,6 +460,57 @@ enum NotationNoteInsertionPlanner {
         }
 
         return spans
+    }
+
+    private static func containsExactLogicalNote(
+        in measures: [ScoreMeasure],
+        excluding sourceItemID: String,
+        partID: NotationPartID,
+        pitch: NotationPitch,
+        spans: [ConsumedSpan]
+    ) -> Bool {
+        guard let firstSpan = spans.first, let lastSpan = spans.last else { return false }
+        var measureStarts: [Double] = []
+        var cursor = 0.0
+        for measure in measures {
+            measureStarts.append(cursor)
+            cursor += NotationMeasureTiming.quarterLength(for: measure.attributes.timeSignature)
+        }
+        let targetStart = measureStarts[firstSpan.measureIndex] + firstSpan.startOffset
+        let targetEnd = measureStarts[lastSpan.measureIndex] + lastSpan.endOffset
+        let notes = measures.flatMap(\.notationItems).filter {
+            !$0.isSynthesized
+                && $0.id != sourceItemID
+                && $0.partID == partID
+                && $0.kind == .note
+                && $0.pitch == pitch
+        }
+        var visited: Set<String> = []
+
+        for note in notes where !visited.contains(note.id) {
+            let chainIDs = NotationNoteEditPlanner.logicalChainItemIDs(
+                in: notes,
+                containing: note.id,
+                partID: partID
+            )
+            visited.formUnion(chainIDs)
+            let chainSpans = notes.filter { chainIDs.contains($0.id) }.compactMap { item -> NotationTimeSpan? in
+                guard let measureIndex = measures.firstIndex(where: {
+                    $0.number == item.measureNumber
+                        && abs($0.startTime - item.measureStartTime) < NotationMeasureTiming.timelineTolerance
+                }) else { return nil }
+                let start = measureStarts[measureIndex] + item.offsetInQuarterNotes
+                return NotationTimeSpan(start: start, end: start + item.durationInQuarterNotes)
+            }
+            guard let chainStart = chainSpans.map(\.start).min(),
+                  let chainEnd = chainSpans.map(\.end).max()
+            else { continue }
+            if abs(chainStart - targetStart) < NotationMeasureTiming.timelineTolerance,
+               abs(chainEnd - targetEnd) < NotationMeasureTiming.timelineTolerance {
+                return true
+            }
+        }
+        return false
     }
 
     private static func generatedDurations(for length: Double) -> [NotationDuration]? {
@@ -501,54 +537,20 @@ enum NotationNoteInsertionPlanner {
 
     private static func replacementItems(
         in measure: ScoreMeasure,
-        consumedSpan: ConsumedSpan?,
+        partID: NotationPartID,
         insertedItems: [NotationMeasureItem],
         linkedItemsByID: [String: NotationMeasureItem]
     ) -> [NotationMeasureItem] {
-        var output: [NotationMeasureItem] = []
-        let orderedItems = measure.notationItems.sorted(by: notationTieItemSort)
-
-        for item in orderedItems {
-            if let linked = linkedItemsByID[item.id] {
-                output.append(linked)
-                continue
-            }
-
-            guard let consumedSpan else {
-                if !item.isSynthesized { output.append(item.persistedCopy()) }
-                continue
-            }
-
-            let itemStart = item.offsetInQuarterNotes
-            let itemEnd = itemStart + item.durationInQuarterNotes
-            let overlaps = item.kind == .rest
-                && itemEnd > consumedSpan.startOffset + NotationMeasureTiming.timelineTolerance
-                && itemStart < consumedSpan.endOffset - NotationMeasureTiming.timelineTolerance
-            if overlaps {
-                if itemStart < consumedSpan.startOffset - NotationMeasureTiming.timelineTolerance {
-                    output.append(contentsOf: NotationRestItemFactory.metricAwareRestItems(
-                        in: measure,
-                        partID: item.partID,
-                        startOffset: itemStart,
-                        remaining: consumedSpan.startOffset - itemStart
-                    ))
-                }
-                if itemEnd > consumedSpan.endOffset + NotationMeasureTiming.timelineTolerance {
-                    output.append(contentsOf: NotationRestItemFactory.metricAwareRestItems(
-                        in: measure,
-                        partID: item.partID,
-                        startOffset: consumedSpan.endOffset,
-                        remaining: itemEnd - consumedSpan.endOffset
-                    ))
-                }
-                continue
-            }
-
-            if !item.isSynthesized { output.append(item.persistedCopy()) }
+        let existingNotes = measure.notationItems.compactMap { item -> NotationMeasureItem? in
+            guard item.partID == partID, item.kind == .note, !item.isSynthesized else { return nil }
+            return linkedItemsByID[item.id] ?? item.persistedCopy()
         }
-
-        output.append(contentsOf: insertedItems)
-        return output.sorted(by: notationTieItemSort)
+        return NotationMeasureRhythmRecomposer.persistedItems(
+            in: measure,
+            partID: partID,
+            notes: existingNotes + insertedItems,
+            preferredRests: measure.notationItems
+        )
     }
 
 }
