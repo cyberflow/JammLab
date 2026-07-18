@@ -831,6 +831,295 @@ enum NotationRestItemFactory {
     }
 }
 
+struct NotationTimeSpan: Equatable {
+    var start: Double
+    var end: Double
+
+    var duration: Double {
+        max(0, end - start)
+    }
+
+    func contains(_ span: NotationTimeSpan) -> Bool {
+        span.start >= start - NotationMeasureTiming.timelineTolerance
+            && span.end <= end + NotationMeasureTiming.timelineTolerance
+    }
+
+    func overlaps(_ span: NotationTimeSpan) -> Bool {
+        start < span.end - NotationMeasureTiming.timelineTolerance
+            && end > span.start + NotationMeasureTiming.timelineTolerance
+    }
+}
+
+enum NotationMeasureRhythmRecomposer {
+    static func projectedItems(
+        in measure: ScoreMeasure,
+        partID: NotationPartID,
+        items: [NotationMeasureItem]
+    ) -> [NotationMeasureItem] {
+        recomposedItems(
+            in: measure,
+            partID: partID,
+            notes: items,
+            preferredRests: items,
+            generatedRestsAreSynthesized: true
+        )
+    }
+
+    static func persistedItems(
+        in measure: ScoreMeasure,
+        partID: NotationPartID,
+        notes: [NotationMeasureItem],
+        preferredRests: [NotationMeasureItem]
+    ) -> [NotationMeasureItem] {
+        recomposedItems(
+            in: measure,
+            partID: partID,
+            notes: notes,
+            preferredRests: preferredRests,
+            generatedRestsAreSynthesized: false
+        )
+    }
+
+    static func occupiedSpans(
+        in measure: ScoreMeasure,
+        partID: NotationPartID,
+        items: [NotationMeasureItem]
+    ) -> [NotationTimeSpan] {
+        let measureLength = NotationMeasureTiming.quarterLength(
+            for: measure.attributes.timeSignature
+        )
+        guard measureLength > NotationMeasureTiming.timelineTolerance else { return [] }
+
+        let spans = items.compactMap { item -> NotationTimeSpan? in
+            guard item.partID == partID,
+                  item.kind == .note,
+                  item.pitch != nil,
+                  item.offsetInQuarterNotes.isFinite,
+                  item.durationInQuarterNotes.isFinite
+            else { return nil }
+            let start = min(measureLength, max(0, item.offsetInQuarterNotes))
+            let end = min(
+                measureLength,
+                max(start, item.offsetInQuarterNotes + item.durationInQuarterNotes)
+            )
+            guard end > start + NotationMeasureTiming.timelineTolerance else { return nil }
+            return NotationTimeSpan(start: start, end: end)
+        }
+        .sorted {
+            if abs($0.start - $1.start) > NotationMeasureTiming.timelineTolerance {
+                return $0.start < $1.start
+            }
+            return $0.end < $1.end
+        }
+
+        var merged: [NotationTimeSpan] = []
+        for span in spans {
+            guard let lastIndex = merged.indices.last else {
+                merged.append(span)
+                continue
+            }
+            if span.start <= merged[lastIndex].end + NotationMeasureTiming.timelineTolerance {
+                merged[lastIndex].end = max(merged[lastIndex].end, span.end)
+            } else {
+                merged.append(span)
+            }
+        }
+        return merged
+    }
+
+    static func silentSpans(
+        in measure: ScoreMeasure,
+        partID: NotationPartID,
+        items: [NotationMeasureItem]
+    ) -> [NotationTimeSpan] {
+        let measureLength = NotationMeasureTiming.quarterLength(
+            for: measure.attributes.timeSignature
+        )
+        guard measureLength > NotationMeasureTiming.timelineTolerance else { return [] }
+
+        var output: [NotationTimeSpan] = []
+        var cursor = 0.0
+        for occupied in occupiedSpans(in: measure, partID: partID, items: items) {
+            if occupied.start > cursor + NotationMeasureTiming.timelineTolerance {
+                output.append(NotationTimeSpan(start: cursor, end: occupied.start))
+            }
+            cursor = max(cursor, occupied.end)
+        }
+        if cursor < measureLength - NotationMeasureTiming.timelineTolerance {
+            output.append(NotationTimeSpan(start: cursor, end: measureLength))
+        }
+        return output
+    }
+
+    static func isSilent(
+        _ span: NotationTimeSpan,
+        in measure: ScoreMeasure,
+        partID: NotationPartID,
+        items: [NotationMeasureItem]
+    ) -> Bool {
+        silentSpans(in: measure, partID: partID, items: items).contains { $0.contains(span) }
+    }
+
+    static func itemSort(_ lhs: NotationMeasureItem, _ rhs: NotationMeasureItem) -> Bool {
+        if abs(lhs.offsetInQuarterNotes - rhs.offsetInQuarterNotes)
+            > NotationMeasureTiming.timelineTolerance {
+            return lhs.offsetInQuarterNotes < rhs.offsetInQuarterNotes
+        }
+        if lhs.kind != rhs.kind {
+            return lhs.kind == .note
+        }
+        if lhs.kind == .note,
+           let lhsPitch = lhs.pitch,
+           let rhsPitch = rhs.pitch,
+           lhsPitch.midiNoteNumber != rhsPitch.midiNoteNumber {
+            return lhsPitch.midiNoteNumber < rhsPitch.midiNoteNumber
+        }
+        if abs(lhs.durationInQuarterNotes - rhs.durationInQuarterNotes)
+            > NotationMeasureTiming.timelineTolerance {
+            return lhs.durationInQuarterNotes > rhs.durationInQuarterNotes
+        }
+        return lhs.id < rhs.id
+    }
+
+    private static func recomposedItems(
+        in measure: ScoreMeasure,
+        partID: NotationPartID,
+        notes sourceNotes: [NotationMeasureItem],
+        preferredRests sourceRests: [NotationMeasureItem],
+        generatedRestsAreSynthesized: Bool
+    ) -> [NotationMeasureItem] {
+        let measureLength = NotationMeasureTiming.quarterLength(
+            for: measure.attributes.timeSignature
+        )
+        guard measureLength > NotationMeasureTiming.timelineTolerance else { return [] }
+
+        let notes = sourceNotes.compactMap { item -> NotationMeasureItem? in
+            guard item.partID == partID,
+                  item.kind == .note,
+                  item.pitch != nil,
+                  item.offsetInQuarterNotes.isFinite,
+                  item.durationInQuarterNotes.isFinite
+            else { return nil }
+            let start = min(measureLength, max(0, item.offsetInQuarterNotes))
+            let end = min(
+                measureLength,
+                max(start, item.offsetInQuarterNotes + item.durationInQuarterNotes)
+            )
+            guard end > start + NotationMeasureTiming.timelineTolerance else { return nil }
+            var copy = item.persistedCopy()
+            copy.partID = partID
+            copy.measureNumber = measure.number
+            copy.measureStartTime = measure.startTime
+            copy.offsetInQuarterNotes = start
+            copy.durationInQuarterNotes = end - start
+            return copy
+        }
+
+        let silent = silentSpans(in: measure, partID: partID, items: notes)
+        if notes.isEmpty,
+           !sourceRests.contains(where: { $0.partID == partID && $0.kind == .rest && !$0.isSynthesized }) {
+            return [NotationRestItemFactory.restItem(
+                id: generatedRestsAreSynthesized
+                    ? "default-rest-\(partID.rawValue)-\(measure.number)-\(measure.startTime)-\(measure.endTime)"
+                    : nil,
+                partID: partID,
+                measureNumber: measure.number,
+                measureStartTime: measure.startTime,
+                offsetInQuarterNotes: 0,
+                durationInQuarterNotes: measureLength,
+                displayDuration: NotationDuration(denominator: NotationDuration.defaultDenominator),
+                isSynthesized: generatedRestsAreSynthesized
+            )]
+        }
+
+        let preferred = sourceRests
+            .filter { $0.partID == partID && $0.kind == .rest && !$0.isSynthesized }
+            .compactMap { item -> (NotationMeasureItem, NotationTimeSpan)? in
+                guard item.offsetInQuarterNotes.isFinite,
+                      item.durationInQuarterNotes.isFinite
+                else { return nil }
+                let start = min(measureLength, max(0, item.offsetInQuarterNotes))
+                let end = min(
+                    measureLength,
+                    max(start, item.offsetInQuarterNotes + item.durationInQuarterNotes)
+                )
+                guard end > start + NotationMeasureTiming.timelineTolerance else { return nil }
+                var copy = item.persistedCopy()
+                copy.partID = partID
+                copy.measureNumber = measure.number
+                copy.measureStartTime = measure.startTime
+                copy.offsetInQuarterNotes = start
+                copy.durationInQuarterNotes = end - start
+                return (copy, NotationTimeSpan(start: start, end: end))
+            }
+            .sorted {
+                if abs($0.1.start - $1.1.start) > NotationMeasureTiming.timelineTolerance {
+                    return $0.1.start < $1.1.start
+                }
+                return $0.0.id < $1.0.id
+            }
+
+        var accepted: [(NotationMeasureItem, NotationTimeSpan)] = []
+        for candidate in preferred {
+            guard silent.contains(where: { $0.contains(candidate.1) }),
+                  !accepted.contains(where: { $0.1.overlaps(candidate.1) })
+            else { continue }
+            accepted.append(candidate)
+        }
+
+        var rests: [NotationMeasureItem] = accepted.map(\.0)
+        for silentSpan in silent {
+            let contained = accepted
+                .filter { silentSpan.contains($0.1) }
+                .sorted { $0.1.start < $1.1.start }
+            var cursor = silentSpan.start
+            for entry in contained {
+                rests.append(contentsOf: fillerItems(
+                    in: measure,
+                    partID: partID,
+                    start: cursor,
+                    end: entry.1.start,
+                    synthesized: generatedRestsAreSynthesized
+                ))
+                cursor = max(cursor, entry.1.end)
+            }
+            rests.append(contentsOf: fillerItems(
+                in: measure,
+                partID: partID,
+                start: cursor,
+                end: silentSpan.end,
+                synthesized: generatedRestsAreSynthesized
+            ))
+        }
+
+        return (notes + rests).sorted(by: itemSort)
+    }
+
+    private static func fillerItems(
+        in measure: ScoreMeasure,
+        partID: NotationPartID,
+        start: Double,
+        end: Double,
+        synthesized: Bool
+    ) -> [NotationMeasureItem] {
+        let remaining = end - start
+        guard remaining > NotationMeasureTiming.timelineTolerance else { return [] }
+        return NotationRestItemFactory.metricAwareRestItems(
+            in: measure,
+            partID: partID,
+            startOffset: start,
+            remaining: remaining
+        ).map { item in
+            var copy = item
+            copy.isSynthesized = synthesized
+            if synthesized {
+                copy.id = "fill-rest-\(partID.rawValue)-\(measure.number)-\(measure.startTime)-\(copy.offsetInQuarterNotes)-\(copy.durationInQuarterNotes)"
+            }
+            return copy
+        }
+    }
+}
+
 struct MeasureAttributes: Equatable {
     var keySignature: KeySignature
     var timeSignature: TimeSignature

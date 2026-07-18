@@ -174,7 +174,7 @@ enum MIDIPianoRollLayout {
     static func snappedQuarterOffset(
         atX x: CGFloat,
         cell: MIDIPianoRollMeasureCell,
-        subdivision: Double = NotationMIDIGrid.subdivisionInQuarterNotes,
+        subdivision: Double = NotationRhythmicGrid.subdivisionInQuarterNotes,
         allowsMeasureEnd: Bool = false
     ) -> Double {
         let measureLength = NotationMeasureTiming.quarterLength(
@@ -544,7 +544,7 @@ struct MIDIPianoRollView: View {
                     with: .color(appColors.notationSymbolsAndLines.opacity(opacity)),
                     lineWidth: isBarline ? AppTheme.Stroke.medium : AppTheme.Stroke.thin
                 )
-                offset += NotationMIDIGrid.subdivisionInQuarterNotes
+                offset += NotationRhythmicGrid.subdivisionInQuarterNotes
             }
         }
 

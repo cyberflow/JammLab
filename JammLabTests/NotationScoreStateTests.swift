@@ -85,6 +85,63 @@ final class NotationScoreStateTests: XCTestCase {
         XCTAssertEqual(state.keySignature.fifths, 2)
     }
 
+    func testPolyphonicProjectionPreservesOverlapsAndOnlyRestsInGlobalSilence() throws {
+        let state = NotationViewportFactory().scoreState(
+            tempoMap: fourFourTempoMap(duration: 2),
+            duration: 2,
+            currentTime: 0,
+            playbackMarkerTime: 0,
+            isPlaying: false,
+            keyName: "C major",
+            notationItems: [
+                note(id: "long", pitch: .c, offset: 0, duration: 2),
+                note(id: "overlap", pitch: .e, offset: 1, duration: 2),
+                note(id: "same-pitch-overlap", pitch: .c, offset: 1.5, duration: 1)
+            ]
+        )
+
+        let measure = try XCTUnwrap(state.measures.first)
+        let notes = measure.notationItems.filter { $0.kind == .note }
+        let rests = measure.notationItems.filter { $0.kind == .rest }
+
+        XCTAssertEqual(notes.map(\.id), ["long", "overlap", "same-pitch-overlap"])
+        XCTAssertEqual(notes.map(\.offsetInQuarterNotes), [0, 1, 1.5])
+        XCTAssertEqual(notes.map(\.durationInQuarterNotes), [2, 2, 1])
+        XCTAssertEqual(rests.count, 1)
+        XCTAssertEqual(rests[0].offsetInQuarterNotes, 3, accuracy: 0.0001)
+        XCTAssertEqual(rests[0].durationInQuarterNotes, 1, accuracy: 0.0001)
+    }
+
+    func testPolyphonicProjectionCreatesOneRestAfterAChord() throws {
+        let state = NotationViewportFactory().scoreState(
+            tempoMap: fourFourTempoMap(duration: 2),
+            duration: 2,
+            currentTime: 0,
+            playbackMarkerTime: 0,
+            isPlaying: false,
+            keyName: "C major",
+            notationItems: [
+                note(id: "c", pitch: .c, offset: 0, duration: 1),
+                note(id: "e", pitch: .e, offset: 0, duration: 1),
+                NotationMeasureItem(
+                    id: "stale-rest",
+                    measureNumber: 1,
+                    measureStartTime: 0,
+                    offsetInQuarterNotes: 0.5,
+                    durationInQuarterNotes: 1,
+                    displayDuration: NotationDuration(denominator: 4)
+                )
+            ]
+        )
+
+        let items = try XCTUnwrap(state.measures.first).notationItems
+        XCTAssertEqual(items.filter { $0.kind == .note }.count, 2)
+        XCTAssertFalse(items.contains { $0.id == "stale-rest" })
+        XCTAssertTrue(items.filter { $0.kind == .rest }.allSatisfy {
+            $0.offsetInQuarterNotes >= 1 - NotationMeasureTiming.timelineTolerance
+        })
+    }
+
     private func fourFourTempoMap(
         duration: TimeInterval,
         markers: [TimecodedNote] = []
@@ -108,6 +165,24 @@ final class NotationScoreStateTests: XCTestCase {
                 beatsPerBar: beatsPerBar,
                 setsNewFirstBeat: false
             ).metadata
+        )
+    }
+
+    private func note(
+        id: String,
+        pitch step: NotationPitchStep,
+        offset: Double,
+        duration: Double
+    ) -> NotationMeasureItem {
+        NotationMeasureItem(
+            id: id,
+            kind: .note,
+            pitch: NotationPitch(step: step, octave: 4),
+            measureNumber: 1,
+            measureStartTime: 0,
+            offsetInQuarterNotes: offset,
+            durationInQuarterNotes: duration,
+            displayDuration: NotationDuration(denominator: duration >= 2 ? 2 : 4)
         )
     }
 }

@@ -45,7 +45,7 @@ struct NotationNoteEditRequest: Equatable {
 
 enum NotationNoteEditInvalidReason: Equatable {
     case audioBoundary
-    case collision
+    case duplicate
     case duration
     case pitch
     case position
@@ -73,7 +73,7 @@ struct NotationNoteEditPreview: Equatable {
     }
 }
 
-enum NotationMIDIGrid {
+enum NotationRhythmicGrid {
     static let subdivisionInQuarterNotes = 0.25
     static let ticksPerQuarter = 8
     static let stepTicks = Int(
@@ -185,7 +185,7 @@ enum NotationNoteEditPlanner {
 
         guard candidate.startTick >= 0,
               candidate.endTick <= context.totalTicks,
-              candidate.endTick - candidate.startTick >= NotationMIDIGrid.stepTicks
+              candidate.endTick - candidate.startTick >= NotationRhythmicGrid.stepTicks
         else {
             return invalid(candidate.endTick <= candidate.startTick ? .duration : .position)
         }
@@ -227,13 +227,14 @@ enum NotationNoteEditPlanner {
             return invalid(.pitch, previewItems: previewItems)
         }
 
-        guard !context.hasCollision(
+        guard !context.hasExactDuplicate(
             startTick: candidate.startTick,
             endTick: candidate.endTick,
+            midiNoteNumber: candidate.midiNoteNumber,
             excluding: sourceItemIDs,
             partID: request.partID
         ) else {
-            return invalid(.collision, previewItems: previewItems)
+            return invalid(.duplicate, previewItems: previewItems)
         }
 
         let affectedMeasureIndices = sourceChain.measureIndices.union(
@@ -355,12 +356,12 @@ enum NotationNoteEditPlanner {
                     pitch: pitch,
                     measureNumber: measure.number,
                     measureStartTime: measure.startTime,
-                    offsetInQuarterNotes: Double(tickOffset) / Double(NotationMIDIGrid.ticksPerQuarter),
+                    offsetInQuarterNotes: Double(tickOffset) / Double(NotationRhythmicGrid.ticksPerQuarter),
                     durationInQuarterNotes: duration.durationInQuarterNotes,
                     displayDuration: duration
                 )
                 output.append(item)
-                tickOffset += Int((duration.durationInQuarterNotes * Double(NotationMIDIGrid.ticksPerQuarter)).rounded())
+                tickOffset += Int((duration.durationInQuarterNotes * Double(NotationRhythmicGrid.ticksPerQuarter)).rounded())
             }
         }
 
@@ -389,12 +390,12 @@ enum NotationNoteEditPlanner {
                 ]
             }
             .compactMap { duration -> (duration: NotationDuration, ticks: Int)? in
-                let rawTicks = duration.durationInQuarterNotes * Double(NotationMIDIGrid.ticksPerQuarter)
+                let rawTicks = duration.durationInQuarterNotes * Double(NotationRhythmicGrid.ticksPerQuarter)
                 let ticks = Int(rawTicks.rounded())
                 guard abs(rawTicks - Double(ticks)) < NotationMeasureTiming.timelineTolerance,
                       ticks > 0,
-                      tickCount % NotationMIDIGrid.stepTicks != 0
-                        || ticks % NotationMIDIGrid.stepTicks == 0
+                      tickCount % NotationRhythmicGrid.stepTicks != 0
+                        || ticks % NotationRhythmicGrid.stepTicks == 0
                 else { return nil }
                 return (duration, ticks)
             }
@@ -421,42 +422,14 @@ enum NotationNoteEditPlanner {
         partID: NotationPartID,
         notes: [NotationMeasureItem]
     ) -> [NotationMeasureItem] {
-        let measureLength = NotationMeasureTiming.quarterLength(for: measure.attributes.timeSignature)
-        let orderedNotes = notes.sorted(by: itemSort)
-        var output: [NotationMeasureItem] = []
-        var cursor = 0.0
-
-        for note in orderedNotes {
-            if note.offsetInQuarterNotes > cursor + NotationMeasureTiming.timelineTolerance {
-                output.append(contentsOf: NotationRestItemFactory.metricAwareRestItems(
-                    in: measure,
-                    partID: partID,
-                    startOffset: cursor,
-                    remaining: note.offsetInQuarterNotes - cursor
-                ))
-            }
-            output.append(note.persistedCopy())
-            cursor = max(cursor, note.offsetInQuarterNotes + note.durationInQuarterNotes)
-        }
-
-        if cursor < measureLength - NotationMeasureTiming.timelineTolerance {
-            output.append(contentsOf: NotationRestItemFactory.metricAwareRestItems(
-                in: measure,
-                partID: partID,
-                startOffset: cursor,
-                remaining: measureLength - cursor
-            ))
-        }
-        return output.sorted(by: itemSort)
+        NotationMeasureRhythmRecomposer.persistedItems(
+            in: measure,
+            partID: partID,
+            notes: notes,
+            preferredRests: measure.notationItems
+        )
     }
 
-    private static func itemSort(_ lhs: NotationMeasureItem, _ rhs: NotationMeasureItem) -> Bool {
-        if abs(lhs.offsetInQuarterNotes - rhs.offsetInQuarterNotes)
-            > NotationMeasureTiming.timelineTolerance {
-            return lhs.offsetInQuarterNotes < rhs.offsetInQuarterNotes
-        }
-        return lhs.id < rhs.id
-    }
 }
 
 private extension NotationNoteEditPlanner {
@@ -522,7 +495,7 @@ private extension NotationNoteEditPlanner {
             for measure in orderedMeasures {
                 let rawTicks = NotationMeasureTiming.quarterLength(
                     for: measure.attributes.timeSignature
-                ) * Double(NotationMIDIGrid.ticksPerQuarter)
+                ) * Double(NotationRhythmicGrid.ticksPerQuarter)
                 let ticks = Int(rawTicks.rounded())
                 guard ticks > 0,
                       abs(rawTicks - Double(ticks)) < NotationMeasureTiming.timelineTolerance
@@ -595,14 +568,14 @@ private extension NotationNoteEditPlanner {
             guard let tick = globalTick(
                 measureIndex: measureIndex,
                 quarterOffset: position.offsetInQuarterNotes
-            ), (tick - measureStartTicks[measureIndex]) % NotationMIDIGrid.stepTicks == 0
+            ), (tick - measureStartTicks[measureIndex]) % NotationRhythmicGrid.stepTicks == 0
             else { return nil }
             return tick
         }
 
         func globalTick(measureIndex: Int, quarterOffset: Double) -> Int? {
             guard measures.indices.contains(measureIndex) else { return nil }
-            let rawTicks = quarterOffset * Double(NotationMIDIGrid.ticksPerQuarter)
+            let rawTicks = quarterOffset * Double(NotationRhythmicGrid.ticksPerQuarter)
             let ticks = Int(rawTicks.rounded())
             guard abs(rawTicks - Double(ticks)) < NotationMeasureTiming.timelineTolerance,
                   ticks >= 0,
@@ -617,7 +590,7 @@ private extension NotationNoteEditPlanner {
                 let start = measureStartTicks[measureIndex]
                 let end = start + measureTickLengths[measureIndex]
                 guard tick <= end else { continue }
-                let offset = Double(tick - start) / Double(NotationMIDIGrid.ticksPerQuarter)
+                let offset = Double(tick - start) / Double(NotationRhythmicGrid.ticksPerQuarter)
                 return NotationMeasureTiming.time(forQuarterOffset: offset, in: measures[measureIndex])
             }
             return measures.last?.endTime
@@ -652,29 +625,28 @@ private extension NotationNoteEditPlanner {
             return nil
         }
 
-        func hasCollision(
+        func hasExactDuplicate(
             startTick: Int,
             endTick: Int,
+            midiNoteNumber: Int,
             excluding sourceItemIDs: Set<String>,
             partID: NotationPartID
         ) -> Bool {
-            let targetStart = Double(startTick)
-            let targetEnd = Double(endTick)
-            for measureIndex in measures.indices {
-                for item in measures[measureIndex].notationItems {
-                    guard item.partID == partID,
-                          item.kind == .note,
-                          !item.isSynthesized,
-                          !sourceItemIDs.contains(item.id)
-                    else { continue }
-                    let itemStart = Double(measureStartTicks[measureIndex])
-                        + item.offsetInQuarterNotes * Double(NotationMIDIGrid.ticksPerQuarter)
-                    let itemEnd = itemStart
-                        + item.durationInQuarterNotes * Double(NotationMIDIGrid.ticksPerQuarter)
-                    if targetStart < itemEnd - NotationMeasureTiming.timelineTolerance,
-                       targetEnd > itemStart + NotationMeasureTiming.timelineTolerance {
-                        return true
-                    }
+            var visitedRoots: Set<String> = []
+            for location in locationsByItemID.values {
+                let item = location.item
+                guard item.partID == partID,
+                      item.kind == .note,
+                      !item.isSynthesized,
+                      !sourceItemIDs.contains(item.id),
+                      item.pitch?.midiNoteNumber == midiNoteNumber,
+                      let chain = logicalChain(containing: item.id, partID: partID),
+                      !visitedRoots.contains(chain.rootItemID)
+                else { continue }
+                visitedRoots.insert(chain.rootItemID)
+                if chain.startTick(in: self) == startTick,
+                   chain.endTick(in: self) == endTick {
+                    return true
                 }
             }
             return false

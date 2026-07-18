@@ -223,6 +223,179 @@ final class NotationMusicXMLRestExportTests: XCTestCase {
         XCTAssertTrue(undottedRest.elements(forName: "dot").isEmpty)
     }
 
+    func testMusicXMLExportsChordOverlapsVoicesAndOneGlobalRestSequence() throws {
+        let state = NotationViewportFactory().scoreState(
+            tempoMap: fourFourTempoMap(duration: 2),
+            duration: 2,
+            currentTime: 0,
+            playbackMarkerTime: 0,
+            isPlaying: false,
+            keyName: "C major",
+            notationItems: [
+                pitchedItem(id: "c", step: .c, offset: 0, duration: 2),
+                pitchedItem(id: "e", step: .e, offset: 0, duration: 2),
+                pitchedItem(id: "g", step: .g, offset: 1, duration: 2)
+            ]
+        )
+
+        let document = try exportedMusicXMLDocument(for: state)
+        let measure = try XCTUnwrap(document.rootElement()?
+            .elements(forName: "part").first?
+            .elements(forName: "measure").first)
+        let notes = measure.elements(forName: "note")
+        let pitched = notes.filter { !$0.elements(forName: "pitch").isEmpty }
+        let rests = notes.filter { !$0.elements(forName: "rest").isEmpty }
+
+        XCTAssertEqual(pitched.count, 3)
+        XCTAssertEqual(pitched.filter { !$0.elements(forName: "chord").isEmpty }.count, 1)
+        XCTAssertEqual(Set(pitched.compactMap { $0.elements(forName: "voice").first?.stringValue }), ["1", "2"])
+        XCTAssertEqual(rests.count, 1)
+        XCTAssertEqual(rests.first?.elements(forName: "voice").first?.stringValue, "1")
+        XCTAssertEqual(measure.elements(forName: "backup").count, 1)
+        XCTAssertFalse(measure.elements(forName: "forward").isEmpty)
+    }
+
+    func testMusicXMLKeepsTiedContinuationsInTheirOriginalVoicesAcrossMeasures() throws {
+        let lowTargetID = "low-target"
+        let highTargetID = "high-target"
+        let state = NotationViewportFactory().scoreState(
+            tempoMap: fourFourTempoMap(duration: 4),
+            duration: 4,
+            currentTime: 0,
+            playbackMarkerTime: 0,
+            isPlaying: false,
+            keyName: "C major",
+            notationItems: [
+                NotationMeasureItem(
+                    id: "low-source",
+                    kind: .note,
+                    pitch: NotationPitch(step: .c, octave: 4),
+                    measureNumber: 1,
+                    measureStartTime: 0,
+                    offsetInQuarterNotes: 0,
+                    durationInQuarterNotes: 4,
+                    displayDuration: NotationDuration(denominator: 1),
+                    tieTargetItemID: lowTargetID
+                ),
+                NotationMeasureItem(
+                    id: "high-source",
+                    kind: .note,
+                    pitch: NotationPitch(step: .g, octave: 4),
+                    measureNumber: 1,
+                    measureStartTime: 0,
+                    offsetInQuarterNotes: 1,
+                    durationInQuarterNotes: 3,
+                    displayDuration: NotationDuration(denominator: 2, isDotted: true),
+                    tieTargetItemID: highTargetID
+                ),
+                NotationMeasureItem(
+                    id: lowTargetID,
+                    kind: .note,
+                    pitch: NotationPitch(step: .c, octave: 4),
+                    measureNumber: 2,
+                    measureStartTime: 2,
+                    offsetInQuarterNotes: 0,
+                    durationInQuarterNotes: 1,
+                    displayDuration: NotationDuration(denominator: 4)
+                ),
+                NotationMeasureItem(
+                    id: highTargetID,
+                    kind: .note,
+                    pitch: NotationPitch(step: .g, octave: 4),
+                    measureNumber: 2,
+                    measureStartTime: 2,
+                    offsetInQuarterNotes: 0,
+                    durationInQuarterNotes: 1,
+                    displayDuration: NotationDuration(denominator: 4)
+                )
+            ]
+        )
+
+        let document = try exportedMusicXMLDocument(for: state)
+        let measures = try XCTUnwrap(document.rootElement()?.elements(forName: "part").first)
+            .elements(forName: "measure")
+        XCTAssertEqual(measures.count, 2)
+
+        let firstPitched = measures[0].elements(forName: "note").filter { !$0.elements(forName: "pitch").isEmpty }
+        let secondPitched = measures[1].elements(forName: "note").filter { !$0.elements(forName: "pitch").isEmpty }
+        XCTAssertEqual(firstPitched.compactMap { $0.elements(forName: "voice").first?.stringValue }, ["1", "2"])
+        XCTAssertEqual(secondPitched.compactMap { $0.elements(forName: "voice").first?.stringValue }, ["1", "2"])
+        XCTAssertTrue(secondPitched.allSatisfy { $0.elements(forName: "chord").isEmpty })
+        XCTAssertEqual(measures[0].elements(forName: "backup").first?.elements(forName: "duration").first?.stringValue, "1920")
+        XCTAssertEqual(measures[1].elements(forName: "backup").first?.elements(forName: "duration").first?.stringValue, "1920")
+        let secondMeasureRests = measures[1].elements(forName: "note").filter {
+            !$0.elements(forName: "rest").isEmpty
+        }
+        XCTAssertFalse(secondMeasureRests.isEmpty)
+        XCTAssertTrue(secondMeasureRests.allSatisfy {
+            $0.elements(forName: "voice").first?.stringValue == "1"
+        })
+        XCTAssertEqual(
+            secondMeasureRests.compactMap {
+                Int($0.elements(forName: "duration").first?.stringValue ?? "")
+            }.reduce(0, +),
+            1440
+        )
+    }
+
+    func testMusicXMLRendersGlobalRestsInTheOnlyLocalVoiceWhenItIsVoiceTwo() throws {
+        let targetID = "voice-two-target"
+        let state = NotationViewportFactory().scoreState(
+            tempoMap: fourFourTempoMap(duration: 4),
+            duration: 4,
+            currentTime: 0,
+            playbackMarkerTime: 0,
+            isPlaying: false,
+            keyName: "C major",
+            notationItems: [
+                NotationMeasureItem(
+                    id: "voice-one-blocker",
+                    kind: .note,
+                    pitch: NotationPitch(step: .c, octave: 4),
+                    measureNumber: 1,
+                    measureStartTime: 0,
+                    offsetInQuarterNotes: 0,
+                    durationInQuarterNotes: 4,
+                    displayDuration: NotationDuration(denominator: 1)
+                ),
+                NotationMeasureItem(
+                    id: "voice-two-source",
+                    kind: .note,
+                    pitch: NotationPitch(step: .g, octave: 4),
+                    measureNumber: 1,
+                    measureStartTime: 0,
+                    offsetInQuarterNotes: 1,
+                    durationInQuarterNotes: 3,
+                    displayDuration: NotationDuration(denominator: 2, isDotted: true),
+                    tieTargetItemID: targetID
+                ),
+                NotationMeasureItem(
+                    id: targetID,
+                    kind: .note,
+                    pitch: NotationPitch(step: .g, octave: 4),
+                    measureNumber: 2,
+                    measureStartTime: 2,
+                    offsetInQuarterNotes: 0,
+                    durationInQuarterNotes: 1,
+                    displayDuration: NotationDuration(denominator: 4)
+                )
+            ]
+        )
+
+        let document = try exportedMusicXMLDocument(for: state)
+        let secondMeasure = try XCTUnwrap(document.rootElement()?
+            .elements(forName: "part").first?
+            .elements(forName: "measure").last)
+        let notes = secondMeasure.elements(forName: "note")
+
+        XCTAssertFalse(notes.isEmpty)
+        XCTAssertTrue(notes.allSatisfy {
+            $0.elements(forName: "voice").first?.stringValue == "2"
+        })
+        XCTAssertFalse(notes.filter { !$0.elements(forName: "rest").isEmpty }.isEmpty)
+        XCTAssertTrue(secondMeasure.elements(forName: "backup").isEmpty)
+    }
+
     private func exportedMusicXMLDocument(for state: NotationScoreState) throws -> XMLDocument {
         let data = try NotationExportService().export(
             NotationExportRequest(displayName: "Song", score: state),
@@ -281,6 +454,24 @@ final class NotationMusicXMLRestExportTests: XCTestCase {
                 displayDuration: NotationDuration(denominator: 2)
             )
         ]
+    }
+
+    private func pitchedItem(
+        id: String,
+        step: NotationPitchStep,
+        offset: Double,
+        duration: Double
+    ) -> NotationMeasureItem {
+        NotationMeasureItem(
+            id: id,
+            kind: .note,
+            pitch: NotationPitch(step: step, octave: 4),
+            measureNumber: 1,
+            measureStartTime: 0,
+            offsetInQuarterNotes: offset,
+            durationInQuarterNotes: duration,
+            displayDuration: NotationDuration(denominator: 2)
+        )
     }
 
     private func fourFourTempoMap(duration: TimeInterval) -> TempoMap {

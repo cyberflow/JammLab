@@ -8,8 +8,9 @@ development artifact builds use `vMAJOR.MINOR.PATCH-dev.N`.
 
 ## Unreleased
 
+- Added polyphonic Notation and MIDI editing with chords, overlapping note durations, chord-aware score layout, multi-voice MusicXML export, and rests shown only during globally silent intervals.
 - Added a persistent MIDI piano-roll display for Stem tracks with playback-following measures, vertical pitch scrolling, and duration-aware note entry on a sixteenth-note grid.
-- Added mouse editing for Stem MIDI notes, including sixteenth-grid horizontal movement, semitone pitch dragging, two-sided duration resizing, collision previews, automatic page turns, and tied notation for long durations.
+- Added mouse editing for Stem MIDI notes, including sixteenth-grid horizontal movement, semitone pitch dragging, two-sided duration resizing, exact-duplicate prevention, automatic page turns, and tied notation for long durations.
 - Added tied-note entry with the `T` shortcut, Leland-based controls, automatic note splitting and tie chains across measure boundaries, selected-note continuation outside note-entry mode, blocked-state tooltips without system alert sounds, score rendering, project persistence, and MusicXML export.
 - Added persistent augmentation-dot entry and editing for Notation notes and rests, with Leland glyphs, keyboard shortcuts, and MusicXML export.
 - Added sixteenth-note and rest entry with `3`/`Num3` duration shortcuts, plus downward stems for notes above the middle staff line.
@@ -24,7 +25,7 @@ development artifact builds use `vMAJOR.MINOR.PATCH-dev.N`.
 - Stabilized the Rest entry icon, matched Notation track controls, aligned stem Mute/Solo buttons, and limited MusicXML export to the selected Parts.
 - Added full instrument names, abbreviations, and standard instrument sounds to exported MusicXML parts and Notation score labels.
 - Added vertical workspace scrolling when expanded Notation tracks exceed the main window height.
-- Changed Rest entry mode to replace a selected note with its corresponding rest without recomposing the measure.
+- Changed Rest entry mode to remove a selected note and recompose pauses from the remaining sounding notes.
 - Added per-part treble and bass clefs with Leland glyphs, clef-aware note editing, pitch transposition, and MusicXML export.
 
 ## 1.1.0

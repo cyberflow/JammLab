@@ -337,6 +337,10 @@ enum AppTheme {
         static let notationSlashLineWidth: CGFloat = 3
         static let notationSlashMinimumBeatSpacing: CGFloat = 16
         static let notationItemAnchorInset: CGFloat = AppTheme.Spacing.lg
+        static let notationChordSecondOffset: CGFloat = 4
+        static let notationPolyphonicLaneSpacing: CGFloat = 9
+        static let notationNoteHitWidth: CGFloat = 8
+        static let notationNoteHitHeight: CGFloat = 4
         static let notationTieNoteheadInset: CGFloat = 5
         static let notationTieVerticalOffset: CGFloat = 5
         static let notationTieArcHeight: CGFloat = 5

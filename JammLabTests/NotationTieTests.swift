@@ -90,7 +90,6 @@ final class NotationTiePlannerTests: XCTestCase {
             in: measures,
             placement: NotationNotePlacement(
                 measure: firstMeasure,
-                targetRestID: "tail",
                 offsetInQuarterNotes: 2,
                 durationInQuarterNotes: 2,
                 displayDuration: NotationDuration(denominator: 2),
@@ -436,7 +435,7 @@ final class ViewModelNotationTieTests: XCTestCase {
     }
 
     @MainActor
-    func testBlockedSelectedNoteTiePreservesSelectionModeAndUndoState() throws {
+    func testSelectedNoteTieCanOverlapAnotherPitch() throws {
         let auditioner = MockNotationNoteAuditioner()
         let viewModel = try loadedNotationViewModel(
             duration: 8,
@@ -471,19 +470,16 @@ final class ViewModelNotationTieTests: XCTestCase {
         viewModel.selectNotationItem(NotationItemSelection(measure: measure, item: source))
         viewModel.markProjectClean()
         undoManager.removeAllActions()
-        let originalItems = viewModel.notationItems
-        let originalSelection = viewModel.selectedNotationItem
-
         XCTAssertNil(viewModel.notationEntryMode)
-        XCTAssertEqual(viewModel.tieCommandStatus, .blocked(.noFreeFollowingDuration))
+        XCTAssertEqual(viewModel.tieCommandStatus, .ready)
         XCTAssertTrue(viewModel.isTieCommandInScope)
         XCTAssertTrue(viewModel.handleAddTiedNotationNoteCommand())
 
-        XCTAssertEqual(viewModel.notationItems, originalItems)
-        XCTAssertEqual(viewModel.selectedNotationItem, originalSelection)
+        XCTAssertEqual(viewModel.notationItems.filter { $0.kind == .note }.count, 3)
+        XCTAssertNotNil(viewModel.notationItems.first { $0.id == "source" }?.tieTargetItemID)
         XCTAssertNil(viewModel.notationEntryMode)
-        XCTAssertFalse(viewModel.isProjectModified)
-        XCTAssertFalse(undoManager.canUndo)
+        XCTAssertTrue(viewModel.isProjectModified)
+        XCTAssertTrue(undoManager.canUndo)
         XCTAssertTrue(auditioner.attemptedPitches.isEmpty)
     }
 
@@ -708,7 +704,6 @@ final class ViewModelNotationTieTests: XCTestCase {
         let firstMeasure = try notationMeasure(1, in: viewModel)
         let placement = NotationNotePlacement(
             measure: firstMeasure,
-            targetRestID: "trailing-rest",
             offsetInQuarterNotes: 3,
             durationInQuarterNotes: 2,
             displayDuration: NotationDuration(denominator: 2),
@@ -796,7 +791,6 @@ final class ViewModelNotationTieTests: XCTestCase {
         let placement = NotationNotePlacement(
             measure: bassMeasure,
             partID: bassPart,
-            targetRestID: "bass-tail",
             offsetInQuarterNotes: 3,
             durationInQuarterNotes: 2,
             displayDuration: NotationDuration(denominator: 2),
@@ -820,7 +814,7 @@ final class ViewModelNotationTieTests: XCTestCase {
     }
 
     @MainActor
-    func testCrossMeasureNoteInsertionFailsAtomicallyWhenNextMeasureStartsWithNote() throws {
+    func testCrossMeasureNoteInsertionCanOverlapNoteAtNextMeasureStart() throws {
         let auditioner = MockNotationNoteAuditioner()
         let viewModel = try loadedNotationViewModel(
             duration: 8,
@@ -858,10 +852,8 @@ final class ViewModelNotationTieTests: XCTestCase {
             )
         ]
         viewModel.markProjectClean()
-        let originalItems = viewModel.notationItems
         let placement = NotationNotePlacement(
             measure: try notationMeasure(1, in: viewModel),
-            targetRestID: "trailing-rest",
             offsetInQuarterNotes: 3,
             durationInQuarterNotes: 2,
             displayDuration: NotationDuration(denominator: 2),
@@ -870,10 +862,10 @@ final class ViewModelNotationTieTests: XCTestCase {
             y: 0
         )
 
-        XCTAssertFalse(viewModel.insertNotationNote(placement))
-        XCTAssertEqual(viewModel.notationItems, originalItems)
-        XCTAssertFalse(viewModel.isProjectModified)
-        XCTAssertTrue(auditioner.attemptedPitches.isEmpty)
+        XCTAssertTrue(viewModel.insertNotationNote(placement))
+        XCTAssertEqual(viewModel.notationItems.filter { $0.kind == .note }.count, 4)
+        XCTAssertTrue(viewModel.isProjectModified)
+        XCTAssertEqual(auditioner.attemptedPitches, [pitch])
     }
 
     @MainActor
@@ -903,7 +895,6 @@ final class ViewModelNotationTieTests: XCTestCase {
         let originalItems = viewModel.notationItems
         let placement = NotationNotePlacement(
             measure: try notationMeasure(1, in: viewModel),
-            targetRestID: "trailing-rest",
             offsetInQuarterNotes: 3,
             durationInQuarterNotes: 2,
             displayDuration: NotationDuration(denominator: 2),
@@ -951,7 +942,6 @@ final class ViewModelNotationTieTests: XCTestCase {
         let originalSelection = viewModel.selectedNotationItem
         let placement = NotationRestPlacement(
             measure: measure,
-            targetRestID: "trailing-rest",
             offsetInQuarterNotes: 3,
             durationInQuarterNotes: 2,
             displayDuration: NotationDuration(denominator: 2),
@@ -1547,6 +1537,53 @@ final class NotationTieLayoutAndExportTests: XCTestCase {
         )
         XCTAssertEqual(targetChildren.first { $0.name == "tie" }?.attribute(forName: "type")?.stringValue, "stop")
         XCTAssertEqual(targetChildren.first { $0.name == "notations" }?.elements(forName: "tied").first?.attribute(forName: "type")?.stringValue, "stop")
+    }
+
+    func testTieResolverFindsTargetByIDThroughInterleavedChordMembers() throws {
+        let sourcePitch = NotationPitch(step: .c, octave: 4)
+        let measure = ScoreMeasure(
+            number: 1,
+            startTime: 0,
+            endTime: 2,
+            attributes: .defaultTreble,
+            notationItems: [
+                NotationMeasureItem(
+                    id: "source",
+                    kind: .note,
+                    pitch: sourcePitch,
+                    measureNumber: 1,
+                    measureStartTime: 0,
+                    offsetInQuarterNotes: 0,
+                    durationInQuarterNotes: 1,
+                    displayDuration: NotationDuration(denominator: 4),
+                    tieTargetItemID: "target"
+                ),
+                NotationMeasureItem(
+                    id: "a-interleaved",
+                    kind: .note,
+                    pitch: NotationPitch(step: .e, octave: 4),
+                    measureNumber: 1,
+                    measureStartTime: 0,
+                    offsetInQuarterNotes: 1,
+                    durationInQuarterNotes: 1,
+                    displayDuration: NotationDuration(denominator: 4)
+                ),
+                NotationMeasureItem(
+                    id: "target",
+                    kind: .note,
+                    pitch: sourcePitch,
+                    measureNumber: 1,
+                    measureStartTime: 0,
+                    offsetInQuarterNotes: 1,
+                    durationInQuarterNotes: 1,
+                    displayDuration: NotationDuration(denominator: 4)
+                )
+            ]
+        )
+
+        let connection = try XCTUnwrap(NotationTieResolver.connections(in: [measure]).first)
+        XCTAssertEqual(connection.source.item.id, "source")
+        XCTAssertEqual(connection.target.item.id, "target")
     }
 
     private func childElements(in element: XMLElement) -> [XMLElement] {

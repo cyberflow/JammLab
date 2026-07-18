@@ -403,6 +403,18 @@ extension AudioPlayerViewModel {
 
     @discardableResult
     func insertNotationNote(_ placement: NotationNotePlacement) -> Bool {
+        if let existing = exactNotationNote(matching: placement) {
+            selectedNotationMeasures = []
+            notationMeasureSelectionAnchor = nil
+            selectedHarmonySymbolID = nil
+            selectedNotationItem = NotationItemSelection(
+                measure: existing.measure,
+                item: existing.item,
+                partID: placement.partID
+            )
+            try? notationNoteAuditioner.audition(pitch: placement.pitch)
+            return true
+        }
         guard let plan = notationNoteInsertionPlan(for: placement) else { return false }
 
         performUndoableEdit("Add Notation Note") {
@@ -511,27 +523,40 @@ extension AudioPlayerViewModel {
                   $0.number == placement.measure.number
                       && abs($0.startTime - placement.measure.startTime) < NotationMeasureTiming.timelineTolerance
                       && abs($0.endTime - placement.measure.endTime) < NotationMeasureTiming.timelineTolerance
-              }),
-              let restSpan = NotationNotePlacementResolver.restSpan(in: measure, matching: placement),
-              let targetRest = restSpan.rests.first
+              })
         else {
             return false
         }
+
+        let restSpan = NotationTimeSpan(
+            start: placement.offsetInQuarterNotes,
+            end: placement.offsetInQuarterNotes + placement.durationInQuarterNotes
+        )
+        guard NotationMeasureRhythmRecomposer.isSilent(
+            restSpan,
+            in: measure,
+            partID: placement.partID,
+            items: measure.notationItems
+        ) else { return false }
 
         let restItem = NotationMeasureItem(
             partID: placement.partID,
             kind: .rest,
             measureNumber: measure.number,
             measureStartTime: measure.startTime,
-            offsetInQuarterNotes: restSpan.startOffsetInQuarterNotes,
+            offsetInQuarterNotes: restSpan.start,
             durationInQuarterNotes: placement.durationInQuarterNotes,
             displayDuration: placement.displayDuration
         )
 
-        if !targetRest.isSynthesized,
-           abs(targetRest.offsetInQuarterNotes - restItem.offsetInQuarterNotes) < NotationMeasureTiming.timelineTolerance,
-           abs(targetRest.durationInQuarterNotes - restItem.durationInQuarterNotes) < NotationMeasureTiming.timelineTolerance,
-           targetRest.displayDuration == restItem.displayDuration {
+        if let targetRest = measure.notationItems.first(where: {
+            !$0.isSynthesized
+                && $0.kind == .rest
+                && $0.partID == placement.partID
+                && abs($0.offsetInQuarterNotes - restItem.offsetInQuarterNotes) < NotationMeasureTiming.timelineTolerance
+                && abs($0.durationInQuarterNotes - restItem.durationInQuarterNotes) < NotationMeasureTiming.timelineTolerance
+                && $0.displayDuration == restItem.displayDuration
+        }) {
             selectedNotationMeasures = []
             notationMeasureSelectionAnchor = nil
             selectedHarmonySymbolID = nil
@@ -539,10 +564,19 @@ extension AudioPlayerViewModel {
             return true
         }
 
-        let recomposedItems = NotationEntryRecomposer.recomposedItems(
+        let preferredRests = measure.notationItems.filter { item in
+            guard item.kind == .rest, item.partID == placement.partID else { return true }
+            let existingSpan = NotationTimeSpan(
+                start: item.offsetInQuarterNotes,
+                end: item.offsetInQuarterNotes + item.durationInQuarterNotes
+            )
+            return !existingSpan.overlaps(restSpan)
+        } + [restItem]
+        let recomposedItems = NotationMeasureRhythmRecomposer.persistedItems(
             in: measure,
-            replacing: restSpan,
-            with: restItem
+            partID: placement.partID,
+            notes: measure.notationItems,
+            preferredRests: preferredRests
         )
 
         performUndoableEdit("Add Notation Rest") {
@@ -577,6 +611,16 @@ extension AudioPlayerViewModel {
 
         let measure = match.measure
         let item = match.item
+        guard !measure.notationItems.contains(where: {
+            $0.id != item.id
+                && $0.partID == item.partID
+                && $0.kind == .note
+                && $0.pitch == pitch
+                && abs($0.offsetInQuarterNotes - item.offsetInQuarterNotes)
+                    < NotationMeasureTiming.timelineTolerance
+                && abs($0.durationInQuarterNotes - item.durationInQuarterNotes)
+                    < NotationMeasureTiming.timelineTolerance
+        }) else { return false }
         let updatedItem = NotationMeasureItem(
             id: item.id,
             partID: item.partID,
@@ -658,13 +702,18 @@ extension AudioPlayerViewModel {
             durationInQuarterNotes: item.durationInQuarterNotes,
             displayDuration: item.displayDuration
         )
+        let remainingNotes = measure.notationItems.filter {
+            $0.kind == .note && !($0.id == item.id && $0.partID == item.partID)
+        }
+        let replacementItems = NotationMeasureRhythmRecomposer.persistedItems(
+            in: measure,
+            partID: item.partID,
+            notes: remainingNotes,
+            preferredRests: measure.notationItems + [replacementRest]
+        )
 
         performUndoableEdit(undoActionName) {
-            replaceNotationItem(
-                in: measure,
-                matching: item,
-                with: replacementRest
-            )
+            replaceNotationMeasureItems(in: measure, with: replacementItems)
             selectedNotationItem = nil
         }
 
@@ -937,6 +986,51 @@ extension AudioPlayerViewModel {
         else { return false }
 
         let measure = match.measure
+        if match.item.kind == .note {
+            let measureLength = NotationMeasureTiming.quarterLength(for: measure.attributes.timeSignature)
+            let newLength = selectedDuration.durationInQuarterNotes
+            guard match.item.offsetInQuarterNotes + newLength
+                    <= measureLength + NotationMeasureTiming.timelineTolerance
+            else { return false }
+
+            var selectedItem = match.item.persistedCopy()
+            selectedItem.durationInQuarterNotes = newLength
+            selectedItem.displayDuration = selectedDuration
+            guard !measure.notationItems.contains(where: {
+                $0.id != selectedItem.id
+                    && $0.partID == selectedItem.partID
+                    && $0.kind == .note
+                    && $0.pitch == selectedItem.pitch
+                    && abs($0.offsetInQuarterNotes - selectedItem.offsetInQuarterNotes)
+                        < NotationMeasureTiming.timelineTolerance
+                    && abs($0.durationInQuarterNotes - selectedItem.durationInQuarterNotes)
+                        < NotationMeasureTiming.timelineTolerance
+            }) else { return false }
+
+            let notes = measure.notationItems.compactMap { item -> NotationMeasureItem? in
+                guard item.kind == .note else { return nil }
+                return item.id == selectedItem.id && item.partID == selectedItem.partID
+                    ? selectedItem
+                    : item
+            }
+            let items = NotationMeasureRhythmRecomposer.persistedItems(
+                in: measure,
+                partID: selectedItem.partID,
+                notes: notes,
+                preferredRests: measure.notationItems
+            )
+            performUndoableEdit("Change Notation Duration") {
+                replaceNotationMeasureItems(in: measure, with: items)
+                reselectNotationItem(
+                    inMeasureNumber: measure.number,
+                    measureStartTime: measure.startTime,
+                    itemID: selectedItem.id,
+                    partID: selectedItem.partID
+                )
+            }
+            return true
+        }
+
         guard let replacement = NotationDurationEditor.replacement(
             in: measure,
             selectedItem: match.item,
@@ -1172,12 +1266,19 @@ extension AudioPlayerViewModel {
         in measure: ScoreMeasure,
         with replacementItems: [NotationMeasureItem]
     ) {
+        let partID = replacementItems.first?.partID ?? measure.notationItems.first?.partID ?? .main
+        let canonicalItems = NotationMeasureRhythmRecomposer.persistedItems(
+            in: measure,
+            partID: partID,
+            notes: replacementItems,
+            preferredRests: replacementItems
+        )
         notationItems.removeAll {
             $0.measureNumber == measure.number
-                && $0.partID == (replacementItems.first?.partID ?? measure.notationItems.first?.partID ?? .main)
+                && $0.partID == partID
                 && abs($0.measureStartTime - measure.startTime) < NotationMeasureTiming.timelineTolerance
         }
-        notationItems.append(contentsOf: replacementItems)
+        notationItems.append(contentsOf: canonicalItems)
         notationItems = ProjectStateNormalizer.normalizedNotationItems(notationItems, duration: duration)
         sanitizeNotationTieRelationships()
     }
@@ -1219,6 +1320,66 @@ extension AudioPlayerViewModel {
             in: currentNotationScoreMeasures(partID: placement.partID),
             placement: placement
         )
+    }
+
+    private func exactNotationNote(
+        matching placement: NotationNotePlacement
+    ) -> (measure: ScoreMeasure, item: NotationMeasureItem)? {
+        let measures = currentNotationScoreMeasures(partID: placement.partID).sorted {
+            if $0.number != $1.number { return $0.number < $1.number }
+            return $0.startTime < $1.startTime
+        }
+        guard let targetMeasureIndex = measures.firstIndex(where: {
+            $0.number == placement.measure.number
+                && abs($0.startTime - placement.measure.startTime) < NotationMeasureTiming.timelineTolerance
+        }) else { return nil }
+
+        var measureStartOffsets: [Double] = []
+        var measureCursor = 0.0
+        for measure in measures {
+            measureStartOffsets.append(measureCursor)
+            measureCursor += NotationMeasureTiming.quarterLength(for: measure.attributes.timeSignature)
+        }
+        let targetStart = measureStartOffsets[targetMeasureIndex] + placement.offsetInQuarterNotes
+        let targetEnd = targetStart + placement.durationInQuarterNotes
+        let persistedNotes = measures.flatMap(\.notationItems).filter {
+            !$0.isSynthesized && $0.partID == placement.partID && $0.kind == .note
+        }
+        var visited: Set<String> = []
+
+        for candidate in persistedNotes where !visited.contains(candidate.id) {
+            let chainIDs = NotationNoteEditPlanner.logicalChainItemIDs(
+                in: persistedNotes,
+                containing: candidate.id,
+                partID: placement.partID
+            )
+            visited.formUnion(chainIDs)
+            let chain = persistedNotes.filter { chainIDs.contains($0.id) }
+            guard chain.first?.pitch == placement.pitch else { continue }
+
+            let spans = chain.compactMap { item -> (ScoreMeasure, Double, Double)? in
+                guard let measureIndex = measures.firstIndex(where: {
+                    $0.number == item.measureNumber
+                        && abs($0.startTime - item.measureStartTime) < NotationMeasureTiming.timelineTolerance
+                }) else { return nil }
+                let start = measureStartOffsets[measureIndex] + item.offsetInQuarterNotes
+                return (measures[measureIndex], start, start + item.durationInQuarterNotes)
+            }
+            guard let chainStart = spans.map(\.1).min(),
+                  let chainEnd = spans.map(\.2).max(),
+                  abs(chainStart - targetStart) < NotationMeasureTiming.timelineTolerance,
+                  abs(chainEnd - targetEnd) < NotationMeasureTiming.timelineTolerance,
+                  let root = chain.first(where: { item in
+                      !Set(chain.compactMap(\.tieTargetItemID)).contains(item.id)
+                  }),
+                  let rootMeasure = measures.first(where: {
+                      $0.number == root.measureNumber
+                          && abs($0.startTime - root.measureStartTime) < NotationMeasureTiming.timelineTolerance
+                  })
+            else { continue }
+            return (rootMeasure, root)
+        }
+        return nil
     }
 
     private func tiedNotationNoteInput() -> TiedNotationNoteInput? {
@@ -1268,7 +1429,7 @@ extension AudioPlayerViewModel {
             sourceItemID: input.sourceItem.id,
             selectedDuration: input.sourceItem.displayDuration
         ) else {
-            return .blocked(.noFreeFollowingDuration)
+            return .blocked(.audioBoundary)
         }
 
         return .ready(plan)

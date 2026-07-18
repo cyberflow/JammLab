@@ -4,7 +4,6 @@ import Foundation
 struct NotationNotePlacement: Equatable {
     var measure: ScoreMeasure
     var partID: NotationPartID
-    var targetRestID: String
     var offsetInQuarterNotes: Double
     var durationInQuarterNotes: Double
     var displayDuration: NotationDuration
@@ -16,7 +15,6 @@ struct NotationNotePlacement: Equatable {
     init(
         measure: ScoreMeasure,
         partID: NotationPartID = .main,
-        targetRestID: String,
         offsetInQuarterNotes: Double,
         durationInQuarterNotes: Double,
         displayDuration: NotationDuration,
@@ -26,7 +24,6 @@ struct NotationNotePlacement: Equatable {
     ) {
         self.measure = measure
         self.partID = partID
-        self.targetRestID = targetRestID
         self.offsetInQuarterNotes = offsetInQuarterNotes
         self.durationInQuarterNotes = durationInQuarterNotes
         self.displayDuration = displayDuration
@@ -39,7 +36,6 @@ struct NotationNotePlacement: Equatable {
 struct NotationRestPlacement: Equatable {
     var measure: ScoreMeasure
     var partID: NotationPartID
-    var targetRestID: String
     var offsetInQuarterNotes: Double
     var durationInQuarterNotes: Double
     var displayDuration: NotationDuration
@@ -49,7 +45,6 @@ struct NotationRestPlacement: Equatable {
     init(
         measure: ScoreMeasure,
         partID: NotationPartID = .main,
-        targetRestID: String,
         offsetInQuarterNotes: Double,
         durationInQuarterNotes: Double,
         displayDuration: NotationDuration,
@@ -57,28 +52,10 @@ struct NotationRestPlacement: Equatable {
     ) {
         self.measure = measure
         self.partID = partID
-        self.targetRestID = targetRestID
         self.offsetInQuarterNotes = offsetInQuarterNotes
         self.durationInQuarterNotes = durationInQuarterNotes
         self.displayDuration = displayDuration
         self.x = x
-    }
-}
-
-struct NotationRestSpan: Equatable {
-    var rests: [NotationMeasureItem]
-    var startOffsetInQuarterNotes: Double
-    var endOffsetInQuarterNotes: Double
-
-    var availableDurationInQuarterNotes: Double {
-        max(0, endOffsetInQuarterNotes - startOffsetInQuarterNotes)
-    }
-
-    func contains(_ item: NotationMeasureItem) -> Bool {
-        rests.contains {
-            $0.id == item.id
-                && abs($0.offsetInQuarterNotes - item.offsetInQuarterNotes) < NotationMeasureTiming.timelineTolerance
-        }
     }
 }
 
@@ -106,13 +83,7 @@ enum NotationNotePlacementResolver {
         let selectedLength = selectedDuration.durationInQuarterNotes
         guard selectedLength > NotationMeasureTiming.timelineTolerance else { return nil }
 
-        guard let targetRest = targetRest(
-            in: measure,
-            geometry: geometry,
-            x: point.x,
-            requiredDurationInQuarterNotes: selectedLength,
-            allowsOverflowToNextMeasure: true
-        ) else { return nil }
+        let offset = snappedEntryOffset(in: measure, geometry: geometry, x: point.x)
 
         let pitch = NotationPitchMapper.pitch(
             forStaffPosition: pitchPosition,
@@ -121,7 +92,7 @@ enum NotationNotePlacementResolver {
         )
         let x = NotationMeasureLayout.harmonyX(
             geometry: geometry,
-            offsetInQuarterNotes: targetRest.offsetInQuarterNotes,
+            offsetInQuarterNotes: offset,
             timeSignature: measure.attributes.timeSignature
         )
         let y = yPosition(forStaffPosition: pitchPosition, staffTop: staffTop, lineSpacing: lineSpacing)
@@ -129,8 +100,7 @@ enum NotationNotePlacementResolver {
         return NotationNotePlacement(
             measure: measure,
             partID: partID,
-            targetRestID: targetRest.id,
-            offsetInQuarterNotes: targetRest.offsetInQuarterNotes,
+            offsetInQuarterNotes: offset,
             durationInQuarterNotes: selectedLength,
             displayDuration: selectedDuration,
             pitch: pitch,
@@ -154,23 +124,15 @@ enum NotationNotePlacementResolver {
         let measureLength = NotationMeasureTiming.quarterLength(
             for: measure.attributes.timeSignature
         )
-        let clampedOffset = min(measureLength, max(0, quarterOffset))
+        let clampedOffset = min(max(0, measureLength - NotationRhythmicGrid.subdivisionInQuarterNotes), max(0, quarterOffset))
         let selectedLength = selectedDuration.durationInQuarterNotes
-        guard selectedLength > NotationMeasureTiming.timelineTolerance,
-              let targetRest = measure.notationItems.first(where: {
-                  guard $0.kind == .rest, $0.partID == partID else { return false }
-                  let end = $0.offsetInQuarterNotes + $0.durationInQuarterNotes
-                  return $0.offsetInQuarterNotes <= clampedOffset + NotationMeasureTiming.timelineTolerance
-                      && end > clampedOffset + NotationMeasureTiming.timelineTolerance
-              })
-        else {
+        guard selectedLength > NotationMeasureTiming.timelineTolerance else {
             return nil
         }
 
         return NotationNotePlacement(
             measure: measure,
             partID: partID,
-            targetRestID: targetRest.id,
             offsetInQuarterNotes: clampedOffset,
             durationInQuarterNotes: selectedLength,
             displayDuration: selectedDuration,
@@ -190,21 +152,24 @@ enum NotationNotePlacementResolver {
         let measureLength = NotationMeasureTiming.quarterLength(
             for: measure.attributes.timeSignature
         )
-        let clampedOffset = min(measureLength, max(0, quarterOffset))
-        guard let targetRest = measure.notationItems.first(where: {
-            let end = $0.offsetInQuarterNotes + $0.durationInQuarterNotes
-            return $0.kind == .rest
-                && $0.partID == partID
-                && $0.offsetInQuarterNotes <= clampedOffset + NotationMeasureTiming.timelineTolerance
-                && end > clampedOffset + NotationMeasureTiming.timelineTolerance
-        }) else { return nil }
+        let clampedOffset = min(max(0, measureLength - NotationRhythmicGrid.subdivisionInQuarterNotes), max(0, quarterOffset))
+        let selectedLength = selectedDuration.durationInQuarterNotes
+        let span = NotationTimeSpan(start: clampedOffset, end: clampedOffset + selectedLength)
+        guard selectedLength > NotationMeasureTiming.timelineTolerance,
+              span.end <= measureLength + NotationMeasureTiming.timelineTolerance,
+              NotationMeasureRhythmRecomposer.isSilent(
+                span,
+                in: measure,
+                partID: partID,
+                items: measure.notationItems
+              )
+        else { return nil }
 
         return NotationRestPlacement(
             measure: measure,
             partID: partID,
-            targetRestID: targetRest.id,
-            offsetInQuarterNotes: targetRest.offsetInQuarterNotes,
-            durationInQuarterNotes: selectedDuration.durationInQuarterNotes,
+            offsetInQuarterNotes: clampedOffset,
+            durationInQuarterNotes: selectedLength,
             displayDuration: selectedDuration,
             x: x
         )
@@ -228,142 +193,20 @@ enum NotationNotePlacementResolver {
             return nil
         }
 
-        let selectedLength = selectedDuration.durationInQuarterNotes
-        guard selectedLength > NotationMeasureTiming.timelineTolerance else { return nil }
-        guard let targetRest = targetRest(
-            in: measure,
-            geometry: geometry,
-            x: point.x,
-            requiredDurationInQuarterNotes: selectedLength
-        ) else { return nil }
+        let offset = snappedEntryOffset(in: measure, geometry: geometry, x: point.x)
 
         let x = NotationMeasureLayout.harmonyX(
             geometry: geometry,
-            offsetInQuarterNotes: targetRest.offsetInQuarterNotes,
+            offsetInQuarterNotes: offset,
             timeSignature: measure.attributes.timeSignature
         )
 
-        return NotationRestPlacement(
-            measure: measure,
+        return restPlacement(
+            in: measure,
+            quarterOffset: offset,
+            selectedDuration: selectedDuration,
             partID: partID,
-            targetRestID: targetRest.id,
-            offsetInQuarterNotes: targetRest.offsetInQuarterNotes,
-            durationInQuarterNotes: selectedLength,
-            displayDuration: selectedDuration,
             x: x
-        )
-    }
-
-    static func singleFullMeasureWholeRest(in measure: ScoreMeasure) -> NotationMeasureItem? {
-        guard measure.notationItems.count == 1,
-              let item = measure.notationItems.first,
-              item.kind == .rest,
-              item.displayDuration.denominator == NotationDuration.defaultDenominator,
-              abs(item.offsetInQuarterNotes) <= NotationMeasureTiming.timelineTolerance
-        else {
-            return nil
-        }
-
-        let measureLength = NotationMeasureTiming.quarterLength(for: measure.attributes.timeSignature)
-        guard abs(item.durationInQuarterNotes - measureLength) <= NotationMeasureTiming.timelineTolerance else {
-            return nil
-        }
-        return item
-    }
-
-    static func restSpan(
-        in measure: ScoreMeasure,
-        from targetRest: NotationMeasureItem,
-        requiredDurationInQuarterNotes requiredDuration: Double
-    ) -> NotationRestSpan? {
-        guard targetRest.kind == .rest,
-              requiredDuration > NotationMeasureTiming.timelineTolerance
-        else {
-            return nil
-        }
-
-        let orderedItems = measure.notationItems.sorted(by: notationItemSort)
-        guard let targetIndex = orderedItems.firstIndex(where: {
-            $0.kind == .rest
-                && $0.id == targetRest.id
-                && abs($0.offsetInQuarterNotes - targetRest.offsetInQuarterNotes) < NotationMeasureTiming.timelineTolerance
-        }) ?? orderedItems.firstIndex(where: {
-            $0.kind == .rest
-                && abs($0.offsetInQuarterNotes - targetRest.offsetInQuarterNotes) < NotationMeasureTiming.timelineTolerance
-        }) else {
-            return nil
-        }
-
-        var rests: [NotationMeasureItem] = []
-        let startOffset = orderedItems[targetIndex].offsetInQuarterNotes
-        let requiredEndOffset = startOffset + requiredDuration
-        var cursor = startOffset
-
-        for item in orderedItems[targetIndex...] {
-            guard item.kind == .rest else { return nil }
-            guard abs(item.offsetInQuarterNotes - cursor) <= NotationMeasureTiming.timelineTolerance else {
-                return nil
-            }
-
-            rests.append(item)
-            cursor = item.offsetInQuarterNotes + item.durationInQuarterNotes
-            if cursor >= requiredEndOffset - NotationMeasureTiming.timelineTolerance {
-                return NotationRestSpan(
-                    rests: rests,
-                    startOffsetInQuarterNotes: startOffset,
-                    endOffsetInQuarterNotes: cursor
-                )
-            }
-        }
-
-        return nil
-    }
-
-    static func restSpan(
-        in measure: ScoreMeasure,
-        matching placement: NotationNotePlacement
-    ) -> NotationRestSpan? {
-        restSpan(
-            in: measure,
-            targetRestID: placement.targetRestID,
-            offsetInQuarterNotes: placement.offsetInQuarterNotes,
-            requiredDurationInQuarterNotes: placement.durationInQuarterNotes
-        )
-    }
-
-    static func restSpan(
-        in measure: ScoreMeasure,
-        matching placement: NotationRestPlacement
-    ) -> NotationRestSpan? {
-        restSpan(
-            in: measure,
-            targetRestID: placement.targetRestID,
-            offsetInQuarterNotes: placement.offsetInQuarterNotes,
-            requiredDurationInQuarterNotes: placement.durationInQuarterNotes
-        )
-    }
-
-    private static func restSpan(
-        in measure: ScoreMeasure,
-        targetRestID: String,
-        offsetInQuarterNotes: Double,
-        requiredDurationInQuarterNotes requiredDuration: Double
-    ) -> NotationRestSpan? {
-        guard let targetRest = measure.notationItems.first(where: {
-            $0.kind == .rest
-                && $0.id == targetRestID
-                && abs($0.offsetInQuarterNotes - offsetInQuarterNotes) < NotationMeasureTiming.timelineTolerance
-        }) ?? measure.notationItems.first(where: {
-            $0.kind == .rest
-                && abs($0.offsetInQuarterNotes - offsetInQuarterNotes) < NotationMeasureTiming.timelineTolerance
-        }) else {
-            return nil
-        }
-
-        return restSpan(
-            in: measure,
-            from: targetRest,
-            requiredDurationInQuarterNotes: requiredDuration
         )
     }
 
@@ -379,76 +222,17 @@ enum NotationNotePlacementResolver {
         return []
     }
 
-    private static func targetRest(
+    private static func snappedEntryOffset(
         in measure: ScoreMeasure,
         geometry: NotationMeasureCanvasGeometry,
-        x: CGFloat,
-        requiredDurationInQuarterNotes requiredDuration: Double,
-        allowsOverflowToNextMeasure: Bool = false
-    ) -> NotationMeasureItem? {
-        let requiredDurationForRest: (NotationMeasureItem) -> Double = { rest in
-            guard allowsOverflowToNextMeasure else { return requiredDuration }
-            let measureLength = NotationMeasureTiming.quarterLength(for: measure.attributes.timeSignature)
-            return min(requiredDuration, max(0, measureLength - rest.offsetInQuarterNotes))
-        }
-        if let fullMeasureWholeRest = singleFullMeasureWholeRest(in: measure),
-           restSpan(
-               in: measure,
-               from: fullMeasureWholeRest,
-               requiredDurationInQuarterNotes: requiredDurationForRest(fullMeasureWholeRest)
-           ) != nil {
-            return fullMeasureWholeRest
-        }
-
-        let rawProgress = NotationMeasureLayout.notationAnchorProgress(
-            atX: x,
-            geometry: geometry
-        )
-        let rawOffset = rawProgress * NotationMeasureTiming.quarterLength(for: measure.attributes.timeSignature)
-        let eligibleRests = measure.notationItems
-            .filter {
-                $0.kind == .rest
-                    && restSpan(
-                        in: measure,
-                        from: $0,
-                        requiredDurationInQuarterNotes: requiredDurationForRest($0)
-                    ) != nil
-            }
-        guard !eligibleRests.isEmpty else { return nil }
-
-        if let containingRest = eligibleRests.first(where: {
-            restContains(rawOffset, in: $0)
-        }) {
-            return containingRest
-        }
-
-        return eligibleRests.min {
-            let lhsDistance = abs($0.offsetInQuarterNotes - rawOffset)
-            let rhsDistance = abs($1.offsetInQuarterNotes - rawOffset)
-            if abs(lhsDistance - rhsDistance) > NotationMeasureTiming.timelineTolerance {
-                return lhsDistance < rhsDistance
-            }
-
-            return $0.offsetInQuarterNotes < $1.offsetInQuarterNotes
-        } ?? eligibleRests[0]
-    }
-
-    private static func restContains(
-        _ offset: Double,
-        in rest: NotationMeasureItem
-    ) -> Bool {
-        let start = rest.offsetInQuarterNotes
-        let end = rest.offsetInQuarterNotes + rest.durationInQuarterNotes
-        return offset >= start - NotationMeasureTiming.timelineTolerance
-            && offset < end - NotationMeasureTiming.timelineTolerance
-    }
-
-    private static func notationItemSort(_ lhs: NotationMeasureItem, _ rhs: NotationMeasureItem) -> Bool {
-        if abs(lhs.offsetInQuarterNotes - rhs.offsetInQuarterNotes) > NotationMeasureTiming.timelineTolerance {
-            return lhs.offsetInQuarterNotes < rhs.offsetInQuarterNotes
-        }
-
-        return lhs.id < rhs.id
+        x: CGFloat
+    ) -> Double {
+        let measureLength = NotationMeasureTiming.quarterLength(for: measure.attributes.timeSignature)
+        let rawProgress = NotationMeasureLayout.notationAnchorProgress(atX: x, geometry: geometry)
+        let rawOffset = rawProgress * measureLength
+        let step = NotationRhythmicGrid.subdivisionInQuarterNotes
+        let snapped = (rawOffset / step).rounded() * step
+        return min(max(0, measureLength - step), max(0, snapped))
     }
 
     static func staffPosition(
@@ -516,46 +300,5 @@ enum NotationNotePlacementResolver {
             lineSpacing: lineSpacing
         ) + halfSpacing
         return y >= minimumY && y <= maximumY
-    }
-}
-
-enum NotationEntryRecomposer {
-    static func recomposedItems(
-        in measure: ScoreMeasure,
-        replacing restSpan: NotationRestSpan,
-        with insertedItem: NotationMeasureItem
-    ) -> [NotationMeasureItem] {
-        let orderedItems = measure.notationItems.sorted(by: notationItemSort)
-
-        var output: [NotationMeasureItem] = []
-        var didInsertItem = false
-        for item in orderedItems {
-            if restSpan.contains(item) {
-                if !didInsertItem {
-                    output.append(insertedItem)
-                    let insertedItemEnd = insertedItem.offsetInQuarterNotes + insertedItem.durationInQuarterNotes
-                    output.append(contentsOf: NotationRestItemFactory.metricAwareRestItems(
-                        in: measure,
-                        partID: insertedItem.partID,
-                        startOffset: insertedItemEnd,
-                        remaining: restSpan.endOffsetInQuarterNotes - insertedItemEnd
-                    ))
-                    didInsertItem = true
-                }
-                continue
-            }
-
-            output.append(item.persistedCopy())
-        }
-
-        return output
-    }
-
-    private static func notationItemSort(_ lhs: NotationMeasureItem, _ rhs: NotationMeasureItem) -> Bool {
-        if abs(lhs.offsetInQuarterNotes - rhs.offsetInQuarterNotes) > NotationMeasureTiming.timelineTolerance {
-            return lhs.offsetInQuarterNotes < rhs.offsetInQuarterNotes
-        }
-
-        return lhs.id < rhs.id
     }
 }

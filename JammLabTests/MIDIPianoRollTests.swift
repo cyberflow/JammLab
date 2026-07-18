@@ -175,9 +175,8 @@ final class MIDIPianoRollTests: XCTestCase {
             x: 100
         ))
 
-        XCTAssertEqual(placement.targetRestID, "stem-rest")
         XCTAssertEqual(placement.partID, stemPart)
-        XCTAssertEqual(placement.offsetInQuarterNotes, 0, accuracy: 0.0001)
+        XCTAssertEqual(placement.offsetInQuarterNotes, 1.25, accuracy: 0.0001)
         XCTAssertEqual(placement.durationInQuarterNotes, 0.5, accuracy: 0.0001)
     }
 
@@ -342,7 +341,7 @@ final class MIDIPianoRollTests: XCTestCase {
         XCTAssertEqual(moved.displayDuration, NotationDuration(denominator: 16, isDotted: true))
     }
 
-    func testPlannerRejectsMoveThatOverlapsAnotherNote() throws {
+    func testPlannerRejectsMoveThatCreatesExactDuplicate() throws {
         let source = makeNote(id: "source", measureNumber: 1, measureStartTime: 0, offset: 0, duration: 1)
         let blocker = makeNote(id: "blocker", measureNumber: 1, measureStartTime: 0, offset: 2, duration: 1)
         let measure = makeMeasure(notationItems: [source, blocker])
@@ -363,7 +362,7 @@ final class MIDIPianoRollTests: XCTestCase {
         ))
 
         XCTAssertFalse(preview.isValid)
-        XCTAssertEqual(preview.invalidReason, .collision)
+        XCTAssertEqual(preview.invalidReason, .duplicate)
         XCTAssertFalse(preview.previewItems.isEmpty)
     }
 
@@ -541,7 +540,7 @@ final class MIDIPianoRollTests: XCTestCase {
         XCTAssertEqual(preview.invalidReason, .audioBoundary)
     }
 
-    func testResizeAllowsAdjacencyAndRejectsOneGridStepOverlap() throws {
+    func testResizeAllowsAdjacencyAndOneGridStepOverlap() throws {
         let source = makeNote(
             id: "source",
             measureNumber: 1,
@@ -585,8 +584,8 @@ final class MIDIPianoRollTests: XCTestCase {
             request: overlapping,
             audioDuration: 2
         ))
-        XCTAssertFalse(overlapPreview.isValid)
-        XCTAssertEqual(overlapPreview.invalidReason, .collision)
+        XCTAssertTrue(overlapPreview.isValid)
+        XCTAssertNil(overlapPreview.invalidReason)
     }
 
     func testLeadingResizeHonorsAdjacencyMinimumDurationAndCrossingBoundary() throws {
@@ -624,7 +623,7 @@ final class MIDIPianoRollTests: XCTestCase {
         }
 
         XCTAssertTrue(try preview(at: 0.5).isValid)
-        XCTAssertEqual(try preview(at: 0.25).invalidReason, .collision)
+        XCTAssertTrue(try preview(at: 0.25).isValid)
         XCTAssertTrue(try preview(at: 1.75).isValid)
         XCTAssertEqual(try preview(at: 2).invalidReason, .duration)
     }
@@ -883,7 +882,7 @@ final class MIDIPianoRollTests: XCTestCase {
     }
 
     @MainActor
-    func testCrossPageMoveRejectsCollisionWithoutUndo() throws {
+    func testCrossPageMoveRejectsExactDuplicateWithoutUndo() throws {
         let viewModel = try loadedNotationViewModel(duration: 12)
         let undoManager = UndoManager()
         viewModel.undoManager = undoManager
@@ -925,7 +924,7 @@ final class MIDIPianoRollTests: XCTestCase {
         )
 
         let preview = try XCTUnwrap(viewModel.previewNotationNoteEdit(request))
-        XCTAssertEqual(preview.invalidReason, .collision)
+        XCTAssertEqual(preview.invalidReason, .duplicate)
         XCTAssertFalse(viewModel.commitNotationNoteEdit(request))
         XCTAssertEqual(viewModel.notationItems, itemsBefore)
         XCTAssertFalse(undoManager.canUndo)

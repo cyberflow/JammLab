@@ -90,10 +90,6 @@ final class AppHotkeyNotationMappingTests: XCTestCase {
             "Tie (T)\nAdd tied note\nThe selected note already starts a tie."
         )
         XCTAssertEqual(
-            NotationTieHelpText.tooltip(for: .blocked(.noFreeFollowingDuration)),
-            "Tie (T)\nAdd tied note\nThere is not enough empty notation time after the selected note."
-        )
-        XCTAssertEqual(
             NotationTieHelpText.tooltip(for: .blocked(.audioBoundary)),
             "Tie (T)\nAdd tied note\nThere is not enough audio time after the selected note."
         )

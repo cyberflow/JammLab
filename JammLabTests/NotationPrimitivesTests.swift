@@ -136,6 +136,30 @@ final class NotationPrimitivesTests: XCTestCase {
         }
     }
 
+    func testChordPrimitivesUseStandaloneNoteheadsAndDirectionalFlags() {
+        XCTAssertEqual(NotationNoteheadSymbol(duration: NotationDuration(denominator: 1)).codepoint, 0xE0A2)
+        XCTAssertEqual(NotationNoteheadSymbol(duration: NotationDuration(denominator: 2)).codepoint, 0xE0A3)
+        XCTAssertEqual(NotationNoteheadSymbol(duration: NotationDuration(denominator: 4)).codepoint, 0xE0A4)
+        XCTAssertEqual(
+            NotationFlagSymbol(
+                duration: NotationDuration(denominator: 8),
+                stemDirection: .up
+            )?.codepoint,
+            0xE240
+        )
+        XCTAssertEqual(
+            NotationFlagSymbol(
+                duration: NotationDuration(denominator: 16),
+                stemDirection: .down
+            )?.codepoint,
+            0xE243
+        )
+        XCTAssertNil(NotationFlagSymbol(
+            duration: NotationDuration(denominator: 4),
+            stemDirection: .up
+        ))
+    }
+
     func testNotationStemDirectionChangesOnlyAboveMiddleStaffLine() {
         XCTAssertEqual(NotationStemDirection.direction(forStaffPosition: 3), .down)
         XCTAssertEqual(NotationStemDirection.direction(forStaffPosition: 4), .up)
@@ -285,7 +309,7 @@ final class NotationPrimitivesTests: XCTestCase {
 
         let item = try XCTUnwrap(NotationViewportFactory.notationItems(for: measure, from: []).first)
 
-        XCTAssertEqual(item.id, "default-rest-1-0.0-1.5")
+        XCTAssertEqual(item.id, "default-rest-main-1-0.0-1.5")
         XCTAssertEqual(item.kind, .rest)
         XCTAssertEqual(item.measureNumber, 1)
         XCTAssertEqual(item.measureStartTime, 0)
@@ -528,7 +552,7 @@ final class NotationPrimitivesTests: XCTestCase {
         XCTAssertEqual(NotationPitch(step: .b, octave: 10, alter: 1).midiNoteNumber, 127)
     }
 
-    func testNotationNotePlacementResolverForcesFullMeasureWholeRestToBeatOne() throws {
+    func testNotationNotePlacementResolverUsesSnappedClickInsideFullMeasureRest() throws {
         let measure = ScoreMeasure(
             number: 1,
             startTime: 0,
@@ -563,13 +587,12 @@ final class NotationPrimitivesTests: XCTestCase {
             selectedDuration: NotationDuration(denominator: 4)
         ))
 
-        XCTAssertEqual(placement.offsetInQuarterNotes, 0, accuracy: 0.0001)
-        XCTAssertEqual(placement.targetRestID, "explicit-whole-rest")
+        XCTAssertEqual(placement.offsetInQuarterNotes, 3.25, accuracy: 0.0001)
         XCTAssertEqual(placement.pitch.step, .e)
         XCTAssertEqual(placement.pitch.octave, 4)
     }
 
-    func testNotationNotePlacementResolverTargetsContainingShortRestWithFollowingCapacity() throws {
+    func testNotationNotePlacementResolverUsesSharedGridAcrossAdjacentRests() throws {
         let measure = ScoreMeasure(
             number: 1,
             startTime: 0,
@@ -635,8 +658,7 @@ final class NotationPrimitivesTests: XCTestCase {
             selectedDuration: NotationDuration(denominator: 4)
         ))
 
-        XCTAssertEqual(placement.targetRestID, "second-eighth-rest")
-        XCTAssertEqual(placement.offsetInQuarterNotes, 1.5, accuracy: 0.0001)
+        XCTAssertEqual(placement.offsetInQuarterNotes, 2, accuracy: 0.0001)
         XCTAssertEqual(placement.durationInQuarterNotes, 1, accuracy: 0.0001)
     }
 
@@ -691,8 +713,7 @@ final class NotationPrimitivesTests: XCTestCase {
             selectedDuration: duration
         ))
 
-        XCTAssertEqual(placement.targetRestID, "trailing-quarter-rest")
-        XCTAssertEqual(placement.offsetInQuarterNotes, 3, accuracy: 0.0001)
+        XCTAssertEqual(placement.offsetInQuarterNotes, 3.5, accuracy: 0.0001)
         XCTAssertNil(NotationNotePlacementResolver.restPlacement(
             in: measure,
             geometry: geometry,
@@ -702,7 +723,7 @@ final class NotationPrimitivesTests: XCTestCase {
         ))
     }
 
-    func testNotationRestPlacementResolverTargetsContainingShortRestWithFollowingCapacity() throws {
+    func testNotationRestPlacementResolverUsesSharedGridAcrossAdjacentRests() throws {
         let measure = ScoreMeasure(
             number: 1,
             startTime: 0,
@@ -768,13 +789,12 @@ final class NotationPrimitivesTests: XCTestCase {
             selectedDuration: NotationDuration(denominator: 4)
         ))
 
-        XCTAssertEqual(placement.targetRestID, "second-eighth-rest")
-        XCTAssertEqual(placement.offsetInQuarterNotes, 1.5, accuracy: 0.0001)
+        XCTAssertEqual(placement.offsetInQuarterNotes, 2, accuracy: 0.0001)
         XCTAssertEqual(placement.durationInQuarterNotes, 1, accuracy: 0.0001)
         XCTAssertEqual(placement.displayDuration.denominator, 4)
     }
 
-    func testNotationNotePlacementResolverRejectsRestWithoutContiguousCapacity() {
+    func testNotationNotePlacementResolverAllowsOverlapWithoutContiguousRestCapacity() throws {
         let measure = ScoreMeasure(
             number: 1,
             startTime: 0,
@@ -816,13 +836,14 @@ final class NotationPrimitivesTests: XCTestCase {
             timeSignature: measure.attributes.timeSignature
         )
 
-        XCTAssertNil(NotationNotePlacementResolver.placement(
+        let placement = try XCTUnwrap(NotationNotePlacementResolver.placement(
             in: measure,
             geometry: geometry,
             point: CGPoint(x: xInsideShortRest, y: 72),
             staffTop: 40,
             selectedDuration: NotationDuration(denominator: 4)
         ))
+        XCTAssertEqual(placement.offsetInQuarterNotes, 1.25, accuracy: 0.0001)
     }
 
     func testNotationRestPlacementResolverRejectsRestWithoutContiguousCapacity() {
@@ -874,125 +895,6 @@ final class NotationPrimitivesTests: XCTestCase {
             staffTop: 40,
             selectedDuration: NotationDuration(denominator: 4)
         ))
-    }
-
-    func testNotationEntryRecomposerPreservesPersistedItemsAndCopiesSynthesizedItems() throws {
-        let note = NotationMeasureItem(
-            id: "existing-note",
-            kind: .note,
-            pitch: NotationPitch(step: .c, octave: 5),
-            measureNumber: 1,
-            measureStartTime: 0,
-            offsetInQuarterNotes: 0,
-            durationInQuarterNotes: 1,
-            displayDuration: NotationDuration(denominator: 4)
-        )
-        let targetRest = NotationMeasureItem(
-            id: "target-rest",
-            measureNumber: 1,
-            measureStartTime: 0,
-            offsetInQuarterNotes: 1,
-            durationInQuarterNotes: 1,
-            displayDuration: NotationDuration(denominator: 4),
-            isSynthesized: true
-        )
-        let trailingRest = NotationMeasureItem(
-            id: "trailing-rest",
-            measureNumber: 1,
-            measureStartTime: 0,
-            offsetInQuarterNotes: 2,
-            durationInQuarterNotes: 2,
-            displayDuration: NotationDuration(denominator: 2),
-            isSynthesized: true
-        )
-        let measure = ScoreMeasure(
-            number: 1,
-            startTime: 0,
-            endTime: 2,
-            attributes: .defaultTreble,
-            notationItems: [note, targetRest, trailingRest]
-        )
-        let span = try XCTUnwrap(NotationNotePlacementResolver.restSpan(
-            in: measure,
-            from: targetRest,
-            requiredDurationInQuarterNotes: 1
-        ))
-        let inserted = NotationMeasureItem(
-            id: "inserted-note",
-            kind: .note,
-            pitch: NotationPitch(step: .e, octave: 4),
-            measureNumber: 1,
-            measureStartTime: 0,
-            offsetInQuarterNotes: 1,
-            durationInQuarterNotes: 1,
-            displayDuration: NotationDuration(denominator: 4)
-        )
-
-        let recomposed = NotationEntryRecomposer.recomposedItems(
-            in: measure,
-            replacing: span,
-            with: inserted
-        )
-
-        XCTAssertEqual(recomposed[0].id, "existing-note")
-        XCTAssertEqual(recomposed[1].id, "inserted-note")
-        XCTAssertNotEqual(recomposed[2].id, "trailing-rest")
-        XCTAssertEqual(recomposed.map(\.kind), [.note, .note, .rest])
-        XCTAssertEqual(recomposed[0].pitch, NotationPitch(step: .c, octave: 5))
-        XCTAssertFalse(recomposed[0].isSynthesized)
-        XCTAssertFalse(recomposed[2].isSynthesized)
-    }
-
-    func testNotationEntryRecomposerSplitsTailToNextQuarterBoundary() throws {
-        let targetRest = NotationMeasureItem(
-            id: "second-eighth-rest",
-            measureNumber: 1,
-            measureStartTime: 0,
-            offsetInQuarterNotes: 1.5,
-            durationInQuarterNotes: 0.5,
-            displayDuration: NotationDuration(denominator: 8)
-        )
-        let followingRest = NotationMeasureItem(
-            id: "half-rest",
-            measureNumber: 1,
-            measureStartTime: 0,
-            offsetInQuarterNotes: 2,
-            durationInQuarterNotes: 2,
-            displayDuration: NotationDuration(denominator: 2)
-        )
-        let measure = ScoreMeasure(
-            number: 1,
-            startTime: 0,
-            endTime: 2,
-            attributes: .defaultTreble,
-            notationItems: [targetRest, followingRest]
-        )
-        let span = try XCTUnwrap(NotationNotePlacementResolver.restSpan(
-            in: measure,
-            from: targetRest,
-            requiredDurationInQuarterNotes: 1
-        ))
-        let inserted = NotationMeasureItem(
-            id: "inserted-note",
-            kind: .note,
-            pitch: NotationPitch(step: .e, octave: 4),
-            measureNumber: 1,
-            measureStartTime: 0,
-            offsetInQuarterNotes: 1.5,
-            durationInQuarterNotes: 1,
-            displayDuration: NotationDuration(denominator: 4)
-        )
-
-        let recomposed = NotationEntryRecomposer.recomposedItems(
-            in: measure,
-            replacing: span,
-            with: inserted
-        )
-
-        XCTAssertEqual(recomposed.map(\.kind), [.note, .rest, .rest])
-        XCTAssertEqual(recomposed.map(\.offsetInQuarterNotes), [1.5, 2.5, 3])
-        XCTAssertEqual(recomposed.map(\.durationInQuarterNotes), [1, 0.5, 1])
-        XCTAssertEqual(recomposed.map(\.displayDuration.denominator), [4, 8, 4])
     }
 
     func testNotationNotePlacementResolverClampsStaffPositionForPitchDrag() throws {

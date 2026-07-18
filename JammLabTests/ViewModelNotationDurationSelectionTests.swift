@@ -46,7 +46,7 @@ final class ViewModelNotationDurationSelectionTests: XCTestCase {
         XCTAssertTrue(viewModel.insertNotationNote(placement))
 
         let updated = try notationMeasure(1, in: viewModel)
-        let note = try XCTUnwrap(updated.notationItems.first)
+        let note = try XCTUnwrap(updated.notationItems.first { $0.kind == .note })
         XCTAssertEqual(note.kind, .note)
         XCTAssertTrue(note.displayDuration.isDotted)
         XCTAssertEqual(note.durationInQuarterNotes, 1.5, accuracy: 0.0001)
@@ -55,6 +55,126 @@ final class ViewModelNotationDurationSelectionTests: XCTestCase {
 
         viewModel.undoLastEdit()
         XCTAssertEqual(try notationMeasure(1, in: viewModel).notationItems.first?.displayDuration.denominator, 1)
+    }
+
+    @MainActor
+    func testAddingNoteAtOccupiedOnsetCreatesChordAndNoRestUnderSoundingNotes() throws {
+        let viewModel = try loadedNotationViewModel(duration: 8)
+        viewModel.notationItems = [
+            NotationMeasureItem(
+                id: "c",
+                kind: .note,
+                pitch: NotationPitch(step: .c, octave: 4),
+                measureNumber: 1,
+                measureStartTime: 0,
+                offsetInQuarterNotes: 1,
+                durationInQuarterNotes: 1,
+                displayDuration: NotationDuration(denominator: 4)
+            )
+        ]
+        let measure = try notationMeasure(1, in: viewModel)
+        let placement = try XCTUnwrap(NotationNotePlacementResolver.placement(
+            in: measure,
+            quarterOffset: 1,
+            selectedDuration: NotationDuration(denominator: 4),
+            pitch: NotationPitch(step: .e, octave: 4),
+            partID: .main,
+            x: 0,
+            y: 0
+        ))
+
+        XCTAssertTrue(viewModel.insertNotationNote(placement))
+
+        let items = try notationMeasure(1, in: viewModel).notationItems
+        XCTAssertEqual(items.filter { $0.kind == .note && $0.offsetInQuarterNotes == 1 }.count, 2)
+        XCTAssertFalse(items.filter { $0.kind == .rest }.contains {
+            $0.offsetInQuarterNotes < 2 && $0.offsetInQuarterNotes + $0.durationInQuarterNotes > 1
+        })
+    }
+
+    @MainActor
+    func testExactDuplicateTiedInsertionSelectsExistingChainWithoutUndoOrDirtyState() throws {
+        let viewModel = try loadedNotationViewModel(duration: 8)
+        let undoManager = UndoManager()
+        viewModel.undoManager = undoManager
+        let pitch = NotationPitch(step: .c, octave: 4)
+        viewModel.notationItems = [
+            NotationMeasureItem(
+                id: "root",
+                kind: .note,
+                pitch: pitch,
+                measureNumber: 1,
+                measureStartTime: 0,
+                offsetInQuarterNotes: 3,
+                durationInQuarterNotes: 1,
+                displayDuration: NotationDuration(denominator: 4),
+                tieTargetItemID: "continuation"
+            ),
+            NotationMeasureItem(
+                id: "continuation",
+                kind: .note,
+                pitch: pitch,
+                measureNumber: 2,
+                measureStartTime: 2,
+                offsetInQuarterNotes: 0,
+                durationInQuarterNotes: 1,
+                displayDuration: NotationDuration(denominator: 4)
+            )
+        ]
+        viewModel.markProjectClean()
+        undoManager.removeAllActions()
+        let measure = try notationMeasure(1, in: viewModel)
+        let placement = try XCTUnwrap(NotationNotePlacementResolver.placement(
+            in: measure,
+            quarterOffset: 3,
+            selectedDuration: NotationDuration(denominator: 2),
+            pitch: pitch,
+            partID: .main,
+            x: 0,
+            y: 0
+        ))
+
+        XCTAssertTrue(viewModel.insertNotationNote(placement))
+        XCTAssertEqual(viewModel.notationItems.filter { $0.kind == .note }.count, 2)
+        XCTAssertEqual(viewModel.selectedNotationItem?.itemID, "root")
+        XCTAssertFalse(viewModel.isProjectModified)
+        XCTAssertFalse(undoManager.canUndo)
+    }
+
+    @MainActor
+    func testSamePitchAndOnsetWithDifferentDurationIsAllowed() throws {
+        let viewModel = try loadedNotationViewModel(duration: 8)
+        let pitch = NotationPitch(step: .c, octave: 4)
+        viewModel.notationItems = [
+            NotationMeasureItem(
+                id: "short-c",
+                kind: .note,
+                pitch: pitch,
+                measureNumber: 1,
+                measureStartTime: 0,
+                offsetInQuarterNotes: 0,
+                durationInQuarterNotes: 1,
+                displayDuration: NotationDuration(denominator: 4)
+            )
+        ]
+        viewModel.markProjectClean()
+        let measure = try notationMeasure(1, in: viewModel)
+        let placement = NotationNotePlacement(
+            measure: measure,
+            offsetInQuarterNotes: 0,
+            durationInQuarterNotes: 2,
+            displayDuration: NotationDuration(denominator: 2),
+            pitch: pitch,
+            x: 0,
+            y: 0
+        )
+
+        XCTAssertTrue(viewModel.insertNotationNote(placement))
+
+        let notes = try notationMeasure(1, in: viewModel).notationItems.filter { $0.kind == .note }
+        XCTAssertEqual(notes.count, 2)
+        XCTAssertEqual(Set(notes.map(\.durationInQuarterNotes)), [1, 2])
+        XCTAssertTrue(viewModel.isProjectModified)
     }
 
     @MainActor
@@ -84,8 +204,12 @@ final class ViewModelNotationDurationSelectionTests: XCTestCase {
         XCTAssertTrue(viewModel.insertNotationRest(placement))
 
         let updated = try notationMeasure(1, in: viewModel)
-        XCTAssertEqual(updated.notationItems.map(\.displayDuration.denominator), [16, 2, 4, 8, 32])
-        XCTAssertEqual(updated.notationItems.map(\.displayDuration.isDotted), [true, false, false, false, false])
+        XCTAssertTrue(updated.notationItems.contains {
+            $0.kind == .rest
+                && abs($0.offsetInQuarterNotes - placement.offsetInQuarterNotes)
+                    < NotationMeasureTiming.timelineTolerance
+                && $0.displayDuration == duration
+        })
         XCTAssertEqual(updated.notationItems.map(\.durationInQuarterNotes).reduce(0, +), 4, accuracy: 0.0001)
 
         viewModel.undoLastEdit()
@@ -190,7 +314,7 @@ final class ViewModelNotationDurationSelectionTests: XCTestCase {
     }
 
     @MainActor
-    func testRejectedDotToggleDoesNotChangeStateDirtyFlagOrUndoHistory() throws {
+    func testDotToggleAllowsOverlapAndCreatesUndoableEdit() throws {
         let viewModel = try loadedNotationViewModel(duration: 8)
         let undoManager = UndoManager()
         viewModel.undoManager = undoManager
@@ -220,11 +344,11 @@ final class ViewModelNotationDurationSelectionTests: XCTestCase {
         viewModel.selectNotationItem(NotationItemSelection(measure: measure, item: measure.notationItems[0]))
         viewModel.markProjectClean()
 
-        XCTAssertFalse(viewModel.toggleNotationDurationDot())
-        XCTAssertFalse(viewModel.notationDurationIsDotted)
-        XCTAssertFalse(viewModel.isProjectModified)
-        XCTAssertFalse(viewModel.canUndo)
-        XCTAssertFalse(try XCTUnwrap(viewModel.notationItems.first).displayDuration.isDotted)
+        XCTAssertTrue(viewModel.toggleNotationDurationDot())
+        XCTAssertTrue(viewModel.notationDurationIsDotted)
+        XCTAssertTrue(viewModel.isProjectModified)
+        XCTAssertTrue(viewModel.canUndo)
+        XCTAssertTrue(try XCTUnwrap(viewModel.notationItems.first { $0.id == "selected-note" }).displayDuration.isDotted)
     }
 
     @MainActor
@@ -257,11 +381,9 @@ final class ViewModelNotationDurationSelectionTests: XCTestCase {
         let undoManager = UndoManager()
         viewModel.undoManager = undoManager
         let measure = try notationMeasure(1, in: viewModel)
-        let rest = try XCTUnwrap(measure.notationItems.first)
         let pitch = NotationPitch(step: .g, octave: 5)
         let placement = NotationNotePlacement(
             measure: measure,
-            targetRestID: rest.id,
             offsetInQuarterNotes: 0,
             durationInQuarterNotes: 0.25,
             displayDuration: NotationDuration(denominator: 16),
@@ -292,10 +414,8 @@ final class ViewModelNotationDurationSelectionTests: XCTestCase {
         let undoManager = UndoManager()
         viewModel.undoManager = undoManager
         let measure = try notationMeasure(1, in: viewModel)
-        let rest = try XCTUnwrap(measure.notationItems.first)
         let placement = NotationRestPlacement(
             measure: measure,
-            targetRestID: rest.id,
             offsetInQuarterNotes: 0,
             durationInQuarterNotes: 0.25,
             displayDuration: NotationDuration(denominator: 16),
@@ -359,10 +479,8 @@ final class ViewModelNotationDurationSelectionTests: XCTestCase {
         let undoManager = UndoManager()
         viewModel.undoManager = undoManager
         let measure = try notationMeasure(1, in: viewModel)
-        let rest = try XCTUnwrap(measure.notationItems.first)
         let placement = NotationNotePlacement(
             measure: measure,
-            targetRestID: rest.id,
             offsetInQuarterNotes: 0,
             durationInQuarterNotes: 1,
             displayDuration: NotationDuration(denominator: 4),
@@ -405,11 +523,9 @@ final class ViewModelNotationDurationSelectionTests: XCTestCase {
             )
         ]
         let stemMeasure = try notationMeasure(1, in: viewModel, partID: .stem(.bass))
-        let rest = try XCTUnwrap(stemMeasure.notationItems.first)
         let placement = NotationNotePlacement(
             measure: stemMeasure,
             partID: .stem(.bass),
-            targetRestID: rest.id,
             offsetInQuarterNotes: 0,
             durationInQuarterNotes: 1,
             displayDuration: NotationDuration(denominator: 4),
@@ -475,7 +591,6 @@ final class ViewModelNotationDurationSelectionTests: XCTestCase {
         let pitch = NotationPitch(step: .e, octave: 4)
         let placement = NotationNotePlacement(
             measure: measure,
-            targetRestID: targetRest.id,
             offsetInQuarterNotes: targetRest.offsetInQuarterNotes,
             durationInQuarterNotes: 1,
             displayDuration: NotationDuration(denominator: 4),
@@ -552,7 +667,6 @@ final class ViewModelNotationDurationSelectionTests: XCTestCase {
         let targetRest = try XCTUnwrap(measure.notationItems.first { $0.id == "second-eighth-rest" })
         let placement = NotationRestPlacement(
             measure: measure,
-            targetRestID: targetRest.id,
             offsetInQuarterNotes: targetRest.offsetInQuarterNotes,
             durationInQuarterNotes: 1,
             displayDuration: NotationDuration(denominator: 4),
@@ -578,6 +692,42 @@ final class ViewModelNotationDurationSelectionTests: XCTestCase {
             "second-eighth-rest",
             "half-rest"
         ])
+    }
+
+    @MainActor
+    func testAddingNotationRestExplicitlyReplacesOverlappingOlderPreferredRest() throws {
+        let viewModel = try loadedNotationViewModel(duration: 8)
+        viewModel.notationItems = [
+            NotationMeasureItem(
+                id: "000-old-rest",
+                measureNumber: 1,
+                measureStartTime: 0,
+                offsetInQuarterNotes: 1,
+                durationInQuarterNotes: 1,
+                displayDuration: NotationDuration(denominator: 4)
+            )
+        ]
+        viewModel.markProjectClean()
+        let measure = try notationMeasure(1, in: viewModel)
+        let placement = NotationRestPlacement(
+            measure: measure,
+            offsetInQuarterNotes: 1.25,
+            durationInQuarterNotes: 0.5,
+            displayDuration: NotationDuration(denominator: 8),
+            x: 0
+        )
+
+        XCTAssertTrue(viewModel.insertNotationRest(placement))
+
+        let selectedID = try XCTUnwrap(viewModel.selectedNotationItem?.itemID)
+        let updatedMeasure = try notationMeasure(1, in: viewModel)
+        let selectedRest = try XCTUnwrap(updatedMeasure.notationItems.first { $0.id == selectedID })
+        XCTAssertNotEqual(selectedID, "000-old-rest")
+        XCTAssertFalse(updatedMeasure.notationItems.contains { $0.id == "000-old-rest" })
+        XCTAssertEqual(selectedRest.kind, .rest)
+        XCTAssertEqual(selectedRest.offsetInQuarterNotes, 1.25, accuracy: 0.0001)
+        XCTAssertEqual(selectedRest.durationInQuarterNotes, 0.5, accuracy: 0.0001)
+        XCTAssertEqual(selectedRest.displayDuration, NotationDuration(denominator: 8))
     }
 
     @MainActor
@@ -611,7 +761,6 @@ final class ViewModelNotationDurationSelectionTests: XCTestCase {
         let originalSelection = viewModel.selectedNotationItem
         let placement = NotationRestPlacement(
             measure: measure,
-            targetRestID: rest.id,
             offsetInQuarterNotes: rest.offsetInQuarterNotes,
             durationInQuarterNotes: 1,
             displayDuration: NotationDuration(denominator: 4),
@@ -640,10 +789,8 @@ final class ViewModelNotationDurationSelectionTests: XCTestCase {
         ]
         viewModel.markProjectClean()
         let measure = try notationMeasure(1, in: viewModel)
-        let rest = try XCTUnwrap(measure.notationItems.first)
         let placement = NotationRestPlacement(
             measure: measure,
-            targetRestID: rest.id,
             offsetInQuarterNotes: 0,
             durationInQuarterNotes: 4,
             displayDuration: NotationDuration(denominator: 1),
@@ -716,8 +863,8 @@ final class ViewModelNotationDurationSelectionTests: XCTestCase {
         })
         XCTAssertEqual(viewModel.selectedNotationItem?.itemID, lowNote.id)
         XCTAssertEqual(updatedMeasure.notationItems.filter { $0.kind == .note }.compactMap(\.pitch), [
-            NotationPitch(step: .d, octave: 6),
-            NotationPitch(step: .g, octave: 3)
+            NotationPitch(step: .g, octave: 3),
+            NotationPitch(step: .d, octave: 6)
         ])
         XCTAssertFalse(viewModel.canChangeSelectedNotationNotePitch(byStaffPositionDelta: 1))
         XCTAssertTrue(viewModel.canChangeSelectedNotationNotePitch(byStaffPositionDelta: -1))
@@ -731,11 +878,9 @@ final class ViewModelNotationDurationSelectionTests: XCTestCase {
             notationNoteAuditioner: auditioner
         )
         let measure = try notationMeasure(1, in: viewModel)
-        let rest = try XCTUnwrap(measure.notationItems.first)
         let pitch = NotationPitch(step: .g, octave: 4)
         let placement = NotationNotePlacement(
             measure: measure,
-            targetRestID: rest.id,
             offsetInQuarterNotes: 0,
             durationInQuarterNotes: 1,
             displayDuration: NotationDuration(denominator: 4),
@@ -757,10 +902,8 @@ final class ViewModelNotationDurationSelectionTests: XCTestCase {
             notationNoteAuditioner: auditioner
         )
         let measure = try notationMeasure(1, in: viewModel)
-        let rest = try XCTUnwrap(measure.notationItems.first)
         let placement = NotationNotePlacement(
             measure: measure,
-            targetRestID: rest.id,
             offsetInQuarterNotes: 0,
             durationInQuarterNotes: 8,
             displayDuration: NotationDuration(denominator: 1),
@@ -776,7 +919,7 @@ final class ViewModelNotationDurationSelectionTests: XCTestCase {
     }
 
     @MainActor
-    func testRejectedNotationNoteDoesNotConsumeAcrossExistingNoteOrAudition() throws {
+    func testNotationNoteCanOverlapExistingNoteAndAuditions() throws {
         let auditioner = MockNotationNoteAuditioner()
         let viewModel = try loadedNotationViewModel(
             duration: 8,
@@ -807,7 +950,6 @@ final class ViewModelNotationDurationSelectionTests: XCTestCase {
         let rest = try XCTUnwrap(measure.notationItems.first { $0.id == "short-rest" })
         let placement = NotationNotePlacement(
             measure: measure,
-            targetRestID: rest.id,
             offsetInQuarterNotes: rest.offsetInQuarterNotes,
             durationInQuarterNotes: 1,
             displayDuration: NotationDuration(denominator: 4),
@@ -816,9 +958,9 @@ final class ViewModelNotationDurationSelectionTests: XCTestCase {
             y: 0
         )
 
-        XCTAssertFalse(viewModel.insertNotationNote(placement))
-        XCTAssertTrue(auditioner.attemptedPitches.isEmpty)
-        XCTAssertFalse(viewModel.isProjectModified)
+        XCTAssertTrue(viewModel.insertNotationNote(placement))
+        XCTAssertEqual(auditioner.attemptedPitches, [NotationPitch(step: .g, octave: 4)])
+        XCTAssertTrue(viewModel.isProjectModified)
     }
 
     @MainActor
@@ -830,11 +972,9 @@ final class ViewModelNotationDurationSelectionTests: XCTestCase {
             notationNoteAuditioner: auditioner
         )
         let measure = try notationMeasure(1, in: viewModel)
-        let rest = try XCTUnwrap(measure.notationItems.first)
         let pitch = NotationPitch(step: .a, octave: 4)
         let placement = NotationNotePlacement(
             measure: measure,
-            targetRestID: rest.id,
             offsetInQuarterNotes: 0,
             durationInQuarterNotes: 1,
             displayDuration: NotationDuration(denominator: 4),
@@ -927,10 +1067,10 @@ final class ViewModelNotationDurationSelectionTests: XCTestCase {
 
         let updatedMeasure = try notationMeasure(1, in: viewModel)
         let updatedNote = try XCTUnwrap(updatedMeasure.notationItems.first)
-        XCTAssertEqual(updatedMeasure.notationItems.map(\.kind), [.note, .rest])
-        XCTAssertEqual(updatedMeasure.notationItems.map(\.offsetInQuarterNotes), [0, 2])
-        XCTAssertEqual(updatedMeasure.notationItems.map(\.durationInQuarterNotes), [2, 2])
-        XCTAssertEqual(updatedMeasure.notationItems.map(\.displayDuration.denominator), [2, 2])
+        XCTAssertEqual(updatedMeasure.notationItems.map(\.kind), [.note, .rest, .rest])
+        XCTAssertEqual(updatedMeasure.notationItems.map(\.offsetInQuarterNotes), [0, 2, 3])
+        XCTAssertEqual(updatedMeasure.notationItems.map(\.durationInQuarterNotes), [2, 1, 1])
+        XCTAssertEqual(updatedMeasure.notationItems.map(\.displayDuration.denominator), [2, 4, 4])
         XCTAssertEqual(updatedNote.id, insertedNote.id)
         XCTAssertEqual(updatedNote.pitch, insertedPitch)
         XCTAssertEqual(viewModel.selectedNotationItem?.itemID, insertedNote.id)
@@ -1272,10 +1412,11 @@ final class ViewModelNotationDurationSelectionTests: XCTestCase {
         viewModel.toggleNotationRestEntryMode()
 
         let convertedMeasure = try notationMeasure(1, in: viewModel)
-        XCTAssertEqual(
-            convertedMeasure.notationItems.filter { $0.id != note.id },
-            synthesizedNeighbors
-        )
+        XCTAssertEqual(convertedMeasure.notationItems.reduce(0) {
+            $0 + $1.durationInQuarterNotes
+        }, 4, accuracy: 0.0001)
+        XCTAssertTrue(convertedMeasure.notationItems.allSatisfy { $0.kind == .rest })
+        XCTAssertTrue(convertedMeasure.notationItems.allSatisfy { !$0.isSynthesized })
         XCTAssertEqual(
             convertedMeasure.notationItems.first { $0.id == note.id }?.kind,
             .rest
@@ -1505,7 +1646,6 @@ final class ViewModelNotationDurationSelectionTests: XCTestCase {
         let rest = try XCTUnwrap(measure.notationItems.first)
         let placement = NotationNotePlacement(
             measure: measure,
-            targetRestID: rest.id,
             offsetInQuarterNotes: rest.offsetInQuarterNotes,
             durationInQuarterNotes: 1,
             displayDuration: NotationDuration(denominator: 4),
