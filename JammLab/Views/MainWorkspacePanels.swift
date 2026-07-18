@@ -168,6 +168,7 @@ extension ContentView {
             selectedHarmonySymbolID: viewModel.selectedHarmonySymbolID,
             selectedNotationMeasures: viewModel.selectedNotationMeasures,
             selectedNotationItem: viewModel.selectedNotationItem,
+            selectedLogicalNotationItemIDs: selectedLogicalNotationItemIDs,
             pendingHarmonyEditorRequest: viewModel.pendingHarmonyEditorRequest,
             selectedRegionID: viewModel.selectedRegionID,
             beatGrid: beatGrid,
@@ -185,6 +186,7 @@ extension ContentView {
             notationEntryMode: viewModel.notationEntryMode,
             isNotationTrackCollapsed: viewModel.isNotationTrackCollapsed,
             stemNotationTrackCollapsed: viewModel.stemNotationTrackCollapsed,
+            stemNoteDisplayModes: viewModel.stemNoteDisplayModes,
             isLoadingPeakform: viewModel.isBuildingWaveform,
             mainTrackVolume: viewModel.mainTrackVolume,
             playbackMode: viewModel.playbackMode,
@@ -197,7 +199,8 @@ extension ContentView {
 
     func notationViewportState(
         availableWidth: CGFloat,
-        partID: NotationPartID
+        partID: NotationPartID,
+        pageStartMeasureTime: TimeInterval? = nil
     ) -> NotationViewportState {
         let factory = NotationViewportFactory()
         let content = notationProjectionCache.content(
@@ -222,7 +225,8 @@ extension ContentView {
                 currentTime: viewModel.currentTime,
                 playbackMarkerTime: viewModel.playbackMarkerTime,
                 isPlaying: viewModel.playbackState == .playing,
-                visibleMeasureCount: measureCount
+                visibleMeasureCount: measureCount,
+                pageStartMeasureTime: pageStartMeasureTime
             )
         }
 
@@ -232,7 +236,8 @@ extension ContentView {
             currentTime: viewModel.currentTime,
             playbackMarkerTime: viewModel.playbackMarkerTime,
             isPlaying: viewModel.playbackState == .playing,
-            visibleMeasureCount: fittedMeasureCount
+            visibleMeasureCount: fittedMeasureCount,
+            pageStartMeasureTime: pageStartMeasureTime
         )
     }
 
@@ -246,7 +251,10 @@ extension ContentView {
                 )
                 : notationViewportState(
                     availableWidth: availableWidth,
-                    partID: .stem(stemFile.type)
+                    partID: .stem(stemFile.type),
+                    pageStartMeasureTime: viewModel.stemNoteDisplayMode(for: stemFile.type) == .midi
+                        ? stemMIDIPageStartTimes[stemFile.type]
+                        : nil
                 )
             return (stemFile.type, viewport)
         })
@@ -281,6 +289,12 @@ extension ContentView {
             mainTrackVolumeChanged: { viewModel.setMainTrackVolume($0) },
             notationTrackCollapsedChanged: { viewModel.setNotationTrackCollapsed($0) },
             stemNotationTrackCollapsedChanged: { viewModel.setStemNotationTrackCollapsed($0, isCollapsed: $1) },
+            stemNoteDisplayModeToggled: {
+                if viewModel.stemNoteDisplayMode(for: $0) == .midi {
+                    stemMIDIPageStartTimes.removeValue(forKey: $0)
+                }
+                viewModel.toggleStemNoteDisplayMode($0)
+            },
             notationDurationChanged: { viewModel.setNotationDurationDenominator($0) },
             notationDurationDotToggled: { viewModel.toggleNotationDurationDot() },
             notationNoteEntryModeToggled: { viewModel.toggleNotationNoteEntryMode() },
@@ -293,7 +307,25 @@ extension ContentView {
             changeNotationClef: { viewModel.setNotationClef($1, for: $0) },
             auditionNotePitch: { viewModel.auditionNotationNotePitch($0) },
             deleteSelectedNotationNote: { viewModel.deleteSelectedNotationNote() },
-            showNotationWindow: { openWindow(id: AppWindowID.notation) }
+            showNotationWindow: { openWindow(id: AppWindowID.notation) },
+            beginNotationNoteEdit: { viewModel.beginNotationNoteEdit(partID: $0) },
+            endNotationNoteEdit: { viewModel.endNotationNoteEdit() },
+            previewNotationNoteEdit: { viewModel.previewNotationNoteEdit($0) },
+            commitNotationNoteEdit: { viewModel.commitNotationNoteEdit($0) },
+            stemMIDIPageStartChanged: { stemMIDIPageStartTimes[$0] = $1 },
+            stemMIDIInteractionEnded: {
+                if viewModel.playbackState == .playing {
+                    stemMIDIPageStartTimes.removeValue(forKey: $0)
+                }
+            }
+        )
+    }
+
+    private var selectedLogicalNotationItemIDs: Set<String> {
+        guard let selection = viewModel.selectedNotationItem else { return [] }
+        return viewModel.logicalNotationNoteItemIDs(
+            containing: selection.itemID,
+            partID: selection.partID
         )
     }
 

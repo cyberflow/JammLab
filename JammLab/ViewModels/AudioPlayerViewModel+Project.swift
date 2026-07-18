@@ -117,6 +117,7 @@ extension AudioPlayerViewModel {
         notationItems = []
         notationPartClefs = [:]
         stemNotationTrackCollapsed = [:]
+        stemNoteDisplayModes = [:]
         visibleNotationPartIDs = [.main]
         projectKeySelection = nil
         clearTransientEditingState()
@@ -178,6 +179,7 @@ extension AudioPlayerViewModel {
         notationItems = []
         notationPartClefs = [:]
         stemNotationTrackCollapsed = [:]
+        stemNoteDisplayModes = [:]
         visibleNotationPartIDs = [.main]
         projectKeySelection = nil
         clearTransientEditingState()
@@ -281,6 +283,7 @@ extension AudioPlayerViewModel {
             restoreVideoWindowOpenState(file.mediaKind == .video && project.isVideoWindowOpen == true)
             isNotationTrackCollapsed = project.isNotationTrackCollapsed ?? true
             stemNotationTrackCollapsed = project.stemNotationTrackCollapsed
+            stemNoteDisplayModes = StemNoteDisplayModes.normalized(project.stemNoteDisplayModes)
             visibleNotationPartIDs = normalizedVisibleNotationPartIDs(from: project.visibleNotationPartIDs)
             isImporting = false
             clearUndoHistory()
@@ -418,6 +421,7 @@ extension AudioPlayerViewModel {
             isVideoWindowOpen: isVideoWindowOpen,
             isNotationTrackCollapsed: isNotationTrackCollapsed,
             stemNotationTrackCollapsed: stemNotationTrackCollapsed,
+            stemNoteDisplayModes: StemNoteDisplayModes.normalized(stemNoteDisplayModes),
             visibleNotationPartIDs: normalizedVisibleNotationPartIDs()
         )
     }

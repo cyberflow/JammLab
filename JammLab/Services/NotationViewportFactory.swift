@@ -138,7 +138,8 @@ struct NotationViewportFactory {
         includesHarmonies: Bool = true,
         notationItems: [NotationMeasureItem] = [],
         harmonySymbols: [HarmonySymbol] = [],
-        notes: [TimecodedNote] = []
+        notes: [TimecodedNote] = [],
+        pageStartMeasureTime: TimeInterval? = nil
     ) -> NotationViewportState {
         let content = scoreContent(
             tempoMap: tempoMap,
@@ -158,7 +159,8 @@ struct NotationViewportFactory {
             currentTime: currentTime,
             playbackMarkerTime: playbackMarkerTime,
             isPlaying: isPlaying,
-            visibleMeasureCount: visibleMeasureCount
+            visibleMeasureCount: visibleMeasureCount,
+            pageStartMeasureTime: pageStartMeasureTime
         )
     }
 
@@ -168,7 +170,8 @@ struct NotationViewportFactory {
         currentTime: TimeInterval,
         playbackMarkerTime: TimeInterval,
         isPlaying: Bool,
-        visibleMeasureCount: Int
+        visibleMeasureCount: Int,
+        pageStartMeasureTime: TimeInterval? = nil
     ) -> NotationViewportState {
         let safeVisibleMeasureCount = max(1, visibleMeasureCount)
         guard content.isReady else {
@@ -186,7 +189,8 @@ struct NotationViewportFactory {
             return .pending(visibleMeasureCount: safeVisibleMeasureCount, keySignature: content.keySignature)
         }
 
-        let pageStart = pageStartIndex(
+        let requestedPageStartIndex = pageStartMeasureTime.flatMap(content.measureIndex(containing:))
+        let pageStart = requestedPageStartIndex ?? pageStartIndex(
             forActiveMeasureIndex: activeMeasureIndex,
             visibleMeasureCount: safeVisibleMeasureCount
         )
@@ -212,7 +216,13 @@ struct NotationViewportFactory {
             tieConnections: NotationTieResolver.connections(
                 scoreTieConnections,
                 visibleIn: visibleMeasures
-            )
+            ),
+            previousPageStartTime: pageStart > 0
+                ? content.measures[max(0, pageStart - safeVisibleMeasureCount)].startTime
+                : nil,
+            nextPageStartTime: pageEnd < content.measures.count
+                ? content.measures[pageEnd].startTime
+                : nil
         )
     }
 

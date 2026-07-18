@@ -622,6 +622,55 @@ enum NotationPitchMapper {
             clef: clef
         )
     }
+
+    static func pitch(
+        forMIDINoteNumber midiNoteNumber: Int,
+        keySignature: KeySignature
+    ) -> NotationPitch {
+        let clampedNumber = min(127, max(0, midiNoteNumber))
+        let pitchClass = clampedNumber % 12
+        let octave = clampedNumber / 12 - 1
+        let usesFlats = keySignature.fifths < 0
+        let spelling: (NotationPitchStep, Int)
+
+        switch pitchClass {
+        case 0: spelling = (.c, 0)
+        case 1: spelling = usesFlats ? (.d, -1) : (.c, 1)
+        case 2: spelling = (.d, 0)
+        case 3: spelling = usesFlats ? (.e, -1) : (.d, 1)
+        case 4: spelling = (.e, 0)
+        case 5: spelling = (.f, 0)
+        case 6: spelling = usesFlats ? (.g, -1) : (.f, 1)
+        case 7: spelling = (.g, 0)
+        case 8: spelling = usesFlats ? (.a, -1) : (.g, 1)
+        case 9: spelling = (.a, 0)
+        case 10: spelling = usesFlats ? (.b, -1) : (.a, 1)
+        default: spelling = (.b, 0)
+        }
+
+        return NotationPitch(step: spelling.0, octave: octave, alter: spelling.1)
+    }
+
+    static func isEditable(_ pitch: NotationPitch, in clef: Clef) -> Bool {
+        editableStaffPositionRange(for: clef).contains(
+            staffPosition(for: pitch, clef: clef)
+        )
+    }
+
+    static func editableMIDINoteRange(for clef: Clef) -> ClosedRange<Int> {
+        let staffRange = editableStaffPositionRange(for: clef)
+        let first = pitch(
+            forStaffPosition: staffRange.lowerBound,
+            keySignature: .cMajor,
+            clef: clef
+        ).midiNoteNumber
+        let last = pitch(
+            forStaffPosition: staffRange.upperBound,
+            keySignature: .cMajor,
+            clef: clef
+        ).midiNoteNumber
+        return min(first, last)...max(first, last)
+    }
 }
 
 enum NotationRestItemFactory {

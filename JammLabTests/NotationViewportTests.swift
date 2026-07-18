@@ -60,6 +60,26 @@ final class NotationViewportTests: XCTestCase {
         XCTAssertEqual(measureNineState.visibleMeasures.map(\.number), [9, 10, 11, 12, 13, 14, 15, 16])
     }
 
+    func testManualPageStartChangesVisibleMeasuresWithoutMovingPlaybackAnchor() {
+        let tempoMap = fourFourTempoMap(duration: 40)
+        let state = NotationViewportFactory().viewportState(
+            tempoMap: tempoMap,
+            duration: tempoMap.duration,
+            currentTime: 0,
+            playbackMarkerTime: 0,
+            isPlaying: false,
+            keyName: "C major",
+            visibleMeasureCount: 2,
+            pageStartMeasureTime: 8
+        )
+
+        XCTAssertEqual(state.visibleMeasures.map(\.number), [5, 6])
+        XCTAssertEqual(state.activeMeasureNumber, 1)
+        XCTAssertEqual(state.anchorTime, 0, accuracy: 0.0001)
+        XCTAssertEqual(state.previousPageStartTime, 4)
+        XCTAssertEqual(state.nextPageStartTime, 12)
+    }
+
     func testNotationViewportStartsAtMeasureOneWhenTrackStartsAtZero() throws {
         let state = notationViewportState(
             tempoMap: fourFourTempoMap(duration: 120),

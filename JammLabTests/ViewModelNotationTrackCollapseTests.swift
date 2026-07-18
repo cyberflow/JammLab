@@ -149,20 +149,63 @@ final class ViewModelNotationTrackCollapseTests: XCTestCase {
         ]
         savingViewModel.toggleNotationWindowPartVisibility(.stem(.bass))
         savingViewModel.setStemNotationTrackCollapsed(.bass, isCollapsed: false)
+        savingViewModel.toggleStemNoteDisplayMode(.bass)
 
         let didSave = await savingViewModel.saveProject(to: projectURL)
         XCTAssertTrue(didSave)
         let savedProject = try projectService.load(from: projectURL)
         XCTAssertEqual(savedProject.visibleNotationPartIDs, [.main, .stem(.bass)])
         XCTAssertEqual(savedProject.stemNotationTrackCollapsed[.bass], false)
+        XCTAssertEqual(savedProject.stemNoteDisplayModes[.bass], .midi)
 
         let restoredViewModel = try makeViewModel()
         await restoredViewModel.openProject(at: projectURL)
 
         XCTAssertEqual(restoredViewModel.visibleNotationPartIDs, [.main, .stem(.bass)])
         XCTAssertFalse(restoredViewModel.isStemNotationTrackCollapsed(.bass))
+        XCTAssertEqual(restoredViewModel.stemNoteDisplayMode(for: .bass), .midi)
         XCTAssertEqual(restoredViewModel.notationItems.first?.partID, .stem(.bass))
         XCTAssertFalse(restoredViewModel.isProjectModified)
+    }
+
+    @MainActor
+    func testStemMIDIDisplayModeExpandsLaneAndIsNotUndoable() {
+        let undoManager = UndoManager()
+        let viewModel = AudioPlayerViewModel(playbackEngine: MockPlaybackEngine())
+        viewModel.undoManager = undoManager
+
+        XCTAssertEqual(viewModel.stemNoteDisplayMode(for: .bass), .notation)
+        XCTAssertTrue(viewModel.isStemNotationTrackCollapsed(.bass))
+
+        viewModel.toggleStemNoteDisplayMode(.bass)
+
+        XCTAssertEqual(viewModel.stemNoteDisplayMode(for: .bass), .midi)
+        XCTAssertFalse(viewModel.isStemNotationTrackCollapsed(.bass))
+        XCTAssertFalse(viewModel.canUndo)
+
+        viewModel.setMainTrackVolume(0.25)
+        XCTAssertTrue(viewModel.canUndo)
+        viewModel.undoLastEdit()
+
+        XCTAssertEqual(viewModel.stemNoteDisplayMode(for: .bass), .midi)
+        XCTAssertFalse(viewModel.isStemNotationTrackCollapsed(.bass))
+    }
+
+    @MainActor
+    func testUndoCreatedBeforeMIDIToggleDoesNotRecollapseLane() {
+        let undoManager = UndoManager()
+        let viewModel = AudioPlayerViewModel(playbackEngine: MockPlaybackEngine())
+        viewModel.undoManager = undoManager
+
+        viewModel.setMainTrackVolume(0.25)
+        XCTAssertTrue(viewModel.canUndo)
+
+        viewModel.toggleStemNoteDisplayMode(.bass)
+        viewModel.undoLastEdit()
+
+        XCTAssertEqual(viewModel.stemNoteDisplayMode(for: .bass), .midi)
+        XCTAssertFalse(viewModel.isStemNotationTrackCollapsed(.bass))
+        XCTAssertEqual(viewModel.mainTrackVolume, AppSliderDefaults.mainTrackVolume, accuracy: 0.0001)
     }
 
     private func notationCollapseProject(

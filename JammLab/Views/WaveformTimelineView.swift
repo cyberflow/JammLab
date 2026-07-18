@@ -28,6 +28,7 @@ struct TimelineViewState: Equatable {
     var selectedHarmonySymbolID: HarmonySymbol.ID?
     var selectedNotationMeasures: [NotationMeasureSelection]
     var selectedNotationItem: NotationItemSelection?
+    var selectedLogicalNotationItemIDs: Set<String> = []
     var pendingHarmonyEditorRequest: HarmonyEditorRequest?
     var selectedRegionID: TimecodedNote.ID?
     var beatGrid: BeatGridConfiguration
@@ -40,6 +41,7 @@ struct TimelineViewState: Equatable {
     var notationEntryMode: NotationEntryMode?
     var isNotationTrackCollapsed: Bool
     var stemNotationTrackCollapsed: [StemType: Bool]
+    var stemNoteDisplayModes: [StemType: StemNoteDisplayMode]
     var isLoadingPeakform: Bool
     var mainTrackVolume: Float
     var playbackMode: PlaybackMode
@@ -77,6 +79,7 @@ struct TimelineViewActions {
     var mainTrackVolumeChanged: (Float) -> Void
     var notationTrackCollapsedChanged: (Bool) -> Void
     var stemNotationTrackCollapsedChanged: (StemType, Bool) -> Void
+    var stemNoteDisplayModeToggled: (StemType) -> Void
     var notationDurationChanged: (Int) -> Void
     var notationDurationDotToggled: () -> Void
     var notationNoteEntryModeToggled: () -> Void
@@ -90,6 +93,12 @@ struct TimelineViewActions {
     var auditionNotePitch: (NotationPitch) -> Void
     var deleteSelectedNotationNote: () -> Bool
     var showNotationWindow: () -> Void
+    var beginNotationNoteEdit: (NotationPartID) -> Void = { _ in }
+    var endNotationNoteEdit: () -> Void = {}
+    var previewNotationNoteEdit: (NotationNoteEditRequest) -> NotationNoteEditPreview? = { _ in nil }
+    var commitNotationNoteEdit: (NotationNoteEditRequest) -> Bool = { _ in false }
+    var stemMIDIPageStartChanged: (StemType, TimeInterval) -> Void = { _, _ in }
+    var stemMIDIInteractionEnded: (StemType) -> Void = { _ in }
 }
 
 extension TimelineViewActions {
@@ -122,6 +131,21 @@ extension TimelineViewActions {
             saveHarmony: saveHarmonyAction,
             deleteHarmony: deleteHarmonyAction,
             adjacentHarmonyPlacement: adjacentHarmonyAction
+        )
+    }
+
+    func midiPianoRollActions() -> MIDIPianoRollActions {
+        MIDIPianoRollActions(
+            selectItem: selectNotationItem,
+            canInsertNotationNote: canInsertNotationNote,
+            insertNotationNote: insertNotationNote,
+            insertNotationRest: insertNotationRest,
+            auditionNotePitch: auditionNotePitch,
+            deleteSelectedNotationNote: deleteSelectedNotationNote,
+            beginNoteEdit: beginNotationNoteEdit,
+            endNoteEdit: endNotationNoteEdit,
+            previewNoteEdit: previewNotationNoteEdit,
+            commitNoteEdit: commitNotationNoteEdit
         )
     }
 }
@@ -187,6 +211,9 @@ struct WaveformTimelineView: View {
             notationDurationIsDotted: state.notationDurationIsDotted,
             notationViewports: state.stemNotationViewports,
             notationCollapsed: state.stemNotationTrackCollapsed,
+            noteDisplayModes: state.stemNoteDisplayModes,
+            selectedLogicalItemIDs: state.selectedLogicalNotationItemIDs,
+            isPlaying: state.playbackDisplayState.isPlaying,
             notationActions: actions,
             actions: stemActions
         )
@@ -297,11 +324,48 @@ struct WaveformTimelineView: View {
             timelineScrollCaptureArea
                 .frame(height: AppTheme.Timeline.zoomableUpperTrackStackHeight)
 
-            timelineScrollCaptureArea
+            stemScrollCaptureOverlay
                 .frame(height: stemTracksHeight)
                 .offset(y: upperTrackStackHeight + AppTheme.Timeline.trackSpacing)
         }
         .frame(height: tracksHeight, alignment: .topLeading)
+    }
+
+    private var stemScrollCaptureOverlay: some View {
+        VStack(spacing: AppTheme.Spacing.md) {
+            ForEach(visibleStemTypes) { type in
+                VStack(spacing: AppTheme.Timeline.trackSpacing) {
+                    timelineScrollCaptureArea
+                        .frame(height: AppTheme.Timeline.stemTrackHeight)
+
+                    if isStemNotationExpanded(type) {
+                        if stemNoteDisplayMode(for: type) == .midi {
+                            Color.clear
+                                .frame(height: AppTheme.Timeline.notationTrackHeight)
+                                .allowsHitTesting(false)
+                        } else {
+                            timelineScrollCaptureArea
+                                .frame(height: AppTheme.Timeline.notationTrackHeight)
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    private var visibleStemTypes: [StemType] {
+        state.stemFiles.isEmpty
+            ? StemSeparationMethod.defaultValue.stemTypes
+            : state.stemFiles.map(\.type)
+    }
+
+    private func isStemNotationExpanded(_ type: StemType) -> Bool {
+        state.stemFiles.contains(where: { $0.type == type })
+            && state.stemNotationTrackCollapsed[type] == false
+    }
+
+    private func stemNoteDisplayMode(for type: StemType) -> StemNoteDisplayMode {
+        state.stemNoteDisplayModes[type] ?? .notation
     }
 
     private var timelineScrollCaptureArea: some View {
@@ -579,9 +643,13 @@ private struct StemTracksSection: View {
     let notationDurationIsDotted: Bool
     let notationViewports: [StemType: NotationViewportState]
     let notationCollapsed: [StemType: Bool]
+    let noteDisplayModes: [StemType: StemNoteDisplayMode]
+    let selectedLogicalItemIDs: Set<String>
+    let isPlaying: Bool
     let notationActions: TimelineViewActions
     let actions: StemTrackActions
     @Environment(\.appColors) private var appColors
+    @State private var midiScrollPitches: [StemType: Int] = [:]
 
     var body: some View {
         VStack(spacing: AppTheme.Spacing.md) {
@@ -712,13 +780,16 @@ private struct StemTracksSection: View {
                     .help(ControlHelpText.soloTrack(type.title))
                     .accessibilityLabel("Solo \(type.title)")
 
-                    Color.clear
-                        .frame(
-                            width: AppTheme.Timeline.viewportControlButtonSize,
-                            height: AppTheme.Timeline.viewportControlButtonSize
-                        )
-                        .allowsHitTesting(false)
-                        .accessibilityHidden(true)
+                    TimelineIconButton(
+                        systemName: "pianokeys",
+                        helpText: displayModeToggleHelpText(type),
+                        accessibilityLabel: displayModeToggleHelpText(type),
+                        accessibilityValue: noteDisplayMode(for: type) == .midi ? "MIDI" : "Notation",
+                        isActive: noteDisplayMode(for: type) == .midi
+                    ) {
+                        notationActions.stemNoteDisplayModeToggled(type)
+                    }
+                    .disabled(!item.isAvailable)
                 }
             }
         }
@@ -736,11 +807,39 @@ private struct StemTracksSection: View {
                 .frame(width: trackControlWidth)
                 .frame(height: AppTheme.Timeline.notationTrackHeight, alignment: .topLeading)
 
+            stemNoteContent(type)
+                .frame(height: AppTheme.Timeline.notationTrackHeight)
+        }
+    }
+
+    @ViewBuilder
+    private func stemNoteContent(_ type: StemType) -> some View {
+        let viewportState = notationViewports[type] ?? .pending(
+            visibleMeasureCount: 1,
+            keySignature: .cMajor
+        )
+        if noteDisplayMode(for: type) == .midi {
+            MIDIPianoRollView(
+                state: viewportState,
+                partID: .stem(type),
+                partTitle: type.title,
+                selectedItem: selectedItem,
+                selectedDuration: selectedDuration,
+                entryMode: entryMode,
+                actions: notationActions.midiPianoRollActions(),
+                scrollPitch: midiScrollPitchBinding(for: type),
+                selectedLogicalItemIDs: selectedLogicalItemIDs,
+                isPlaying: isPlaying,
+                onPageStartTimeChanged: {
+                    notationActions.stemMIDIPageStartChanged(type, $0)
+                },
+                onInteractionEnded: {
+                    notationActions.stemMIDIInteractionEnded(type)
+                }
+            )
+        } else {
             NotationTrackView(
-                state: notationViewports[type] ?? .pending(
-                    visibleMeasureCount: 1,
-                    keySignature: .cMajor
-                ),
+                state: viewportState,
                 partID: .stem(type),
                 playbackDisplayState: nil,
                 selectedHarmonySymbolID: nil,
@@ -751,13 +850,12 @@ private struct StemTracksSection: View {
                 pendingEditorRequest: nil,
                 actions: notationActions.notationTrackActions(allowsHarmony: false)
             )
-            .frame(height: AppTheme.Timeline.notationTrackHeight)
         }
     }
 
     private func stemNotationControls(_ type: StemType) -> some View {
         VStack(alignment: .leading, spacing: AppTheme.Spacing.sm) {
-            Text("Notation")
+            Text(noteDisplayMode(for: type) == .midi ? "MIDI" : "Notation")
                 .font(AppTheme.Typography.noteTitle)
                 .lineLimit(1)
                 .frame(maxWidth: .infinity, alignment: .leading)
@@ -778,8 +876,8 @@ private struct StemTracksSection: View {
                     notationActions.notationNoteEntryModeToggled()
                 }
                 .disabled(duration <= 0)
-                .help("Add notes to \(type.title) Notation (N)")
-                .accessibilityLabel("\(type.title) Notation Note Entry")
+                .help("Add notes to \(type.title) \(noteDisplayTitle(for: type)) (N)")
+                .accessibilityLabel("\(type.title) \(noteDisplayTitle(for: type)) Note Entry")
 
                 NotationEntryModeButton(
                     mode: .rest,
@@ -788,8 +886,8 @@ private struct StemTracksSection: View {
                     notationActions.notationRestEntryModeToggled()
                 }
                 .disabled(duration <= 0)
-                .help("Add rests to \(type.title) Notation")
-                .accessibilityLabel("\(type.title) Notation Rest Entry")
+                .help("Add rests to \(type.title) \(noteDisplayTitle(for: type))")
+                .accessibilityLabel("\(type.title) \(noteDisplayTitle(for: type)) Rest Entry")
 
                 NotationAugmentationDotButton(
                     isActive: notationDurationIsDotted,
@@ -813,8 +911,35 @@ private struct StemTracksSection: View {
 
     private func notationToggleHelpText(_ type: StemType) -> String {
         isNotationCollapsed(type)
-            ? "Expand \(type.title) Notation"
-            : "Collapse \(type.title) Notation"
+            ? "Expand \(type.title) \(noteDisplayTitle(for: type))"
+            : "Collapse \(type.title) \(noteDisplayTitle(for: type))"
+    }
+
+    private func noteDisplayMode(for type: StemType) -> StemNoteDisplayMode {
+        noteDisplayModes[type] ?? .notation
+    }
+
+    private func noteDisplayTitle(for type: StemType) -> String {
+        noteDisplayMode(for: type) == .midi ? "MIDI" : "Notation"
+    }
+
+    private func displayModeToggleHelpText(_ type: StemType) -> String {
+        noteDisplayMode(for: type) == .midi
+            ? "Show \(type.title) as Notation"
+            : "Show \(type.title) as MIDI"
+    }
+
+    private func midiScrollPitchBinding(for type: StemType) -> Binding<Int?> {
+        Binding(
+            get: { midiScrollPitches[type] },
+            set: { newValue in
+                if let newValue {
+                    midiScrollPitches[type] = newValue
+                } else {
+                    midiScrollPitches.removeValue(forKey: type)
+                }
+            }
+        )
     }
 }
 
