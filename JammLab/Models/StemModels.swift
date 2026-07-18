@@ -66,6 +66,19 @@ enum StemType: String, Codable, CaseIterable, Identifiable {
     }
 }
 
+enum StemNoteDisplayMode: String, Codable, Equatable {
+    case notation
+    case midi
+}
+
+enum StemNoteDisplayModes {
+    static func normalized(
+        _ modes: [StemType: StemNoteDisplayMode]
+    ) -> [StemType: StemNoteDisplayMode] {
+        modes.filter { $0.value == .midi }
+    }
+}
+
 struct StemSeparationMethod: Equatable, Identifiable {
     let id: String
     let title: String

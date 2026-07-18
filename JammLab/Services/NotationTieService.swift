@@ -215,11 +215,14 @@ enum NotationNoteInsertionPlanner {
                 && abs($0.startTime - placement.measure.startTime) < NotationMeasureTiming.timelineTolerance
                 && abs($0.endTime - placement.measure.endTime) < NotationMeasureTiming.timelineTolerance
         }), orderedMeasures[measureIndex].notationItems.contains(where: {
-            $0.kind == .rest
+            let itemEnd = $0.offsetInQuarterNotes + $0.durationInQuarterNotes
+            return $0.kind == .rest
                 && $0.partID == placement.partID
                 && $0.id == placement.targetRestID
-                && abs($0.offsetInQuarterNotes - placement.offsetInQuarterNotes)
-                    < NotationMeasureTiming.timelineTolerance
+                && $0.offsetInQuarterNotes <= placement.offsetInQuarterNotes
+                    + NotationMeasureTiming.timelineTolerance
+                && itemEnd > placement.offsetInQuarterNotes
+                    + NotationMeasureTiming.timelineTolerance
         }), placement.displayDuration.durationInQuarterNotes > NotationMeasureTiming.timelineTolerance,
            abs(
                placement.durationInQuarterNotes - placement.displayDuration.durationInQuarterNotes

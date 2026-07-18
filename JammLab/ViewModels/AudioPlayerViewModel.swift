@@ -74,12 +74,14 @@ final class AudioPlayerViewModel: ObservableObject {
     @Published var isVideoWindowOpen = false
     @Published var isNotationTrackCollapsed = true
     @Published var stemNotationTrackCollapsed: [StemType: Bool] = [:]
+    @Published var stemNoteDisplayModes: [StemType: StemNoteDisplayMode] = [:]
     @Published var visibleNotationPartIDs: Set<NotationPartID> = [.main]
     @Published var mainTrackVolume: Float = AppSliderDefaults.mainTrackVolume
     @Published var clickVolume: Float = AppSliderDefaults.clickVolume
     @Published var undoStateRevision = 0
     @Published var isProjectModified = false
     @Published var errorMessage: String?
+    var preparedNotationNoteEditSession: NotationNoteEditPlanner.PreparedSession?
     weak var undoManager: UndoManager? {
         didSet {
             refreshUndoAvailability()

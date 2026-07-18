@@ -1,0 +1,13 @@
+# Agent/tooling metadata — загружается отдельно и засоряет graph queries
+/.agents/
+/AGENTS.md
+
+# Release, contribution and legal history — не описывает текущую архитектуру
+/CHANGELOG.md
+/CONTRIBUTING.md
+/THIRD_PARTY_NOTICES.md
+/.github/pull_request_template.md
+
+# Reference images and bundled third-party font documentation
+/JammLab.png
+/JammLab/Resources/Fonts/

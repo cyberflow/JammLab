@@ -40,6 +40,23 @@ extension AudioPlayerViewModel {
         stemNotationTrackCollapsed[stemType] ?? true
     }
 
+    func stemNoteDisplayMode(for stemType: StemType) -> StemNoteDisplayMode {
+        stemNoteDisplayModes[stemType] ?? .notation
+    }
+
+    func toggleStemNoteDisplayMode(_ stemType: StemType) {
+        let nextMode: StemNoteDisplayMode = stemNoteDisplayMode(for: stemType) == .notation
+            ? .midi
+            : .notation
+        if nextMode == .midi {
+            stemNoteDisplayModes[stemType] = .midi
+        } else {
+            stemNoteDisplayModes.removeValue(forKey: stemType)
+        }
+        stemNotationTrackCollapsed[stemType] = false
+        refreshProjectModifiedState()
+    }
+
     func toggleNotationWindowPartVisibility(_ partID: NotationPartID) {
         var next = normalizedVisibleNotationPartIDs()
         if next.contains(partID) {
@@ -410,6 +427,80 @@ extension AudioPlayerViewModel {
         return NotationNoteInsertionPlanner.canPlanInsertion(
             in: currentNotationScoreMeasures(partID: placement.partID),
             placement: placement
+        )
+    }
+
+    func previewNotationNoteEdit(
+        _ request: NotationNoteEditRequest
+    ) -> NotationNoteEditPreview? {
+        guard duration > 0 else { return nil }
+        if let preparedNotationNoteEditSession,
+           preparedNotationNoteEditSession.partID == request.partID {
+            return preparedNotationNoteEditSession.preview(request)
+        }
+        return NotationNoteEditPlanner.preview(
+            in: currentNotationScoreMeasures(partID: request.partID),
+            request: request,
+            audioDuration: duration
+        )
+    }
+
+    func beginNotationNoteEdit(partID: NotationPartID) {
+        preparedNotationNoteEditSession = NotationNoteEditPlanner.prepareSession(
+            measures: currentNotationScoreMeasures(partID: partID),
+            partID: partID,
+            audioDuration: duration
+        )
+    }
+
+    func endNotationNoteEdit() {
+        preparedNotationNoteEditSession = nil
+    }
+
+    @discardableResult
+    func commitNotationNoteEdit(_ request: NotationNoteEditRequest) -> Bool {
+        guard let currentPlan = NotationNoteEditPlanner.preview(
+            in: currentNotationScoreMeasures(partID: request.partID),
+            request: request,
+            audioDuration: duration
+        )?.plan else { return false }
+
+        performUndoableEdit(currentPlan.actionName) {
+            for replacement in currentPlan.replacements {
+                notationItems.removeAll { item in
+                    item.partID == replacement.partID
+                        && item.measureNumber == replacement.measureNumber
+                        && abs(item.measureStartTime - replacement.measureStartTime)
+                            < NotationMeasureTiming.timelineTolerance
+                }
+                notationItems.append(contentsOf: replacement.items)
+            }
+            notationItems = ProjectStateNormalizer.normalizedNotationItems(
+                notationItems,
+                duration: duration
+            )
+            sanitizeNotationTieRelationships()
+            selectedNotationMeasures = []
+            notationMeasureSelectionAnchor = nil
+            selectedHarmonySymbolID = nil
+            reselectNotationItem(
+                inMeasureNumber: currentPlan.rootMeasureNumber,
+                measureStartTime: currentPlan.rootMeasureStartTime,
+                itemID: currentPlan.rootItemID,
+                partID: currentPlan.partID
+            )
+        }
+        return true
+    }
+
+    func logicalNotationNoteItemIDs(
+        containing itemID: String,
+        partID: NotationPartID
+    ) -> Set<String> {
+        NotationNoteEditPlanner.logicalChainItemIDs(
+            in: notationItems,
+            containing: itemID,
+            partID: partID
         )
     }
 

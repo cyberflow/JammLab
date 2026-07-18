@@ -7,7 +7,6 @@ extension AudioPlayerViewModel {
             harmonySymbols: harmonySymbols,
             notationItems: notationItems,
             notationPartClefs: NotationPartClefOverrides.normalized(notationPartClefs),
-            stemNotationTrackCollapsed: stemNotationTrackCollapsed,
             visibleNotationPartIDs: normalizedVisibleNotationPartIDs(),
             projectKeySelection: projectKeySelection,
             selectedRegionID: selectedRegionID,
@@ -39,6 +38,7 @@ extension AudioPlayerViewModel {
             notationItems: ProjectStateNormalizer.normalizedNotationItems(notationItems, duration: duration),
             notationPartClefs: NotationPartClefOverrides.normalized(notationPartClefs),
             stemNotationTrackCollapsed: stemNotationTrackCollapsed,
+            stemNoteDisplayModes: StemNoteDisplayModes.normalized(stemNoteDisplayModes),
             visibleNotationPartIDs: normalizedVisibleNotationPartIDs(),
             projectKeySelection: projectKeySelection,
             loopRegion: clampedLoop,
@@ -85,7 +85,6 @@ extension AudioPlayerViewModel {
         notationItems = ProjectStateNormalizer.normalizedNotationItems(state.notationItems, duration: duration)
         notationPartClefs = NotationPartClefOverrides.normalized(state.notationPartClefs)
         sanitizeNotationTieRelationships()
-        stemNotationTrackCollapsed = state.stemNotationTrackCollapsed
         visibleNotationPartIDs = normalizedVisibleNotationPartIDs(from: state.visibleNotationPartIDs)
         projectKeySelection = state.projectKeySelection
         selectedRegionID = availableRegionID(state.selectedRegionID)

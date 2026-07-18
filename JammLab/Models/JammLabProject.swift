@@ -44,10 +44,11 @@ struct JammLabProject: Codable {
     var isVideoWindowOpen: Bool?
     var isNotationTrackCollapsed: Bool?
     var stemNotationTrackCollapsed: [StemType: Bool]
+    var stemNoteDisplayModes: [StemType: StemNoteDisplayMode]
     var visibleNotationPartIDs: Set<NotationPartID>
 
     init(
-        formatVersion: Int = 12,
+        formatVersion: Int = 13,
         audioBookmarkData: Data,
         artifactRootBookmarkData: Data? = nil,
         audioDisplayName: String,
@@ -76,6 +77,7 @@ struct JammLabProject: Codable {
         isVideoWindowOpen: Bool? = nil,
         isNotationTrackCollapsed: Bool? = nil,
         stemNotationTrackCollapsed: [StemType: Bool] = [:],
+        stemNoteDisplayModes: [StemType: StemNoteDisplayMode] = [:],
         visibleNotationPartIDs: Set<NotationPartID> = [.main]
     ) {
         self.formatVersion = formatVersion
@@ -107,6 +109,7 @@ struct JammLabProject: Codable {
         self.isVideoWindowOpen = isVideoWindowOpen
         self.isNotationTrackCollapsed = isNotationTrackCollapsed
         self.stemNotationTrackCollapsed = stemNotationTrackCollapsed
+        self.stemNoteDisplayModes = StemNoteDisplayModes.normalized(stemNoteDisplayModes)
         self.visibleNotationPartIDs = visibleNotationPartIDs
     }
 
@@ -140,6 +143,7 @@ struct JammLabProject: Codable {
         case isVideoWindowOpen
         case isNotationTrackCollapsed
         case stemNotationTrackCollapsed
+        case stemNoteDisplayModes
         case visibleNotationPartIDs
     }
 
@@ -174,6 +178,9 @@ struct JammLabProject: Codable {
         isVideoWindowOpen = try container.decodeIfPresent(Bool.self, forKey: .isVideoWindowOpen)
         isNotationTrackCollapsed = try container.decodeIfPresent(Bool.self, forKey: .isNotationTrackCollapsed)
         stemNotationTrackCollapsed = try container.decodeIfPresent([StemType: Bool].self, forKey: .stemNotationTrackCollapsed) ?? [:]
+        stemNoteDisplayModes = StemNoteDisplayModes.normalized(
+            try container.decodeIfPresent([StemType: StemNoteDisplayMode].self, forKey: .stemNoteDisplayModes) ?? [:]
+        )
         visibleNotationPartIDs = try container.decodeIfPresent(Set<NotationPartID>.self, forKey: .visibleNotationPartIDs) ?? [.main]
     }
 
@@ -208,6 +215,7 @@ struct JammLabProject: Codable {
         try container.encodeIfPresent(isVideoWindowOpen, forKey: .isVideoWindowOpen)
         try container.encodeIfPresent(isNotationTrackCollapsed, forKey: .isNotationTrackCollapsed)
         try container.encode(stemNotationTrackCollapsed, forKey: .stemNotationTrackCollapsed)
+        try container.encode(StemNoteDisplayModes.normalized(stemNoteDisplayModes), forKey: .stemNoteDisplayModes)
         try container.encode(visibleNotationPartIDs, forKey: .visibleNotationPartIDs)
     }
 

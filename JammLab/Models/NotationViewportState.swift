@@ -16,6 +16,8 @@ struct NotationViewportState: Equatable {
     var anchorTime: TimeInterval
     var activeMeasureNumber: Int?
     var tieConnections: [NotationTieConnection] = []
+    var previousPageStartTime: TimeInterval? = nil
+    var nextPageStartTime: TimeInterval? = nil
 
     var isReady: Bool {
         availability == .ready
@@ -85,7 +87,9 @@ struct NotationScoreState: Equatable {
                     tieConnections: NotationTieResolver.connections(
                         tieConnections,
                         visibleIn: systemMeasures
-                    )
+                    ),
+                    previousPageStartTime: nil,
+                    nextPageStartTime: nil
                 )
             )
         }

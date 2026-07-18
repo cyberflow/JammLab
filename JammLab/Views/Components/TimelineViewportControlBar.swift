@@ -85,6 +85,7 @@ struct TimelineIconButton: View {
     let helpText: String
     let accessibilityLabel: String?
     let accessibilityValue: String?
+    let isActive: Bool
     let action: () -> Void
     @Environment(\.appColors) private var appColors
 
@@ -93,12 +94,14 @@ struct TimelineIconButton: View {
         helpText: String,
         accessibilityLabel: String? = nil,
         accessibilityValue: String? = nil,
+        isActive: Bool = false,
         action: @escaping () -> Void
     ) {
         self.systemName = systemName
         self.helpText = helpText
         self.accessibilityLabel = accessibilityLabel
         self.accessibilityValue = accessibilityValue
+        self.isActive = isActive
         self.action = action
     }
 
@@ -116,12 +119,12 @@ struct TimelineIconButton: View {
         Button(action: action) {
             Image(systemName: systemName)
                 .font(.system(size: 10, weight: .semibold))
-                .foregroundStyle(appColors.secondaryText)
+                .foregroundStyle(isActive ? appColors.primaryText : appColors.secondaryText)
                 .frame(
                     width: AppTheme.Timeline.viewportControlButtonSize,
                     height: AppTheme.Timeline.viewportControlButtonSize
                 )
-                .background(appColors.controlBackground)
+                .background(isActive ? appColors.accent : appColors.controlBackground)
                 .clipShape(RoundedRectangle(cornerRadius: AppTheme.Timeline.viewportControlButtonRadius, style: .continuous))
                 .overlay {
                     RoundedRectangle(cornerRadius: AppTheme.Timeline.viewportControlButtonRadius, style: .continuous)

@@ -15,6 +15,7 @@ struct ContentView: View {
     @State var editingTempoTimeSignatureSetsNewFirstBeat = false
     @State var notesFilter: NotesFilter = .notes
     @State var notationProjectionCache = NotationProjectionCache()
+    @State var stemMIDIPageStartTimes: [StemType: TimeInterval] = [:]
     @Environment(\.appColors) var appColors
     @Environment(\.openWindow) var openWindow
     @Environment(\.undoManager) private var undoManager
@@ -51,6 +52,21 @@ struct ContentView: View {
         }
         .onDisappear {
             viewModel.stopPlaybackClock()
+            stemMIDIPageStartTimes.removeAll()
+        }
+        .onChange(of: viewModel.playbackState) { _, playbackState in
+            if playbackState == .playing {
+                stemMIDIPageStartTimes.removeAll()
+            }
+        }
+        .onChange(of: viewModel.playbackMarkerTime) { _, _ in
+            stemMIDIPageStartTimes.removeAll()
+        }
+        .onChange(of: viewModel.importedFile?.sourceMediaURL) { _, _ in
+            stemMIDIPageStartTimes.removeAll()
+        }
+        .onChange(of: viewModel.currentProjectURL) { _, _ in
+            stemMIDIPageStartTimes.removeAll()
         }
         .sheet(isPresented: $isEditingMarker) {
             RenameNoteDialog(

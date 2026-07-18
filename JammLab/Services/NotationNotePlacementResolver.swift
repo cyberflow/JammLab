@@ -139,6 +139,77 @@ enum NotationNotePlacementResolver {
         )
     }
 
+    static func placement(
+        in measure: ScoreMeasure,
+        quarterOffset: Double,
+        selectedDuration: NotationDuration,
+        pitch: NotationPitch,
+        partID: NotationPartID,
+        x: CGFloat,
+        y: CGFloat
+    ) -> NotationNotePlacement? {
+        guard NotationPitchMapper.isEditable(pitch, in: measure.attributes.clef) else {
+            return nil
+        }
+        let measureLength = NotationMeasureTiming.quarterLength(
+            for: measure.attributes.timeSignature
+        )
+        let clampedOffset = min(measureLength, max(0, quarterOffset))
+        let selectedLength = selectedDuration.durationInQuarterNotes
+        guard selectedLength > NotationMeasureTiming.timelineTolerance,
+              let targetRest = measure.notationItems.first(where: {
+                  guard $0.kind == .rest, $0.partID == partID else { return false }
+                  let end = $0.offsetInQuarterNotes + $0.durationInQuarterNotes
+                  return $0.offsetInQuarterNotes <= clampedOffset + NotationMeasureTiming.timelineTolerance
+                      && end > clampedOffset + NotationMeasureTiming.timelineTolerance
+              })
+        else {
+            return nil
+        }
+
+        return NotationNotePlacement(
+            measure: measure,
+            partID: partID,
+            targetRestID: targetRest.id,
+            offsetInQuarterNotes: clampedOffset,
+            durationInQuarterNotes: selectedLength,
+            displayDuration: selectedDuration,
+            pitch: pitch,
+            x: x,
+            y: y
+        )
+    }
+
+    static func restPlacement(
+        in measure: ScoreMeasure,
+        quarterOffset: Double,
+        selectedDuration: NotationDuration,
+        partID: NotationPartID,
+        x: CGFloat
+    ) -> NotationRestPlacement? {
+        let measureLength = NotationMeasureTiming.quarterLength(
+            for: measure.attributes.timeSignature
+        )
+        let clampedOffset = min(measureLength, max(0, quarterOffset))
+        guard let targetRest = measure.notationItems.first(where: {
+            let end = $0.offsetInQuarterNotes + $0.durationInQuarterNotes
+            return $0.kind == .rest
+                && $0.partID == partID
+                && $0.offsetInQuarterNotes <= clampedOffset + NotationMeasureTiming.timelineTolerance
+                && end > clampedOffset + NotationMeasureTiming.timelineTolerance
+        }) else { return nil }
+
+        return NotationRestPlacement(
+            measure: measure,
+            partID: partID,
+            targetRestID: targetRest.id,
+            offsetInQuarterNotes: targetRest.offsetInQuarterNotes,
+            durationInQuarterNotes: selectedDuration.durationInQuarterNotes,
+            displayDuration: selectedDuration,
+            x: x
+        )
+    }
+
     static func restPlacement(
         in measure: ScoreMeasure,
         geometry: NotationMeasureCanvasGeometry,
