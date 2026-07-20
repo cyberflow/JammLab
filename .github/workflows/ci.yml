@@ -118,7 +118,7 @@ jobs:
             build/JammLabSeparatorHelper/venv
             build/JammLabSeparatorHelper/model-cache
             build/JammLabSeparatorHelper/pyinstaller-config
-          key: separator-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('JammLabSeparatorHelper/requirements.txt', 'JammLabSeparatorHelper/runner.py', 'JammLabSeparatorHelper/JammLabSeparatorHelper.spec', 'scripts/build_separator_helper.sh') }}
+          key: separator-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('JammLabSeparatorHelper/requirements.txt', 'JammLabSeparatorHelper/requirements-build.txt', 'JammLabSeparatorHelper/runner.py', 'JammLabSeparatorHelper/JammLabSeparatorHelper.spec', 'scripts/build_separator_helper.sh') }}
           restore-keys: |
             separator-${{ runner.os }}-${{ runner.arch }}-
 

@@ -123,7 +123,6 @@ enum AppTheme {
     }
 
     enum Colors {
-        static var windowBackground: Color { AppThemeColors.default.appBackground }
         static var panelBackground: Color { AppThemeColors.default.panelBackground }
         static var controlBackground: Color { AppThemeColors.default.controlBackground }
         static var border: Color { AppThemeColors.default.border }
@@ -180,20 +179,15 @@ enum AppTheme {
         static let toolbarHeight: CGFloat = 48
         static let toolbarTempoFieldWidth: CGFloat = 62
         static let toolbarTimeSignatureNumberFieldWidth: CGFloat = 28
-        static let toolbarKeyFieldWidth: CGFloat = 88
         static let toolbarKeyTonicFieldWidth: CGFloat = 64
         static let toolbarKeyModeFieldWidth: CGFloat = 72
         static let transportPositionReadoutWidth: CGFloat = 150
-        static let transportSliderWidth: CGFloat = 130
         static let clickVolumeWidth: CGFloat = 110
-        static let clickVolumeTextWidth: CGFloat = 38
-        static let notesSidebarWidth: CGFloat = 260
         static let inspectorSidebarWidth: CGFloat = 280
         static let notesEmptyMinHeight: CGFloat = 118
         static let dividerHeight: CGFloat = 24
         static let hotkeyKeyWidth: CGFloat = 70
         static let controlHeight: CGFloat = 28
-        static let buttonHeight: CGFloat = 28
         static let notationDurationButtonWidth: CGFloat = 27
         static let notationDurationButtonSpacing: CGFloat = AppTheme.Spacing.xxxs
         static let notationModeButtonWidth: CGFloat = 32
@@ -333,8 +327,6 @@ enum AppTheme {
         static let notationMinimumMeasureContentWidth: CGFloat = 28
         static let notationMeasureNumberLabelWidth: CGFloat = 34
         static let notationSlashWidth: CGFloat = 7
-        static let notationSlashHeight: CGFloat = 16
-        static let notationSlashLineWidth: CGFloat = 3
         static let notationSlashMinimumBeatSpacing: CGFloat = 16
         static let notationItemAnchorInset: CGFloat = AppTheme.Spacing.lg
         static let notationChordSecondOffset: CGFloat = 4
@@ -348,7 +340,6 @@ enum AppTheme {
         static let notationTieMidpointThickness: CGFloat = 1.7
         static let notationHarmonyAnchorLeadingOffset: CGFloat = AppTheme.Spacing.md
         static let notationHarmonySymbolWidth: CGFloat = 84
-        static let notationHarmonyEditorWidth: CGFloat = 64
         static let notationHarmonyEditorMinWidth: CGFloat = 38
         static let notationHarmonyEditorMaxWidth: CGFloat = 104
         static let notationRegionLabelMaxWidth: CGFloat = 88
@@ -448,7 +439,6 @@ enum AppTheme {
         static let minOverlayWidth: CGFloat = 2
         static let minRectWidth: CGFloat = 1
         static let waveformAmplitudeScale: CGFloat = 0.46
-        static let weakBeatHeightMultiplier: CGFloat = 0.5
         static let rulerMinimumLabelSpacing: CGFloat = 86
         static let rulerLabelWidth: CGFloat = 72
         static let playbackMarkerHandleWidth: CGFloat = 11
@@ -478,14 +468,10 @@ enum AppTheme {
         static let unselectedRegionEdgeOpacity = 0.34
         static let selectedNoteBackgroundOpacity = 0.16
         static let selectedNoteStrokeOpacity = 0.7
-        static let beatBarOpacity = 0.9
-        static let weakBeatOpacity = 0.55
         static let rulerMajorLineOpacity = 0.62
         static let rulerMinorBarLineOpacity = 0.28
         static let rulerBeatLineOpacity = 0.14
         static let rulerTimeLabelOpacity = 0.72
-        static let waveformBarOpacity = 0.38
-        static let waveformBeatOpacity = 0.2
         static let peakRMSOpacity = 0.18
         static let peakOpacity = 1.0
         static let emptyPeakOpacity = 0.25

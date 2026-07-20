@@ -85,11 +85,89 @@ final class ProjectPersistenceCoordinatorArtifactTests: XCTestCase {
         XCTAssertEqual(result.stemMetadata?.stems.map { $0.url.deletingLastPathComponent() }, Array(repeating: store.stemsDirectory(for: projectURL), count: StemSeparationMethod.fourStem.stemTypes.count))
     }
 
+    func testFinalizeSavedArtifactsRemovesOwnedTemporaryVideoDirectory() async throws {
+        let directory = temporaryDirectory()
+        let mediaCacheRoot = directory.appendingPathComponent("MediaCache", isDirectory: true)
+        let cachedDirectory = mediaCacheRoot.appendingPathComponent("cache-key", isDirectory: true)
+        try FileManager.default.createDirectory(at: cachedDirectory, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: directory) }
+
+        let cachedAudioURL = try temporaryFile(in: cachedDirectory, name: "audio.m4a", contents: "temporary")
+        let persistedAudioURL = try temporaryFile(in: directory, name: "persisted.m4a", contents: "persisted")
+        let coordinator = try makeProjectPersistenceCoordinator(
+            projectArtifactStore: ProjectArtifactStore(),
+            temporaryVideoAudioCacheRoot: mediaCacheRoot
+        )
+        let result = ProjectSaveArtifactsResult(
+            importedFile: ImportedAudioFile(url: persistedAudioURL, displayName: "persisted.m4a", duration: 1),
+            temporaryVideoAudioURLToRemove: cachedAudioURL
+        )
+
+        await coordinator.finalizeSavedArtifacts(result)
+
+        XCTAssertFalse(FileManager.default.fileExists(atPath: cachedDirectory.path))
+        XCTAssertTrue(FileManager.default.fileExists(atPath: persistedAudioURL.path))
+    }
+
+    func testFinalizeSavedArtifactsPreservesUnownedMediaCacheDirectory() async throws {
+        let directory = temporaryDirectory()
+        let ownedMediaCacheRoot = directory.appendingPathComponent("Owned/MediaCache", isDirectory: true)
+        let unownedDirectory = directory.appendingPathComponent("Unowned/MediaCache/cache-key", isDirectory: true)
+        try FileManager.default.createDirectory(at: unownedDirectory, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: directory) }
+
+        let unownedAudioURL = try temporaryFile(in: unownedDirectory, name: "audio.m4a", contents: "keep")
+        let persistedAudioURL = try temporaryFile(in: directory, name: "persisted.m4a", contents: "persisted")
+        let coordinator = try makeProjectPersistenceCoordinator(
+            projectArtifactStore: ProjectArtifactStore(),
+            temporaryVideoAudioCacheRoot: ownedMediaCacheRoot
+        )
+        let result = ProjectSaveArtifactsResult(
+            importedFile: ImportedAudioFile(url: persistedAudioURL, displayName: "persisted.m4a", duration: 1),
+            temporaryVideoAudioURLToRemove: unownedAudioURL
+        )
+
+        await coordinator.finalizeSavedArtifacts(result)
+
+        XCTAssertTrue(FileManager.default.fileExists(atPath: unownedAudioURL.path))
+    }
+
+    func testFinalizeSavedArtifactsPreservesDirectoryReachedThroughSymlinkOutsideMediaCache() async throws {
+        let directory = temporaryDirectory()
+        let mediaCacheRoot = directory.appendingPathComponent("MediaCache", isDirectory: true)
+        let externalRoot = directory.appendingPathComponent("External", isDirectory: true)
+        let externalCacheDirectory = externalRoot.appendingPathComponent("cache-key", isDirectory: true)
+        try FileManager.default.createDirectory(at: mediaCacheRoot, withIntermediateDirectories: true)
+        try FileManager.default.createDirectory(at: externalCacheDirectory, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: directory) }
+
+        let symlinkURL = mediaCacheRoot.appendingPathComponent("external", isDirectory: true)
+        try FileManager.default.createSymbolicLink(at: symlinkURL, withDestinationURL: externalRoot)
+        let externalAudioURL = try temporaryFile(in: externalCacheDirectory, name: "audio.m4a", contents: "keep")
+        let linkedAudioURL = symlinkURL
+            .appendingPathComponent("cache-key", isDirectory: true)
+            .appendingPathComponent("audio.m4a")
+        let persistedAudioURL = try temporaryFile(in: directory, name: "persisted.m4a", contents: "persisted")
+        let coordinator = try makeProjectPersistenceCoordinator(
+            projectArtifactStore: ProjectArtifactStore(),
+            temporaryVideoAudioCacheRoot: mediaCacheRoot
+        )
+        let result = ProjectSaveArtifactsResult(
+            importedFile: ImportedAudioFile(url: persistedAudioURL, displayName: "persisted.m4a", duration: 1),
+            temporaryVideoAudioURLToRemove: linkedAudioURL
+        )
+
+        await coordinator.finalizeSavedArtifacts(result)
+
+        XCTAssertTrue(FileManager.default.fileExists(atPath: externalAudioURL.path))
+    }
+
 }
 
 private extension ProjectPersistenceCoordinatorArtifactTests {
     func makeProjectPersistenceCoordinator(
         projectArtifactStore: ProjectArtifactStore,
+        temporaryVideoAudioCacheRoot: URL? = nil,
         importFileFromURL: ((URL) async throws -> ImportedAudioFile)? = nil,
         decodedDuration: @escaping (URL) throws -> TimeInterval = { _ in 1 }
     ) throws -> ProjectPersistenceCoordinator {
@@ -101,6 +179,7 @@ private extension ProjectPersistenceCoordinatorArtifactTests {
                 appSettingsStore: JammLab.AppSettingsStore(defaults: try temporaryUserDefaults()),
                 applicationSupportDirectory: temporaryDirectory()
             ),
+            temporaryVideoAudioCacheRoot: temporaryVideoAudioCacheRoot,
             importFileFromURL: importFileFromURL,
             decodedDuration: decodedDuration
         )

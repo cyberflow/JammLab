@@ -1,24 +1,28 @@
 import AppKit
 
+@MainActor
 final class AppKitOutsideClickMonitor {
     private var monitor: Any?
 
     deinit {
-        remove()
+        MainActor.assumeIsolated {
+            remove()
+        }
     }
 
     func install(for view: NSView, onOutsideClick: @escaping (NSView) -> Void) {
         guard monitor == nil else { return }
 
         monitor = NSEvent.addLocalMonitorForEvents(matching: .leftMouseDown) { [weak view] event in
-            guard let view else { return event }
-            guard let window = view.window, event.window === window else { return event }
+            MainActor.assumeIsolated {
+                guard let view else { return }
+                guard let window = view.window, event.window === window else { return }
 
-            let location = view.convert(event.locationInWindow, from: nil)
-            if !view.bounds.contains(location) {
-                onOutsideClick(view)
+                let location = view.convert(event.locationInWindow, from: nil)
+                if !view.bounds.contains(location) {
+                    onOutsideClick(view)
+                }
             }
-
             return event
         }
     }

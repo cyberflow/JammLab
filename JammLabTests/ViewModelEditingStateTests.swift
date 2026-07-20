@@ -88,6 +88,37 @@ final class ViewModelEditingStateTests: XCTestCase {
     }
 
     @MainActor
+    func testTempoChangeKeepsBeatGridInSyncAcrossUndoAndRedo() throws {
+        let audioURL = try temporaryAudioFile(duration: 2)
+        defer { try? FileManager.default.removeItem(at: audioURL) }
+        let undoManager = UndoManager()
+        let viewModel = AudioPlayerViewModel(
+            analyzer: MockAnalyzer(),
+            peakformProvider: MockPeakformProvider(),
+            playbackEngine: MockPlaybackEngine()
+        )
+        try viewModel.loadImportedAudio(
+            ImportedAudioFile(url: audioURL, displayName: "tempo.wav", duration: 2)
+        )
+        viewModel.undoManager = undoManager
+
+        viewModel.setTempoBPM(137.5)
+
+        XCTAssertEqual(try XCTUnwrap(viewModel.tempoBPM), 137.5, accuracy: 0.0001)
+        XCTAssertEqual(try XCTUnwrap(viewModel.beatGridSettings.bpm), 137.5, accuracy: 0.0001)
+
+        viewModel.undoLastEdit()
+
+        XCTAssertEqual(try XCTUnwrap(viewModel.tempoBPM), AppDefaults.defaultTempoBPM, accuracy: 0.0001)
+        XCTAssertEqual(try XCTUnwrap(viewModel.beatGridSettings.bpm), AppDefaults.defaultTempoBPM, accuracy: 0.0001)
+
+        viewModel.redoLastEdit()
+
+        XCTAssertEqual(try XCTUnwrap(viewModel.tempoBPM), 137.5, accuracy: 0.0001)
+        XCTAssertEqual(try XCTUnwrap(viewModel.beatGridSettings.bpm), 137.5, accuracy: 0.0001)
+    }
+
+    @MainActor
     func testProjectEditableStateRestoreAppliesEngineBackedSettings() {
         let engine = MockPlaybackEngine()
         engine.isLoaded = true
@@ -140,6 +171,8 @@ final class ViewModelEditingStateTests: XCTestCase {
         XCTAssertEqual(engine.clickVolume, 0.25, accuracy: 0.0001)
         XCTAssertTrue(engine.clickEnabled)
         XCTAssertEqual(try XCTUnwrap(engine.clickSettings.bpm), 140, accuracy: 0.0001)
+        XCTAssertEqual(try XCTUnwrap(viewModel.tempoBPM), 140, accuracy: 0.0001)
+        XCTAssertEqual(viewModel.tempoBPM, viewModel.beatGridSettings.bpm)
         XCTAssertTrue(viewModel.stemMixState.item(for: .vocals).isMuted)
     }
 

@@ -411,3 +411,8 @@ extension XCTestCase {
         return try XCTUnwrap(score.measures.first { $0.number == number })
     }
 }
+
+@MainActor
+private final class NoopNotationNoteAuditioner: NotationNoteAuditioning {
+    func audition(pitch: NotationPitch) throws {}
+}

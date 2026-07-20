@@ -34,6 +34,7 @@ extension TimecodedNote {
     }
 }
 
+@MainActor
 final class NoteColorPanelPresenter: NSObject {
     static let shared = NoteColorPanelPresenter()
 

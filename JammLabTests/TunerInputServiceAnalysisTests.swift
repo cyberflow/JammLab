@@ -62,6 +62,44 @@ final class TunerInputServiceAnalysisTests: XCTestCase {
     }
 
     @MainActor
+    func testTunerInputServiceIgnoresStalePitchAfterInputDeviceRestart() async throws {
+        let settingsStore = JammLab.AppSettingsStore(defaults: try temporaryUserDefaults())
+        settingsStore.updateAudioInputDeviceUID("input-1")
+        let provider = MockAudioDeviceProvider()
+        provider.deviceIDs["input-1"] = 42
+        provider.deviceIDs["input-2"] = 84
+        let engine = MockTunerInputEngine()
+        let detector = BlockingPitchDetector()
+        let service = TunerInputService(
+            appSettingsStore: settingsStore,
+            audioDeviceProvider: provider,
+            inputPermissionProvider: MockAudioInputPermissionProvider(status: .authorized),
+            inputEngine: engine,
+            detector: detector
+        )
+
+        await service.start()
+        engine.sendAudioBuffer(samples: tunerMarkerSamples(1))
+        await fulfillment(of: [detector.firstDetectionStarted], timeout: 2)
+
+        settingsStore.updateAudioInputDeviceUID("input-2")
+        let didRestart = await waitForTunerMainActorCondition { engine.startDeviceIDs == [42, 84] }
+        XCTAssertTrue(didRestart)
+
+        engine.sendAudioBuffer(samples: tunerMarkerSamples(3))
+        await tunerDrainMainQueue()
+        XCTAssertNil(service.currentResult)
+        XCTAssertEqual(detector.detectedMarkers, [1])
+
+        detector.releaseFirstDetection()
+        let didPublishNewSessionResult = await waitForTunerMainActorCondition {
+            service.currentResult?.noteName == "C"
+        }
+        XCTAssertTrue(didPublishNewSessionResult)
+        XCTAssertEqual(detector.detectedMarkers, [1, 3])
+    }
+
+    @MainActor
     func testTunerInputServicePassesEngineSampleRateToDetector() async throws {
         let settingsStore = JammLab.AppSettingsStore(defaults: try temporaryUserDefaults())
         settingsStore.updateAudioInputDeviceUID("input-1")

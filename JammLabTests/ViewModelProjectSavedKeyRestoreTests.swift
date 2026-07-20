@@ -110,6 +110,7 @@ final class ViewModelProjectSavedKeyRestoreTests: XCTestCase {
         XCTAssertEqual(viewModel.projectKeySelection, savedKey)
         XCTAssertEqual(viewModel.effectiveKeyName, "G# minor")
         XCTAssertEqual(try XCTUnwrap(viewModel.tempoBPM), 96, accuracy: 0.0001)
+        XCTAssertEqual(try XCTUnwrap(viewModel.beatGridSettings.bpm), 96, accuracy: 0.0001)
         XCTAssertFalse(viewModel.isProjectModified)
     }
 }

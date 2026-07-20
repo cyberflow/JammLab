@@ -158,10 +158,6 @@ final class AudioPlayerViewModel: ObservableObject {
         undoManager?.canRedo ?? false
     }
 
-    var displayedProjectKeySelection: ProjectKeySelection {
-        projectKeySelection ?? .defaultSelection()
-    }
-
     var effectiveKeyName: String? {
         projectKeySelection?.canonicalKeyName ?? analysisResult?.keyName
     }

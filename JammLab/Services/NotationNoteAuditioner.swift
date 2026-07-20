@@ -7,11 +7,6 @@ protocol NotationNoteAuditioning: AnyObject {
     func audition(pitch: NotationPitch) throws
 }
 
-@MainActor
-final class NoopNotationNoteAuditioner: NotationNoteAuditioning {
-    func audition(pitch: NotationPitch) throws {}
-}
-
 enum NotationNoteAuditionerError: LocalizedError {
     case soundBankUnavailable
     case initializationFailed

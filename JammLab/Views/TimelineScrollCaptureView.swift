@@ -36,7 +36,9 @@ final class TimelineScrollCaptureNSView: NSView {
     }
 
     deinit {
-        removeScrollMonitor()
+        MainActor.assumeIsolated {
+            removeScrollMonitor()
+        }
     }
 
     private func updateScrollMonitor() {

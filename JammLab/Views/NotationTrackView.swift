@@ -1907,22 +1907,24 @@ private struct NotationDraggedNotePitchPreview: Equatable {
 }
 
 private extension NotationTrackActions {
-    static let noop = NotationTrackActions(
-        selectHarmony: { _ in },
-        selectMeasure: { _, _, _ in },
-        selectItem: { _, _ in },
-        canInsertNotationNote: { _ in false },
-        insertNotationNote: { _ in false },
-        insertNotationRest: { _ in false },
-        changeSelectedNotePitch: { _, _ in false },
-        changeClef: { _, _ in },
-        auditionNotePitch: { _ in },
-        deleteSelectedNotationNote: { false },
-        locatePlaybackMarkerExactly: { _ in },
-        saveHarmony: { _ in },
-        deleteHarmony: { _ in },
-        adjacentHarmonyPlacement: { _, _ in nil }
-    )
+    static var noop: NotationTrackActions {
+        NotationTrackActions(
+            selectHarmony: { _ in },
+            selectMeasure: { _, _, _ in },
+            selectItem: { _, _ in },
+            canInsertNotationNote: { _ in false },
+            insertNotationNote: { _ in false },
+            insertNotationRest: { _ in false },
+            changeSelectedNotePitch: { _, _ in false },
+            changeClef: { _, _ in },
+            auditionNotePitch: { _ in },
+            deleteSelectedNotationNote: { false },
+            locatePlaybackMarkerExactly: { _ in },
+            saveHarmony: { _ in },
+            deleteHarmony: { _ in },
+            adjacentHarmonyPlacement: { _, _ in nil }
+        )
+    }
 }
 
 #Preview {

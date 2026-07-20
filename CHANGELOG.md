@@ -8,6 +8,7 @@ development artifact builds use `vMAJOR.MINOR.PATCH-dev.N`.
 
 ## Unreleased
 
+- Prevented saved-video cleanup from deleting folders outside JammLab's temporary media cache.
 - Added polyphonic Notation and MIDI editing with chords, overlapping note durations, chord-aware score layout, multi-voice MusicXML export, and rests shown only during globally silent intervals.
 - Added a persistent MIDI piano-roll display for Stem tracks with playback-following measures, vertical pitch scrolling, and duration-aware note entry on a sixteenth-note grid.
 - Added mouse editing for Stem MIDI notes, including sixteenth-grid horizontal movement, semitone pitch dragging, two-sided duration resizing, exact-duplicate prevention, automatic page turns, and tied notation for long durations.

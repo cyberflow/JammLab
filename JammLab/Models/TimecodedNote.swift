@@ -115,10 +115,6 @@ struct TimecodedNote: Identifiable, Equatable, Codable {
     var comment: String?
     var metadata: [String: String]?
 
-    var isLoop: Bool {
-        kind == .loop
-    }
-
     var isRegion: Bool {
         kind == .region || kind == .loop
     }
@@ -129,11 +125,6 @@ struct TimecodedNote: Identifiable, Equatable, Codable {
 
     var regionEndTime: TimeInterval {
         time + max(0, duration ?? 0)
-    }
-
-    var regionRange: LoopRegion? {
-        guard isRegion else { return nil }
-        return LoopRegion(start: time, end: regionEndTime)
     }
 
     var resolvedColorHex: String {

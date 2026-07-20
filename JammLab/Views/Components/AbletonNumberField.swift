@@ -172,7 +172,9 @@ final class AbletonNumberFieldNSView: NSView {
     }
 
     deinit {
-        outsideClickMonitor.remove()
+        MainActor.assumeIsolated {
+            outsideClickMonitor.remove()
+        }
     }
 
     func configure(
