@@ -31,10 +31,6 @@ final class AudioTransportRenderState {
         AVAudioFramePosition(max(0, min(durationFrames, sourceFrame)).rounded())
     }
 
-    var reachedEnd: Bool {
-        didReachEnd
-    }
-
     func configure(durationFrames: AVAudioFramePosition) {
         self.durationFrames = max(0, Double(durationFrames))
         sourceFrame = min(sourceFrame, self.durationFrames)

@@ -38,7 +38,7 @@ struct CompactValuePicker<Value: Hashable>: NSViewRepresentable {
             self.parent = parent
         }
 
-        @objc func selectionChanged(_ sender: NSPopUpButton) {
+        @MainActor @objc func selectionChanged(_ sender: NSPopUpButton) {
             guard parent.values.indices.contains(sender.indexOfSelectedItem) else { return }
             parent.selection.wrappedValue = parent.values[sender.indexOfSelectedItem]
         }

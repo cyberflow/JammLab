@@ -1,20 +1,6 @@
 import Foundation
 
 extension AudioPlayerViewModel {
-    var playbackRateText: String {
-        "\(Int((playbackRate * 100).rounded()))%"
-    }
-
-    var pitchShiftText: String {
-        let roundedSemitones = Int(pitchShiftSemitones.rounded())
-
-        if roundedSemitones > 0 {
-            return "+\(roundedSemitones) st"
-        }
-
-        return "\(roundedSemitones) st"
-    }
-
     var clickVolumeText: String {
         "\(Int((clickVolume * 100).rounded()))%"
     }

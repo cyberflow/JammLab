@@ -188,7 +188,9 @@ final class JammValueSliderNSView: NSView {
     }
 
     deinit {
-        outsideClickMonitor.remove()
+        MainActor.assumeIsolated {
+            outsideClickMonitor.remove()
+        }
     }
 
     func configure(

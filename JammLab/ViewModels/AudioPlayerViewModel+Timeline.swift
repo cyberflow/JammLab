@@ -1,19 +1,6 @@
 import Foundation
 
 extension AudioPlayerViewModel {
-    var tempoBPMText: String {
-        guard let tempoBPM else { return "Pending" }
-        return String(format: "%.1f", tempoBPM)
-    }
-
-    var firstBeatText: String {
-        TimeFormatter.mmss(beatGridSettings.firstBeatTime)
-    }
-
-    var beatGridAlignmentText: String {
-        beatGridSettings.isManuallyAligned ? "Manual" : "Auto"
-    }
-
     var tempoMap: TempoMap {
         TempoMap(baseSettings: beatGridSettings, markers: notes, duration: duration)
     }
@@ -34,13 +21,18 @@ extension AudioPlayerViewModel {
 
     func setTempoBPM(_ bpm: Double) {
         performUndoableEdit("Change Tempo") {
-            tempoBPM = ProjectStateNormalizer.normalizedTempo(bpm)
-            beatGridSettings.bpm = tempoBPM
+            synchronizeTempoBPM(bpm)
             beatGridSettings.lastChangedAt = Date()
             shouldAcceptAnalyzedTempo = false
             clearNotationMeasureSelection()
             applyNotationAffectingTempoMapChange()
         }
+    }
+
+    func synchronizeTempoBPM(_ bpm: Double?) {
+        let normalizedTempo = ProjectStateNormalizer.normalizedTempo(bpm)
+        tempoBPM = normalizedTempo
+        beatGridSettings.bpm = normalizedTempo
     }
 
     func setTimeSignature(beatsPerBar: Int, beatUnit: Int) {
@@ -171,10 +163,6 @@ extension AudioPlayerViewModel {
         }
 
         return (timelineVisibleRange.lowerBound + timelineVisibleRange.upperBound) / 2
-    }
-
-    var minimumTimelineWindowLength: TimeInterval {
-        timelineViewport.minimumWindowLength
     }
 
     func panTimeline(by delta: TimeInterval) {

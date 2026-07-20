@@ -226,15 +226,14 @@ extension AudioPlayerViewModel {
             if beatGridSettings.bpm == nil {
                 beatGridSettings.bpm = AppDefaults.defaultTempoBPM
             }
-            tempoBPM = beatGridSettings.bpm
-            beatGridSettings.bpm = tempoBPM
+            synchronizeTempoBPM(beatGridSettings.bpm)
             shouldAcceptAnalyzedTempo = mediaResult.shouldAnalyzeTempo
             isClickEnabled = (project.isClickEnabled ?? false) && beatGridSettings.bpm != nil
             let restoredPlaybackMode = project.playbackMode ?? project.stemState?.playbackMode ?? .original
             let file = mediaResult.file
             let resolvedProjectDuration = mediaResult.projectDuration
             beatGridSettings = beatGridSettings.clamped(to: resolvedProjectDuration)
-            beatGridSettings.bpm = tempoBPM
+            synchronizeTempoBPM(tempoBPM)
             try configurePlayer(with: file)
 
             importedFile = file
@@ -524,8 +523,7 @@ extension AudioPlayerViewModel {
                 }
 
                 if includesTempo, shouldAcceptAnalyzedTempo, let analyzedBPM = result.bpm {
-                    tempoBPM = Double(analyzedBPM)
-                    beatGridSettings.bpm = tempoBPM
+                    synchronizeTempoBPM(Double(analyzedBPM))
                     beatGridSettings.automaticFirstBeatTime = 0
                     beatGridSettings.firstBeatTime = 0
                     beatGridSettings.alignmentSource = .automatic

@@ -76,9 +76,8 @@ extension AudioPlayerViewModel {
         clickVolume = clampedVolume(state.clickVolume)
         isSnapEnabled = state.isSnapEnabled
         isLooping = state.isLooping
-        tempoBPM = ProjectStateNormalizer.normalizedTempo(state.tempoBPM)
         beatGridSettings = state.beatGridSettings.clamped(to: duration)
-        beatGridSettings.bpm = tempoBPM
+        synchronizeTempoBPM(state.tempoBPM)
         shouldAcceptAnalyzedTempo = false
         notes = ProjectStateNormalizer.normalizedNotes(state.notes, duration: duration)
         harmonySymbols = ProjectStateNormalizer.normalizedHarmonySymbols(state.harmonySymbols, duration: duration)

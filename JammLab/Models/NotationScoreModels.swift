@@ -453,14 +453,6 @@ struct NotationMeasureItem: Identifiable, Codable, Equatable {
         self.isSynthesized = isSynthesized
     }
 
-    var isNote: Bool {
-        kind == .note
-    }
-
-    var isRest: Bool {
-        kind == .rest
-    }
-
     func persistedCopy() -> NotationMeasureItem {
         NotationMeasureItem(
             id: isSynthesized ? UUID().uuidString : id,

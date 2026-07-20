@@ -115,7 +115,7 @@ final class BlockingPitchDetector: PitchDetecting {
 
         if index == 1 {
             firstDetectionStarted.fulfill()
-            _ = firstDetectionSemaphore.wait(timeout: .now() + 2)
+            _ = firstDetectionSemaphore.wait(timeout: .now() + 5)
         }
 
         return Self.result(for: marker)

@@ -49,7 +49,9 @@ final class AppHotkeyMonitorNSView: NSView {
     private var monitor: Any?
 
     deinit {
-        removeMonitor()
+        MainActor.assumeIsolated {
+            removeMonitor()
+        }
     }
 
     override func viewDidMoveToWindow() {

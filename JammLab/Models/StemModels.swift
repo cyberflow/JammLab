@@ -186,10 +186,6 @@ struct StemMixItem: Codable, Equatable, Identifiable {
         self.isSoloed = isSoloed
         self.isAvailable = isAvailable
     }
-
-    var effectiveVolume: Float {
-        isMuted ? 0 : volume
-    }
 }
 
 struct StemMixState: Codable, Equatable {

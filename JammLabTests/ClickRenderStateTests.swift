@@ -74,6 +74,62 @@ final class ClickRenderStateTests: XCTestCase {
         XCTAssertEqual(samples[5_000], 0.95, accuracy: 0.0001)
     }
 
+    func testRenderUsesEditableTimeSignatureForAccents() {
+        let state = makeClickState(settings: BeatGridSettings(
+            bpm: 120,
+            timeSignature: TimeSignature(beatsPerBar: 3, beatUnit: 4)
+        ))
+        state.setEnabled(true)
+        state.play(startFrame: 0)
+
+        let samples = renderSamples(from: state, frameCount: 1_601)
+
+        XCTAssertEqual(normalizedInitialOnsetFrames(in: samples), [0, 500, 1_000, 1_500])
+        XCTAssertEqual(samples[0], 0.95, accuracy: 0.0001)
+        XCTAssertEqual(samples[500], 0.62, accuracy: 0.0001)
+        XCTAssertEqual(samples[1_500], 0.95, accuracy: 0.0001)
+    }
+
+    func testRenderAccentsBarStartBeforePositiveFirstBeatOffset() {
+        let state = makeClickState(settings: BeatGridSettings(
+            bpm: 120,
+            firstBeatTime: 2,
+            timeSignature: .fourFour
+        ))
+        state.setEnabled(true)
+        state.play(startFrame: 0)
+
+        let samples = renderSamples(from: state, frameCount: 2_101)
+
+        XCTAssertEqual(normalizedInitialOnsetFrames(in: samples), [0, 500, 1_000, 1_500, 2_000])
+        XCTAssertEqual(samples[0], 0.95, accuracy: 0.0001)
+        XCTAssertEqual(samples[2_000], 0.95, accuracy: 0.0001)
+    }
+
+    func testRenderOutputsSilenceWithoutTempo() {
+        let state = makeClickState(settings: BeatGridSettings())
+        state.setEnabled(true)
+        state.play(startFrame: 0)
+
+        let samples = renderSamples(from: state, frameCount: 1_000)
+
+        XCTAssertTrue(samples.allSatisfy { $0 == 0 })
+    }
+
+    func testRenderAdjustsBeatSpacingForPlaybackRate() {
+        let state = makeClickState(settings: BeatGridSettings(bpm: 120, timeSignature: .fourFour))
+        state.setPlaybackRate(0.5)
+        state.setEnabled(true)
+        state.play(startFrame: 0)
+
+        let samples = renderSamples(from: state, frameCount: 1_101)
+        let onsetFrames = normalizedInitialOnsetFrames(in: samples)
+
+        XCTAssertEqual(onsetFrames.count, 2)
+        XCTAssertEqual(onsetFrames.first, 0)
+        XCTAssertEqual(Double(onsetFrames.last ?? -1), 1_000, accuracy: 1)
+    }
+
     func testRenderRecalculatesBeatAfterLoopRestart() {
         let state = makeClickState(settings: BeatGridSettings(bpm: 120, timeSignature: .fourFour), durationSeconds: 4)
         state.setEnabled(true)

@@ -20,7 +20,7 @@ if [[ ! -x "$VENV_DIR/bin/python" ]]; then
 fi
 
 "$VENV_DIR/bin/python" -m pip install --upgrade pip "setuptools<82" wheel
-"$VENV_DIR/bin/python" -m pip install -r "$HELPER_DIR/requirements.txt"
+"$VENV_DIR/bin/python" -m pip install -r "$HELPER_DIR/requirements-build.txt"
 
 mkdir -p "$MODEL_CACHE_DIR"
 for model in $SEPARATOR_MODELS; do

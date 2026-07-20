@@ -62,6 +62,7 @@ struct ProjectPersistenceCoordinator {
     private let peakformProvider: PeakformProvider
     private let stemSeparationService: StemSeparationService
     private let fileManager: FileManager
+    private let temporaryVideoAudioCacheRoot: URL
     private let importFileFromURL: (URL) async throws -> ImportedAudioFile
     private let decodedDuration: (URL) throws -> TimeInterval
 
@@ -72,6 +73,7 @@ struct ProjectPersistenceCoordinator {
         peakformProvider: PeakformProvider = CachedPeakformProvider(),
         stemSeparationService: StemSeparationService = StemSeparationService(),
         fileManager: FileManager = .default,
+        temporaryVideoAudioCacheRoot: URL? = nil,
         importFileFromURL: ((URL) async throws -> ImportedAudioFile)? = nil,
         decodedDuration: @escaping (URL) throws -> TimeInterval = AudioFileImporter.decodedDuration(for:)
     ) {
@@ -80,6 +82,8 @@ struct ProjectPersistenceCoordinator {
         self.peakformProvider = peakformProvider
         self.stemSeparationService = stemSeparationService
         self.fileManager = fileManager
+        self.temporaryVideoAudioCacheRoot = temporaryVideoAudioCacheRoot
+            ?? Self.defaultTemporaryVideoAudioCacheRoot(fileManager: fileManager)
         self.importFileFromURL = importFileFromURL ?? { try await importer.importFile(from: $0) }
         self.decodedDuration = decodedDuration
     }
@@ -244,12 +248,32 @@ struct ProjectPersistenceCoordinator {
     }
 
     private func removeTemporaryVideoAudioIfNeeded(_ oldURL: URL, persistedURL: URL) {
-        guard oldURL != persistedURL,
-              oldURL.path.contains("/MediaCache/")
-        else {
-            return
-        }
+        let temporaryDirectory = oldURL.deletingLastPathComponent()
+        guard oldURL.standardizedFileURL != persistedURL.standardizedFileURL,
+              temporaryDirectory.isStrictDescendant(of: temporaryVideoAudioCacheRoot)
+        else { return }
 
-        try? fileManager.removeItem(at: oldURL.deletingLastPathComponent())
+        try? fileManager.removeItem(at: temporaryDirectory)
+    }
+
+    private static func defaultTemporaryVideoAudioCacheRoot(fileManager: FileManager) -> URL {
+        let applicationSupportDirectory = (try? fileManager.url(
+            for: .applicationSupportDirectory,
+            in: .userDomainMask,
+            appropriateFor: nil,
+            create: false
+        )) ?? URL(fileURLWithPath: NSTemporaryDirectory(), isDirectory: true)
+
+        return applicationSupportDirectory
+            .appendingPathComponent("JammLab", isDirectory: true)
+            .appendingPathComponent("MediaCache", isDirectory: true)
+    }
+}
+
+private extension URL {
+    func isStrictDescendant(of directory: URL) -> Bool {
+        let candidatePath = standardizedFileURL.resolvingSymlinksInPath().path
+        let directoryPath = directory.standardizedFileURL.resolvingSymlinksInPath().path
+        return candidatePath != directoryPath && candidatePath.hasPrefix(directoryPath + "/")
     }
 }
