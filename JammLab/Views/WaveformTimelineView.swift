@@ -36,6 +36,7 @@ struct TimelineViewState: Equatable {
     var stemNotationViewports: [StemType: NotationViewportState]
     var notationDurationDenominator: Int
     var notationDurationIsDotted: Bool
+    var selectedDrumInstrumentMIDINoteNumber: Int = DrumInstrumentMap.defaultMIDINoteNumber
     var canChangeNotationDuration: Bool
     var tieCommandStatus: NotationTieCommandStatus
     var notationEntryMode: NotationEntryMode?
@@ -90,7 +91,8 @@ struct TimelineViewActions {
     var insertNotationRest: (NotationRestPlacement) -> Bool
     var changeSelectedNotePitch: (NotationPitch, Bool) -> Bool
     var changeNotationClef: (NotationPartID, Clef) -> Void
-    var auditionNotePitch: (NotationPitch) -> Void
+    var selectDrumInstrument: (Int) -> Void = { _ in }
+    var auditionNotePitch: (NotationPitch, Clef) -> Void
     var deleteSelectedNotationNote: () -> Bool
     var showNotationWindow: () -> Void
     var beginNotationNoteEdit: (NotationPartID) -> Void = { _ in }
@@ -204,6 +206,7 @@ struct WaveformTimelineView: View {
                 denominator: state.notationDurationDenominator,
                 isDotted: state.notationDurationIsDotted
             ),
+            selectedDrumInstrumentMIDINoteNumber: state.selectedDrumInstrumentMIDINoteNumber,
             entryMode: state.notationEntryMode,
             canChangeNotationDuration: state.canChangeNotationDuration,
             tieCommandStatus: state.tieCommandStatus,
@@ -427,6 +430,7 @@ struct WaveformTimelineView: View {
                     denominator: state.notationDurationDenominator,
                     isDotted: state.notationDurationIsDotted
                 ),
+                selectedDrumInstrumentMIDINoteNumber: state.selectedDrumInstrumentMIDINoteNumber,
                 entryMode: state.notationEntryMode,
                 pendingEditorRequest: state.pendingHarmonyEditorRequest,
                 actions: actions.notationTrackActions(allowsHarmony: true)
@@ -453,6 +457,13 @@ struct WaveformTimelineView: View {
             notationTrackHeader
 
             if !state.isNotationTrackCollapsed {
+                if state.notationViewport.clef == .drums {
+                    DrumInstrumentPaletteButton(
+                        selectedMIDINoteNumber: state.selectedDrumInstrumentMIDINoteNumber,
+                        selectInstrument: actions.selectDrumInstrument
+                    )
+                }
+
                 NotationDurationControl(
                     denominator: Binding(
                         get: { state.notationDurationDenominator },
@@ -636,6 +647,7 @@ private struct StemTracksSection: View {
     let selectedMeasures: [NotationMeasureSelection]
     let selectedItem: NotationItemSelection?
     let selectedDuration: NotationDuration
+    let selectedDrumInstrumentMIDINoteNumber: Int
     let entryMode: NotationEntryMode?
     let canChangeNotationDuration: Bool
     let tieCommandStatus: NotationTieCommandStatus
@@ -825,6 +837,7 @@ private struct StemTracksSection: View {
                 partTitle: type.title,
                 selectedItem: selectedItem,
                 selectedDuration: selectedDuration,
+                selectedDrumInstrumentMIDINoteNumber: selectedDrumInstrumentMIDINoteNumber,
                 entryMode: entryMode,
                 actions: notationActions.midiPianoRollActions(),
                 scrollPitch: midiScrollPitchBinding(for: type),
@@ -846,6 +859,7 @@ private struct StemTracksSection: View {
                 selectedMeasures: selectedMeasures,
                 selectedItem: selectedItem,
                 selectedDuration: selectedDuration,
+                selectedDrumInstrumentMIDINoteNumber: selectedDrumInstrumentMIDINoteNumber,
                 entryMode: entryMode,
                 pendingEditorRequest: nil,
                 actions: notationActions.notationTrackActions(allowsHarmony: false)
@@ -859,6 +873,13 @@ private struct StemTracksSection: View {
                 .font(AppTheme.Typography.noteTitle)
                 .lineLimit(1)
                 .frame(maxWidth: .infinity, alignment: .leading)
+
+            if (notationViewports[type]?.clef ?? .treble) == .drums {
+                DrumInstrumentPaletteButton(
+                    selectedMIDINoteNumber: selectedDrumInstrumentMIDINoteNumber,
+                    selectInstrument: notationActions.selectDrumInstrument
+                )
+            }
 
             NotationDurationControl(
                 denominator: Binding(

@@ -8,6 +8,8 @@ development artifact builds use `vMAJOR.MINOR.PATCH-dev.N`.
 
 ## Unreleased
 
+- Fixed Leland eighth-note and shorter flags separating from their stems in Notation chord and Drum rendering.
+- Added Drum Clef notation with a 16-sound GM drum palette, percussion noteheads, voice-aware stem directions, constrained Notation/MIDI entry, percussion preview, legacy-project clef migration, and unpitched MusicXML export.
 - Prevented saved-video cleanup from deleting folders outside JammLab's temporary media cache.
 - Added polyphonic Notation and MIDI editing with chords, overlapping note durations, chord-aware score layout, multi-voice MusicXML export, and rests shown only during globally silent intervals.
 - Added a persistent MIDI piano-roll display for Stem tracks with playback-following measures, vertical pitch scrolling, and duration-aware note entry on a sixteenth-note grid.

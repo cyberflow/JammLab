@@ -892,6 +892,7 @@ final class ViewModelNotationDurationSelectionTests: XCTestCase {
         XCTAssertTrue(viewModel.insertNotationNote(placement))
 
         XCTAssertEqual(auditioner.auditionedPitches, [pitch])
+        XCTAssertEqual(auditioner.auditionedRoutes, [.melodic])
     }
 
     @MainActor
@@ -1048,6 +1049,7 @@ final class ViewModelNotationDurationSelectionTests: XCTestCase {
         XCTAssertTrue(viewModel.changeSelectedNotationNotePitch(to: updatedPitch))
 
         XCTAssertEqual(auditioner.auditionedPitches, [insertedPitch, updatedPitch])
+        XCTAssertEqual(auditioner.auditionedRoutes, [.melodic, .melodic])
     }
 
     @MainActor
@@ -1634,6 +1636,193 @@ final class ViewModelNotationDurationSelectionTests: XCTestCase {
         XCTAssertTrue(viewModel.notationPartClefs.isEmpty)
         XCTAssertFalse(viewModel.isProjectModified)
         XCTAssertFalse(viewModel.canUndo)
+    }
+
+    @MainActor
+    func testChangingLegacyDrumPartToDrumClefRejectsUnsupportedTriggerAtomically() throws {
+        let viewModel = try loadedNotationViewModel(duration: 8)
+        let drumPartID = NotationPartID.stem(.drums)
+        let undoManager = UndoManager()
+        viewModel.undoManager = undoManager
+        viewModel.notationPartClefs[drumPartID] = .treble
+        viewModel.notationItems = [
+            NotationMeasureItem(
+                id: "unsupported-drum-note",
+                partID: drumPartID,
+                kind: .note,
+                pitch: NotationPitchMapper.pitch(forMIDINoteNumber: 40, keySignature: .cMajor),
+                measureNumber: 1,
+                measureStartTime: 0,
+                offsetInQuarterNotes: 0,
+                durationInQuarterNotes: 1,
+                displayDuration: NotationDuration(denominator: 4)
+            )
+        ]
+        viewModel.markProjectClean()
+
+        viewModel.setNotationClef(.drums, for: drumPartID)
+
+        XCTAssertEqual(viewModel.notationClef(for: drumPartID), .treble)
+        XCTAssertEqual(viewModel.notationItems.first?.pitch?.midiNoteNumber, 40)
+        XCTAssertNotNil(viewModel.errorMessage)
+        XCTAssertFalse(viewModel.isProjectModified)
+        XCTAssertFalse(undoManager.canUndo)
+    }
+
+    @MainActor
+    func testChangingLegacyDrumPartToDrumClefPreservesSupportedTrigger() throws {
+        let viewModel = try loadedNotationViewModel(duration: 8)
+        let drumPartID = NotationPartID.stem(.drums)
+        let undoManager = UndoManager()
+        viewModel.undoManager = undoManager
+        viewModel.notationPartClefs[drumPartID] = .treble
+        viewModel.notationItems = [
+            NotationMeasureItem(
+                id: "snare",
+                partID: drumPartID,
+                kind: .note,
+                pitch: NotationPitchMapper.pitch(forMIDINoteNumber: 38, keySignature: .cMajor),
+                measureNumber: 1,
+                measureStartTime: 0,
+                offsetInQuarterNotes: 0,
+                durationInQuarterNotes: 1,
+                displayDuration: NotationDuration(denominator: 4)
+            )
+        ]
+        viewModel.markProjectClean()
+
+        viewModel.setNotationClef(.drums, for: drumPartID)
+
+        XCTAssertEqual(viewModel.notationClef(for: drumPartID), .drums)
+        XCTAssertNil(viewModel.notationPartClefs[drumPartID])
+        XCTAssertEqual(viewModel.notationItems.first?.pitch?.midiNoteNumber, 38)
+        XCTAssertTrue(viewModel.isProjectModified)
+        XCTAssertTrue(viewModel.canUndo)
+
+        viewModel.undoLastEdit()
+        XCTAssertEqual(viewModel.notationClef(for: drumPartID), .treble)
+        XCTAssertEqual(viewModel.notationItems.first?.pitch?.midiNoteNumber, 38)
+
+        viewModel.redoLastEdit()
+        XCTAssertEqual(viewModel.notationClef(for: drumPartID), .drums)
+        XCTAssertEqual(viewModel.notationItems.first?.pitch?.midiNoteNumber, 38)
+    }
+
+    @MainActor
+    func testDrumInsertionRejectsUnsupportedTriggerWithoutMutationUndoOrAudition() throws {
+        let auditioner = MockNotationNoteAuditioner()
+        let viewModel = try loadedNotationViewModel(
+            duration: 8,
+            notationNoteAuditioner: auditioner
+        )
+        let drumPartID = NotationPartID.stem(.drums)
+        let measure = try notationMeasure(1, in: viewModel, partID: drumPartID)
+        let undoManager = UndoManager()
+        viewModel.undoManager = undoManager
+        viewModel.markProjectClean()
+        let placement = NotationNotePlacement(
+            measure: measure,
+            partID: drumPartID,
+            offsetInQuarterNotes: 0,
+            durationInQuarterNotes: 1,
+            displayDuration: NotationDuration(denominator: 4),
+            pitch: NotationPitchMapper.pitch(forMIDINoteNumber: 40, keySignature: .cMajor),
+            x: 0,
+            y: 0
+        )
+
+        XCTAssertFalse(viewModel.insertNotationNote(placement))
+        XCTAssertFalse(viewModel.notationItems.contains { $0.partID == drumPartID && $0.kind == .note })
+        XCTAssertTrue(auditioner.auditionedPitches.isEmpty)
+        XCTAssertFalse(viewModel.isProjectModified)
+        XCTAssertFalse(undoManager.canUndo)
+    }
+
+    @MainActor
+    func testDrumPitchChangeRejectsUnsupportedTriggerWithoutMutationUndoOrAudition() throws {
+        let auditioner = MockNotationNoteAuditioner()
+        let viewModel = try loadedNotationViewModel(
+            duration: 8,
+            notationNoteAuditioner: auditioner
+        )
+        let drumPartID = NotationPartID.stem(.drums)
+        let supportedPitch = NotationPitchMapper.pitch(forMIDINoteNumber: 38, keySignature: .cMajor)
+        viewModel.notationItems = [
+            NotationMeasureItem(
+                id: "snare",
+                partID: drumPartID,
+                kind: .note,
+                pitch: supportedPitch,
+                measureNumber: 1,
+                measureStartTime: 0,
+                offsetInQuarterNotes: 0,
+                durationInQuarterNotes: 1,
+                displayDuration: NotationDuration(denominator: 4)
+            )
+        ]
+        let measure = try notationMeasure(1, in: viewModel, partID: drumPartID)
+        let note = try XCTUnwrap(measure.notationItems.first { $0.id == "snare" })
+        viewModel.selectNotationItem(
+            NotationItemSelection(measure: measure, item: note),
+            shouldAudition: false
+        )
+        let undoManager = UndoManager()
+        viewModel.undoManager = undoManager
+        viewModel.markProjectClean()
+
+        XCTAssertFalse(viewModel.changeSelectedNotationNotePitch(
+            to: NotationPitchMapper.pitch(forMIDINoteNumber: 40, keySignature: .cMajor)
+        ))
+        XCTAssertEqual(viewModel.notationItems.first { $0.id == "snare" }?.pitch, supportedPitch)
+        XCTAssertTrue(auditioner.auditionedPitches.isEmpty)
+        XCTAssertFalse(viewModel.isProjectModified)
+        XCTAssertFalse(undoManager.canUndo)
+    }
+
+    @MainActor
+    func testDrumNotationInsertionUsesPercussionAuditionRoute() throws {
+        let auditioner = MockNotationNoteAuditioner()
+        let viewModel = try loadedNotationViewModel(
+            duration: 8,
+            notationNoteAuditioner: auditioner
+        )
+        let drumPartID = NotationPartID.stem(.drums)
+        let measure = try notationMeasure(1, in: viewModel, partID: drumPartID)
+        let pitch = NotationPitchMapper.pitch(forMIDINoteNumber: 42, keySignature: .cMajor)
+        let placement = NotationNotePlacement(
+            measure: measure,
+            partID: drumPartID,
+            offsetInQuarterNotes: 0,
+            durationInQuarterNotes: 1,
+            displayDuration: NotationDuration(denominator: 4),
+            pitch: pitch,
+            x: 0,
+            y: 0
+        )
+
+        XCTAssertTrue(viewModel.insertNotationNote(placement))
+        XCTAssertEqual(auditioner.auditionedPitches, [pitch])
+        XCTAssertEqual(auditioner.auditionedRoutes, [.drums])
+    }
+
+    @MainActor
+    func testSelectingDrumInstrumentIsTransientAndPreviewsPercussion() throws {
+        let auditioner = MockNotationNoteAuditioner()
+        let viewModel = try loadedNotationViewModel(
+            duration: 8,
+            notationNoteAuditioner: auditioner
+        )
+
+        viewModel.selectDrumInstrument(midiNoteNumber: 46)
+
+        XCTAssertEqual(viewModel.selectedDrumInstrumentMIDINoteNumber, 46)
+        XCTAssertEqual(auditioner.auditionedPitches.map(\.midiNoteNumber), [46])
+        XCTAssertEqual(auditioner.auditionedRoutes, [.drums])
+        XCTAssertFalse(viewModel.isProjectModified)
+
+        viewModel.selectDrumInstrument(midiNoteNumber: 40)
+        XCTAssertEqual(viewModel.selectedDrumInstrumentMIDINoteNumber, 46)
+        XCTAssertEqual(auditioner.auditionedPitches.count, 1)
     }
 
     @MainActor

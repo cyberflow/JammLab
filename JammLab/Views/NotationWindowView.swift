@@ -81,6 +81,13 @@ struct NotationWindowView: View {
                 viewModel.handleAddTiedNotationNoteCommand()
             }
 
+            if hasVisibleDrumPart {
+                DrumInstrumentPaletteButton(
+                    selectedMIDINoteNumber: viewModel.selectedDrumInstrumentMIDINoteNumber,
+                    selectInstrument: { viewModel.selectDrumInstrument(midiNoteNumber: $0) }
+                )
+            }
+
             NotationEntryModeButton(
                 mode: .rest,
                 isActive: viewModel.isNotationRestEntryModeEnabled
@@ -200,6 +207,7 @@ struct NotationWindowView: View {
                                 denominator: viewModel.notationDurationDenominator,
                                 isDotted: viewModel.notationDurationIsDotted
                             ),
+                            selectedDrumInstrumentMIDINoteNumber: viewModel.selectedDrumInstrumentMIDINoteNumber,
                             entryMode: viewModel.notationEntryMode,
                             pendingEditorRequest: staff.part.id.isMain ? viewModel.pendingHarmonyEditorRequest : nil,
                             showsRegionLabels: staff.showsRegionLabels,
@@ -294,13 +302,19 @@ struct NotationWindowView: View {
             insertNotationRest: { viewModel.insertNotationRest($0) },
             changeSelectedNotePitch: { viewModel.changeSelectedNotationNotePitch(to: $0, shouldAudition: $1) },
             changeClef: { viewModel.setNotationClef($1, for: $0) },
-            auditionNotePitch: { viewModel.auditionNotationNotePitch($0) },
+            auditionNotePitch: { viewModel.auditionNotationNotePitch($0, clef: $1) },
             deleteSelectedNotationNote: { viewModel.deleteSelectedNotationNote() },
             locatePlaybackMarkerExactly: { viewModel.locatePlaybackMarkerExactly(to: $0) },
             saveHarmony: { viewModel.saveHarmonySymbol($0) },
             deleteHarmony: { viewModel.deleteHarmonySymbol(id: $0) },
             adjacentHarmonyPlacement: { viewModel.adjacentHarmonyPlacement(from: $0, direction: $1) }
         )
+    }
+
+    private var hasVisibleDrumPart: Bool {
+        viewModel.visibleNotationParts.contains {
+            viewModel.notationClef(for: $0.id) == .drums
+        }
     }
 
     private var allowedHotkeys: Set<AppHotkey> {

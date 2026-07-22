@@ -53,6 +53,7 @@ final class AudioPlayerViewModel: ObservableObject {
     @Published var notationEntryDurationIsDotted = false
     @Published var notationItems: [NotationMeasureItem] = []
     @Published var notationPartClefs: [NotationPartID: Clef] = [:]
+    @Published var selectedDrumInstrumentMIDINoteNumber = DrumInstrumentMap.defaultMIDINoteNumber
     @Published var notationEntryMode: NotationEntryMode?
     @Published var pendingHarmonyEditorRequest: HarmonyEditorRequest?
     @Published var activeLoopRegionID: TimecodedNote.ID?

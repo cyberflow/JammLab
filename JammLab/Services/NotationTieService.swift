@@ -220,7 +220,9 @@ enum NotationNoteInsertionPlanner {
             $0.number == placement.measure.number
                 && abs($0.startTime - placement.measure.startTime) < NotationMeasureTiming.timelineTolerance
                 && abs($0.endTime - placement.measure.endTime) < NotationMeasureTiming.timelineTolerance
-        }), placement.displayDuration.durationInQuarterNotes > NotationMeasureTiming.timelineTolerance,
+        }), orderedMeasures[measureIndex].attributes.clef != .drums
+                || NotationInputPolicy.isEditable(placement.pitch, in: .drums),
+           placement.displayDuration.durationInQuarterNotes > NotationMeasureTiming.timelineTolerance,
            abs(
                placement.durationInQuarterNotes - placement.displayDuration.durationInQuarterNotes
            ) < NotationMeasureTiming.timelineTolerance,

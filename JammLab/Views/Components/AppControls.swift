@@ -16,6 +16,90 @@ struct AppControlButton: View {
     }
 }
 
+struct DrumInstrumentPaletteButton: View {
+    let selectedMIDINoteNumber: Int
+    let selectInstrument: (Int) -> Void
+
+    @Environment(\.appColors) private var appColors
+    @State private var isPresented = false
+
+    private var selectedInstrument: DrumInstrumentDefinition {
+        DrumInstrumentMap.instrument(forMIDINoteNumber: selectedMIDINoteNumber)
+            ?? DrumInstrumentMap.defaultInstrument
+    }
+
+    var body: some View {
+        Button {
+            isPresented.toggle()
+        } label: {
+            HStack(spacing: AppTheme.Spacing.xs) {
+                Image(systemName: "music.note")
+                Text(selectedInstrument.name)
+                    .lineLimit(1)
+                Spacer(minLength: AppTheme.Spacing.xs)
+                Text(selectedInstrument.pitchLabel)
+                    .foregroundStyle(appColors.secondaryText)
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+        }
+        .buttonStyle(.bordered)
+        .frame(width: AppTheme.ControlSize.drumInstrumentSelectorWidth)
+        .popover(isPresented: $isPresented, arrowEdge: .bottom) {
+            LazyVGrid(
+                columns: Array(
+                    repeating: GridItem(.fixed(AppTheme.ControlSize.drumInstrumentPadWidth)),
+                    count: 8
+                ),
+                spacing: AppTheme.Spacing.md
+            ) {
+                ForEach(DrumInstrumentMap.instruments) { instrument in
+                    drumPad(instrument)
+                }
+            }
+            .padding(AppTheme.Spacing.panelPadding)
+            .background(appColors.elevatedSurface)
+        }
+        .help("Choose the drum sound used when adding notes")
+        .accessibilityLabel("Drum instrument")
+        .accessibilityValue("\(selectedInstrument.name), \(selectedInstrument.pitchLabel)")
+    }
+
+    private func drumPad(_ instrument: DrumInstrumentDefinition) -> some View {
+        let isSelected = instrument.midiNoteNumber == selectedInstrument.midiNoteNumber
+        return Button {
+            selectInstrument(instrument.midiNoteNumber)
+            isPresented = false
+        } label: {
+            VStack(spacing: AppTheme.Spacing.xs) {
+                Text(instrument.name)
+                    .font(AppTheme.Typography.noteTitle)
+                    .multilineTextAlignment(.center)
+                    .lineLimit(2)
+                    .minimumScaleFactor(0.8)
+                Text(instrument.pitchLabel)
+                    .font(AppTheme.Typography.timelineLabel)
+                    .foregroundStyle(isSelected ? appColors.primaryText : appColors.secondaryText)
+            }
+            .frame(
+                width: AppTheme.ControlSize.drumInstrumentPadWidth,
+                height: AppTheme.ControlSize.drumInstrumentPadHeight
+            )
+            .background(isSelected ? appColors.controlActive : appColors.controlBackground)
+            .clipShape(RoundedRectangle(cornerRadius: AppTheme.Radius.small, style: .continuous))
+            .overlay {
+                RoundedRectangle(cornerRadius: AppTheme.Radius.small, style: .continuous)
+                    .stroke(isSelected ? appColors.accent : appColors.border, lineWidth: AppTheme.Stroke.thin)
+            }
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .help("\(instrument.name), \(instrument.pitchLabel), MIDI \(instrument.midiNoteNumber)")
+        .accessibilityLabel(instrument.name)
+        .accessibilityValue("\(instrument.pitchLabel), MIDI \(instrument.midiNoteNumber)\(isSelected ? ", selected" : "")")
+        .accessibilityAddTraits(isSelected ? [.isSelected] : [])
+    }
+}
+
 struct NotationDurationControl: View {
     @Binding var denominator: Int
     let isEnabled: Bool
