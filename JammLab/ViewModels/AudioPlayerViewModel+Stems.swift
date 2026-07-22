@@ -5,6 +5,13 @@ extension AudioPlayerViewModel {
         !stemFiles.isEmpty
     }
 
+    func persistStemArtifactsIfNeeded(_ metadata: StemCacheMetadata) throws -> StemCacheMetadata {
+        guard let currentProjectURL else { return metadata }
+        let localMetadata = try projectArtifactStore.writeStemMetadata(metadata, projectURL: currentProjectURL)
+        stemSeparationService.removeCachedResult(cacheKey: metadata.cacheKey)
+        return localMetadata
+    }
+
     func separateStems(method: StemSeparationMethod = .defaultValue) {
         guard let importedFile else {
             stemSeparationState = StemSeparationViewState(

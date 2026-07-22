@@ -1,15 +1,6 @@
 import Foundation
 
 enum TimeFormatter {
-    static func mmss(_ time: TimeInterval) -> String {
-        guard time.isFinite, time >= 0 else { return "00:00" }
-
-        let totalSeconds = Int(time.rounded())
-        let minutes = totalSeconds / 60
-        let seconds = totalSeconds % 60
-        return String(format: "%02d:%02d", minutes, seconds)
-    }
-
     static func mmssTenths(_ time: TimeInterval) -> String {
         guard time.isFinite, time >= 0 else { return "00:00.0" }
 

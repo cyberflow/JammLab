@@ -18,7 +18,7 @@
 		9F8A01092C00000100112233 /* TimeFormatter.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9F8A00092C00000100112233 /* TimeFormatter.swift */; };
 		9F8A010A2C00000100112233 /* ImportedAudioFile.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9F8A000A2C00000100112233 /* ImportedAudioFile.swift */; };
 		9F8A010B2C00000100112233 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 9F8A000B2C00000100112233 /* Assets.xcassets */; };
-		9F8A010C2C00000100112233 /* WaveformProvider.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9F8A000E2C00000100112233 /* WaveformProvider.swift */; };
+		9F8A010C2C00000100112233 /* PeakformProvider.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9F8A000E2C00000100112233 /* PeakformProvider.swift */; };
 		9F8A010D2C00000100112233 /* AppHotkey.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9F8A000F2C00000100112233 /* AppHotkey.swift */; };
 		9F8A010E2C00000100112233 /* HotkeysHelpView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9F8A00102C00000100112233 /* HotkeysHelpView.swift */; };
 		9F8A01102C00000100112233 /* TimecodedNote.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9F8A00122C00000100112233 /* TimecodedNote.swift */; };
@@ -50,6 +50,7 @@
 		9FEA01032D70000100112233 /* NotationViewportFactory.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9FEA00032D70000100112233 /* NotationViewportFactory.swift */; };
 		9FEA01042D70000100112233 /* NotationTrackView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9FEA00042D70000100112233 /* NotationTrackView.swift */; };
 		9FAD01012F40000100112233 /* MIDIPianoRollView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9FAD00012F40000100112233 /* MIDIPianoRollView.swift */; };
+		9FDE01022F60000100112233 /* MIDIPianoRollLayout.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9FDE00022F60000100112233 /* MIDIPianoRollLayout.swift */; };
 		9FCB01062D80000100112233 /* NotationMeasureLayout.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9FCB00062D80000100112233 /* NotationMeasureLayout.swift */; };
 		9FAE01012F10000100112233 /* NotationNotePlacementResolver.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9FAE00012F10000100112233 /* NotationNotePlacementResolver.swift */; };
 		9FC001012F30000100112233 /* NotationTieService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9FC000012F30000100112233 /* NotationTieService.swift */; };
@@ -68,7 +69,8 @@
 		9FCD01022D50000100112233 /* TestSupport.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9F8B00072C10000100112233 /* TestSupport.swift */; };
 		9F8C01012C20000100112233 /* AppTheme.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9F8C00012C20000100112233 /* AppTheme.swift */; };
 		9F8C01022C20000100112233 /* AppPanel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9F8C00022C20000100112233 /* AppPanel.swift */; };
-		9F8C01032C20000100112233 /* AppControls.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9F8C00032C20000100112233 /* AppControls.swift */; };
+		9F8C01032C20000100112233 /* NotationControls.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9F8C00032C20000100112233 /* NotationControls.swift */; };
+		9FDE01032F60000100112233 /* AppControlButton.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9FDE00032F60000100112233 /* AppControlButton.swift */; };
 		9FCB01022D80000100112233 /* CompactValuePicker.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9FCB00022D80000100112233 /* CompactValuePicker.swift */; };
 		9FCB01032D80000100112233 /* AppLetterToggleButton.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9FCB00032D80000100112233 /* AppLetterToggleButton.swift */; };
 		9FCB01042D80000100112233 /* JammModeToggleButton.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9FCB00042D80000100112233 /* JammModeToggleButton.swift */; };
@@ -122,6 +124,7 @@
 		9FAB01452CE0000100112233 /* AppHotkeyNotationEventFilterTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9FAB00452CE0000100112233 /* AppHotkeyNotationEventFilterTests.swift */; };
 		9FAB01602CE0000100112233 /* AppHotkeyNotationDurationEventFilterTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9FAB00602CE0000100112233 /* AppHotkeyNotationDurationEventFilterTests.swift */; };
 		9FAB011F2CE0000100112233 /* ViewModelResetTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9FAB001F2CE0000100112233 /* ViewModelResetTests.swift */; };
+		9FDE01012F60000100112233 /* ViewModelBackgroundWorkCancellationTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9FDE00012F60000100112233 /* ViewModelBackgroundWorkCancellationTests.swift */; };
 		9FAB01202CE0000100112233 /* ViewModelPlaybackStateTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9FAB00202CE0000100112233 /* ViewModelPlaybackStateTests.swift */; };
 		9FAB01542CE0000100112233 /* ViewModelPlaybackTimelineTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9FAB00542CE0000100112233 /* ViewModelPlaybackTimelineTests.swift */; };
 		9FAB01212CE0000100112233 /* ViewModelStemPlaybackTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9FAB00212CE0000100112233 /* ViewModelStemPlaybackTests.swift */; };
@@ -213,6 +216,8 @@
 		9FAF01022D02000100112233 /* WindowCloseGuard.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9FAF00022D02000100112233 /* WindowCloseGuard.swift */; };
 		9FB001012D06000100112233 /* AudioDeviceService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9FB001002D06000100112233 /* AudioDeviceService.swift */; };
 		9FB200012D30000100112233 /* AudioPlayerViewModel+Project.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9FB201012D30000100112233 /* AudioPlayerViewModel+Project.swift */; };
+		9FDE01042F60000100112233 /* AudioPlayerViewModel+Analysis.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9FDE00042F60000100112233 /* AudioPlayerViewModel+Analysis.swift */; };
+		9FDE01052F60000100112233 /* AudioPlayerViewModel+Peakform.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9FDE00052F60000100112233 /* AudioPlayerViewModel+Peakform.swift */; };
 		9FB200022D30000100112233 /* AudioPlayerViewModel+Playback.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9FB201022D30000100112233 /* AudioPlayerViewModel+Playback.swift */; };
 		9FB200032D30000100112233 /* AudioPlayerViewModel+Stems.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9FB201032D30000100112233 /* AudioPlayerViewModel+Stems.swift */; };
 		9FB200042D30000100112233 /* AudioPlayerViewModel+Timeline.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9FB201042D30000100112233 /* AudioPlayerViewModel+Timeline.swift */; };
@@ -291,7 +296,7 @@
 		9F8A000B2C00000100112233 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		9F8A000C2C00000100112233 /* JammLab.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = JammLab.entitlements; sourceTree = "<group>"; };
 		9F8A000D2C00000100112233 /* JammLab.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = JammLab.app; sourceTree = BUILT_PRODUCTS_DIR; };
-		9F8A000E2C00000100112233 /* WaveformProvider.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WaveformProvider.swift; sourceTree = "<group>"; };
+		9F8A000E2C00000100112233 /* PeakformProvider.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PeakformProvider.swift; sourceTree = "<group>"; };
 		9F8A000F2C00000100112233 /* AppHotkey.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppHotkey.swift; sourceTree = "<group>"; };
 		9F8A00102C00000100112233 /* HotkeysHelpView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HotkeysHelpView.swift; sourceTree = "<group>"; };
 		9F8A00122C00000100112233 /* TimecodedNote.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TimecodedNote.swift; sourceTree = "<group>"; };
@@ -323,6 +328,7 @@
 		9FEA00032D70000100112233 /* NotationViewportFactory.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotationViewportFactory.swift; sourceTree = "<group>"; };
 		9FEA00042D70000100112233 /* NotationTrackView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotationTrackView.swift; sourceTree = "<group>"; };
 		9FAD00012F40000100112233 /* MIDIPianoRollView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MIDIPianoRollView.swift; sourceTree = "<group>"; };
+		9FDE00022F60000100112233 /* MIDIPianoRollLayout.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MIDIPianoRollLayout.swift; sourceTree = "<group>"; };
 		9FCB00062D80000100112233 /* NotationMeasureLayout.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotationMeasureLayout.swift; sourceTree = "<group>"; };
 		9FAE00012F10000100112233 /* NotationNotePlacementResolver.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotationNotePlacementResolver.swift; sourceTree = "<group>"; };
 		9FC000012F30000100112233 /* NotationTieService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotationTieService.swift; sourceTree = "<group>"; };
@@ -342,7 +348,8 @@
 		9FCD00022D50000100112233 /* JammLabPerformanceTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = JammLabPerformanceTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		9F8C00012C20000100112233 /* AppTheme.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppTheme.swift; sourceTree = "<group>"; };
 		9F8C00022C20000100112233 /* AppPanel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppPanel.swift; sourceTree = "<group>"; };
-		9F8C00032C20000100112233 /* AppControls.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppControls.swift; sourceTree = "<group>"; };
+		9F8C00032C20000100112233 /* NotationControls.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotationControls.swift; sourceTree = "<group>"; };
+		9FDE00032F60000100112233 /* AppControlButton.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppControlButton.swift; sourceTree = "<group>"; };
 		9FCB00022D80000100112233 /* CompactValuePicker.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CompactValuePicker.swift; sourceTree = "<group>"; };
 		9FCB00032D80000100112233 /* AppLetterToggleButton.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppLetterToggleButton.swift; sourceTree = "<group>"; };
 		9FCB00042D80000100112233 /* JammModeToggleButton.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = JammModeToggleButton.swift; sourceTree = "<group>"; };
@@ -392,6 +399,7 @@
 		9FAB00452CE0000100112233 /* AppHotkeyNotationEventFilterTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppHotkeyNotationEventFilterTests.swift; sourceTree = "<group>"; };
 		9FAB00602CE0000100112233 /* AppHotkeyNotationDurationEventFilterTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppHotkeyNotationDurationEventFilterTests.swift; sourceTree = "<group>"; };
 		9FAB001F2CE0000100112233 /* ViewModelResetTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ViewModelResetTests.swift; sourceTree = "<group>"; };
+		9FDE00012F60000100112233 /* ViewModelBackgroundWorkCancellationTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ViewModelBackgroundWorkCancellationTests.swift; sourceTree = "<group>"; };
 		9FAB00202CE0000100112233 /* ViewModelPlaybackStateTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ViewModelPlaybackStateTests.swift; sourceTree = "<group>"; };
 		9FAB00542CE0000100112233 /* ViewModelPlaybackTimelineTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ViewModelPlaybackTimelineTests.swift; sourceTree = "<group>"; };
 		9FAB00212CE0000100112233 /* ViewModelStemPlaybackTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ViewModelStemPlaybackTests.swift; sourceTree = "<group>"; };
@@ -483,6 +491,8 @@
 		9FAF00022D02000100112233 /* WindowCloseGuard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WindowCloseGuard.swift; sourceTree = "<group>"; };
 		9FB001002D06000100112233 /* AudioDeviceService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AudioDeviceService.swift; sourceTree = "<group>"; };
 		9FB201012D30000100112233 /* AudioPlayerViewModel+Project.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "AudioPlayerViewModel+Project.swift"; sourceTree = "<group>"; };
+		9FDE00042F60000100112233 /* AudioPlayerViewModel+Analysis.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "AudioPlayerViewModel+Analysis.swift"; sourceTree = "<group>"; };
+		9FDE00052F60000100112233 /* AudioPlayerViewModel+Peakform.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "AudioPlayerViewModel+Peakform.swift"; sourceTree = "<group>"; };
 		9FB201022D30000100112233 /* AudioPlayerViewModel+Playback.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "AudioPlayerViewModel+Playback.swift"; sourceTree = "<group>"; };
 		9FB201032D30000100112233 /* AudioPlayerViewModel+Stems.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "AudioPlayerViewModel+Stems.swift"; sourceTree = "<group>"; };
 		9FB201042D30000100112233 /* AudioPlayerViewModel+Timeline.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "AudioPlayerViewModel+Timeline.swift"; sourceTree = "<group>"; };
@@ -639,7 +649,7 @@
 				9FBA00032D40000100112233 /* TunerInputService.swift */,
 				9FAE00012D01000100112233 /* VideoAudioExtractionService.swift */,
 				9FAE00022D01000100112233 /* VideoFollowerController.swift */,
-				9F8A000E2C00000100112233 /* WaveformProvider.swift */,
+				9F8A000E2C00000100112233 /* PeakformProvider.swift */,
 			);
 			path = Services;
 			sourceTree = "<group>";
@@ -668,6 +678,8 @@
 			children = (
 				9F8A00032C00000100112233 /* AudioPlayerViewModel.swift */,
 				9FB201012D30000100112233 /* AudioPlayerViewModel+Project.swift */,
+				9FDE00042F60000100112233 /* AudioPlayerViewModel+Analysis.swift */,
+				9FDE00052F60000100112233 /* AudioPlayerViewModel+Peakform.swift */,
 				9FB201022D30000100112233 /* AudioPlayerViewModel+Playback.swift */,
 				9FB201032D30000100112233 /* AudioPlayerViewModel+Stems.swift */,
 				9FB201042D30000100112233 /* AudioPlayerViewModel+Timeline.swift */,
@@ -691,6 +703,7 @@
 				9FCB00072D80000100112233 /* NotationHarmonyInlineTextField.swift */,
 				9FD100002E00000100112233 /* NotationTrackLayoutItems.swift */,
 				9FAD00012F40000100112233 /* MIDIPianoRollView.swift */,
+				9FDE00022F60000100112233 /* MIDIPianoRollLayout.swift */,
 				9FEA00042D70000100112233 /* NotationTrackView.swift */,
 				9FEC00012D71000100112233 /* NotationWindowView.swift */,
 				9FEC00022D71000100112233 /* NotationWindowScoreLayout.swift */,
@@ -751,6 +764,7 @@
 				9FAB00452CE0000100112233 /* AppHotkeyNotationEventFilterTests.swift */,
 				9FAB00602CE0000100112233 /* AppHotkeyNotationDurationEventFilterTests.swift */,
 				9FAB001F2CE0000100112233 /* ViewModelResetTests.swift */,
+				9FDE00012F60000100112233 /* ViewModelBackgroundWorkCancellationTests.swift */,
 				9FAB00202CE0000100112233 /* ViewModelPlaybackStateTests.swift */,
 				9FAB00542CE0000100112233 /* ViewModelPlaybackTimelineTests.swift */,
 				9FAB00212CE0000100112233 /* ViewModelStemPlaybackTests.swift */,
@@ -861,7 +875,8 @@
 			children = (
 				9F9500012CB0000100112233 /* AbletonNumberField.swift */,
 				9F9600012CC0000100112233 /* JammValueSlider.swift */,
-				9F8C00032C20000100112233 /* AppControls.swift */,
+				9FDE00032F60000100112233 /* AppControlButton.swift */,
+				9F8C00032C20000100112233 /* NotationControls.swift */,
 				9FCB00032D80000100112233 /* AppLetterToggleButton.swift */,
 				9FCB00052D80000100112233 /* AppPopoverDismissModifier.swift */,
 				9F8C00042C20000100112233 /* AppHotkeyMonitorView.swift */,
@@ -1097,6 +1112,8 @@
 				9FCB01012D80000100112233 /* AudioSampleConverter.swift in Sources */,
 				9F8A01032C00000100112233 /* AudioPlayerViewModel.swift in Sources */,
 				9FB200012D30000100112233 /* AudioPlayerViewModel+Project.swift in Sources */,
+				9FDE01042F60000100112233 /* AudioPlayerViewModel+Analysis.swift in Sources */,
+				9FDE01052F60000100112233 /* AudioPlayerViewModel+Peakform.swift in Sources */,
 				9FB200022D30000100112233 /* AudioPlayerViewModel+Playback.swift in Sources */,
 				9FB200032D30000100112233 /* AudioPlayerViewModel+Stems.swift in Sources */,
 				9FB200042D30000100112233 /* AudioPlayerViewModel+Timeline.swift in Sources */,
@@ -1106,7 +1123,8 @@
 				9FEE01022D90000100112233 /* AudioPlayerViewModel+NotationExport.swift in Sources */,
 				9FB200062D30000100112233 /* AudioPlayerViewModel+Video.swift in Sources */,
 				9FB200072D30000100112233 /* AudioPlayerViewModel+UndoDirty.swift in Sources */,
-				9F8C01032C20000100112233 /* AppControls.swift in Sources */,
+				9FDE01032F60000100112233 /* AppControlButton.swift in Sources */,
+				9F8C01032C20000100112233 /* NotationControls.swift in Sources */,
 				9FCB01032D80000100112233 /* AppLetterToggleButton.swift in Sources */,
 				9FCB01052D80000100112233 /* AppPopoverDismissModifier.swift in Sources */,
 				9F8C01042C20000100112233 /* AppHotkeyMonitorView.swift in Sources */,
@@ -1134,6 +1152,7 @@
 				9F8C01052C20000100112233 /* NoteRowView.swift in Sources */,
 				9FEA01042D70000100112233 /* NotationTrackView.swift in Sources */,
 				9FAD01012F40000100112233 /* MIDIPianoRollView.swift in Sources */,
+				9FDE01022F60000100112233 /* MIDIPianoRollLayout.swift in Sources */,
 				9FCB01072D80000100112233 /* NotationHarmonyInlineTextField.swift in Sources */,
 				9FD100012E00000100112233 /* NotationTrackLayoutItems.swift in Sources */,
 				9FEC01012D71000100112233 /* NotationWindowView.swift in Sources */,
@@ -1200,7 +1219,7 @@
 				9FB204052D32000100112233 /* PeakformBinaryCache.swift in Sources */,
 				9FB204032D32000100112233 /* PeakformGenerator.swift in Sources */,
 				9F8A01082C00000100112233 /* WaveformTimelineView.swift in Sources */,
-				9F8A010C2C00000100112233 /* WaveformProvider.swift in Sources */,
+				9F8A010C2C00000100112233 /* PeakformProvider.swift in Sources */,
 				9FAF01022D02000100112233 /* WindowCloseGuard.swift in Sources */,
 				9F8C01082C20000100112233 /* WindowTitleUpdater.swift in Sources */,
 			);
@@ -1227,6 +1246,7 @@
 				9FAB01452CE0000100112233 /* AppHotkeyNotationEventFilterTests.swift in Sources */,
 				9FAB01602CE0000100112233 /* AppHotkeyNotationDurationEventFilterTests.swift in Sources */,
 				9FAB011F2CE0000100112233 /* ViewModelResetTests.swift in Sources */,
+				9FDE01012F60000100112233 /* ViewModelBackgroundWorkCancellationTests.swift in Sources */,
 				9FAB01202CE0000100112233 /* ViewModelPlaybackStateTests.swift in Sources */,
 				9FAB01542CE0000100112233 /* ViewModelPlaybackTimelineTests.swift in Sources */,
 				9FAB01212CE0000100112233 /* ViewModelStemPlaybackTests.swift in Sources */,

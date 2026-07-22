@@ -270,7 +270,7 @@ enum NotationTrackLayoutItems {
                     applyChordLayout(
                         to: positioned,
                         laneOffset: laneOffset,
-                        stemDirection: legacyStemDirection(for: positioned),
+                        stemDirection: averageStaffPositionStemDirection(for: positioned),
                         layout: &layout
                     )
                 }
@@ -279,7 +279,7 @@ enum NotationTrackLayoutItems {
         return layout
     }
 
-    private static func legacyStemDirection(
+    private static func averageStaffPositionStemDirection(
         for notes: [PositionedNotationItem]
     ) -> NotationStemDirection {
         let staffPositions = notes.map(\.staffPosition)
