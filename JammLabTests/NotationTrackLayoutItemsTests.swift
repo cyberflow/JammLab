@@ -297,7 +297,7 @@ final class NotationTrackLayoutItemsTests: XCTestCase {
         let quarterChord = try XCTUnwrap(chordGroups.first)
         XCTAssertEqual(Set(quarterChord.items.map { $0.notationItem.id }), ["c-quarter", "d-quarter"])
         XCTAssertEqual(quarterChord.duration, NotationDuration(denominator: 4))
-        XCTAssertEqual(Set(quarterChord.items.compactMap(\.stemDirection)).count, 1)
+        XCTAssertEqual(Set(quarterChord.items.compactMap(\.stemDirectionOverride)).count, 1)
         XCTAssertFalse(chordGroups.contains { group in
             group.items.contains { $0.notationItem.id == "g-half" }
         })
@@ -322,8 +322,372 @@ final class NotationTrackLayoutItemsTests: XCTestCase {
         XCTAssertFalse(quarterHitFrames[0].intersects(quarterHitFrames[1]))
         XCTAssertNotEqual(xByID["c-quarter"], xByID["g-half"])
         XCTAssertEqual(
-            layout.filter { $0.notationItem.id != "g-half" }.compactMap { $0.stemDirection }.count,
+            layout.filter { $0.notationItem.id != "g-half" }.compactMap {
+                $0.stemDirectionOverride
+            }.count,
             2
+        )
+    }
+
+    func testDrumStemResolverUsesEmptySecondLineFromBottomAndExactInstrumentMap() {
+        XCTAssertEqual(NotationDrumStemLayout.direction(forStaffPosition: 5), .up)
+        XCTAssertNil(NotationDrumStemLayout.direction(forStaffPosition: 6))
+        XCTAssertEqual(NotationDrumStemLayout.direction(forStaffPosition: 7), .down)
+        XCTAssertEqual(NotationDrumStemLayout.direction(forMIDINoteNumber: 49), .up)
+        XCTAssertEqual(NotationDrumStemLayout.direction(forMIDINoteNumber: 36), .down)
+        XCTAssertNil(NotationDrumStemLayout.direction(forMIDINoteNumber: 43))
+    }
+
+    func testTwoVoiceDrumOnsetRendersSingletonsWithOppositeStems() throws {
+        let measure = drumMeasure(items: [
+            drumNote(id: "crash", midiNoteNumber: 49),
+            drumNote(id: "bass", midiNoteNumber: 36)
+        ])
+        let layout = drumLayout(for: measure)
+        let directionByID = Dictionary(
+            uniqueKeysWithValues: layout.compactMap { item in
+                item.stemDirectionOverride.map { (item.notationItem.id, $0) }
+            }
+        )
+
+        XCTAssertEqual(directionByID["crash"], .up)
+        XCTAssertEqual(directionByID["bass"], .down)
+        XCTAssertTrue(NotationTrackLayoutItems.chordRenderGroups(from: layout).isEmpty)
+    }
+
+    func testFourNoteDrumOnsetCreatesIndependentSharedStemGroups() throws {
+        let measure = drumMeasure(items: [
+            drumNote(id: "crash", midiNoteNumber: 49),
+            drumNote(id: "ride", midiNoteNumber: 51),
+            drumNote(id: "bass", midiNoteNumber: 36),
+            drumNote(id: "bass-2", midiNoteNumber: 35)
+        ])
+        let groups = NotationTrackLayoutItems.chordRenderGroups(
+            from: drumLayout(for: measure)
+        )
+        let itemIDsByDirection = Dictionary(
+            uniqueKeysWithValues: groups.map { group in
+                (group.stemDirection, Set(group.items.map { $0.notationItem.id }))
+            }
+        )
+
+        XCTAssertEqual(groups.count, 2)
+        XCTAssertEqual(itemIDsByDirection[.up], ["crash", "ride"])
+        XCTAssertEqual(itemIDsByDirection[.down], ["bass", "bass-2"])
+    }
+
+    func testSamePositionDrumAlternatesRemainOneSharedStemGroup() throws {
+        let snare = drumNote(id: "snare", midiNoteNumber: 38)
+        var crossStick = drumNote(id: "cross-stick", midiNoteNumber: 37)
+        crossStick.tieTargetItemID = "cross-stick-target"
+        let crossStickTarget = drumNote(
+            id: "cross-stick-target",
+            midiNoteNumber: 37,
+            offset: 1
+        )
+        let measure = drumMeasure(items: [
+            snare,
+            crossStick,
+            crossStickTarget
+        ])
+        let layout = drumLayout(for: measure)
+        let groups = NotationTrackLayoutItems.chordRenderGroups(from: layout)
+        let group = try XCTUnwrap(groups.first)
+        let xByID = Dictionary(uniqueKeysWithValues: layout.map { ($0.notationItem.id, $0.x) })
+        let snareX = try XCTUnwrap(xByID["snare"])
+        let crossStickX = try XCTUnwrap(xByID["cross-stick"])
+
+        XCTAssertEqual(groups.count, 1)
+        XCTAssertEqual(group.stemDirection, .up)
+        XCTAssertEqual(Set(group.items.map { $0.notationItem.id }), ["snare", "cross-stick"])
+        XCTAssertEqual(
+            abs(snareX - crossStickX),
+            AppTheme.Timeline.notationDuplicateNoteOffset,
+            accuracy: 0.0001
+        )
+        XCTAssertFalse(CGRect(
+            x: snareX - AppTheme.Timeline.notationNoteHitWidth / 2,
+            y: 0,
+            width: AppTheme.Timeline.notationNoteHitWidth,
+            height: AppTheme.Timeline.notationNoteHitHeight
+        ).intersects(CGRect(
+            x: crossStickX - AppTheme.Timeline.notationNoteHitWidth / 2,
+            y: 0,
+            width: AppTheme.Timeline.notationNoteHitWidth,
+            height: AppTheme.Timeline.notationNoteHitHeight
+        )))
+
+        let tie = try XCTUnwrap(NotationTrackLayoutItems.ties(
+            visibleMeasures: [measure],
+            geometries: [drumGeometry],
+            connections: [NotationTieConnection(
+                source: NotationTieEndpoint(
+                    measureNumber: measure.number,
+                    measureStartTime: measure.startTime,
+                    measureAttributes: measure.attributes,
+                    item: crossStick
+                ),
+                target: NotationTieEndpoint(
+                    measureNumber: measure.number,
+                    measureStartTime: measure.startTime,
+                    measureAttributes: measure.attributes,
+                    item: crossStickTarget
+                )
+            )],
+            staffTop: 40
+        ).first)
+        XCTAssertEqual(
+            tie.start.x,
+            crossStickX + AppTheme.Timeline.notationTieNoteheadInset,
+            accuracy: 0.0001
+        )
+    }
+
+    func testPolyphonicDrumOnsetKeepsDurationLanesAndForcesSingletonDirections() throws {
+        let measure = drumMeasure(items: [
+            drumNote(id: "crash-quarter", midiNoteNumber: 49),
+            drumNote(
+                id: "bass-half",
+                midiNoteNumber: 36,
+                duration: 2,
+                denominator: 2
+            )
+        ])
+        let layout = drumLayout(for: measure)
+        let itemByID = Dictionary(uniqueKeysWithValues: layout.map { ($0.notationItem.id, $0) })
+        let crash = try XCTUnwrap(itemByID["crash-quarter"])
+        let bass = try XCTUnwrap(itemByID["bass-half"])
+
+        XCTAssertEqual(crash.stemDirectionOverride, .up)
+        XCTAssertEqual(bass.stemDirectionOverride, .down)
+        XCTAssertEqual(
+            abs(crash.x - bass.x),
+            AppTheme.Timeline.notationPolyphonicLaneSpacing,
+            accuracy: 0.0001
+        )
+        XCTAssertTrue(NotationTrackLayoutItems.chordRenderGroups(from: layout).isEmpty)
+    }
+
+    func testMonophonicDrumNoteKeepsLegacyStemFallback() throws {
+        let measure = drumMeasure(items: [
+            drumNote(id: "crash", midiNoteNumber: 49)
+        ])
+
+        XCTAssertNil(try XCTUnwrap(drumLayout(for: measure).first).stemDirectionOverride)
+        XCTAssertEqual(NotationStemDirection.direction(forStaffPosition: -2), .down)
+    }
+
+    func testDrumLaneWithUnsupportedTriggerUsesLegacyDirectionForEveryNote() throws {
+        let measure = drumMeasure(items: [
+            drumNote(id: "bass", midiNoteNumber: 36),
+            drumNote(id: "unsupported", midiNoteNumber: 43)
+        ])
+        let layout = drumLayout(for: measure)
+        let directionByID = Dictionary(
+            uniqueKeysWithValues: layout.compactMap { item in
+                item.stemDirectionOverride.map { (item.notationItem.id, $0) }
+            }
+        )
+
+        XCTAssertEqual(directionByID.count, 2)
+        XCTAssertEqual(directionByID["bass"], .up)
+        XCTAssertEqual(directionByID["unsupported"], .up)
+        XCTAssertEqual(NotationDrumStemLayout.direction(forMIDINoteNumber: 36), .down)
+        XCTAssertNil(NotationDrumStemLayout.direction(forMIDINoteNumber: 43))
+    }
+
+    func testDrumTiePlacementFollowsPolyphonicStemDirection() throws {
+        for scenario in [
+            (midiNoteNumber: 49, companionMIDINoteNumber: 36, expected: NotationTiePlacement.below),
+            (midiNoteNumber: 36, companionMIDINoteNumber: 49, expected: NotationTiePlacement.above)
+        ] {
+            var source = drumNote(id: "source", midiNoteNumber: scenario.midiNoteNumber)
+            source.tieTargetItemID = "target"
+            let target = drumNote(
+                id: "target",
+                midiNoteNumber: scenario.midiNoteNumber,
+                offset: 1
+            )
+            let measure = drumMeasure(items: [
+                source,
+                drumNote(id: "companion", midiNoteNumber: scenario.companionMIDINoteNumber),
+                target
+            ])
+            let connection = NotationTieConnection(
+                source: NotationTieEndpoint(
+                    measureNumber: measure.number,
+                    measureStartTime: measure.startTime,
+                    measureAttributes: measure.attributes,
+                    item: source
+                ),
+                target: NotationTieEndpoint(
+                    measureNumber: measure.number,
+                    measureStartTime: measure.startTime,
+                    measureAttributes: measure.attributes,
+                    item: target
+                )
+            )
+            let tie = try XCTUnwrap(NotationTrackLayoutItems.ties(
+                visibleMeasures: [measure],
+                geometries: [drumGeometry],
+                connections: [connection],
+                staffTop: 40
+            ).first)
+
+            XCTAssertEqual(tie.placement, scenario.expected)
+        }
+    }
+
+    func testVisibleMonophonicTieSourceTakesPrecedenceOverTargetStemOverride() throws {
+        var source = drumNote(id: "source", midiNoteNumber: 49)
+        source.tieTargetItemID = "target"
+        let target = drumNote(id: "target", midiNoteNumber: 49, offset: 1)
+        let measure = drumMeasure(items: [
+            source,
+            target,
+            drumNote(id: "target-companion", midiNoteNumber: 36, offset: 1)
+        ])
+        let layoutByID = Dictionary(
+            uniqueKeysWithValues: drumLayout(for: measure).map { ($0.notationItem.id, $0) }
+        )
+        XCTAssertNil(try XCTUnwrap(layoutByID["source"]).stemDirectionOverride)
+        XCTAssertEqual(try XCTUnwrap(layoutByID["source"]).effectiveStemDirection, .down)
+        XCTAssertEqual(try XCTUnwrap(layoutByID["target"]).stemDirectionOverride, .up)
+
+        let tie = try XCTUnwrap(NotationTrackLayoutItems.ties(
+            visibleMeasures: [measure],
+            geometries: [drumGeometry],
+            connections: [NotationTieConnection(
+                source: NotationTieEndpoint(
+                    measureNumber: measure.number,
+                    measureStartTime: measure.startTime,
+                    measureAttributes: measure.attributes,
+                    item: source
+                ),
+                target: NotationTieEndpoint(
+                    measureNumber: measure.number,
+                    measureStartTime: measure.startTime,
+                    measureAttributes: measure.attributes,
+                    item: target
+                )
+            )],
+            staffTop: 40
+        ).first)
+
+        XCTAssertEqual(tie.placement, .above)
+    }
+
+    func testOffSystemTieSourceUsesVisibleTargetStemDirection() throws {
+        var source = drumNote(
+            id: "source",
+            midiNoteNumber: 49,
+            offset: 3,
+            measureNumber: 1,
+            measureStartTime: 0
+        )
+        source.tieTargetItemID = "target"
+        let target = drumNote(
+            id: "target",
+            midiNoteNumber: 49,
+            offset: 1,
+            measureNumber: 2,
+            measureStartTime: 2
+        )
+        let visibleMeasure = drumMeasure(
+            number: 2,
+            startTime: 2,
+            items: [
+                target,
+                drumNote(
+                    id: "target-companion",
+                    midiNoteNumber: 36,
+                    offset: 1,
+                    measureNumber: 2,
+                    measureStartTime: 2
+                )
+            ]
+        )
+        let tie = try XCTUnwrap(NotationTrackLayoutItems.ties(
+            visibleMeasures: [visibleMeasure],
+            geometries: [drumGeometry],
+            connections: [NotationTieConnection(
+                source: NotationTieEndpoint(
+                    measureNumber: 1,
+                    measureStartTime: 0,
+                    measureAttributes: visibleMeasure.attributes,
+                    item: source
+                ),
+                target: NotationTieEndpoint(
+                    measureNumber: 2,
+                    measureStartTime: 2,
+                    measureAttributes: visibleMeasure.attributes,
+                    item: target
+                )
+            )],
+            staffTop: 40
+        ).first)
+
+        XCTAssertEqual(tie.placement, .below)
+    }
+
+    private var drumGeometry: NotationMeasureCanvasGeometry {
+        NotationMeasureCanvasGeometry(
+            measureIndex: 0,
+            cellStartX: 0,
+            cellEndX: 240,
+            contentStartX: 20,
+            contentEndX: 220,
+            staffStartX: 20,
+            staffEndX: 220
+        )
+    }
+
+    private func drumLayout(for measure: ScoreMeasure) -> [NotationItemLayoutItem] {
+        NotationTrackLayoutItems.notationItems(
+            visibleMeasures: [measure],
+            geometries: [drumGeometry]
+        )
+    }
+
+    private func drumMeasure(
+        number: Int = 1,
+        startTime: TimeInterval = 0,
+        items: [NotationMeasureItem]
+    ) -> ScoreMeasure {
+        ScoreMeasure(
+            number: number,
+            startTime: startTime,
+            endTime: startTime + 2,
+            attributes: MeasureAttributes(
+                keySignature: .cMajor,
+                timeSignature: .fourFour,
+                clef: .drums
+            ),
+            notationItems: items
+        )
+    }
+
+    private func drumNote(
+        id: String,
+        midiNoteNumber: Int,
+        offset: Double = 0,
+        duration: Double = 1,
+        denominator: Int = 4,
+        measureNumber: Int = 1,
+        measureStartTime: TimeInterval = 0
+    ) -> NotationMeasureItem {
+        NotationMeasureItem(
+            id: id,
+            kind: .note,
+            pitch: NotationPitchMapper.pitch(
+                forMIDINoteNumber: midiNoteNumber,
+                keySignature: .cMajor
+            ),
+            measureNumber: measureNumber,
+            measureStartTime: measureStartTime,
+            offsetInQuarterNotes: offset,
+            durationInQuarterNotes: duration,
+            displayDuration: NotationDuration(denominator: denominator)
         )
     }
 }
@@ -389,7 +753,7 @@ private func timelineViewActions(
         },
         changeSelectedNotePitch: { _, _ in true },
         changeNotationClef: { recorder.clefChanges.append(($0, $1)) },
-        auditionNotePitch: { _ in },
+        auditionNotePitch: { _, _ in },
         deleteSelectedNotationNote: {
             recorder.deleteNotationCount += 1
             return true

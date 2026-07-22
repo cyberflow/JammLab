@@ -132,13 +132,15 @@ final class MockNotationNoteAuditioner: NotationNoteAuditioning {
     var errorToThrow: Error?
     private(set) var attemptedPitches: [NotationPitch] = []
     private(set) var auditionedPitches: [NotationPitch] = []
+    private(set) var auditionedRoutes: [NotationNoteAuditionRoute] = []
 
-    func audition(pitch: NotationPitch) throws {
+    func audition(pitch: NotationPitch, route: NotationNoteAuditionRoute) throws {
         attemptedPitches.append(pitch)
         if let errorToThrow {
             throw errorToThrow
         }
         auditionedPitches.append(pitch)
+        auditionedRoutes.append(route)
     }
 }
 

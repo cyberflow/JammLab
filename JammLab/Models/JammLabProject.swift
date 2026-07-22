@@ -48,7 +48,7 @@ struct JammLabProject: Codable {
     var visibleNotationPartIDs: Set<NotationPartID>
 
     init(
-        formatVersion: Int = 13,
+        formatVersion: Int = 14,
         audioBookmarkData: Data,
         artifactRootBookmarkData: Data? = nil,
         audioDisplayName: String,

@@ -48,6 +48,7 @@ protocol NotationExportRenderer {
 enum NotationExportError: LocalizedError, Equatable {
     case emptyScore
     case unsupportedChord(rawText: String, measureNumber: Int)
+    case invalidDrumNote(midiNoteNumber: Int?, measureNumber: Int)
     case invalidXML
 
     var errorDescription: String? {
@@ -56,6 +57,11 @@ enum NotationExportError: LocalizedError, Equatable {
             return "No notation is available to export."
         case .unsupportedChord(let rawText, let measureNumber):
             return "Unsupported chord \"\(rawText)\" in measure \(measureNumber)."
+        case .invalidDrumNote(let midiNoteNumber, let measureNumber):
+            if let midiNoteNumber {
+                return "Unsupported drum MIDI note \(midiNoteNumber) in measure \(measureNumber)."
+            }
+            return "A drum note has no MIDI trigger in measure \(measureNumber)."
         case .invalidXML:
             return "MusicXML data could not be generated."
         }
@@ -186,12 +192,34 @@ final class MusicXMLNotationExportRenderer: NotationExportRenderer {
             scorePart.addChild(element("part-name", stringValue: partName, attributes: attributes))
             scorePart.addChild(element("part-abbreviation", stringValue: part.descriptor.abbreviation))
 
-            let scoreInstrument = element("score-instrument", attributes: ["id": "\(partID)-I1"])
-            scoreInstrument.addChild(element("instrument-name", stringValue: part.descriptor.instrumentName))
-            if let instrumentSound = part.descriptor.instrumentSound {
-                scoreInstrument.addChild(element("instrument-sound", stringValue: instrumentSound))
+            if part.score.measures.first?.attributes.clef == .drums {
+                let instruments = exportedDrumInstruments(in: part.score)
+                for instrument in instruments {
+                    let instrumentID = musicXMLDrumInstrumentID(partID: partID, midiNoteNumber: instrument.midiNoteNumber)
+                    let scoreInstrument = element("score-instrument", attributes: ["id": instrumentID])
+                    scoreInstrument.addChild(element("instrument-name", stringValue: instrument.name))
+                    scoreInstrument.addChild(element("instrument-sound", stringValue: "drum.group.set"))
+                    scorePart.addChild(scoreInstrument)
+                }
+                for instrument in instruments {
+                    let instrumentID = musicXMLDrumInstrumentID(partID: partID, midiNoteNumber: instrument.midiNoteNumber)
+                    let midiInstrument = element("midi-instrument", attributes: ["id": instrumentID])
+                    midiInstrument.addChild(element("midi-channel", stringValue: "10"))
+                    midiInstrument.addChild(element("midi-program", stringValue: "1"))
+                    midiInstrument.addChild(element(
+                        "midi-unpitched",
+                        stringValue: "\(instrument.midiNoteNumber + 1)"
+                    ))
+                    scorePart.addChild(midiInstrument)
+                }
+            } else {
+                let scoreInstrument = element("score-instrument", attributes: ["id": "\(partID)-I1"])
+                scoreInstrument.addChild(element("instrument-name", stringValue: part.descriptor.instrumentName))
+                if let instrumentSound = part.descriptor.instrumentSound {
+                    scoreInstrument.addChild(element("instrument-sound", stringValue: instrumentSound))
+                }
+                scorePart.addChild(scoreInstrument)
             }
-            scorePart.addChild(scoreInstrument)
             partList.addChild(scorePart)
         }
         return partList
@@ -199,6 +227,20 @@ final class MusicXMLNotationExportRenderer: NotationExportRenderer {
 
     private func musicXMLPartID(for index: Int) -> String {
         "P\(index + 1)"
+    }
+
+    private func musicXMLDrumInstrumentID(partID: String, midiNoteNumber: Int) -> String {
+        "\(partID)-I\(midiNoteNumber)"
+    }
+
+    private func exportedDrumInstruments(in score: NotationScoreState) -> [DrumInstrumentDefinition] {
+        let usedMIDINoteNumbers = Set(score.measures.flatMap(\.notationItems).compactMap { item in
+            item.kind == .note ? item.pitch?.midiNoteNumber : nil
+        })
+        let used = DrumInstrumentMap.instruments.filter {
+            usedMIDINoteNumbers.contains($0.midiNoteNumber)
+        }
+        return used.isEmpty ? [DrumInstrumentMap.defaultInstrument] : used
     }
 
     private func titleCredit(title: String) -> XMLElement {
@@ -225,6 +267,7 @@ final class MusicXMLNotationExportRenderer: NotationExportRenderer {
         includesRegionLabels: Bool,
         includesHarmonies: Bool
     ) throws -> XMLElement {
+        try validateDrumNotes(in: measures)
         let part = element("part", attributes: ["id": id])
         var previousAttributes: MeasureAttributes?
         let tieRoles = musicXMLTieRoles(in: measures)
@@ -257,6 +300,7 @@ final class MusicXMLNotationExportRenderer: NotationExportRenderer {
 
             if requiresPolyphonicCursor {
                 try addPolyphonicMeasureContent(
+                    partID: id,
                     measure: measure,
                     items: sortedItems,
                     noteEvents: noteEvents,
@@ -280,7 +324,9 @@ final class MusicXMLNotationExportRenderer: NotationExportRenderer {
                         harmonyIndex: &harmonyIndex
                     )
                     measureElement.addChild(notationNote(
+                        partID: id,
                         for: item,
+                        clef: measure.attributes.clef,
                         isOnlyItem: sortedItems.count == 1,
                         tieRole: tieRoles[item.id]
                     ))
@@ -305,6 +351,21 @@ final class MusicXMLNotationExportRenderer: NotationExportRenderer {
         return part
     }
 
+    private func validateDrumNotes(in measures: [ScoreMeasure]) throws {
+        for measure in measures where measure.attributes.clef == .drums {
+            for item in measure.notationItems where item.kind == .note {
+                guard let midiNoteNumber = item.pitch?.midiNoteNumber,
+                      DrumInstrumentMap.instrument(forMIDINoteNumber: midiNoteNumber) != nil
+                else {
+                    throw NotationExportError.invalidDrumNote(
+                        midiNoteNumber: item.pitch?.midiNoteNumber,
+                        measureNumber: measure.number
+                    )
+                }
+            }
+        }
+    }
+
     private func isHarmonyOrderedByNotationPosition(_ lhs: HarmonySymbol, _ rhs: HarmonySymbol) -> Bool {
         if abs(lhs.offsetInQuarterNotes - rhs.offsetInQuarterNotes) > NotationMeasureTiming.timelineTolerance {
             return lhs.offsetInQuarterNotes < rhs.offsetInQuarterNotes
@@ -325,6 +386,7 @@ final class MusicXMLNotationExportRenderer: NotationExportRenderer {
     }
 
     private func addPolyphonicMeasureContent(
+        partID: String,
         measure: ScoreMeasure,
         items: [NotationMeasureItem],
         noteEvents: [MusicXMLNoteEvent],
@@ -371,7 +433,9 @@ final class MusicXMLNotationExportRenderer: NotationExportRenderer {
                 } else {
                     for (index, item) in event.notes.enumerated() {
                         measureElement.addChild(pitchNote(
+                            partID: partID,
                             for: item,
+                            clef: measure.attributes.clef,
                             tieRole: tieRoles[item.id],
                             voice: voice,
                             isChordMember: index > 0
@@ -551,10 +615,12 @@ final class MusicXMLNotationExportRenderer: NotationExportRenderer {
             attributes.addChild(element("divisions", stringValue: "\(divisions)"))
         }
 
-        let key = element("key")
-        key.addChild(element("fifths", stringValue: "\(measureAttributes.keySignature.fifths)"))
-        key.addChild(element("mode", stringValue: measureAttributes.keySignature.mode.rawValue))
-        attributes.addChild(key)
+        if measureAttributes.clef != .drums {
+            let key = element("key")
+            key.addChild(element("fifths", stringValue: "\(measureAttributes.keySignature.fifths)"))
+            key.addChild(element("mode", stringValue: measureAttributes.keySignature.mode.rawValue))
+            attributes.addChild(key)
+        }
 
         let time = element("time")
         time.addChild(element("beats", stringValue: "\(measureAttributes.timeSignature.beatsPerBar)"))
@@ -563,7 +629,9 @@ final class MusicXMLNotationExportRenderer: NotationExportRenderer {
 
         let clef = element("clef")
         clef.addChild(element("sign", stringValue: measureAttributes.clef.sign))
-        clef.addChild(element("line", stringValue: "\(measureAttributes.clef.line)"))
+        if let line = measureAttributes.clef.line {
+            clef.addChild(element("line", stringValue: "\(line)"))
+        }
         attributes.addChild(clef)
 
         return attributes
@@ -651,7 +719,9 @@ final class MusicXMLNotationExportRenderer: NotationExportRenderer {
     }
 
     private func notationNote(
+        partID: String,
         for item: NotationMeasureItem,
+        clef: Clef,
         isOnlyItem: Bool,
         tieRole: MusicXMLTieRole?
     ) -> XMLElement {
@@ -659,7 +729,7 @@ final class MusicXMLNotationExportRenderer: NotationExportRenderer {
         case .rest:
             return restNote(for: item, isOnlyItem: isOnlyItem)
         case .note:
-            return pitchNote(for: item, tieRole: tieRole)
+            return pitchNote(partID: partID, for: item, clef: clef, tieRole: tieRole)
         }
     }
 
@@ -676,7 +746,9 @@ final class MusicXMLNotationExportRenderer: NotationExportRenderer {
     }
 
     private func pitchNote(
+        partID: String,
         for item: NotationMeasureItem,
+        clef: Clef,
         tieRole: MusicXMLTieRole?,
         voice: Int = 1,
         isChordMember: Bool = false
@@ -684,22 +756,61 @@ final class MusicXMLNotationExportRenderer: NotationExportRenderer {
         let note = element("note")
         if isChordMember { note.addChild(element("chord")) }
         let pitch = item.pitch ?? NotationPitch(step: .c, octave: 4)
-        let pitchElement = element("pitch")
-        pitchElement.addChild(element("step", stringValue: pitch.step.rawValue))
-        if pitch.alter != 0 {
-            pitchElement.addChild(element("alter", stringValue: "\(pitch.alter)"))
+        let drumInstrument = clef == .drums
+            ? DrumInstrumentMap.instrument(forMIDINoteNumber: pitch.midiNoteNumber)
+            : nil
+        if clef == .drums {
+            if let instrument = drumInstrument {
+                let unpitched = element("unpitched")
+                unpitched.addChild(element("display-step", stringValue: instrument.displayPitch.step.rawValue))
+                unpitched.addChild(element("display-octave", stringValue: "\(instrument.displayPitch.octave)"))
+                note.addChild(unpitched)
+                note.addChild(element(
+                    "instrument",
+                    attributes: [
+                        "id": musicXMLDrumInstrumentID(
+                            partID: partID,
+                            midiNoteNumber: instrument.midiNoteNumber
+                        )
+                    ]
+                ))
+            }
+        } else {
+            let pitchElement = element("pitch")
+            pitchElement.addChild(element("step", stringValue: pitch.step.rawValue))
+            if pitch.alter != 0 {
+                pitchElement.addChild(element("alter", stringValue: "\(pitch.alter)"))
+            }
+            pitchElement.addChild(element("octave", stringValue: "\(pitch.octave)"))
+            note.addChild(pitchElement)
         }
-        pitchElement.addChild(element("octave", stringValue: "\(pitch.octave)"))
-        note.addChild(pitchElement)
-        appendDurationElements(to: note, for: item, tieRole: tieRole, voice: voice)
+        let notehead = drumInstrument.flatMap {
+            musicXMLNotehead(for: $0.noteheadStyle)
+        }
+        appendDurationElements(
+            to: note,
+            for: item,
+            tieRole: tieRole,
+            voice: voice,
+            notehead: notehead
+        )
         return note
+    }
+
+    private func musicXMLNotehead(for style: DrumNoteheadStyle) -> String? {
+        switch style {
+        case .normal: return nil
+        case .x: return "x"
+        case .circleX: return "circle-x"
+        }
     }
 
     private func appendDurationElements(
         to note: XMLElement,
         for item: NotationMeasureItem,
         tieRole: MusicXMLTieRole? = nil,
-        voice: Int = 1
+        voice: Int = 1,
+        notehead: String? = nil
     ) {
         note.addChild(element("duration", stringValue: "\(durationValue(forQuarterOffset: item.durationInQuarterNotes))"))
         if tieRole?.stops == true {
@@ -712,6 +823,9 @@ final class MusicXMLNotationExportRenderer: NotationExportRenderer {
         note.addChild(element("type", stringValue: item.displayDuration.displayName))
         if item.displayDuration.isDotted {
             note.addChild(element("dot"))
+        }
+        if let notehead {
+            note.addChild(element("notehead", stringValue: notehead))
         }
         if let tieRole, tieRole.starts || tieRole.stops {
             let notations = element("notations")

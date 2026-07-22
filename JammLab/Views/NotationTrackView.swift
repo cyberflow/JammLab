@@ -12,7 +12,7 @@ struct NotationTrackActions {
     var insertNotationRest: (NotationRestPlacement) -> Bool
     var changeSelectedNotePitch: (NotationPitch, Bool) -> Bool
     var changeClef: (NotationPartID, Clef) -> Void
-    var auditionNotePitch: (NotationPitch) -> Void
+    var auditionNotePitch: (NotationPitch, Clef) -> Void
     var deleteSelectedNotationNote: () -> Bool
     var locatePlaybackMarkerExactly: (TimeInterval) -> Void
     var saveHarmony: (HarmonySymbol) -> Void
@@ -28,6 +28,7 @@ struct NotationTrackView: View {
     let selectedMeasures: [NotationMeasureSelection]
     let selectedItem: NotationItemSelection?
     let selectedDuration: NotationDuration
+    let selectedDrumInstrumentMIDINoteNumber: Int
     let entryMode: NotationEntryMode?
     let pendingEditorRequest: HarmonyEditorRequest?
     let showsRegionLabels: Bool
@@ -49,6 +50,7 @@ struct NotationTrackView: View {
         selectedMeasures: [NotationMeasureSelection] = [],
         selectedItem: NotationItemSelection? = nil,
         selectedDuration: NotationDuration = NotationDuration(),
+        selectedDrumInstrumentMIDINoteNumber: Int = DrumInstrumentMap.defaultMIDINoteNumber,
         entryMode: NotationEntryMode? = nil,
         pendingEditorRequest: HarmonyEditorRequest? = nil,
         showsRegionLabels: Bool = true,
@@ -62,6 +64,7 @@ struct NotationTrackView: View {
         self.selectedMeasures = selectedMeasures
         self.selectedItem = selectedItem
         self.selectedDuration = selectedDuration
+        self.selectedDrumInstrumentMIDINoteNumber = selectedDrumInstrumentMIDINoteNumber
         self.entryMode = entryMode
         self.pendingEditorRequest = pendingEditorRequest
         self.showsRegionLabels = showsRegionLabels
@@ -343,11 +346,16 @@ struct NotationTrackView: View {
                     for: pitch,
                     clef: item.measure.attributes.clef
                 )
+                let presentation = NotationNotePresentationResolver.presentation(
+                    for: pitch,
+                    clef: item.measure.attributes.clef
+                )
                 drawNoteGlyphWithLedgerLines(
                     duration: item.notationItem.displayDuration,
                     x: item.x,
                     staffPosition: staffPosition,
-                    stemDirection: item.stemDirection,
+                    noteheadStyle: presentation.noteheadStyle,
+                    stemDirection: item.stemDirectionOverride,
                     staffTop: staffTop,
                     color: color,
                     opacity: 1,
@@ -365,10 +373,15 @@ struct NotationTrackView: View {
                 for: hoveredNotePlacement.pitch,
                 clef: hoveredNotePlacement.measure.attributes.clef
             )
+            let presentation = NotationNotePresentationResolver.presentation(
+                for: hoveredNotePlacement.pitch,
+                clef: hoveredNotePlacement.measure.attributes.clef
+            )
             drawNoteGlyphWithLedgerLines(
                 duration: hoveredNotePlacement.displayDuration,
                 x: hoveredNotePlacement.x,
                 staffPosition: staffPosition,
+                noteheadStyle: presentation.noteheadStyle,
                 staffTop: staffTop,
                 color: appColors.accent,
                 opacity: 0.56,
@@ -394,25 +407,25 @@ struct NotationTrackView: View {
     ) {
         let spacing = AppTheme.Timeline.notationStaffLineSpacing
         let fontSize = spacing * 3.25
-        let noteheadSymbol = NotationNoteheadSymbol(duration: group.duration)
-        guard let noteheadPath = NotationMusicFontRegistry.glyphPath(
-            for: noteheadSymbol,
-            fontSize: fontSize
-        ) else { return }
-
-        let positioned = group.items.compactMap { item -> (item: NotationItemLayoutItem, position: Int, y: CGFloat, color: Color)? in
+        let positioned = group.items.compactMap { item -> (item: NotationItemLayoutItem, position: Int, x: CGFloat, y: CGFloat, style: DrumNoteheadStyle, color: Color)? in
             let pitch = draggedNotePitchPreview?.matches(item.selection) == true
                 ? draggedNotePitchPreview?.pitch
                 : item.notationItem.pitch
             guard let pitch else { return nil }
-            let position = NotationPitchMapper.staffPosition(for: pitch, clef: item.measure.attributes.clef)
+            let presentation = NotationNotePresentationResolver.presentation(
+                for: pitch,
+                clef: item.measure.attributes.clef
+            )
+            let position = presentation.staffPosition
             let color = selectedItem?.matches(item.measure, item: item.notationItem) == true
                 ? appColors.accent
                 : appColors.notationSymbolsAndLines
             return (
                 item,
                 position,
+                item.x,
                 NotationNotePlacementResolver.yPosition(forStaffPosition: position, staffTop: staffTop),
+                presentation.noteheadStyle,
                 color
             )
         }
@@ -421,21 +434,26 @@ struct NotationTrackView: View {
         for member in positioned {
             drawLedgerLines(
                 staffPosition: member.position,
-                x: member.item.x,
+                x: member.x,
                 staffTop: staffTop,
                 color: member.color,
                 opacity: 1,
                 in: &context
             )
-            let transform = noteheadPath.anchoredTransform(
-                anchor: CGPoint(x: noteheadPath.bounds.midX, y: noteheadPath.bounds.midY),
-                target: CGPoint(x: member.item.x, y: member.y)
+            drawNotehead(
+                duration: group.duration,
+                style: member.style,
+                x: member.x,
+                y: member.y,
+                color: member.color,
+                opacity: 1,
+                fontSize: fontSize,
+                in: &context
             )
-            context.fill(Path(noteheadPath.path).applying(transform), with: .color(member.color))
             if group.duration.isDotted {
                 drawAugmentationDot(
                     at: NotationAugmentationDotLayout.noteTarget(
-                        noteX: member.item.x,
+                        noteX: member.x,
                         noteStaffPosition: member.position,
                         staffTop: staffTop
                     ),
@@ -450,7 +468,7 @@ struct NotationTrackView: View {
         let stemColor = positioned.contains { member in
             selectedItem?.matches(member.item.measure, item: member.item.notationItem) == true
         } ? appColors.accent : appColors.notationSymbolsAndLines
-        let xs = positioned.map { $0.item.x }
+        let xs = positioned.map(\.x)
         let ys = positioned.map(\.y)
         let stemX: CGFloat
         let attachmentY: CGFloat
@@ -465,20 +483,17 @@ struct NotationTrackView: View {
             attachmentY = ys.min() ?? 0
             flagY = (ys.max() ?? 0) + spacing * 3.5
         }
-        var stemPath = Path()
-        stemPath.move(to: CGPoint(x: stemX, y: attachmentY))
-        stemPath.addLine(to: CGPoint(x: stemX, y: flagY))
-        context.stroke(stemPath, with: .color(stemColor), lineWidth: AppTheme.Stroke.medium)
-
-        if let flag = NotationFlagSymbol(duration: group.duration, stemDirection: group.stemDirection),
-           let flagPath = NotationMusicFontRegistry.glyphPath(for: flag, fontSize: fontSize) {
-            let anchorY = group.stemDirection == .up ? flagPath.bounds.minY : flagPath.bounds.maxY
-            let transform = flagPath.anchoredTransform(
-                anchor: CGPoint(x: flagPath.bounds.minX, y: anchorY),
-                target: CGPoint(x: stemX, y: flagY)
-            )
-            context.fill(Path(flagPath.path).applying(transform), with: .color(stemColor))
-        }
+        drawStemAndFlag(
+            duration: group.duration,
+            stemDirection: group.stemDirection,
+            stemX: stemX,
+            attachmentY: attachmentY,
+            flagY: flagY,
+            fontSize: fontSize,
+            color: stemColor,
+            opacity: 1,
+            in: &context
+        )
     }
 
     private func drawNotationTies(
@@ -512,6 +527,7 @@ struct NotationTrackView: View {
         duration: NotationDuration,
         x: CGFloat,
         staffPosition: Int,
+        noteheadStyle: DrumNoteheadStyle = .normal,
         stemDirection: NotationStemDirection? = nil,
         staffTop: CGFloat,
         color: Color,
@@ -526,18 +542,34 @@ struct NotationTrackView: View {
             opacity: opacity,
             in: &context
         )
-        drawNoteGlyph(
-            duration: duration,
-            x: x,
-            y: NotationNotePlacementResolver.yPosition(
-                forStaffPosition: staffPosition,
-                staffTop: staffTop
-            ),
-            stemDirection: stemDirection ?? NotationStemDirection.direction(forStaffPosition: staffPosition),
-            color: color,
-            opacity: opacity,
-            in: &context
+        let y = NotationNotePlacementResolver.yPosition(
+            forStaffPosition: staffPosition,
+            staffTop: staffTop
         )
+        let resolvedStemDirection = stemDirection
+            ?? NotationStemDirection.direction(forStaffPosition: staffPosition)
+        if noteheadStyle == .normal {
+            drawNoteGlyph(
+                duration: duration,
+                x: x,
+                y: y,
+                stemDirection: resolvedStemDirection,
+                color: color,
+                opacity: opacity,
+                in: &context
+            )
+        } else {
+            drawDrumNoteGlyph(
+                duration: duration,
+                x: x,
+                y: y,
+                stemDirection: resolvedStemDirection,
+                noteheadStyle: noteheadStyle,
+                color: color,
+                opacity: opacity,
+                in: &context
+            )
+        }
         if duration.isDotted {
             drawAugmentationDot(
                 at: NotationAugmentationDotLayout.noteTarget(
@@ -607,6 +639,123 @@ struct NotationTrackView: View {
             Path(glyphPath.path).applying(transform),
             with: .color(color.opacity(opacity))
         )
+    }
+
+    private func drawDrumNoteGlyph(
+        duration: NotationDuration,
+        x: CGFloat,
+        y: CGFloat,
+        stemDirection: NotationStemDirection,
+        noteheadStyle: DrumNoteheadStyle,
+        color: Color,
+        opacity: Double,
+        in context: inout GraphicsContext
+    ) {
+        let spacing = AppTheme.Timeline.notationStaffLineSpacing
+        let fontSize = spacing * 3.25
+        drawNotehead(
+            duration: duration,
+            style: noteheadStyle,
+            x: x,
+            y: y,
+            color: color,
+            opacity: opacity,
+            fontSize: fontSize,
+            in: &context
+        )
+
+        guard duration.denominator != 1 else { return }
+        let stemX = x + (stemDirection == .up ? spacing * 0.55 : -spacing * 0.55)
+        let stemEndY = y + (stemDirection == .up ? -spacing * 3.5 : spacing * 3.5)
+        drawStemAndFlag(
+            duration: duration,
+            stemDirection: stemDirection,
+            stemX: stemX,
+            attachmentY: y,
+            flagY: stemEndY,
+            fontSize: fontSize,
+            color: color,
+            opacity: opacity,
+            in: &context
+        )
+    }
+
+    private func drawStemAndFlag(
+        duration: NotationDuration,
+        stemDirection: NotationStemDirection,
+        stemX: CGFloat,
+        attachmentY: CGFloat,
+        flagY: CGFloat,
+        fontSize: CGFloat,
+        color: Color,
+        opacity: Double,
+        in context: inout GraphicsContext
+    ) {
+        var stem = Path()
+        stem.move(to: CGPoint(x: stemX, y: attachmentY))
+        stem.addLine(to: CGPoint(x: stemX, y: flagY))
+        context.stroke(
+            stem,
+            with: .color(color.opacity(opacity)),
+            lineWidth: AppTheme.Stroke.medium
+        )
+
+        if let flag = NotationFlagSymbol(duration: duration, stemDirection: stemDirection),
+           let flagPath = NotationMusicFontRegistry.glyphPath(for: flag, fontSize: fontSize) {
+            let transform = NotationFlagLayout.transform(
+                for: flagPath,
+                attachmentPoint: CGPoint(x: stemX, y: flagY)
+            )
+            context.fill(
+                Path(flagPath.path).applying(transform),
+                with: .color(color.opacity(opacity))
+            )
+        }
+    }
+
+    private func drawNotehead(
+        duration: NotationDuration,
+        style: DrumNoteheadStyle,
+        x: CGFloat,
+        y: CGFloat,
+        color: Color,
+        opacity: Double,
+        fontSize: CGFloat,
+        in context: inout GraphicsContext
+    ) {
+        let glyphPath: NotationSMuFLGlyphPath?
+        switch style {
+        case .normal:
+            glyphPath = NotationMusicFontRegistry.glyphPath(
+                for: NotationNoteheadSymbol(duration: duration),
+                fontSize: fontSize
+            )
+        case .x:
+            glyphPath = NotationMusicFontRegistry.glyphPath(
+                for: NotationDrumNoteheadSymbol.x,
+                fontSize: fontSize
+            )
+        case .circleX:
+            glyphPath = NotationMusicFontRegistry.glyphPath(
+                for: NotationDrumNoteheadSymbol.circleX,
+                fontSize: fontSize
+            )
+        }
+        guard let glyphPath else { return }
+        let transform = glyphPath.anchoredTransform(
+            anchor: CGPoint(x: glyphPath.bounds.midX, y: glyphPath.bounds.midY),
+            target: CGPoint(x: x, y: y)
+        )
+        let path = Path(glyphPath.path).applying(transform)
+        if style == .x, duration.denominator <= 2 {
+            context.stroke(
+                path,
+                with: .color(color.opacity(opacity)),
+                lineWidth: AppTheme.Stroke.thin
+            )
+        } else {
+            context.fill(path, with: .color(color.opacity(opacity)))
+        }
     }
 
     private func drawRestGlyph(
@@ -1013,7 +1162,7 @@ struct NotationTrackView: View {
                    draggedNotePitchPreview?.pitch == pitch {
                     didAudition = draggedNotePitchPreview?.didAudition == true
                 } else if item.notationItem.pitch != pitch {
-                    actions.auditionNotePitch(pitch)
+                    actions.auditionNotePitch(pitch, item.measure.attributes.clef)
                     didAudition = true
                 } else {
                     didAudition = false
@@ -1713,7 +1862,8 @@ struct NotationTrackView: View {
             point: point,
             staffTop: staffTop(in: height),
             selectedDuration: selectedDuration,
-            partID: partID
+            partID: partID,
+            selectedDrumInstrumentMIDINoteNumber: selectedDrumInstrumentMIDINoteNumber
         ), actions.canInsertNotationNote(placement) else { return nil }
         return placement
     }
@@ -1791,8 +1941,12 @@ struct NotationTrackView: View {
         case .rest:
             return "\(item.notationItem.displayDuration.capitalizedDisplayName) rest in measure \(item.selection.measureNumber)"
         case .note:
-            let pitchText = item.notationItem.pitch.map {
-                "\($0.step.rawValue)\($0.alter == 1 ? " sharp" : $0.alter == -1 ? " flat" : "")\($0.octave)"
+            let pitchText = item.notationItem.pitch.map { pitch in
+                if item.measure.attributes.clef == .drums,
+                   let instrument = DrumInstrumentMap.instrument(forMIDINoteNumber: pitch.midiNoteNumber) {
+                    return instrument.name
+                }
+                return "\(pitch.step.rawValue)\(pitch.alter == 1 ? " sharp" : pitch.alter == -1 ? " flat" : "")\(pitch.octave)"
             } ?? "note"
             return "\(item.notationItem.displayDuration.capitalizedDisplayName) \(pitchText) in measure \(item.selection.measureNumber)"
         }
@@ -1917,7 +2071,7 @@ private extension NotationTrackActions {
             insertNotationRest: { _ in false },
             changeSelectedNotePitch: { _, _ in false },
             changeClef: { _, _ in },
-            auditionNotePitch: { _ in },
+            auditionNotePitch: { _, _ in },
             deleteSelectedNotationNote: { false },
             locatePlaybackMarkerExactly: { _ in },
             saveHarmony: { _ in },

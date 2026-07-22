@@ -16,10 +16,20 @@ struct NotationItemLayoutItem: Equatable, Identifiable {
     var notationItem: NotationMeasureItem
     var selection: NotationItemSelection
     var x: CGFloat
-    var stemDirection: NotationStemDirection?
+    var stemDirectionOverride: NotationStemDirection?
 
     var id: String {
         selection.id
+    }
+
+    var effectiveStemDirection: NotationStemDirection? {
+        guard notationItem.kind == .note, let pitch = notationItem.pitch else { return nil }
+        return stemDirectionOverride ?? NotationStemDirection.direction(
+            forStaffPosition: NotationPitchMapper.staffPosition(
+                for: pitch,
+                clef: measure.attributes.clef
+            )
+        )
     }
 }
 
@@ -39,6 +49,22 @@ struct NotationChordRenderGroup: Equatable, Identifiable {
     var stemDirection: NotationStemDirection
 
     var id: String { items.map(\.id).sorted().joined(separator: "|") }
+}
+
+enum NotationDrumStemLayout {
+    static let emptyStaffPosition = 6
+
+    static func direction(forStaffPosition staffPosition: Int) -> NotationStemDirection? {
+        guard staffPosition != emptyStaffPosition else { return nil }
+        return staffPosition < emptyStaffPosition ? .up : .down
+    }
+
+    static func direction(forMIDINoteNumber midiNoteNumber: Int) -> NotationStemDirection? {
+        guard let instrument = DrumInstrumentMap.instrument(forMIDINoteNumber: midiNoteNumber) else {
+            return nil
+        }
+        return direction(forStaffPosition: instrument.staffPosition)
+    }
 }
 
 enum NotationTrackLayoutItems {
@@ -152,7 +178,7 @@ enum NotationTrackLayoutItems {
                     ),
                     x: (baseXByItemID[notationItem.id] ?? 0)
                         + (chordLayout.xOffsetByItemID[notationItem.id] ?? 0),
-                    stemDirection: chordLayout.stemDirectionByItemID[notationItem.id]
+                    stemDirectionOverride: chordLayout.stemDirectionByItemID[notationItem.id]
                 )
             }
         }
@@ -167,13 +193,14 @@ enum NotationTrackLayoutItems {
                 measureNumber: item.measure.number,
                 measureStartTick: Int((item.measure.startTime * 1_000_000).rounded()),
                 onsetTick: Int((item.notationItem.offsetInQuarterNotes * 1_000_000).rounded()),
-                durationTick: Int((item.notationItem.durationInQuarterNotes * 1_000_000).rounded())
+                durationTick: Int((item.notationItem.durationInQuarterNotes * 1_000_000).rounded()),
+                stemDirection: item.stemDirectionOverride
             )
         }
         return grouped.values.compactMap { items in
             guard items.count > 1,
                   let first = items.first,
-                  let direction = first.stemDirection
+                  let direction = first.stemDirectionOverride
             else { return nil }
             return NotationChordRenderGroup(
                 measure: first.measure,
@@ -206,41 +233,90 @@ enum NotationTrackLayoutItems {
             for (laneIndex, durationGroup) in durationGroups.enumerated() {
                 let laneOffset = (CGFloat(laneIndex) - CGFloat(durationGroups.count - 1) / 2)
                     * AppTheme.Timeline.notationPolyphonicLaneSpacing
-                let positioned = durationGroup.sorted {
-                    let lhs = NotationPitchMapper.staffPosition(
-                        for: $0.pitch!,
-                        clef: measure.attributes.clef
+                let positioned = durationGroup.compactMap { note -> PositionedNotationItem? in
+                    guard let pitch = note.pitch else { return nil }
+                    return PositionedNotationItem(
+                        item: note,
+                        staffPosition: NotationPitchMapper.staffPosition(
+                            for: pitch,
+                            clef: measure.attributes.clef
+                        ),
+                        drumStemDirection: measure.attributes.clef == .drums
+                            ? NotationDrumStemLayout.direction(
+                                forMIDINoteNumber: pitch.midiNoteNumber
+                            )
+                            : nil
                     )
-                    let rhs = NotationPitchMapper.staffPosition(
-                        for: $1.pitch!,
-                        clef: measure.attributes.clef
-                    )
-                    return lhs == rhs ? $0.id < $1.id : lhs < rhs
                 }
-                let staffPositions = positioned.map {
-                    NotationPitchMapper.staffPosition(for: $0.pitch!, clef: measure.attributes.clef)
+                .sorted {
+                    $0.staffPosition == $1.staffPosition
+                        ? $0.item.id < $1.item.id
+                        : $0.staffPosition < $1.staffPosition
                 }
-                let averagePosition = staffPositions.isEmpty
-                    ? 4
-                    : Int((Double(staffPositions.reduce(0, +)) / Double(staffPositions.count)).rounded())
-                let stemDirection = NotationStemDirection.direction(forStaffPosition: averagePosition)
-                var shiftsRight = stemDirection == .up
-
-                for (noteIndex, note) in positioned.enumerated() {
-                    var noteOffset = laneOffset
-                    if noteIndex > 0,
-                       abs(staffPositions[noteIndex] - staffPositions[noteIndex - 1]) == 1 {
-                        noteOffset += shiftsRight
-                            ? AppTheme.Timeline.notationChordSecondOffset
-                            : -AppTheme.Timeline.notationChordSecondOffset
-                        shiftsRight.toggle()
+                if measure.attributes.clef == .drums,
+                   positioned.allSatisfy({ $0.drumStemDirection != nil }) {
+                    for stemDirection in [NotationStemDirection.up, .down] {
+                        let stemGroup = positioned.filter {
+                            $0.drumStemDirection == stemDirection
+                        }
+                        applyChordLayout(
+                            to: stemGroup,
+                            laneOffset: laneOffset,
+                            stemDirection: stemDirection,
+                            layout: &layout
+                        )
                     }
-                    layout.xOffsetByItemID[note.id] = noteOffset
-                    layout.stemDirectionByItemID[note.id] = stemDirection
+                } else {
+                    applyChordLayout(
+                        to: positioned,
+                        laneOffset: laneOffset,
+                        stemDirection: legacyStemDirection(for: positioned),
+                        layout: &layout
+                    )
                 }
             }
         }
         return layout
+    }
+
+    private static func legacyStemDirection(
+        for notes: [PositionedNotationItem]
+    ) -> NotationStemDirection {
+        let staffPositions = notes.map(\.staffPosition)
+        let averagePosition = staffPositions.isEmpty
+            ? 4
+            : Int((Double(staffPositions.reduce(0, +)) / Double(staffPositions.count)).rounded())
+        return NotationStemDirection.direction(forStaffPosition: averagePosition)
+    }
+
+    private static func applyChordLayout(
+        to notes: [PositionedNotationItem],
+        laneOffset: CGFloat,
+        stemDirection: NotationStemDirection,
+        layout: inout NotationChordLayout
+    ) {
+        guard !notes.isEmpty else { return }
+
+        var shiftsRight = stemDirection == .up
+        var countsByStaffPosition: [Int: Int] = [:]
+        for (noteIndex, note) in notes.enumerated() {
+            var noteOffset = laneOffset
+            let staffPosition = note.staffPosition
+            let duplicateIndex = countsByStaffPosition[staffPosition, default: 0]
+            countsByStaffPosition[staffPosition] = duplicateIndex + 1
+            if !duplicateIndex.isMultiple(of: 2) {
+                noteOffset += AppTheme.Timeline.notationDuplicateNoteOffset
+            }
+            if noteIndex > 0,
+               abs(staffPosition - notes[noteIndex - 1].staffPosition) == 1 {
+                noteOffset += shiftsRight
+                    ? AppTheme.Timeline.notationChordSecondOffset
+                    : -AppTheme.Timeline.notationChordSecondOffset
+                shiftsRight.toggle()
+            }
+            layout.xOffsetByItemID[note.item.id] = noteOffset
+            layout.stemDirectionByItemID[note.item.id] = stemDirection
+        }
     }
 
     static func ties(
@@ -280,9 +356,10 @@ enum NotationTrackLayoutItems {
                 for: targetPitch,
                 clef: connection.target.measureAttributes.clef
             )
-            let placement: NotationTiePlacement = NotationStemDirection.direction(
-                forStaffPosition: sourceStaffPosition
-            ) == .up ? .below : .above
+            let stemDirection = sourceVisible?.effectiveStemDirection
+                ?? targetVisible?.effectiveStemDirection
+                ?? NotationStemDirection.direction(forStaffPosition: sourceStaffPosition)
+            let placement: NotationTiePlacement = stemDirection == .up ? .below : .above
             let verticalDirection: CGFloat = placement == .below ? 1 : -1
             let sourceY = NotationNotePlacementResolver.yPosition(
                 forStaffPosition: sourceStaffPosition,
@@ -315,11 +392,18 @@ private struct NotationChordLayout {
     var stemDirectionByItemID: [String: NotationStemDirection] = [:]
 }
 
+private struct PositionedNotationItem {
+    var item: NotationMeasureItem
+    var staffPosition: Int
+    var drumStemDirection: NotationStemDirection?
+}
+
 private struct NotationChordRenderKey: Hashable {
     var measureNumber: Int
     var measureStartTick: Int
     var onsetTick: Int
     var durationTick: Int
+    var stemDirection: NotationStemDirection?
 }
 
 enum NotationTrackAccessibility {

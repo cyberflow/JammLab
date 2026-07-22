@@ -68,22 +68,28 @@ final class NotationPrimitivesTests: XCTestCase {
     func testNotationClefSymbolsUseLelandSMuFLCodepointsAndReferenceLines() {
         let treble = NotationClefSymbol(.treble)
         let bass = NotationClefSymbol(.bass)
+        let drums = NotationClefSymbol(.drums)
 
         XCTAssertEqual(treble.codepoint, 0xE050)
         XCTAssertEqual(treble.referenceStaffLineFromTop, 3)
         XCTAssertEqual(bass.codepoint, 0xE062)
         XCTAssertEqual(bass.referenceStaffLineFromTop, 1)
+        XCTAssertEqual(drums.codepoint, 0xE069)
+        XCTAssertEqual(drums.referenceStaffLineFromTop, 2)
         XCTAssertEqual(Clef.treble.sign, "G")
         XCTAssertEqual(Clef.treble.line, 2)
         XCTAssertEqual(Clef.bass.sign, "F")
         XCTAssertEqual(Clef.bass.line, 4)
+        XCTAssertEqual(Clef.drums.sign, "percussion")
+        XCTAssertNil(Clef.drums.line)
     }
 
-    func testNotationPartClefOverridesRemoveOnlyDefaultTrebleValues() {
+    func testNotationPartClefOverridesRemovePerPartDefaultValues() {
         let unknownPart = NotationPartID(rawValue: "future:baritone")
         let normalized = NotationPartClefOverrides.normalized([
             .main: .treble,
             .stem(.bass): .bass,
+            .stem(.drums): .drums,
             unknownPart: .bass
         ])
 
@@ -92,6 +98,7 @@ final class NotationPrimitivesTests: XCTestCase {
             unknownPart: .bass
         ])
         XCTAssertEqual(NotationPartClefOverrides.clef(for: .main, in: normalized), .treble)
+        XCTAssertEqual(NotationPartClefOverrides.clef(for: .stem(.drums), in: normalized), .drums)
         XCTAssertEqual(NotationPartClefOverrides.clef(for: unknownPart, in: normalized), .bass)
     }
 
@@ -140,6 +147,8 @@ final class NotationPrimitivesTests: XCTestCase {
         XCTAssertEqual(NotationNoteheadSymbol(duration: NotationDuration(denominator: 1)).codepoint, 0xE0A2)
         XCTAssertEqual(NotationNoteheadSymbol(duration: NotationDuration(denominator: 2)).codepoint, 0xE0A3)
         XCTAssertEqual(NotationNoteheadSymbol(duration: NotationDuration(denominator: 4)).codepoint, 0xE0A4)
+        XCTAssertEqual(NotationDrumNoteheadSymbol.x.codepoint, 0xE0A9)
+        XCTAssertEqual(NotationDrumNoteheadSymbol.circleX.codepoint, 0xE0B3)
         XCTAssertEqual(
             NotationFlagSymbol(
                 duration: NotationDuration(denominator: 8),
@@ -158,6 +167,45 @@ final class NotationPrimitivesTests: XCTestCase {
             duration: NotationDuration(denominator: 4),
             stemDirection: .up
         ))
+    }
+
+    func testLelandFlagsAttachGlyphOriginToStemAndExtendInExpectedDirection() throws {
+        let fontSize: CGFloat = 32.5
+        let attachmentPoint = CGPoint(x: 42, y: 73)
+        let symbols: [(symbol: NotationFlagSymbol, direction: NotationStemDirection)] = [
+            (.eighth(.up), .up),
+            (.eighth(.down), .down),
+            (.sixteenth(.up), .up),
+            (.sixteenth(.down), .down),
+            (.thirtySecond(.up), .up),
+            (.thirtySecond(.down), .down)
+        ]
+
+        for expectation in symbols {
+            let glyphPath = try XCTUnwrap(NotationMusicFontRegistry.glyphPath(
+                for: expectation.symbol,
+                fontSize: fontSize
+            ))
+            let transform = NotationFlagLayout.transform(
+                for: glyphPath,
+                attachmentPoint: attachmentPoint
+            )
+            let transformedAttachment = NotationFlagLayout.attachmentAnchor.applying(transform)
+            let transformedBounds = glyphPath.bounds.applying(transform)
+
+            XCTAssertEqual(transformedAttachment.x, attachmentPoint.x, accuracy: 0.0001)
+            XCTAssertEqual(transformedAttachment.y, attachmentPoint.y, accuracy: 0.0001)
+            XCTAssertEqual(transformedBounds.minX, attachmentPoint.x, accuracy: 0.0001)
+            XCTAssertTrue(transformedBounds.minY...transformedBounds.maxY ~= attachmentPoint.y)
+
+            let upwardExtent = attachmentPoint.y - transformedBounds.minY
+            let downwardExtent = transformedBounds.maxY - attachmentPoint.y
+            if expectation.direction == .up {
+                XCTAssertGreaterThan(downwardExtent, upwardExtent)
+            } else {
+                XCTAssertGreaterThan(upwardExtent, downwardExtent)
+            }
+        }
     }
 
     func testNotationStemDirectionChangesOnlyAboveMiddleStaffLine() {
@@ -1014,10 +1062,11 @@ final class NotationPrimitivesTests: XCTestCase {
         XCTAssertEqual(NotationClefLayout.referenceAnchorY, 0)
         XCTAssertEqual(NotationClefLayout.targetY(for: .treble), 38)
         XCTAssertEqual(NotationClefLayout.targetY(for: .bass), 22)
+        XCTAssertEqual(NotationClefLayout.targetY(for: .drums), 30)
     }
 
     func testNotationClefLayoutTransformAnchorsGlyphAtStaffTarget() throws {
-        for symbol in [NotationClefSymbol.treble, .bass] {
+        for symbol in [NotationClefSymbol.treble, .bass, .drums] {
             let glyphPath = try XCTUnwrap(NotationMusicFontRegistry.glyphPath(
                 for: symbol,
                 fontSize: AppTheme.Timeline.notationClefFontSize
@@ -1037,7 +1086,7 @@ final class NotationPrimitivesTests: XCTestCase {
     }
 
     func testLelandClefGlyphPathsHaveBounds() throws {
-        for symbol in [NotationClefSymbol.treble, .bass] {
+        for symbol in [NotationClefSymbol.treble, .bass, .drums] {
             let glyphPath = try XCTUnwrap(NotationMusicFontRegistry.glyphPath(
                 for: symbol,
                 fontSize: AppTheme.Timeline.notationClefFontSize
@@ -1056,6 +1105,19 @@ final class NotationPrimitivesTests: XCTestCase {
             XCTAssertLessThanOrEqual(renderedBounds.maxX, NotationClefLayout.frameSize.width)
             XCTAssertGreaterThanOrEqual(renderedBounds.minY, 0)
             XCTAssertLessThanOrEqual(renderedBounds.maxY, NotationClefLayout.frameSize.height)
+        }
+    }
+
+    func testLelandDrumNoteheadGlyphPathsHaveBounds() throws {
+        for symbol in [NotationDrumNoteheadSymbol.x, .circleX] {
+            let glyphPath = try XCTUnwrap(NotationMusicFontRegistry.glyphPath(
+                for: symbol,
+                fontSize: 32.5
+            ))
+
+            XCTAssertFalse(glyphPath.path.isEmpty)
+            XCTAssertGreaterThan(glyphPath.bounds.width, 0)
+            XCTAssertGreaterThan(glyphPath.bounds.height, 0)
         }
     }
 

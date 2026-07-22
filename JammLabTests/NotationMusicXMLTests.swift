@@ -273,6 +273,206 @@ final class NotationMusicXMLTests: XCTestCase {
         XCTAssertTrue(bassPart.elements(forName: "measure").flatMap { $0.elements(forName: "direction") }.isEmpty)
     }
 
+    func testDrumClefExportsUnpitchedGMInstrumentsAndDrumNoteheads() throws {
+        let drumPartID = NotationPartID.stem(.drums)
+        let drumItems = [
+            NotationMeasureItem(
+                id: "closed-hi-hat",
+                partID: drumPartID,
+                kind: .note,
+                pitch: NotationPitchMapper.pitch(forMIDINoteNumber: 42, keySignature: .cMajor),
+                measureNumber: 1,
+                measureStartTime: 0,
+                offsetInQuarterNotes: 0,
+                durationInQuarterNotes: 1,
+                displayDuration: NotationDuration(denominator: 4)
+            ),
+            NotationMeasureItem(
+                id: "open-hi-hat",
+                partID: drumPartID,
+                kind: .note,
+                pitch: NotationPitchMapper.pitch(forMIDINoteNumber: 46, keySignature: .cMajor),
+                measureNumber: 1,
+                measureStartTime: 0,
+                offsetInQuarterNotes: 1,
+                durationInQuarterNotes: 1,
+                displayDuration: NotationDuration(denominator: 4)
+            ),
+            NotationMeasureItem(
+                id: "bass-drum",
+                partID: drumPartID,
+                kind: .note,
+                pitch: NotationPitchMapper.pitch(forMIDINoteNumber: 36, keySignature: .cMajor),
+                measureNumber: 1,
+                measureStartTime: 0,
+                offsetInQuarterNotes: 2,
+                durationInQuarterNotes: 1,
+                displayDuration: NotationDuration(denominator: 4)
+            )
+        ]
+        let score = NotationViewportFactory().scoreState(
+            tempoMap: fourFourTempoMap(duration: 4),
+            duration: 4,
+            currentTime: 0,
+            playbackMarkerTime: 0,
+            isPlaying: false,
+            keyName: "G major",
+            clef: .drums,
+            partID: drumPartID,
+            includesHarmonies: false,
+            notationItems: drumItems,
+            notes: []
+        )
+        let data = try NotationExportService(renderers: [
+            MusicXMLNotationExportRenderer(appVersionProvider: { nil })
+        ]).export(
+            NotationExportRequest(
+                displayName: "Drums",
+                score: score,
+                parts: [NotationExportPart(descriptor: .stem(.drums), score: score)]
+            ),
+            format: .musicXML
+        )
+        let document = try XMLDocument(data: data)
+        let root = try XCTUnwrap(document.rootElement())
+        let scorePart = try firstXMLChild(
+            named: "score-part",
+            in: try firstXMLChild(named: "part-list", in: root)
+        )
+        let scoreInstruments = scorePart.elements(forName: "score-instrument")
+        let midiInstruments = scorePart.elements(forName: "midi-instrument")
+        let part = try partElement(id: "P1", in: root)
+        let measure = try XCTUnwrap(part.elements(forName: "measure").first)
+        let attributes = try firstXMLChild(named: "attributes", in: measure)
+        let clef = try firstXMLChild(named: "clef", in: attributes)
+        let drumNotes = measure.elements(forName: "note").filter {
+            !$0.elements(forName: "unpitched").isEmpty
+        }
+
+        XCTAssertEqual(
+            scoreInstruments.map { $0.attribute(forName: "id")?.stringValue },
+            ["P1-I36", "P1-I42", "P1-I46"]
+        )
+        XCTAssertEqual(
+            midiInstruments.map { $0.elements(forName: "midi-channel").first?.stringValue },
+            ["10", "10", "10"]
+        )
+        XCTAssertEqual(
+            midiInstruments.map { $0.elements(forName: "midi-program").first?.stringValue },
+            ["1", "1", "1"]
+        )
+        XCTAssertEqual(
+            midiInstruments.map { $0.elements(forName: "midi-unpitched").first?.stringValue },
+            ["37", "43", "47"]
+        )
+        XCTAssertTrue(attributes.elements(forName: "key").isEmpty)
+        XCTAssertEqual(try firstXMLChild(named: "sign", in: clef).stringValue, "percussion")
+        XCTAssertTrue(clef.elements(forName: "line").isEmpty)
+        XCTAssertEqual(drumNotes.count, 3)
+        XCTAssertEqual(
+            drumNotes.map { $0.elements(forName: "notehead").first?.stringValue },
+            ["x", "circle-x", nil]
+        )
+        XCTAssertEqual(
+            drumNotes.map { $0.elements(forName: "instrument").first?.attribute(forName: "id")?.stringValue },
+            ["P1-I42", "P1-I46", "P1-I36"]
+        )
+        let firstUnpitched = try firstXMLChild(named: "unpitched", in: try XCTUnwrap(drumNotes.first))
+        XCTAssertEqual(try firstXMLChild(named: "display-step", in: firstUnpitched).stringValue, "G")
+        XCTAssertEqual(try firstXMLChild(named: "display-octave", in: firstUnpitched).stringValue, "5")
+    }
+
+    func testPitchedClefNoteMatchingDrumTriggerRemainsPitched() throws {
+        let pitch = NotationPitchMapper.pitch(forMIDINoteNumber: 42, keySignature: .cMajor)
+        let note = NotationMeasureItem(
+            id: "pitched-f-sharp",
+            kind: .note,
+            pitch: pitch,
+            measureNumber: 1,
+            measureStartTime: 0,
+            offsetInQuarterNotes: 0,
+            durationInQuarterNotes: 1,
+            displayDuration: NotationDuration(denominator: 4)
+        )
+        let score = NotationViewportFactory().scoreState(
+            tempoMap: fourFourTempoMap(duration: 4),
+            duration: 4,
+            currentTime: 0,
+            playbackMarkerTime: 0,
+            isPlaying: false,
+            keyName: "C major",
+            clef: .treble,
+            includesHarmonies: false,
+            notationItems: [note],
+            notes: []
+        )
+        let data = try NotationExportService(renderers: [
+            MusicXMLNotationExportRenderer(appVersionProvider: { nil })
+        ]).export(
+            NotationExportRequest(displayName: "Pitched", score: score),
+            format: .musicXML
+        )
+        let document = try XMLDocument(data: data)
+        let root = try XCTUnwrap(document.rootElement())
+        let part = try partElement(id: "P1", in: root)
+        let exportedNote = try XCTUnwrap(part.elements(forName: "measure")
+            .flatMap { $0.elements(forName: "note") }
+            .first { !$0.elements(forName: "pitch").isEmpty })
+        let exportedPitch = try firstXMLChild(named: "pitch", in: exportedNote)
+
+        XCTAssertEqual(try firstXMLChild(named: "step", in: exportedPitch).stringValue, "F")
+        XCTAssertEqual(try firstXMLChild(named: "alter", in: exportedPitch).stringValue, "1")
+        XCTAssertEqual(try firstXMLChild(named: "octave", in: exportedPitch).stringValue, "2")
+        XCTAssertTrue(exportedNote.elements(forName: "unpitched").isEmpty)
+        XCTAssertTrue(exportedNote.elements(forName: "instrument").isEmpty)
+        XCTAssertTrue(exportedNote.elements(forName: "notehead").isEmpty)
+    }
+
+    func testDrumClefRejectsUnsupportedTriggerInsteadOfExportingPitchedNote() throws {
+        let drumPartID = NotationPartID.stem(.drums)
+        let unsupportedNote = NotationMeasureItem(
+            id: "unsupported",
+            partID: drumPartID,
+            kind: .note,
+            pitch: NotationPitchMapper.pitch(forMIDINoteNumber: 40, keySignature: .cMajor),
+            measureNumber: 1,
+            measureStartTime: 0,
+            offsetInQuarterNotes: 0,
+            durationInQuarterNotes: 1,
+            displayDuration: NotationDuration(denominator: 4)
+        )
+        let score = NotationViewportFactory().scoreState(
+            tempoMap: fourFourTempoMap(duration: 4),
+            duration: 4,
+            currentTime: 0,
+            playbackMarkerTime: 0,
+            isPlaying: false,
+            keyName: "C major",
+            clef: .drums,
+            partID: drumPartID,
+            includesHarmonies: false,
+            notationItems: [unsupportedNote],
+            notes: []
+        )
+        let service = NotationExportService(renderers: [
+            MusicXMLNotationExportRenderer(appVersionProvider: { nil })
+        ])
+
+        XCTAssertThrowsError(try service.export(
+            NotationExportRequest(
+                displayName: "Drums",
+                score: score,
+                parts: [NotationExportPart(descriptor: .stem(.drums), score: score)]
+            ),
+            format: .musicXML
+        )) { error in
+            XCTAssertEqual(
+                error as? NotationExportError,
+                .invalidDrumNote(midiNoteNumber: 40, measureNumber: 1)
+            )
+        }
+    }
+
     private func childElements(in element: XMLElement) -> [XMLElement] {
         (element.children ?? []).compactMap { $0 as? XMLElement }
     }

@@ -258,7 +258,7 @@ extension AudioPlayerViewModel {
                 project.notationItems,
                 duration: resolvedProjectDuration
             )
-            notationPartClefs = NotationPartClefOverrides.normalized(project.notationPartClefs)
+            notationPartClefs = restoredNotationPartClefs(from: project)
             sanitizeNotationTieRelationships()
             projectKeySelection = project.projectKeySelection
             clearTransientEditingState()
@@ -310,6 +310,23 @@ extension AudioPlayerViewModel {
         }
     }
 
+    private func restoredNotationPartClefs(from project: JammLabProject) -> [NotationPartID: Clef] {
+        NotationPartClefOverrides.restored(
+            project.notationPartClefs,
+            projectFormatVersion: project.formatVersion,
+            hasLegacyDrumNotationEvidence: hasLegacyDrumNotationEvidence(project)
+        )
+    }
+
+    private func hasLegacyDrumNotationEvidence(_ project: JammLabProject) -> Bool {
+        let drumPartID = NotationPartID.stem(.drums)
+        return project.notationItems.contains { $0.partID == drumPartID }
+            || project.stemState?.mixState.item(for: .drums).isAvailable == true
+            || project.visibleNotationPartIDs.contains(drumPartID)
+            || project.stemNotationTrackCollapsed[.drums] != nil
+            || project.stemNoteDisplayModes[.drums] != nil
+    }
+
     private func clearTransientEditingState() {
         selectedRegionID = nil
         selectedHarmonySymbolID = nil
@@ -317,6 +334,7 @@ extension AudioPlayerViewModel {
         pendingHarmonyEditorRequest = nil
         notationDurationDenominator = NotationDuration.defaultDenominator
         notationEntryDurationIsDotted = false
+        selectedDrumInstrumentMIDINoteNumber = DrumInstrumentMap.defaultMIDINoteNumber
         notationEntryMode = nil
         activeLoopRegionID = nil
     }

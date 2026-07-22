@@ -88,35 +88,59 @@ extension AudioPlayerViewModel {
         let sourceClef = notationClef(for: partID)
         guard sourceClef != clef else { return }
 
-        let octaveDelta = clef.notationMetrics.storedPitchOctaveOffset
-            - sourceClef.notationMetrics.storedPitchOctaveOffset
+        let octaveDelta = sourceClef == .drums || clef == .drums
+            ? 0
+            : clef.notationMetrics.storedPitchOctaveOffset
+                - sourceClef.notationMetrics.storedPitchOctaveOffset
+        let candidateItems = notationItems.map { item -> NotationMeasureItem in
+            guard item.partID == partID,
+                  !item.isSynthesized,
+                  item.kind == .note,
+                  var pitch = item.pitch
+            else {
+                return item
+            }
+
+            pitch.octave += octaveDelta
+            var transposed = item
+            transposed.pitch = pitch
+            return transposed
+        }
+        let invalidPitch = candidateItems.first { item in
+            item.partID == partID
+                && item.kind == .note
+                && item.pitch.map { !NotationInputPolicy.isEditable($0, in: clef) } == true
+        }?.pitch
+        guard invalidPitch == nil else {
+            errorMessage = "Cannot change to \(clef.displayName): the part contains notes outside the supported input map."
+            return
+        }
+
+        errorMessage = nil
         performUndoableEdit("Change Notation Clef") {
-            if clef == .treble {
+            if clef == NotationPartClefOverrides.defaultClef(for: partID) {
                 notationPartClefs.removeValue(forKey: partID)
             } else {
                 notationPartClefs[partID] = clef
             }
 
-            notationItems = notationItems.map { item in
-                guard item.partID == partID,
-                      !item.isSynthesized,
-                      item.kind == .note,
-                      var pitch = item.pitch
-                else {
-                    return item
-                }
-
-                pitch.octave += octaveDelta
-                var transposed = item
-                transposed.pitch = pitch
-                return transposed
-            }
+            notationItems = candidateItems
             notationItems = ProjectStateNormalizer.normalizedNotationItems(
                 notationItems,
                 duration: duration
             )
             refreshNotationSelections(for: partID)
         }
+    }
+
+    func selectDrumInstrument(midiNoteNumber: Int) {
+        guard DrumInstrumentMap.allowedMIDINoteNumbers.contains(midiNoteNumber) else { return }
+        selectedDrumInstrumentMIDINoteNumber = midiNoteNumber
+        let pitch = NotationPitchMapper.pitch(
+            forMIDINoteNumber: midiNoteNumber,
+            keySignature: .cMajor
+        )
+        auditionNotationNotePitch(pitch, clef: .drums)
     }
 
     private func knownStemNotationPartTypes() -> [StemType] {
@@ -329,7 +353,7 @@ extension AudioPlayerViewModel {
         if shouldAudition,
            match.item.kind == .note,
            let pitch = match.item.pitch {
-            try? notationNoteAuditioner.audition(pitch: pitch)
+            auditionNotationNotePitch(pitch, clef: match.measure.attributes.clef)
         }
     }
 
@@ -412,7 +436,7 @@ extension AudioPlayerViewModel {
                 item: existing.item,
                 partID: placement.partID
             )
-            try? notationNoteAuditioner.audition(pitch: placement.pitch)
+            auditionNotationNotePitch(placement.pitch, clef: placement.measure.attributes.clef)
             return true
         }
         guard let plan = notationNoteInsertionPlan(for: placement) else { return false }
@@ -430,7 +454,7 @@ extension AudioPlayerViewModel {
             )
         }
 
-        try? notationNoteAuditioner.audition(pitch: placement.pitch)
+        auditionNotationNotePitch(placement.pitch, clef: placement.measure.attributes.clef)
         return true
     }
 
@@ -611,7 +635,9 @@ extension AudioPlayerViewModel {
 
         let measure = match.measure
         let item = match.item
-        guard !measure.notationItems.contains(where: {
+        guard measure.attributes.clef != .drums
+                || NotationInputPolicy.isEditable(pitch, in: .drums),
+              !measure.notationItems.contains(where: {
             $0.id != item.id
                 && $0.partID == item.partID
                 && $0.kind == .note
@@ -649,13 +675,13 @@ extension AudioPlayerViewModel {
         }
 
         if shouldAudition {
-            try? notationNoteAuditioner.audition(pitch: pitch)
+            auditionNotationNotePitch(pitch, clef: measure.attributes.clef)
         }
         return true
     }
 
-    func auditionNotationNotePitch(_ pitch: NotationPitch) {
-        try? notationNoteAuditioner.audition(pitch: pitch)
+    func auditionNotationNotePitch(_ pitch: NotationPitch, clef: Clef) {
+        try? notationNoteAuditioner.audition(pitch: pitch, route: .route(for: clef))
     }
 
     func canChangeSelectedNotationNotePitch(byStaffPositionDelta staffPositionDelta: Int) -> Bool {

@@ -556,6 +556,152 @@ struct NotationPitch: Codable, Equatable {
     }
 }
 
+enum DrumNoteheadStyle: String, Equatable {
+    case normal
+    case x
+    case circleX
+}
+
+struct DrumInstrumentDefinition: Identifiable, Equatable {
+    let midiNoteNumber: Int
+    let name: String
+    let staffPosition: Int
+    let noteheadStyle: DrumNoteheadStyle
+    let isPrimaryAtPosition: Bool
+
+    var id: Int { midiNoteNumber }
+
+    var displayPitch: NotationPitch {
+        let ordinal = Clef.drums.notationMetrics.topLineDiatonicOrdinal - staffPosition
+        let octave = Int(floor(Double(ordinal) / Double(NotationPitchStep.allCases.count)))
+        let stepIndex = ordinal - octave * NotationPitchStep.allCases.count
+        return NotationPitch(step: NotationPitchStep.allCases[stepIndex], octave: octave)
+    }
+
+    var pitchLabel: String {
+        let names = ["C", "C♯", "D", "D♯", "E", "F", "F♯", "G", "G♯", "A", "A♯", "B"]
+        let number = min(127, max(0, midiNoteNumber))
+        return "\(names[number % 12])\(number / 12 - 1)"
+    }
+}
+
+enum DrumInstrumentMap {
+    static let defaultMIDINoteNumber = 36
+
+    /// Palette order mirrors the two-row drum selector presented in the UI.
+    static let instruments: [DrumInstrumentDefinition] = [
+        instrument(36, "Bass Drum", 7, .normal, primary: true),
+        instrument(38, "Snare", 3, .normal, primary: true),
+        instrument(42, "Closed Hi-Hat", -1, .x, primary: true),
+        instrument(46, "Open Hi-Hat", -1, .circleX, primary: false),
+        instrument(49, "Crash Cymbal", -2, .x, primary: true),
+        instrument(51, "Ride Cymbal", 0, .x, primary: true),
+        instrument(50, "High Tom", 1, .normal, primary: true),
+        instrument(41, "Floor Tom", 5, .normal, primary: true),
+        instrument(35, "Bass Drum 2", 8, .normal, primary: true),
+        instrument(37, "Cross-stick", 3, .x, primary: false),
+        instrument(55, "Splash Cymbal", -4, .x, primary: true),
+        instrument(44, "Pedal Hi-Hat", 9, .x, primary: true),
+        instrument(57, "Crash Cymbal 2", -3, .x, primary: true),
+        instrument(53, "Ride Bell", 0, .x, primary: false),
+        instrument(47, "Low Tom", 2, .normal, primary: true),
+        instrument(52, "China Cymbal", -3, .x, primary: false)
+    ]
+
+    static let allowedMIDINoteNumbers = Set(instruments.map(\.midiNoteNumber))
+
+    private static let instrumentsByMIDINoteNumber = Dictionary(
+        uniqueKeysWithValues: instruments.map { ($0.midiNoteNumber, $0) }
+    )
+    private static let primaryInstrumentsInStaffOrder = instruments
+        .filter(\.isPrimaryAtPosition)
+        .sorted { $0.staffPosition > $1.staffPosition }
+
+    static var defaultInstrument: DrumInstrumentDefinition {
+        instrument(forMIDINoteNumber: defaultMIDINoteNumber) ?? instruments[0]
+    }
+
+    static func instrument(forMIDINoteNumber midiNoteNumber: Int) -> DrumInstrumentDefinition? {
+        instrumentsByMIDINoteNumber[midiNoteNumber]
+    }
+
+    static func nearestPrimaryInstrument(forStaffPosition staffPosition: Int) -> DrumInstrumentDefinition {
+        primaryInstrumentsInStaffOrder.min {
+            let lhsDistance = abs($0.staffPosition - staffPosition)
+            let rhsDistance = abs($1.staffPosition - staffPosition)
+            if lhsDistance != rhsDistance { return lhsDistance < rhsDistance }
+            return $0.staffPosition > $1.staffPosition
+        } ?? defaultInstrument
+    }
+
+    static func adjacentPrimaryInstrument(
+        from instrument: DrumInstrumentDefinition,
+        staffPositionDelta: Int
+    ) -> DrumInstrumentDefinition? {
+        guard staffPositionDelta != 0 else { return nil }
+        guard let sourceIndex = primaryInstrumentsInStaffOrder.firstIndex(where: {
+            $0.staffPosition == instrument.staffPosition
+        }) else {
+            return nil
+        }
+        let targetIndex = sourceIndex + (staffPositionDelta < 0 ? 1 : -1)
+        return primaryInstrumentsInStaffOrder.indices.contains(targetIndex)
+            ? primaryInstrumentsInStaffOrder[targetIndex]
+            : nil
+    }
+
+    private static func instrument(
+        _ midiNoteNumber: Int,
+        _ name: String,
+        _ staffPosition: Int,
+        _ noteheadStyle: DrumNoteheadStyle,
+        primary: Bool
+    ) -> DrumInstrumentDefinition {
+        DrumInstrumentDefinition(
+            midiNoteNumber: midiNoteNumber,
+            name: name,
+            staffPosition: staffPosition,
+            noteheadStyle: noteheadStyle,
+            isPrimaryAtPosition: primary
+        )
+    }
+}
+
+struct NotationNotePresentation: Equatable {
+    let staffPosition: Int
+    let noteheadStyle: DrumNoteheadStyle
+}
+
+enum NotationNotePresentationResolver {
+    static func presentation(for pitch: NotationPitch, clef: Clef) -> NotationNotePresentation {
+        if clef == .drums,
+           let instrument = DrumInstrumentMap.instrument(forMIDINoteNumber: pitch.midiNoteNumber) {
+            return NotationNotePresentation(
+                staffPosition: instrument.staffPosition,
+                noteheadStyle: instrument.noteheadStyle
+            )
+        }
+
+        return NotationNotePresentation(
+            staffPosition: NotationPitchMapper.pitchedStaffPosition(for: pitch, clef: clef),
+            noteheadStyle: .normal
+        )
+    }
+}
+
+enum NotationInputPolicy {
+    static func isEditableMIDINoteNumber(_ midiNoteNumber: Int, in clef: Clef) -> Bool {
+        if clef == .drums {
+            return DrumInstrumentMap.allowedMIDINoteNumbers.contains(midiNoteNumber)
+        }
+        return NotationPitchMapper.editableMIDINoteBounds(for: clef).contains(midiNoteNumber)
+    }
+
+    static func isEditable(_ pitch: NotationPitch, in clef: Clef) -> Bool {
+        isEditableMIDINoteNumber(pitch.midiNoteNumber, in: clef)
+    }
+}
+
 enum NotationPitchMapper {
     static var minimumStaffPosition: Int {
         Clef.treble.notationMetrics.editableStaffPositionRange.lowerBound
@@ -574,6 +720,10 @@ enum NotationPitchMapper {
         keySignature: KeySignature,
         clef: Clef = .treble
     ) -> NotationPitch {
+        if clef == .drums {
+            let instrument = DrumInstrumentMap.nearestPrimaryInstrument(forStaffPosition: staffPosition)
+            return pitch(forMIDINoteNumber: instrument.midiNoteNumber, keySignature: .cMajor)
+        }
         let range = editableStaffPositionRange(for: clef)
         let clampedPosition = min(range.upperBound, max(range.lowerBound, staffPosition))
         let ordinal = clef.notationMetrics.topLineDiatonicOrdinal - clampedPosition
@@ -588,6 +738,10 @@ enum NotationPitchMapper {
     }
 
     static func staffPosition(for pitch: NotationPitch, clef: Clef = .treble) -> Int {
+        NotationNotePresentationResolver.presentation(for: pitch, clef: clef).staffPosition
+    }
+
+    static func pitchedStaffPosition(for pitch: NotationPitch, clef: Clef = .treble) -> Int {
         let ordinal = pitch.octave * NotationPitchStep.allCases.count + pitch.step.diatonicIndex
         return clef.notationMetrics.topLineDiatonicOrdinal - ordinal
     }
@@ -599,6 +753,16 @@ enum NotationPitchMapper {
         clef: Clef = .treble
     ) -> NotationPitch? {
         guard staffPositionDelta != 0 else { return nil }
+
+        if clef == .drums {
+            guard let instrument = DrumInstrumentMap.instrument(forMIDINoteNumber: pitch.midiNoteNumber),
+                  let adjacent = DrumInstrumentMap.adjacentPrimaryInstrument(
+                    from: instrument,
+                    staffPositionDelta: staffPositionDelta
+                  )
+            else { return nil }
+            return self.pitch(forMIDINoteNumber: adjacent.midiNoteNumber, keySignature: .cMajor)
+        }
 
         let currentPosition = staffPosition(for: pitch, clef: clef)
         let targetPosition = currentPosition + staffPositionDelta
@@ -644,12 +808,14 @@ enum NotationPitchMapper {
     }
 
     static func isEditable(_ pitch: NotationPitch, in clef: Clef) -> Bool {
-        editableStaffPositionRange(for: clef).contains(
-            staffPosition(for: pitch, clef: clef)
-        )
+        NotationInputPolicy.isEditable(pitch, in: clef)
     }
 
-    static func editableMIDINoteRange(for clef: Clef) -> ClosedRange<Int> {
+    static func editableMIDINoteBounds(for clef: Clef) -> ClosedRange<Int> {
+        if clef == .drums {
+            let values = DrumInstrumentMap.allowedMIDINoteNumbers
+            return (values.min() ?? 0)...(values.max() ?? 0)
+        }
         let staffRange = editableStaffPositionRange(for: clef)
         let first = pitch(
             forStaffPosition: staffRange.lowerBound,
@@ -1153,6 +1319,7 @@ struct KeySignature: Equatable {
     }
 
     func notationAccidentalGlyphs(for clef: Clef) -> [KeySignatureAccidental] {
+        guard clef != .drums else { return [] }
         let source: ArraySlice<KeySignatureAccidental>
         if fifths > 0 {
             source = Self.trebleSharpAccidentals.prefix(accidentalCount)
@@ -1300,6 +1467,7 @@ struct NotationClefMetrics: Equatable {
 enum Clef: String, Codable, CaseIterable, Identifiable, Equatable {
     case treble
     case bass
+    case drums
 
     var id: String { rawValue }
 
@@ -1307,13 +1475,15 @@ enum Clef: String, Codable, CaseIterable, Identifiable, Equatable {
         switch self {
         case .treble: return "G"
         case .bass: return "F"
+        case .drums: return "percussion"
         }
     }
 
-    var line: Int {
+    var line: Int? {
         switch self {
         case .treble: return 2
         case .bass: return 4
+        case .drums: return nil
         }
     }
 
@@ -1321,6 +1491,7 @@ enum Clef: String, Codable, CaseIterable, Identifiable, Equatable {
         switch self {
         case .treble: return "Treble Clef"
         case .bass: return "Bass Clef"
+        case .drums: return "Drum Clef"
         }
     }
 
@@ -1340,19 +1511,45 @@ enum Clef: String, Codable, CaseIterable, Identifiable, Equatable {
                 keySignatureStaffPositionOffset: 2,
                 storedPitchOctaveOffset: -2
             )
+        case .drums:
+            return NotationClefMetrics(
+                editableStaffPositionRange: -4...9,
+                topLineDiatonicOrdinal: 5 * NotationPitchStep.allCases.count + NotationPitchStep.f.diatonicIndex,
+                keySignatureStaffPositionOffset: 0,
+                storedPitchOctaveOffset: 0
+            )
         }
     }
 }
 
 enum NotationPartClefOverrides {
     static func normalized(_ overrides: [NotationPartID: Clef]) -> [NotationPartID: Clef] {
-        overrides.filter { $0.value != .treble }
+        overrides.filter { $0.value != defaultClef(for: $0.key) }
     }
 
     static func clef(
         for partID: NotationPartID,
         in overrides: [NotationPartID: Clef]
     ) -> Clef {
-        overrides[partID] ?? .treble
+        overrides[partID] ?? defaultClef(for: partID)
+    }
+
+    static func defaultClef(for partID: NotationPartID) -> Clef {
+        partID.stemType == .drums ? .drums : .treble
+    }
+
+    static func restored(
+        _ overrides: [NotationPartID: Clef],
+        projectFormatVersion: Int,
+        hasLegacyDrumNotationEvidence: Bool
+    ) -> [NotationPartID: Clef] {
+        var restored = overrides
+        let drumPartID = NotationPartID.stem(.drums)
+        if projectFormatVersion < 14,
+           restored[drumPartID] == nil,
+           hasLegacyDrumNotationEvidence {
+            restored[drumPartID] = .treble
+        }
+        return normalized(restored)
     }
 }

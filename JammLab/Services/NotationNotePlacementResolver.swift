@@ -67,17 +67,34 @@ enum NotationNotePlacementResolver {
         staffTop: CGFloat,
         selectedDuration: NotationDuration,
         partID: NotationPartID = .main,
+        selectedDrumInstrumentMIDINoteNumber: Int? = nil,
         lineSpacing: CGFloat = AppTheme.Timeline.notationStaffLineSpacing
     ) -> NotationNotePlacement? {
-        guard lineSpacing > 0,
-              let pitchPosition = staffPosition(
+        guard lineSpacing > 0 else { return nil }
+        let pitchPosition: Int
+        let pitch: NotationPitch
+        if measure.attributes.clef == .drums {
+            let instrument = selectedDrumInstrumentMIDINoteNumber
+                .flatMap(DrumInstrumentMap.instrument(forMIDINoteNumber:))
+                ?? DrumInstrumentMap.defaultInstrument
+            pitchPosition = instrument.staffPosition
+            pitch = NotationPitchMapper.pitch(
+                forMIDINoteNumber: instrument.midiNoteNumber,
+                keySignature: .cMajor
+            )
+        } else {
+            guard let resolvedPosition = staffPosition(
                 forY: point.y,
                 staffTop: staffTop,
                 clef: measure.attributes.clef,
                 lineSpacing: lineSpacing
-              )
-        else {
-            return nil
+            ) else { return nil }
+            pitchPosition = resolvedPosition
+            pitch = NotationPitchMapper.pitch(
+                forStaffPosition: pitchPosition,
+                keySignature: measure.attributes.keySignature,
+                clef: measure.attributes.clef
+            )
         }
 
         let selectedLength = selectedDuration.durationInQuarterNotes
@@ -85,11 +102,6 @@ enum NotationNotePlacementResolver {
 
         let offset = snappedEntryOffset(in: measure, geometry: geometry, x: point.x)
 
-        let pitch = NotationPitchMapper.pitch(
-            forStaffPosition: pitchPosition,
-            keySignature: measure.attributes.keySignature,
-            clef: measure.attributes.clef
-        )
         let x = NotationMeasureLayout.harmonyX(
             geometry: geometry,
             offsetInQuarterNotes: offset,

@@ -8,7 +8,7 @@ struct MIDIPianoRollActions {
     var canInsertNotationNote: (NotationNotePlacement) -> Bool
     var insertNotationNote: (NotationNotePlacement) -> Bool
     var insertNotationRest: (NotationRestPlacement) -> Bool
-    var auditionNotePitch: (NotationPitch) -> Void
+    var auditionNotePitch: (NotationPitch, Clef) -> Void
     var deleteSelectedNotationNote: () -> Bool
     var beginNoteEdit: (NotationPartID) -> Void
     var endNoteEdit: () -> Void
@@ -87,9 +87,10 @@ enum MIDIPianoRollAutoPage {
         pointerX: CGFloat,
         width: CGFloat,
         previousPageStartTime: TimeInterval?,
-        nextPageStartTime: TimeInterval?
+        nextPageStartTime: TimeInterval?,
+        pitchLabelWidth: CGFloat = AppTheme.Timeline.midiPitchLabelWidth
     ) -> MIDIPianoRollAutoPageTarget? {
-        if pointerX <= AppTheme.Timeline.midiPitchLabelWidth
+        if pointerX <= pitchLabelWidth
             + AppTheme.Timeline.midiAutoPageEdgeThreshold,
            let previousPageStartTime {
             return MIDIPianoRollAutoPageTarget(
@@ -240,10 +241,15 @@ enum MIDIPianoRollLayout {
         visibleMeasures: [ScoreMeasure],
         totalWidth: CGFloat,
         notationItems: [NotationMeasureItem]? = nil,
+        pitchLabelWidth: CGFloat = AppTheme.Timeline.midiPitchLabelWidth,
         noteInset: CGFloat = AppTheme.Timeline.midiNoteInset,
         rowHeight: CGFloat = AppTheme.Timeline.midiPitchRowHeight
     ) -> [MIDIPianoRollNoteLayoutItem] {
-        let cells = measureCells(visibleMeasures: visibleMeasures, totalWidth: totalWidth)
+        let cells = measureCells(
+            visibleMeasures: visibleMeasures,
+            totalWidth: totalWidth,
+            pitchLabelWidth: pitchLabelWidth
+        )
         return cells.flatMap { cell -> [MIDIPianoRollNoteLayoutItem] in
             let measureLength = NotationMeasureTiming.quarterLength(
                 for: cell.measure.attributes.timeSignature
@@ -334,6 +340,7 @@ struct MIDIPianoRollView: View {
     let partTitle: String
     let selectedItem: NotationItemSelection?
     let selectedDuration: NotationDuration
+    let selectedDrumInstrumentMIDINoteNumber: Int
     let entryMode: NotationEntryMode?
     let actions: MIDIPianoRollActions
     @Binding var scrollPitch: Int?
@@ -354,6 +361,12 @@ struct MIDIPianoRollView: View {
 
     private var rollHeight: CGFloat {
         CGFloat(MIDIPianoRollLayout.midiRange.count) * AppTheme.Timeline.midiPitchRowHeight
+    }
+
+    private var pitchLabelWidth: CGFloat {
+        state.clef == .drums
+            ? AppTheme.Timeline.midiDrumPitchLabelWidth
+            : AppTheme.Timeline.midiPitchLabelWidth
     }
 
     var body: some View {
@@ -394,6 +407,9 @@ struct MIDIPianoRollView: View {
             .onChange(of: isPlaying) { _, playing in
                 if playing { cancelEditInteraction() }
             }
+            .onChange(of: selectedDrumInstrumentMIDINoteNumber) { _, midiNoteNumber in
+                if state.clef == .drums { scrollPitch = midiNoteNumber }
+            }
             .onDisappear { cancelEditInteraction() }
             .accessibilityElement(children: .contain)
             .accessibilityLabel("\(partTitle) MIDI Track")
@@ -419,7 +435,8 @@ struct MIDIPianoRollView: View {
             context.fill(Path(CGRect(origin: .zero, size: size)), with: .color(appColors.controlBackground))
             let cells = MIDIPianoRollLayout.measureCells(
                 visibleMeasures: state.visibleMeasures,
-                totalWidth: width
+                totalWidth: width,
+                pitchLabelWidth: pitchLabelWidth
             )
             for cell in cells {
                 let measureLength = NotationMeasureTiming.quarterLength(
@@ -458,7 +475,8 @@ struct MIDIPianoRollView: View {
             drawPitchRows(context: &context, size: size)
             let cells = MIDIPianoRollLayout.measureCells(
                 visibleMeasures: state.visibleMeasures,
-                totalWidth: width
+                totalWidth: width,
+                pitchLabelWidth: pitchLabelWidth
             )
             drawTimeGrid(context: &context, size: size, cells: cells)
             drawNotes(context: &context, width: width)
@@ -472,17 +490,23 @@ struct MIDIPianoRollView: View {
     }
 
     private func drawPitchRows(context: inout GraphicsContext, size: CGSize) {
-        let editableRange = NotationPitchMapper.editableMIDINoteRange(for: state.clef)
         for midiNote in MIDIPianoRollLayout.midiRange {
             let y = MIDIPianoRollLayout.yPosition(forMIDINoteNumber: midiNote)
             let rowRect = CGRect(x: 0, y: y, width: size.width, height: AppTheme.Timeline.midiPitchRowHeight)
+            if state.clef == .drums,
+               midiNote == selectedDrumInstrumentMIDINoteNumber {
+                context.fill(
+                    Path(rowRect),
+                    with: .color(appColors.accent.opacity(AppTheme.Timeline.midiSelectedPitchRowOpacity))
+                )
+            }
             if MIDIPianoRollLayout.isBlackKey(midiNote) {
                 context.fill(
                     Path(rowRect),
                     with: .color(appColors.notationSymbolsAndLines.opacity(AppTheme.Timeline.midiBlackKeyRowOpacity))
                 )
             }
-            if !editableRange.contains(midiNote) {
+            if !NotationInputPolicy.isEditableMIDINoteNumber(midiNote, in: state.clef) {
                 context.fill(
                     Path(rowRect),
                     with: .color(appColors.disabledText.opacity(AppTheme.Timeline.midiDisabledPitchRowOpacity))
@@ -497,7 +521,19 @@ struct MIDIPianoRollView: View {
                 lineWidth: AppTheme.Stroke.thin
             )
 
-            if midiNote % 12 == 0 {
+            if let instrument = state.clef == .drums
+                ? DrumInstrumentMap.instrument(forMIDINoteNumber: midiNote)
+                : nil {
+                context.draw(
+                    context.resolve(
+                        Text("\(instrument.name) · \(instrument.pitchLabel)")
+                            .font(.system(size: AppTheme.Timeline.midiLabelFontSize, weight: .medium))
+                            .foregroundStyle(appColors.secondaryText)
+                    ),
+                    at: CGPoint(x: AppTheme.Spacing.xs, y: y + AppTheme.Timeline.midiPitchRowHeight / 2),
+                    anchor: .leading
+                )
+            } else if state.clef != .drums, midiNote % 12 == 0 {
                 context.draw(
                     context.resolve(
                         Text(MIDIPianoRollLayout.pitchName(midiNote, usesFlats: state.keySignature.fifths < 0))
@@ -511,8 +547,8 @@ struct MIDIPianoRollView: View {
         }
 
         var gutter = Path()
-        gutter.move(to: CGPoint(x: AppTheme.Timeline.midiPitchLabelWidth, y: 0))
-        gutter.addLine(to: CGPoint(x: AppTheme.Timeline.midiPitchLabelWidth, y: size.height))
+        gutter.move(to: CGPoint(x: pitchLabelWidth, y: 0))
+        gutter.addLine(to: CGPoint(x: pitchLabelWidth, y: size.height))
         context.stroke(gutter, with: .color(appColors.border), lineWidth: AppTheme.Stroke.thin)
     }
 
@@ -564,7 +600,8 @@ struct MIDIPianoRollView: View {
     private func drawNotes(context: inout GraphicsContext, width: CGFloat) {
         for layoutItem in MIDIPianoRollLayout.noteLayoutItems(
             visibleMeasures: state.visibleMeasures,
-            totalWidth: width
+            totalWidth: width,
+            pitchLabelWidth: pitchLabelWidth
         ) {
             let isSelected = selectedLogicalItemIDs.contains(layoutItem.item.id)
                 || selectedItem?.matches(layoutItem.measure, item: layoutItem.item) == true
@@ -592,7 +629,8 @@ struct MIDIPianoRollView: View {
         for layoutItem in MIDIPianoRollLayout.noteLayoutItems(
             visibleMeasures: state.visibleMeasures,
             totalWidth: width,
-            notationItems: editPreview.previewItems
+            notationItems: editPreview.previewItems,
+            pitchLabelWidth: pitchLabelWidth
         ) {
             let path = Path(roundedRect: layoutItem.rect, cornerRadius: AppTheme.Radius.small)
             context.fill(
@@ -619,7 +657,8 @@ struct MIDIPianoRollView: View {
         guard let hoveredPlacement else { return }
         let cells = MIDIPianoRollLayout.measureCells(
             visibleMeasures: state.visibleMeasures,
-            totalWidth: width
+            totalWidth: width,
+            pitchLabelWidth: pitchLabelWidth
         )
         guard let cell = cells.first(where: { $0.measure.id == hoveredPlacement.measure.id }) else { return }
         let startX = MIDIPianoRollLayout.xPosition(
@@ -646,7 +685,8 @@ struct MIDIPianoRollView: View {
     private func noteInteractionLayer(width: CGFloat) -> some View {
         let layoutItems = MIDIPianoRollLayout.noteLayoutItems(
             visibleMeasures: state.visibleMeasures,
-            totalWidth: width
+            totalWidth: width,
+            pitchLabelWidth: pitchLabelWidth
         )
         let geometries = MIDIPianoRollLayout.noteInteractionGeometries(
             layoutItems: layoutItems,
@@ -760,13 +800,14 @@ struct MIDIPianoRollView: View {
     }
 
     private func notePlacement(at point: CGPoint, width: CGFloat) -> NotationNotePlacement? {
-        guard point.x >= AppTheme.Timeline.midiPitchLabelWidth,
+        guard point.x >= pitchLabelWidth,
               let midiNote = MIDIPianoRollLayout.midiNoteNumber(atY: point.y),
-              NotationPitchMapper.editableMIDINoteRange(for: state.clef).contains(midiNote)
+              NotationInputPolicy.isEditableMIDINoteNumber(midiNote, in: state.clef)
         else { return nil }
         let cells = MIDIPianoRollLayout.measureCells(
             visibleMeasures: state.visibleMeasures,
-            totalWidth: width
+            totalWidth: width,
+            pitchLabelWidth: pitchLabelWidth
         )
         guard let cell = MIDIPianoRollLayout.cell(atX: point.x, cells: cells) else { return nil }
         let offset = MIDIPianoRollLayout.snappedQuarterOffset(atX: point.x, cell: cell)
@@ -788,10 +829,11 @@ struct MIDIPianoRollView: View {
     }
 
     private func restPlacement(at point: CGPoint, width: CGFloat) -> NotationRestPlacement? {
-        guard point.x >= AppTheme.Timeline.midiPitchLabelWidth else { return nil }
+        guard point.x >= pitchLabelWidth else { return nil }
         let cells = MIDIPianoRollLayout.measureCells(
             visibleMeasures: state.visibleMeasures,
-            totalWidth: width
+            totalWidth: width,
+            pitchLabelWidth: pitchLabelWidth
         )
         guard let cell = MIDIPianoRollLayout.cell(atX: point.x, cells: cells) else { return nil }
         let offset = MIDIPianoRollLayout.snappedQuarterOffset(atX: point.x, cell: cell)
@@ -816,7 +858,8 @@ struct MIDIPianoRollView: View {
             ) else { return }
             let cells = MIDIPianoRollLayout.measureCells(
                 visibleMeasures: state.visibleMeasures,
-                totalWidth: width
+                totalWidth: width,
+                pitchLabelWidth: pitchLabelWidth
             )
             guard let grabbedPosition = MIDIPianoRollLayout.gridPosition(
                 atX: value.startLocation.x,
@@ -868,7 +911,8 @@ struct MIDIPianoRollView: View {
         guard let interaction = editInteraction else { return }
         let cells = MIDIPianoRollLayout.measureCells(
             visibleMeasures: state.visibleMeasures,
-            totalWidth: width
+            totalWidth: width,
+            pitchLabelWidth: pitchLabelWidth
         )
         let operation: NotationNoteEditOperation
         switch interaction.mode {
@@ -908,7 +952,7 @@ struct MIDIPianoRollView: View {
            let pitch = editPreview?.previewItems.first?.pitch,
            pitch.midiNoteNumber != lastAuditionedMIDINoteNumber {
             lastAuditionedMIDINoteNumber = pitch.midiNoteNumber
-            actions.auditionNotePitch(pitch)
+            actions.auditionNotePitch(pitch, state.clef)
         }
     }
 
@@ -922,7 +966,8 @@ struct MIDIPianoRollView: View {
             pointerX: point.x,
             width: width,
             previousPageStartTime: state.previousPageStartTime,
-            nextPageStartTime: state.nextPageStartTime
+            nextPageStartTime: state.nextPageStartTime,
+            pitchLabelWidth: pitchLabelWidth
         ) else {
             cancelAutoPage()
             return
@@ -971,6 +1016,10 @@ struct MIDIPianoRollView: View {
 
     private func initializeScrollPitch() {
         guard scrollPitch == nil else { return }
+        if state.clef == .drums {
+            scrollPitch = selectedDrumInstrumentMIDINoteNumber
+            return
+        }
         if let selectedItem,
            selectedItem.partID == partID,
            let selectedPitch = state.visibleMeasures
@@ -991,7 +1040,14 @@ struct MIDIPianoRollView: View {
     private func noteAccessibilityLabel(_ layoutItem: MIDIPianoRollNoteLayoutItem) -> String {
         guard let pitch = layoutItem.item.pitch else { return "MIDI note" }
         let beat = layoutItem.item.offsetInQuarterNotes + 1
-        return "\(MIDIPianoRollLayout.pitchName(pitch.midiNoteNumber, usesFlats: layoutItem.measure.attributes.keySignature.fifths < 0)), measure \(layoutItem.measure.number), beat \(beat.formatted(.number.precision(.fractionLength(0...2)))), \(layoutItem.item.displayDuration.humanDisplayName) note"
+        let pitchName = layoutItem.measure.attributes.clef == .drums
+            ? DrumInstrumentMap.instrument(forMIDINoteNumber: pitch.midiNoteNumber)?.name
+                ?? MIDIPianoRollLayout.pitchName(pitch.midiNoteNumber)
+            : MIDIPianoRollLayout.pitchName(
+                pitch.midiNoteNumber,
+                usesFlats: layoutItem.measure.attributes.keySignature.fifths < 0
+            )
+        return "\(pitchName), measure \(layoutItem.measure.number), beat \(beat.formatted(.number.precision(.fractionLength(0...2)))), \(layoutItem.item.displayDuration.humanDisplayName) note"
     }
 
     private var accessibilityValue: String {

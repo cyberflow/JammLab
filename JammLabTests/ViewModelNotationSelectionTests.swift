@@ -148,6 +148,7 @@ final class ViewModelNotationSelectionTests: XCTestCase {
         viewModel.clearNotationItemSelection()
 
         XCTAssertEqual(auditioner.auditionedPitches, [pitch, pitch])
+        XCTAssertEqual(auditioner.auditionedRoutes, [.melodic, .melodic])
         XCTAssertFalse(viewModel.isProjectModified)
     }
 
@@ -414,5 +415,5 @@ extension XCTestCase {
 
 @MainActor
 private final class NoopNotationNoteAuditioner: NotationNoteAuditioning {
-    func audition(pitch: NotationPitch) throws {}
+    func audition(pitch: NotationPitch, route: NotationNoteAuditionRoute) throws {}
 }

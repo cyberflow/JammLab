@@ -77,9 +77,9 @@ final class MIDIPianoRollTests: XCTestCase {
             ),
             NotationPitch(step: .d, octave: 4, alter: -1)
         )
-        XCTAssertTrue(NotationPitchMapper.editableMIDINoteRange(for: .treble).contains(60))
-        XCTAssertFalse(NotationPitchMapper.editableMIDINoteRange(for: .treble).contains(24))
-        XCTAssertTrue(NotationPitchMapper.editableMIDINoteRange(for: .bass).contains(40))
+        XCTAssertTrue(NotationPitchMapper.editableMIDINoteBounds(for: .treble).contains(60))
+        XCTAssertFalse(NotationPitchMapper.editableMIDINoteBounds(for: .treble).contains(24))
+        XCTAssertTrue(NotationPitchMapper.editableMIDINoteBounds(for: .bass).contains(40))
     }
 
     func testInsertionAtSnappedOffsetSplitsContainingRest() throws {
@@ -1034,17 +1034,215 @@ final class MIDIPianoRollTests: XCTestCase {
         viewModel.endNotationNoteEdit()
     }
 
+    func testDrumInstrumentMapUsesExactSupportedTriggersAndPresentations() throws {
+        let expectedNames = [
+            "Bass Drum", "Snare", "Closed Hi-Hat", "Open Hi-Hat",
+            "Crash Cymbal", "Ride Cymbal", "High Tom", "Floor Tom",
+            "Bass Drum 2", "Cross-stick", "Splash Cymbal", "Pedal Hi-Hat",
+            "Crash Cymbal 2", "Ride Bell", "Low Tom", "China Cymbal"
+        ]
+        let expectedDisplayPitches = [
+            NotationPitch(step: .f, octave: 4), NotationPitch(step: .c, octave: 5),
+            NotationPitch(step: .g, octave: 5), NotationPitch(step: .g, octave: 5),
+            NotationPitch(step: .a, octave: 5), NotationPitch(step: .f, octave: 5),
+            NotationPitch(step: .e, octave: 5), NotationPitch(step: .a, octave: 4),
+            NotationPitch(step: .e, octave: 4), NotationPitch(step: .c, octave: 5),
+            NotationPitch(step: .c, octave: 6), NotationPitch(step: .d, octave: 4),
+            NotationPitch(step: .b, octave: 5), NotationPitch(step: .f, octave: 5),
+            NotationPitch(step: .d, octave: 5), NotationPitch(step: .b, octave: 5)
+        ]
+        XCTAssertEqual(
+            DrumInstrumentMap.instruments.map(\.midiNoteNumber),
+            [36, 38, 42, 46, 49, 51, 50, 41, 35, 37, 55, 44, 57, 53, 47, 52]
+        )
+        XCTAssertEqual(DrumInstrumentMap.instruments.map(\.name), expectedNames)
+        XCTAssertEqual(DrumInstrumentMap.instruments.map(\.displayPitch), expectedDisplayPitches)
+        XCTAssertEqual(
+            DrumInstrumentMap.instruments.map(\.staffPosition),
+            [7, 3, -1, -1, -2, 0, 1, 5, 8, 3, -4, 9, -3, 0, 2, -3]
+        )
+        XCTAssertEqual(
+            DrumInstrumentMap.instruments.map(\.noteheadStyle),
+            [.normal, .normal, .x, .circleX, .x, .x, .normal, .normal,
+             .normal, .x, .x, .x, .x, .x, .normal, .x]
+        )
+        XCTAssertEqual(
+            DrumInstrumentMap.instruments.map(\.isPrimaryAtPosition),
+            [true, true, true, false, true, true, true, true,
+             true, false, true, true, true, false, true, false]
+        )
+        XCTAssertEqual(DrumInstrumentMap.allowedMIDINoteNumbers.count, 16)
+
+        let snare = try XCTUnwrap(DrumInstrumentMap.instrument(forMIDINoteNumber: 38))
+        let crossStick = try XCTUnwrap(DrumInstrumentMap.instrument(forMIDINoteNumber: 37))
+        let openHiHat = try XCTUnwrap(DrumInstrumentMap.instrument(forMIDINoteNumber: 46))
+        XCTAssertEqual(snare.staffPosition, 3)
+        XCTAssertEqual(snare.noteheadStyle, .normal)
+        XCTAssertEqual(crossStick.staffPosition, snare.staffPosition)
+        XCTAssertEqual(crossStick.noteheadStyle, .x)
+        XCTAssertEqual(openHiHat.noteheadStyle, .circleX)
+        XCTAssertNil(DrumInstrumentMap.instrument(forMIDINoteNumber: 43))
+        XCTAssertFalse(DrumInstrumentMap.instruments.contains {
+            $0.staffPosition == NotationDrumStemLayout.emptyStaffPosition
+        })
+        XCTAssertEqual(
+            DrumInstrumentMap.instrument(forMIDINoteNumber: 47)?.staffPosition,
+            2
+        )
+    }
+
+    func testDrumInstrumentMapNavigationPreservesStaffOrderAndTieBreaks() throws {
+        let pedalHiHat = try XCTUnwrap(DrumInstrumentMap.instrument(forMIDINoteNumber: 44))
+        let splash = try XCTUnwrap(DrumInstrumentMap.instrument(forMIDINoteNumber: 55))
+        let openHiHat = try XCTUnwrap(DrumInstrumentMap.instrument(forMIDINoteNumber: 46))
+
+        XCTAssertEqual(
+            DrumInstrumentMap.nearestPrimaryInstrument(forStaffPosition: 4).midiNoteNumber,
+            41
+        )
+        XCTAssertEqual(
+            DrumInstrumentMap.adjacentPrimaryInstrument(
+                from: openHiHat,
+                staffPositionDelta: 1
+            )?.midiNoteNumber,
+            51
+        )
+        XCTAssertEqual(
+            DrumInstrumentMap.adjacentPrimaryInstrument(
+                from: openHiHat,
+                staffPositionDelta: -1
+            )?.midiNoteNumber,
+            49
+        )
+        XCTAssertNil(DrumInstrumentMap.adjacentPrimaryInstrument(
+            from: pedalHiHat,
+            staffPositionDelta: 1
+        ))
+        XCTAssertNil(DrumInstrumentMap.adjacentPrimaryInstrument(
+            from: splash,
+            staffPositionDelta: -1
+        ))
+        XCTAssertNil(DrumInstrumentMap.adjacentPrimaryInstrument(
+            from: openHiHat,
+            staffPositionDelta: 0
+        ))
+    }
+
+    func testDrumInputPolicyRejectsNotesBetweenSupportedTriggers() {
+        XCTAssertEqual(NotationPitchMapper.editableMIDINoteBounds(for: .drums), 35...57)
+        for midiNoteNumber in 0...127 {
+            XCTAssertEqual(
+                NotationInputPolicy.isEditableMIDINoteNumber(midiNoteNumber, in: .drums),
+                DrumInstrumentMap.allowedMIDINoteNumbers.contains(midiNoteNumber)
+            )
+        }
+        XCTAssertFalse(NotationInputPolicy.isEditableMIDINoteNumber(40, in: .drums))
+    }
+
+    func testDrumInsertionPlannerRejectsUnsupportedTriggerEvenWithExplicitPlacement() {
+        let measure = makeMeasure(
+            attributes: MeasureAttributes(
+                keySignature: .cMajor,
+                timeSignature: .fourFour,
+                clef: .drums
+            ),
+            notationItems: [
+                NotationMeasureItem(
+                    id: "whole-rest",
+                    partID: .stem(.drums),
+                    measureNumber: 1,
+                    measureStartTime: 0,
+                    offsetInQuarterNotes: 0,
+                    durationInQuarterNotes: 4,
+                    displayDuration: NotationDuration(denominator: 1)
+                )
+            ]
+        )
+        let placement = NotationNotePlacement(
+            measure: measure,
+            partID: .stem(.drums),
+            offsetInQuarterNotes: 0,
+            durationInQuarterNotes: 1,
+            displayDuration: NotationDuration(denominator: 4),
+            pitch: NotationPitchMapper.pitch(forMIDINoteNumber: 40, keySignature: .cMajor),
+            x: 0,
+            y: 0
+        )
+
+        XCTAssertFalse(NotationNoteInsertionPlanner.canPlanInsertion(in: [measure], placement: placement))
+        XCTAssertNil(NotationNoteInsertionPlanner.planInsertion(in: [measure], placement: placement))
+    }
+
+    func testDrumNotationPlacementUsesSelectedInstrumentInsteadOfPointerHeight() throws {
+        let measure = ScoreMeasure(
+            number: 1,
+            startTime: 0,
+            endTime: 2,
+            attributes: MeasureAttributes(
+                keySignature: .cMajor,
+                timeSignature: .fourFour,
+                clef: .drums
+            )
+        )
+        let geometry = NotationMeasureCanvasGeometry(
+            measureIndex: 0,
+            cellStartX: 0,
+            cellEndX: 400,
+            contentStartX: 0,
+            contentEndX: 400,
+            staffStartX: 0,
+            staffEndX: 400
+        )
+        let placement = try XCTUnwrap(NotationNotePlacementResolver.placement(
+            in: measure,
+            geometry: geometry,
+            point: CGPoint(x: 100, y: 1_000),
+            staffTop: 40,
+            selectedDuration: NotationDuration(denominator: 4),
+            partID: .stem(.drums),
+            selectedDrumInstrumentMIDINoteNumber: 46
+        ))
+
+        XCTAssertEqual(placement.pitch.midiNoteNumber, 46)
+        XCTAssertEqual(
+            placement.y,
+            NotationNotePlacementResolver.yPosition(forStaffPosition: -1, staffTop: 40),
+            accuracy: 0.0001
+        )
+    }
+
+    func testDrumClefIsDefaultForNewDrumPartsAndLegacyEvidenceRestoresTreble() {
+        let partID = NotationPartID.stem(.drums)
+        XCTAssertEqual(NotationPartClefOverrides.defaultClef(for: partID), .drums)
+        XCTAssertEqual(NotationPartClefOverrides.clef(for: partID, in: [:]), .drums)
+
+        let legacy = NotationPartClefOverrides.restored(
+            [:],
+            projectFormatVersion: 13,
+            hasLegacyDrumNotationEvidence: true
+        )
+        XCTAssertEqual(legacy[partID], .treble)
+
+        let modern = NotationPartClefOverrides.restored(
+            [:],
+            projectFormatVersion: 14,
+            hasLegacyDrumNotationEvidence: true
+        )
+        XCTAssertNil(modern[partID])
+    }
+
     private func makeMeasure(
         number: Int = 1,
         startTime: TimeInterval = 0,
         endTime: TimeInterval = 2,
+        attributes: MeasureAttributes = .defaultTreble,
         notationItems: [NotationMeasureItem] = []
     ) -> ScoreMeasure {
         ScoreMeasure(
             number: number,
             startTime: startTime,
             endTime: endTime,
-            attributes: .defaultTreble,
+            attributes: attributes,
             notationItems: notationItems
         )
     }

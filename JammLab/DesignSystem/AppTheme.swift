@@ -191,6 +191,9 @@ enum AppTheme {
         static let notationDurationButtonWidth: CGFloat = 27
         static let notationDurationButtonSpacing: CGFloat = AppTheme.Spacing.xxxs
         static let notationModeButtonWidth: CGFloat = 32
+        static let drumInstrumentSelectorWidth: CGFloat = 148
+        static let drumInstrumentPadWidth: CGFloat = 100
+        static let drumInstrumentPadHeight: CGFloat = 54
         static let notationDurationControlHeight: CGFloat = controlHeight
         static let notationDurationGlyphSize: CGFloat = 20
         static let notationAugmentationDotNoteOffsetX: CGFloat = -3
@@ -292,10 +295,11 @@ enum AppTheme {
         static let markerTrackHeight: CGFloat = 24
         static let tempoTrackHeight: CGFloat = 38
         static let waveformTrackHeight: CGFloat = 110
-        static let notationTrackHeight: CGFloat = 124
+        static let notationTrackHeight: CGFloat = 140
         static let notationTrackCollapsedHeight: CGFloat = 36
         static let midiRulerHeight: CGFloat = 18
         static let midiPitchLabelWidth: CGFloat = 40
+        static let midiDrumPitchLabelWidth: CGFloat = 124
         static let midiPitchRowHeight: CGFloat = 12
         static let midiNoteInset: CGFloat = 1
         static let midiLabelFontSize: CGFloat = 9
@@ -307,6 +311,7 @@ enum AppTheme {
         static let midiAutoPageDelay: TimeInterval = 0.35
         static let midiBlackKeyRowOpacity = 0.12
         static let midiDisabledPitchRowOpacity = 0.34
+        static let midiSelectedPitchRowOpacity = 0.22
         static let midiRowSeparatorOpacity = 0.35
         static let midiBarLineOpacity = 0.7
         static let midiBeatLineOpacity = 0.24
@@ -331,6 +336,7 @@ enum AppTheme {
         static let notationItemAnchorInset: CGFloat = AppTheme.Spacing.lg
         static let notationChordSecondOffset: CGFloat = 4
         static let notationPolyphonicLaneSpacing: CGFloat = 9
+        static let notationDuplicateNoteOffset: CGFloat = notationStaffLineSpacing * 1.1
         static let notationNoteHitWidth: CGFloat = 8
         static let notationNoteHitHeight: CGFloat = 4
         static let notationTieNoteheadInset: CGFloat = 5

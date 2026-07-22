@@ -140,7 +140,7 @@ enum NotationDurationControlSymbol: Equatable {
     }
 }
 
-enum NotationStemDirection: Equatable {
+enum NotationStemDirection: Hashable {
     case up
     case down
 
@@ -281,6 +281,18 @@ enum NotationNoteheadSymbol: Equatable {
     }
 }
 
+enum NotationDrumNoteheadSymbol: Equatable {
+    case x
+    case circleX
+
+    var codepoint: UInt32 {
+        switch self {
+        case .x: return 0xE0A9
+        case .circleX: return 0xE0B3
+        }
+    }
+}
+
 enum NotationFlagSymbol: Equatable {
     case eighth(NotationStemDirection)
     case sixteenth(NotationStemDirection)
@@ -304,9 +316,24 @@ enum NotationFlagSymbol: Equatable {
     }
 }
 
+enum NotationFlagLayout {
+    static let attachmentAnchor = CGPoint.zero
+
+    static func transform(
+        for glyphPath: NotationSMuFLGlyphPath,
+        attachmentPoint: CGPoint
+    ) -> CGAffineTransform {
+        glyphPath.anchoredTransform(
+            anchor: attachmentAnchor,
+            target: attachmentPoint
+        )
+    }
+}
+
 enum NotationClefSymbol: Equatable {
     case treble
     case bass
+    case drums
 
     init(_ clef: Clef) {
         switch clef {
@@ -314,6 +341,8 @@ enum NotationClefSymbol: Equatable {
             self = .treble
         case .bass:
             self = .bass
+        case .drums:
+            self = .drums
         }
     }
 
@@ -323,6 +352,8 @@ enum NotationClefSymbol: Equatable {
             return 0xE050
         case .bass:
             return 0xE062
+        case .drums:
+            return 0xE069
         }
     }
 
@@ -332,6 +363,8 @@ enum NotationClefSymbol: Equatable {
             return 3
         case .bass:
             return 1
+        case .drums:
+            return 2
         }
     }
 }
@@ -419,6 +452,13 @@ enum NotationMusicFontRegistry {
 
     static func glyphPath(
         for symbol: NotationNoteheadSymbol,
+        fontSize: CGFloat
+    ) -> NotationSMuFLGlyphPath? {
+        glyphPath(forCodepoint: symbol.codepoint, fontSize: fontSize)
+    }
+
+    static func glyphPath(
+        for symbol: NotationDrumNoteheadSymbol,
         fontSize: CGFloat
     ) -> NotationSMuFLGlyphPath? {
         glyphPath(forCodepoint: symbol.codepoint, fontSize: fontSize)
