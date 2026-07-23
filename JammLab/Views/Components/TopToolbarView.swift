@@ -148,6 +148,7 @@ struct TopToolbarView: View {
                 height: AppTheme.ControlSize.abletonNumberFieldHeight
             )
             .disabled(!canUseBeatTools)
+            .help("Set the time-signature beat unit to a quarter note or eighth note.")
 
             Text("/")
                 .font(AppTheme.Typography.captionMonospaced)
@@ -158,10 +159,10 @@ struct TopToolbarView: View {
                     get: { Double(timeSignature.beatUnit) },
                     set: { onTimeSignatureChanged(timeSignature.beatsPerBar, Int($0.rounded())) }
                 ),
-                minValue: Double(TimeSignature.supportedBeatUnit),
-                maxValue: Double(TimeSignature.supportedBeatUnit),
-                defaultValue: Double(TimeSignature.supportedBeatUnit),
-                step: 1,
+                minValue: Double(TimeSignature.minimumBeatUnit),
+                maxValue: Double(TimeSignature.maximumBeatUnit),
+                defaultValue: Double(TimeSignature.defaultBeatUnit),
+                step: Double(TimeSignature.beatUnitStep),
                 precision: 0,
                 accessibilityLabel: "Time Signature Beat Unit"
             )

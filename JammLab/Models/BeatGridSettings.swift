@@ -8,7 +8,11 @@ enum BeatGridAlignmentSource: String, Codable {
 struct TimeSignature: Codable, Equatable {
     static let minimumBeatsPerBar = 1
     static let maximumBeatsPerBar = 7
-    static let supportedBeatUnit = 4
+    static let supportedBeatUnits = [4, 8]
+    static let defaultBeatUnit = 4
+    static let beatUnitStep = 4
+    static let minimumBeatUnit = supportedBeatUnits.min() ?? defaultBeatUnit
+    static let maximumBeatUnit = supportedBeatUnits.max() ?? defaultBeatUnit
 
     var beatsPerBar: Int
     var beatUnit: Int
@@ -33,7 +37,7 @@ struct TimeSignature: Codable, Equatable {
     }
 
     static func normalizedBeatUnit(_ value: Int) -> Int {
-        supportedBeatUnit
+        supportedBeatUnits.contains(value) ? value : defaultBeatUnit
     }
 }
 
@@ -68,6 +72,7 @@ struct BeatGridSettings: Codable, Equatable {
     var beatDuration: TimeInterval? {
         guard let bpm, bpm > 0 else { return nil }
         return 60.0 / bpm
+            * 4.0 / Double(timeSignature.beatUnit)
     }
 
     func clamped(to duration: TimeInterval) -> BeatGridSettings {
@@ -97,7 +102,7 @@ struct TempoTimeSignatureMarkerPayload: Equatable {
     init(
         bpm: Double? = nil,
         beatsPerBar: Int? = nil,
-        beatUnit: Int = TimeSignature.supportedBeatUnit,
+        beatUnit: Int = TimeSignature.defaultBeatUnit,
         setsNewFirstBeat: Bool = false
     ) {
         self.bpm = ProjectStateNormalizer.normalizedTempo(bpm)
@@ -111,7 +116,8 @@ struct TempoTimeSignatureMarkerPayload: Equatable {
 
         let bpm = metadata?[Self.bpmKey].flatMap(Double.init)
         let beatsPerBar = metadata?[Self.beatsPerBarKey].flatMap(Int.init)
-        let beatUnit = metadata?[Self.beatUnitKey].flatMap(Int.init) ?? TimeSignature.supportedBeatUnit
+        let beatUnit = metadata?[Self.beatUnitKey].flatMap(Int.init)
+            ?? TimeSignature.defaultBeatUnit
         let setsNewFirstBeat = metadata?[Self.setsNewFirstBeatKey].flatMap(Bool.init) ?? false
         self.init(bpm: bpm, beatsPerBar: beatsPerBar, beatUnit: beatUnit, setsNewFirstBeat: setsNewFirstBeat)
 

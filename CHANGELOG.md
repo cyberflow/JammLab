@@ -8,6 +8,7 @@ development artifact builds use `vMAJOR.MINOR.PATCH-dev.N`.
 
 ## Unreleased
 
+- Added automatic rhythmic beaming for eighth and sixteenth notes in supported simple and compound Notation meters, including shared stem direction, sloped beams, secondary beam breaks, and beamlets.
 - Fixed Leland eighth-note and shorter flags separating from their stems in Notation chord and Drum rendering.
 - Added Drum Clef notation with a 16-sound GM drum palette, percussion noteheads, voice-aware stem directions, constrained Notation/MIDI entry, percussion preview, legacy-project clef migration, and unpitched MusicXML export.
 - Prevented saved-video cleanup from deleting folders outside JammLab's temporary media cache.

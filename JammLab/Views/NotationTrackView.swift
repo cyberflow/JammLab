@@ -314,16 +314,18 @@ struct NotationTrackView: View {
         in context: inout GraphicsContext
     ) {
         let layoutItems = notationItemLayoutItems(geometries: geometries)
+        let beamLayoutItems = layoutItems.map(beamLayoutItem(for:))
+        let beamGroups = NotationBeamLayout.groups(
+            from: beamLayoutItems,
+            staffTop: staffTop
+        )
+        let beamItemIDs = Set(beamGroups.flatMap(\.notationItemIDs))
         let chordGroups = NotationTrackLayoutItems.chordRenderGroups(from: layoutItems)
         let chordItemIDs = Set(chordGroups.flatMap { $0.items.map(\.notationItem.id) })
 
-        for item in layoutItems where !chordItemIDs.contains(item.notationItem.id) {
-            let color = selectedItem?.matches(
-                item.measure,
-                item: item.notationItem
-            ) == true
-                ? appColors.accent
-                : appColors.notationSymbolsAndLines
+        for item in layoutItems where !chordItemIDs.contains(item.notationItem.id)
+            && !beamItemIDs.contains(item.notationItem.id) {
+            let color = notationItemColor(item)
             switch item.notationItem.kind {
             case .rest:
                 guard let symbol = NotationSMuFLSymbol(duration: item.notationItem.displayDuration) else {
@@ -338,10 +340,7 @@ struct NotationTrackView: View {
                     in: &context
                 )
             case .note:
-                let pitch = draggedNotePitchPreview?.matches(item.selection) == true
-                    ? draggedNotePitchPreview?.pitch
-                    : item.notationItem.pitch
-                guard let pitch else { continue }
+                guard let pitch = resolvedPitch(for: item) else { continue }
                 let staffPosition = NotationPitchMapper.staffPosition(
                     for: pitch,
                     clef: item.measure.attributes.clef
@@ -364,8 +363,14 @@ struct NotationTrackView: View {
             }
         }
 
-        for group in chordGroups {
+        for group in chordGroups where group.items.allSatisfy({
+            !beamItemIDs.contains($0.notationItem.id)
+        }) {
             drawChordGroup(group, staffTop: staffTop, in: &context)
+        }
+
+        for group in beamGroups {
+            drawBeamGroup(group, staffTop: staffTop, in: &context)
         }
 
         if let hoveredNotePlacement {
@@ -400,6 +405,147 @@ struct NotationTrackView: View {
         }
     }
 
+    private func drawBeamGroup(
+        _ group: NotationBeamGroup,
+        staffTop: CGFloat,
+        in context: inout GraphicsContext
+    ) {
+        let sharedColor = NotationBeamSelectionResolver.containsMatch(
+            selectedItem,
+            in: group
+        ) ? appColors.accent : appColors.notationSymbolsAndLines
+        let fontSize = AppTheme.Timeline.notationStaffLineSpacing * 3.25
+
+        for note in group.notes {
+            for member in note.members {
+                let memberColor = notationItemColor(member.selection)
+                drawLedgerLines(
+                    staffPosition: member.staffPosition,
+                    x: member.x,
+                    staffTop: staffTop,
+                    color: memberColor,
+                    opacity: 1,
+                    in: &context
+                )
+            }
+        }
+
+        for segment in group.secondarySegments {
+            drawBeamSegment(segment, color: sharedColor, in: &context)
+        }
+        drawBeamSegment(group.primarySegment, color: sharedColor, in: &context)
+
+        for note in group.notes {
+            drawVerticalStem(
+                x: note.stemX,
+                attachmentY: note.stemAttachmentY,
+                endY: note.stemEndY,
+                color: sharedColor,
+                opacity: 1,
+                in: &context
+            )
+        }
+
+        for note in group.notes {
+            for member in note.members {
+                drawStandaloneNoteheadAndDot(
+                    duration: member.displayDuration,
+                    style: member.noteheadStyle,
+                    x: member.x,
+                    y: member.y,
+                    staffPosition: member.staffPosition,
+                    staffTop: staffTop,
+                    color: notationItemColor(member.selection),
+                    fontSize: fontSize,
+                    in: &context
+                )
+            }
+        }
+    }
+
+    private func drawBeamSegment(
+        _ segment: NotationBeamSegment,
+        color: Color,
+        in context: inout GraphicsContext
+    ) {
+        guard let firstPoint = segment.polygonPoints.first else { return }
+        var path = Path()
+        path.move(to: firstPoint)
+        for point in segment.polygonPoints.dropFirst() {
+            path.addLine(to: point)
+        }
+        path.closeSubpath()
+        context.fill(path, with: .color(color))
+    }
+
+    private func drawStandaloneNoteheadAndDot(
+        duration: NotationDuration,
+        style: DrumNoteheadStyle,
+        x: CGFloat,
+        y: CGFloat,
+        staffPosition: Int,
+        staffTop: CGFloat,
+        color: Color,
+        fontSize: CGFloat,
+        in context: inout GraphicsContext
+    ) {
+        drawNotehead(
+            duration: duration,
+            style: style,
+            x: x,
+            y: y,
+            color: color,
+            opacity: 1,
+            fontSize: fontSize,
+            in: &context
+        )
+        if duration.isDotted {
+            drawAugmentationDot(
+                at: NotationAugmentationDotLayout.noteTarget(
+                    noteX: x,
+                    noteStaffPosition: staffPosition,
+                    staffTop: staffTop
+                ),
+                color: color,
+                opacity: 1,
+                in: &context
+            )
+        }
+    }
+
+    private func notationItemColor(_ item: NotationItemLayoutItem) -> Color {
+        notationItemColor(item.selection)
+    }
+
+    private func notationItemColor(
+        _ selection: NotationItemSelection
+    ) -> Color {
+        selectedItem?.matches(selection) == true
+            ? appColors.accent
+            : appColors.notationSymbolsAndLines
+    }
+
+    private func resolvedPitch(
+        for item: NotationItemLayoutItem
+    ) -> NotationPitch? {
+        draggedNotePitchPreview?.matches(item.selection) == true
+            ? draggedNotePitchPreview?.pitch
+            : item.notationItem.pitch
+    }
+
+    private func beamLayoutItem(
+        for item: NotationItemLayoutItem
+    ) -> NotationItemLayoutItem {
+        guard let pitch = resolvedPitch(for: item),
+              pitch != item.notationItem.pitch
+        else {
+            return item
+        }
+        var copy = item
+        copy.notationItem.pitch = pitch
+        return copy
+    }
+
     private func drawChordGroup(
         _ group: NotationChordRenderGroup,
         staffTop: CGFloat,
@@ -408,18 +554,13 @@ struct NotationTrackView: View {
         let spacing = AppTheme.Timeline.notationStaffLineSpacing
         let fontSize = spacing * 3.25
         let positioned = group.items.compactMap { item -> (item: NotationItemLayoutItem, position: Int, x: CGFloat, y: CGFloat, style: DrumNoteheadStyle, color: Color)? in
-            let pitch = draggedNotePitchPreview?.matches(item.selection) == true
-                ? draggedNotePitchPreview?.pitch
-                : item.notationItem.pitch
-            guard let pitch else { return nil }
+            guard let pitch = resolvedPitch(for: item) else { return nil }
             let presentation = NotationNotePresentationResolver.presentation(
                 for: pitch,
                 clef: item.measure.attributes.clef
             )
             let position = presentation.staffPosition
-            let color = selectedItem?.matches(item.measure, item: item.notationItem) == true
-                ? appColors.accent
-                : appColors.notationSymbolsAndLines
+            let color = notationItemColor(item)
             return (
                 item,
                 position,
@@ -440,33 +581,22 @@ struct NotationTrackView: View {
                 opacity: 1,
                 in: &context
             )
-            drawNotehead(
+            drawStandaloneNoteheadAndDot(
                 duration: group.duration,
                 style: member.style,
                 x: member.x,
                 y: member.y,
+                staffPosition: member.position,
+                staffTop: staffTop,
                 color: member.color,
-                opacity: 1,
                 fontSize: fontSize,
                 in: &context
             )
-            if group.duration.isDotted {
-                drawAugmentationDot(
-                    at: NotationAugmentationDotLayout.noteTarget(
-                        noteX: member.x,
-                        noteStaffPosition: member.position,
-                        staffTop: staffTop
-                    ),
-                    color: member.color,
-                    opacity: 1,
-                    in: &context
-                )
-            }
         }
 
         guard group.duration.denominator != 1 else { return }
-        let stemColor = positioned.contains { member in
-            selectedItem?.matches(member.item.measure, item: member.item.notationItem) == true
+        let stemColor = positioned.contains {
+            selectedItem?.matches($0.item.selection) == true
         } ? appColors.accent : appColors.notationSymbolsAndLines
         let xs = positioned.map(\.x)
         let ys = positioned.map(\.y)
@@ -475,13 +605,17 @@ struct NotationTrackView: View {
         let flagY: CGFloat
         switch group.stemDirection {
         case .up:
-            stemX = (xs.max() ?? 0) + spacing * 0.55
+            stemX = (xs.max() ?? 0)
+                + spacing * AppTheme.Timeline.notationStemXOffsetInStaffSpaces
             attachmentY = ys.max() ?? 0
-            flagY = (ys.min() ?? 0) - spacing * 3.5
+            flagY = (ys.min() ?? 0)
+                - spacing * AppTheme.Timeline.notationStemMinimumLengthInStaffSpaces
         case .down:
-            stemX = (xs.min() ?? 0) - spacing * 0.55
+            stemX = (xs.min() ?? 0)
+                - spacing * AppTheme.Timeline.notationStemXOffsetInStaffSpaces
             attachmentY = ys.min() ?? 0
-            flagY = (ys.max() ?? 0) + spacing * 3.5
+            flagY = (ys.max() ?? 0)
+                + spacing * AppTheme.Timeline.notationStemMinimumLengthInStaffSpaces
         }
         drawStemAndFlag(
             duration: group.duration,
@@ -665,8 +799,16 @@ struct NotationTrackView: View {
         )
 
         guard duration.denominator != 1 else { return }
-        let stemX = x + (stemDirection == .up ? spacing * 0.55 : -spacing * 0.55)
-        let stemEndY = y + (stemDirection == .up ? -spacing * 3.5 : spacing * 3.5)
+        let stemXOffset = spacing
+            * AppTheme.Timeline.notationStemXOffsetInStaffSpaces
+        let minimumStemLength = spacing
+            * AppTheme.Timeline.notationStemMinimumLengthInStaffSpaces
+        let stemX = x + (stemDirection == .up ? stemXOffset : -stemXOffset)
+        let stemEndY = y + (
+            stemDirection == .up
+                ? -minimumStemLength
+                : minimumStemLength
+        )
         drawStemAndFlag(
             duration: duration,
             stemDirection: stemDirection,
@@ -691,13 +833,13 @@ struct NotationTrackView: View {
         opacity: Double,
         in context: inout GraphicsContext
     ) {
-        var stem = Path()
-        stem.move(to: CGPoint(x: stemX, y: attachmentY))
-        stem.addLine(to: CGPoint(x: stemX, y: flagY))
-        context.stroke(
-            stem,
-            with: .color(color.opacity(opacity)),
-            lineWidth: AppTheme.Stroke.medium
+        drawVerticalStem(
+            x: stemX,
+            attachmentY: attachmentY,
+            endY: flagY,
+            color: color,
+            opacity: opacity,
+            in: &context
         )
 
         if let flag = NotationFlagSymbol(duration: duration, stemDirection: stemDirection),
@@ -711,6 +853,24 @@ struct NotationTrackView: View {
                 with: .color(color.opacity(opacity))
             )
         }
+    }
+
+    private func drawVerticalStem(
+        x: CGFloat,
+        attachmentY: CGFloat,
+        endY: CGFloat,
+        color: Color,
+        opacity: Double,
+        in context: inout GraphicsContext
+    ) {
+        var stem = Path()
+        stem.move(to: CGPoint(x: x, y: attachmentY))
+        stem.addLine(to: CGPoint(x: x, y: endY))
+        context.stroke(
+            stem,
+            with: .color(color.opacity(opacity)),
+            lineWidth: AppTheme.Stroke.medium
+        )
     }
 
     private func drawNotehead(

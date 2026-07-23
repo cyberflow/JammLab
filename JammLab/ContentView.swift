@@ -12,6 +12,7 @@ struct ContentView: View {
     @State var editingTempoTimeSignatureMarkerTime: TimeInterval = 0
     @State var editingTempoTimeSignatureBPM: Double = AppDefaults.defaultTempoBPM
     @State var editingTempoTimeSignatureBeatsPerBar: Double = Double(TimeSignature.fourFour.beatsPerBar)
+    @State var editingTempoTimeSignatureBeatUnit: Double = Double(TimeSignature.fourFour.beatUnit)
     @State var editingTempoTimeSignatureSetsNewFirstBeat = false
     @State var notesFilter: NotesFilter = .notes
     @State var notationProjectionCache = NotationProjectionCache()
@@ -80,6 +81,7 @@ struct ContentView: View {
             TempoTimeSignatureMarkerDialog(
                 bpm: $editingTempoTimeSignatureBPM,
                 beatsPerBar: $editingTempoTimeSignatureBeatsPerBar,
+                beatUnit: $editingTempoTimeSignatureBeatUnit,
                 setsNewFirstBeat: $editingTempoTimeSignatureSetsNewFirstBeat,
                 onCancel: cancelTempoTimeSignatureMarkerEditing,
                 onSet: saveTempoTimeSignatureMarkerEditing
@@ -123,6 +125,7 @@ struct ContentView: View {
         editingTempoTimeSignatureMarkerTime = 0
         editingTempoTimeSignatureBPM = AppDefaults.defaultTempoBPM
         editingTempoTimeSignatureBeatsPerBar = Double(TimeSignature.fourFour.beatsPerBar)
+        editingTempoTimeSignatureBeatUnit = Double(TimeSignature.fourFour.beatUnit)
         editingTempoTimeSignatureSetsNewFirstBeat = false
     }
 
@@ -132,6 +135,7 @@ struct ContentView: View {
                 id: editingTempoTimeSignatureMarkerID,
                 bpm: editingTempoTimeSignatureBPM,
                 beatsPerBar: Int(editingTempoTimeSignatureBeatsPerBar.rounded()),
+                beatUnit: Int(editingTempoTimeSignatureBeatUnit.rounded()),
                 setsNewFirstBeat: editingTempoTimeSignatureSetsNewFirstBeat
             )
         } else {
@@ -139,6 +143,7 @@ struct ContentView: View {
                 at: editingTempoTimeSignatureMarkerTime,
                 bpm: editingTempoTimeSignatureBPM,
                 beatsPerBar: Int(editingTempoTimeSignatureBeatsPerBar.rounded()),
+                beatUnit: Int(editingTempoTimeSignatureBeatUnit.rounded()),
                 setsNewFirstBeat: editingTempoTimeSignatureSetsNewFirstBeat
             )
         }
