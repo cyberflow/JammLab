@@ -51,6 +51,7 @@ final class AudioPlayerViewModel: ObservableObject {
     @Published var notationDurationDenominator = NotationDuration.defaultDenominator
     @Published var notationEntryDurationIsDotted = false
     @Published var notationItems: [NotationMeasureItem] = []
+    @Published var stemTranscriptionTracks: [StemTranscriptionTrack] = []
     @Published var notationPartClefs: [NotationPartID: Clef] = [:]
     @Published var selectedDrumInstrumentMIDINoteNumber = DrumInstrumentMap.defaultMIDINoteNumber
     @Published var notationEntryMode: NotationEntryMode?
@@ -69,6 +70,7 @@ final class AudioPlayerViewModel: ObservableObject {
     @Published var isBuildingStemPeakforms = false
     @Published var stemMixState = StemMixState()
     @Published var stemSeparationState = StemSeparationViewState()
+    @Published var stemTranscriptionStates: [StemType: StemTranscriptionViewState] = [:]
     @Published var isLooping = false
     @Published var isClickEnabled = false
     @Published var isSnapEnabled = false
@@ -97,6 +99,7 @@ final class AudioPlayerViewModel: ObservableObject {
     let videoFollower: VideoFollowerControlling
     let appSettingsStore: AppSettingsStore
     let stemSeparationService: StemSeparationService
+    let stemTranscriptionService: StemTranscriptionService
     let projectService: ProjectDocumentService
     let projectArtifactStore: ProjectArtifactStore
     let projectPersistenceCoordinator: ProjectPersistenceCoordinator
@@ -112,6 +115,9 @@ final class AudioPlayerViewModel: ObservableObject {
     var stemSeparationTask: Task<Void, Never>?
     var stemSeparationRunID: UUID?
     var stemPeakformTask: Task<Void, Never>?
+    var stemTranscriptionTasks: [StemType: Task<Void, Never>] = [:]
+    var stemTranscriptionOperations: [StemType: StemTranscriptionOperation] = [:]
+    var stemTranscriptionRunIDs: [StemType: UUID] = [:]
     var stemCacheMetadata: StemCacheMetadata?
     var shouldAcceptAnalyzedTempo = true
     var securityScopedURL: URL?
@@ -171,6 +177,7 @@ final class AudioPlayerViewModel: ObservableObject {
         videoFollower: VideoFollowerControlling? = nil,
         appSettingsStore: AppSettingsStore = AppSettingsStore(),
         stemSeparationService: StemSeparationService? = nil,
+        stemTranscriptionService: StemTranscriptionService = StemTranscriptionService(),
         projectService: ProjectDocumentService = ProjectDocumentService(),
         projectArtifactStore: ProjectArtifactStore = ProjectArtifactStore(),
         projectPersistenceCoordinator: ProjectPersistenceCoordinator? = nil,
@@ -188,6 +195,7 @@ final class AudioPlayerViewModel: ObservableObject {
         self.videoFollower = videoFollower ?? VideoFollowerController()
         self.appSettingsStore = appSettingsStore
         self.stemSeparationService = resolvedStemSeparationService
+        self.stemTranscriptionService = stemTranscriptionService
         self.projectService = projectService
         self.projectArtifactStore = projectArtifactStore
         self.projectPersistenceCoordinator = projectPersistenceCoordinator ?? ProjectPersistenceCoordinator(

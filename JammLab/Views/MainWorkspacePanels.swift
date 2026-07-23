@@ -195,7 +195,9 @@ extension ContentView {
             mixState: viewModel.stemMixState,
             stemFiles: viewModel.stemFiles,
             stemPeakforms: viewModel.stemPeakforms,
-            isLoadingStemPeakforms: viewModel.isBuildingStemPeakforms
+            isLoadingStemPeakforms: viewModel.isBuildingStemPeakforms,
+            stemTranscriptionStates: viewModel.stemTranscriptionStates,
+            stemTypesWithTranscription: Set(viewModel.stemTranscriptionTracks.map(\.stemType))
         )
     }
 
@@ -337,7 +339,9 @@ extension ContentView {
         StemTrackActions(
             volumeChanged: { viewModel.setStemVolume($0, volume: $1) },
             muteToggled: { viewModel.toggleStemMute($0) },
-            soloToggled: { viewModel.toggleStemSolo($0) }
+            soloToggled: { viewModel.toggleStemSolo($0) },
+            transcribe: { viewModel.transcribeStem($0, conflictChoice: $1) },
+            cancelTranscription: { viewModel.cancelStemTranscription($0) }
         )
     }
 
