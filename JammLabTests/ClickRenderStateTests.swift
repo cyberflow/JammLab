@@ -90,6 +90,25 @@ final class ClickRenderStateTests: XCTestCase {
         XCTAssertEqual(samples[1_500], 0.95, accuracy: 0.0001)
     }
 
+    func testRenderUsesEighthNotePulseAndSixBeatAccentInSixEight() {
+        let state = makeClickState(settings: BeatGridSettings(
+            bpm: 120,
+            timeSignature: TimeSignature(beatsPerBar: 6, beatUnit: 8)
+        ))
+        state.setEnabled(true)
+        state.play(startFrame: 0)
+
+        let samples = renderSamples(from: state, frameCount: 1_501)
+
+        XCTAssertEqual(
+            normalizedInitialOnsetFrames(in: samples),
+            [0, 250, 500, 750, 1_000, 1_250, 1_500]
+        )
+        XCTAssertEqual(samples[0], 0.95, accuracy: 0.0001)
+        XCTAssertEqual(samples[250], 0.62, accuracy: 0.0001)
+        XCTAssertEqual(samples[1_500], 0.95, accuracy: 0.0001)
+    }
+
     func testRenderAccentsBarStartBeforePositiveFirstBeatOffset() {
         let state = makeClickState(settings: BeatGridSettings(
             bpm: 120,

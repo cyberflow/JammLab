@@ -21,6 +21,32 @@ final class NotationPrimitivesTests: XCTestCase {
         [.whole] + directionalStaffSymbolExpectations.flatMap { [$0.up, $0.down] }
     }
 
+    func testNotationItemSelectionMatchingUsesTimingTolerance() {
+        let item = NotationMeasureItem(
+            id: "selection-note",
+            kind: .note,
+            pitch: NotationPitch(step: .c, octave: 4),
+            measureNumber: 1,
+            measureStartTime: 0,
+            offsetInQuarterNotes: 0.5,
+            durationInQuarterNotes: 0.5,
+            displayDuration: NotationDuration(denominator: 8)
+        )
+        let measure = ScoreMeasure(
+            number: 1,
+            startTime: 0,
+            endTime: 2,
+            attributes: .defaultTreble,
+            notationItems: [item]
+        )
+        let candidate = NotationItemSelection(measure: measure, item: item)
+        var selected = candidate
+        selected.offsetInQuarterNotes +=
+            NotationMeasureTiming.timelineTolerance / 2
+
+        XCTAssertTrue(selected.matches(candidate))
+    }
+
     func testNotationPartDescriptorsProvideMusicXMLMetadata() {
         let descriptors: [(NotationPartDescriptor, String, String, String?)] = [
             (.main, "Main", "Main", nil),

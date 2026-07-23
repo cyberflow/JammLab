@@ -35,6 +35,85 @@ final class ViewModelTempoMapTests: XCTestCase {
     }
 
     @MainActor
+    func testAddingSixEightMarkerPreservesEighthBeatUnit() throws {
+        let audioURL = try temporaryAudioFile(duration: 6)
+        defer { try? FileManager.default.removeItem(at: audioURL) }
+        let engine = MockPlaybackEngine()
+        let viewModel = AudioPlayerViewModel(
+            analyzer: MockAnalyzer(),
+            peakformProvider: MockPeakformProvider(),
+            playbackEngine: engine
+        )
+        let media = ImportedAudioFile(
+            url: audioURL,
+            displayName: "tempo.wav",
+            duration: 6
+        )
+        try viewModel.loadImportedAudio(media)
+
+        viewModel.setTempoBPM(120)
+        viewModel.addTempoTimeSignatureMarker(
+            at: 1.5,
+            bpm: 120,
+            beatsPerBar: 6,
+            beatUnit: 8
+        )
+
+        let marker = try XCTUnwrap(viewModel.notes.first)
+        let payload = try XCTUnwrap(marker.tempoTimeSignaturePayload)
+        let tempoMap = try XCTUnwrap(engine.tempoMap)
+        XCTAssertEqual(marker.title, "6/8")
+        XCTAssertEqual(payload.beatsPerBar, 6)
+        XCTAssertEqual(payload.beatUnit, 8)
+        XCTAssertEqual(
+            tempoMap.segments[1].settings.timeSignature,
+            TimeSignature(beatsPerBar: 6, beatUnit: 8)
+        )
+    }
+
+    @MainActor
+    func testUpdatingSixEightMarkerWithoutBeatUnitKeepsExistingDenominator() throws {
+        let audioURL = try temporaryAudioFile(duration: 6)
+        defer { try? FileManager.default.removeItem(at: audioURL) }
+        let engine = MockPlaybackEngine()
+        let viewModel = AudioPlayerViewModel(
+            analyzer: MockAnalyzer(),
+            peakformProvider: MockPeakformProvider(),
+            playbackEngine: engine
+        )
+        let media = ImportedAudioFile(
+            url: audioURL,
+            displayName: "tempo.wav",
+            duration: 6
+        )
+        try viewModel.loadImportedAudio(media)
+
+        viewModel.setTempoBPM(120)
+        viewModel.addTempoTimeSignatureMarker(
+            at: 1.5,
+            bpm: 120,
+            beatsPerBar: 6,
+            beatUnit: 8
+        )
+        let marker = try XCTUnwrap(viewModel.notes.first)
+
+        viewModel.updateTempoTimeSignatureMarker(
+            id: marker.id,
+            bpm: 60,
+            beatsPerBar: 6
+        )
+
+        let updatedMarker = try XCTUnwrap(viewModel.notes.first)
+        let payload = try XCTUnwrap(updatedMarker.tempoTimeSignaturePayload)
+        XCTAssertEqual(updatedMarker.title, "60 BPM · 6/8")
+        XCTAssertEqual(payload.beatUnit, 8)
+        XCTAssertEqual(
+            engine.tempoMap?.segments.last?.settings.timeSignature,
+            TimeSignature(beatsPerBar: 6, beatUnit: 8)
+        )
+    }
+
+    @MainActor
     func testTransportPositionTextUsesCurrentTempoMap() throws {
         let audioURL = try temporaryAudioFile(duration: 6)
         defer { try? FileManager.default.removeItem(at: audioURL) }

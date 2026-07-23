@@ -43,6 +43,7 @@ struct RenameNoteDialog: View {
 struct TempoTimeSignatureMarkerDialog: View {
     @Binding var bpm: Double
     @Binding var beatsPerBar: Double
+    @Binding var beatUnit: Double
     @Binding var setsNewFirstBeat: Bool
     let onCancel: () -> Void
     let onSet: () -> Void
@@ -88,17 +89,20 @@ struct TempoTimeSignatureMarkerDialog: View {
                         .font(AppTheme.Typography.captionMonospaced)
                         .foregroundStyle(appColors.secondaryText)
 
-                    Text("\(TimeSignature.supportedBeatUnit)")
-                        .font(AppTheme.Typography.captionMonospaced)
-                        .foregroundStyle(appColors.primaryText)
-                        .frame(
-                            width: AppTheme.ControlSize.toolbarTimeSignatureNumberFieldWidth,
-                            height: AppTheme.ControlSize.abletonNumberFieldHeight
-                        )
-                        .background(appColors.controlBackground)
-                        .clipShape(RoundedRectangle(cornerRadius: AppTheme.Radius.small))
-                        .accessibilityLabel("Time Signature Beat Unit")
-                        .accessibilityValue("\(TimeSignature.supportedBeatUnit)")
+                    AbletonNumberField(
+                        value: $beatUnit,
+                        minValue: Double(TimeSignature.minimumBeatUnit),
+                        maxValue: Double(TimeSignature.maximumBeatUnit),
+                        defaultValue: Double(TimeSignature.defaultBeatUnit),
+                        step: Double(TimeSignature.beatUnitStep),
+                        precision: 0,
+                        accessibilityLabel: "Time Signature Beat Unit"
+                    )
+                    .frame(
+                        width: AppTheme.ControlSize.toolbarTimeSignatureNumberFieldWidth,
+                        height: AppTheme.ControlSize.abletonNumberFieldHeight
+                    )
+                    .help("Set the marker beat unit to a quarter note or eighth note.")
                 }
 
                 Toggle("Set as new first beat", isOn: $setsNewFirstBeat)

@@ -115,14 +115,22 @@ struct NotationItemSelection: Equatable, Identifiable {
     }
 
     func matches(_ measure: ScoreMeasure, item: NotationMeasureItem) -> Bool {
-        item.partID == partID
-            && measureNumber == measure.number
-            && abs(measureStartTime - measure.startTime) < NotationMeasureTiming.timelineTolerance
-            && abs(measureEndTime - measure.endTime) < NotationMeasureTiming.timelineTolerance
-            && attributes == measure.attributes
-            && itemID == item.id
-            && abs(offsetInQuarterNotes - item.offsetInQuarterNotes) < NotationMeasureTiming.timelineTolerance
-            && abs(durationInQuarterNotes - item.durationInQuarterNotes) < NotationMeasureTiming.timelineTolerance
+        matches(NotationItemSelection(measure: measure, item: item))
+    }
+
+    func matches(_ candidate: NotationItemSelection) -> Bool {
+        partID == candidate.partID
+            && measureNumber == candidate.measureNumber
+            && abs(measureStartTime - candidate.measureStartTime)
+                < NotationMeasureTiming.timelineTolerance
+            && abs(measureEndTime - candidate.measureEndTime)
+                < NotationMeasureTiming.timelineTolerance
+            && attributes == candidate.attributes
+            && itemID == candidate.itemID
+            && abs(offsetInQuarterNotes - candidate.offsetInQuarterNotes)
+                < NotationMeasureTiming.timelineTolerance
+            && abs(durationInQuarterNotes - candidate.durationInQuarterNotes)
+                < NotationMeasureTiming.timelineTolerance
     }
 }
 

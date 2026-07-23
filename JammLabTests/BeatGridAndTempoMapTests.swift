@@ -10,10 +10,25 @@ final class BeatGridAndTempoMapTests: XCTestCase {
         XCTAssertEqual(barStartTimes, [0, 2, 4, 6, 8])
     }
 
-    func testTimeSignatureNormalizesSupportedRangeAndBeatUnit() {
-        XCTAssertEqual(TimeSignature(beatsPerBar: 0, beatUnit: 8), TimeSignature(beatsPerBar: 1, beatUnit: 4))
+    func testTimeSignatureNormalizesSupportedRangeAndBeatUnits() {
+        XCTAssertEqual(TimeSignature(beatsPerBar: 0, beatUnit: 8), TimeSignature(beatsPerBar: 1, beatUnit: 8))
         XCTAssertEqual(TimeSignature(beatsPerBar: 9, beatUnit: 2), TimeSignature(beatsPerBar: 7, beatUnit: 4))
         XCTAssertEqual(BeatGridSettings(bpm: 120, timeSignature: TimeSignature(beatsPerBar: 9, beatUnit: 16)).clamped(to: 10).timeSignature.displayText, "7/4")
+    }
+
+    func testBeatGridUsesEighthNoteBeatDurationInSixEight() {
+        let settings = BeatGridSettings(
+            bpm: 120,
+            timeSignature: TimeSignature(beatsPerBar: 6, beatUnit: 8)
+        )
+        let markers = BeatGridCalculator().markers(
+            settings: settings,
+            visibleStartTime: 0,
+            visibleEndTime: 3
+        )
+
+        XCTAssertEqual(markers.filter(\.isBarStart).map(\.time), [0, 1.5, 3])
+        XCTAssertEqual(markers.prefix(3).map(\.time), [0, 0.25, 0.5])
     }
 
     func testBeatGridUsesEditableBeatsPerBarForBarStarts() {
@@ -73,11 +88,11 @@ final class BeatGridAndTempoMapTests: XCTestCase {
 
         XCTAssertEqual(try XCTUnwrap(decoded.bpm), 123.4, accuracy: 0.0001)
         XCTAssertEqual(decoded.beatsPerBar, 7)
-        XCTAssertEqual(decoded.beatUnit, 4)
+        XCTAssertEqual(decoded.beatUnit, 8)
         XCTAssertTrue(decoded.setsNewFirstBeat)
         XCTAssertEqual(decoded.metadata[TempoTimeSignatureMarkerPayload.typeKey], TempoTimeSignatureMarkerPayload.typeValue)
         XCTAssertEqual(decoded.metadata[TempoTimeSignatureMarkerPayload.setsNewFirstBeatKey], "true")
-        XCTAssertEqual(decoded.title, "123.4 BPM · 7/4")
+        XCTAssertEqual(decoded.title, "123.4 BPM · 7/8")
         XCTAssertNil(TempoTimeSignatureMarkerPayload(metadata: [TempoTimeSignatureMarkerPayload.typeKey: TempoTimeSignatureMarkerPayload.typeValue]))
     }
 

@@ -239,9 +239,12 @@ final class ClickRenderState {
         segmentStartFrame: Double,
         segmentEndFrame: Double
     ) -> Double? {
-        guard let bpm = settings.bpm, bpm > 0, sourceSampleRate > 0 else { return nil }
+        guard let beatDuration = settings.beatDuration,
+              beatDuration > 0,
+              sourceSampleRate > 0
+        else { return nil }
 
-        let framesPerBeat = sourceSampleRate * 60 / bpm
+        let framesPerBeat = sourceSampleRate * beatDuration
         guard framesPerBeat > 0 else { return nil }
 
         let firstBeatFrame = settings.firstBeatTime * sourceSampleRate
@@ -260,8 +263,10 @@ final class ClickRenderState {
     }
 
     private func beatIndex(for frame: Double, settings: BeatGridSettings) -> Int {
-        guard let bpm = settings.bpm, bpm > 0 else { return 0 }
-        let framesPerBeat = sourceSampleRate * 60 / bpm
+        guard let beatDuration = settings.beatDuration,
+              beatDuration > 0
+        else { return 0 }
+        let framesPerBeat = sourceSampleRate * beatDuration
         guard framesPerBeat > 0 else { return 0 }
         let firstBeatFrame = settings.firstBeatTime * sourceSampleRate
         return Int(round((frame - firstBeatFrame) / framesPerBeat))

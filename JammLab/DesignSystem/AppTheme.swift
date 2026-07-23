@@ -339,6 +339,14 @@ enum AppTheme {
         static let notationDuplicateNoteOffset: CGFloat = notationStaffLineSpacing * 1.1
         static let notationNoteHitWidth: CGFloat = 8
         static let notationNoteHitHeight: CGFloat = 4
+        static let notationStemMinimumLengthInStaffSpaces: CGFloat = 3.5
+        static let notationStemXOffsetInStaffSpaces: CGFloat = 0.55
+        static let notationBeamThicknessInStaffSpaces: CGFloat = 0.5
+        static let notationBeamGapInStaffSpaces: CGFloat = 0.25
+        static let notationBeamMaximumSlopeRatio: CGFloat = 0.125
+        static let notationBeamMaximumSlopeInStaffSpaces: CGFloat = 1
+        static let notationBeamQuantizationInStaffSpaces: CGFloat = 0.25
+        static let notationBeamletMaximumLengthInStaffSpaces: CGFloat = 1.5
         static let notationTieNoteheadInset: CGFloat = 5
         static let notationTieVerticalOffset: CGFloat = 5
         static let notationTieArcHeight: CGFloat = 5

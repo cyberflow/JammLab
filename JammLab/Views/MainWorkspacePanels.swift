@@ -425,6 +425,7 @@ extension ContentView {
         editingTempoTimeSignatureMarkerTime = clampedTime
         editingTempoTimeSignatureBPM = settings.bpm ?? AppDefaults.defaultTempoBPM
         editingTempoTimeSignatureBeatsPerBar = Double(settings.timeSignature.beatsPerBar)
+        editingTempoTimeSignatureBeatUnit = Double(settings.timeSignature.beatUnit)
         editingTempoTimeSignatureSetsNewFirstBeat = false
         isEditingTempoTimeSignatureMarker = true
     }
@@ -436,6 +437,11 @@ extension ContentView {
         editingTempoTimeSignatureMarkerTime = note.time
         editingTempoTimeSignatureBPM = payload?.bpm ?? settings.bpm ?? AppDefaults.defaultTempoBPM
         editingTempoTimeSignatureBeatsPerBar = Double(payload?.beatsPerBar ?? settings.timeSignature.beatsPerBar)
+        editingTempoTimeSignatureBeatUnit = Double(
+            payload?.beatsPerBar == nil
+                ? settings.timeSignature.beatUnit
+                : payload?.beatUnit ?? settings.timeSignature.beatUnit
+        )
         editingTempoTimeSignatureSetsNewFirstBeat = payload?.setsNewFirstBeat ?? false
         isEditingTempoTimeSignatureMarker = true
     }

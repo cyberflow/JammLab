@@ -27,6 +27,7 @@ extension AudioPlayerViewModel {
         at time: TimeInterval,
         bpm: Double,
         beatsPerBar: Int,
+        beatUnit: Int? = nil,
         setsNewFirstBeat: Bool = false
     ) {
         performUndoableEdit("Add Tempo / Time Signature Marker") {
@@ -37,6 +38,7 @@ extension AudioPlayerViewModel {
                 at: clampedTime,
                 bpm: bpm,
                 beatsPerBar: beatsPerBar,
+                beatUnit: beatUnit,
                 setsNewFirstBeat: setsNewFirstBeat
             ) else { return }
             let note = TimecodedNote(
@@ -161,16 +163,20 @@ extension AudioPlayerViewModel {
         id: TimecodedNote.ID,
         bpm: Double,
         beatsPerBar: Int,
+        beatUnit: Int? = nil,
         setsNewFirstBeat: Bool = false
     ) {
         performUndoableEdit("Edit Tempo / Time Signature Marker") {
             guard let index = notes.firstIndex(where: { $0.id == id && $0.isTempoTimeSignatureMarker }) else { return }
 
             let time = notes[index].time
+            let resolvedBeatUnit = beatUnit
+                ?? notes[index].tempoTimeSignaturePayload?.beatUnit
             guard let payload = tempoMarkerPayload(
                 at: time,
                 bpm: bpm,
                 beatsPerBar: beatsPerBar,
+                beatUnit: resolvedBeatUnit,
                 setsNewFirstBeat: setsNewFirstBeat,
                 excluding: id
             ) else {
@@ -257,17 +263,23 @@ extension AudioPlayerViewModel {
         at time: TimeInterval,
         bpm: Double,
         beatsPerBar: Int,
+        beatUnit: Int?,
         setsNewFirstBeat: Bool,
         excluding noteID: TimecodedNote.ID? = nil
     ) -> TempoTimeSignatureMarkerPayload? {
         let effectiveSettings = effectiveBeatGridSettings(at: time, excluding: noteID)
         let normalizedBPM = ProjectStateNormalizer.normalizedTempo(bpm)
         let normalizedBeatsPerBar = TimeSignature.normalizedBeatsPerBar(beatsPerBar)
+        let normalizedBeatUnit = TimeSignature.normalizedBeatUnit(
+            beatUnit ?? effectiveSettings.timeSignature.beatUnit
+        )
         let bpmChanged = normalizedBPM != nil && abs((normalizedBPM ?? 0) - (effectiveSettings.bpm ?? 0)) > 0.0001
         let signatureChanged = normalizedBeatsPerBar != effectiveSettings.timeSignature.beatsPerBar
+            || normalizedBeatUnit != effectiveSettings.timeSignature.beatUnit
         let payload = TempoTimeSignatureMarkerPayload(
             bpm: bpmChanged ? normalizedBPM : nil,
             beatsPerBar: signatureChanged ? normalizedBeatsPerBar : nil,
+            beatUnit: normalizedBeatUnit,
             setsNewFirstBeat: setsNewFirstBeat
         )
         return payload.hasChanges ? payload : nil
