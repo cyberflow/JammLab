@@ -76,12 +76,13 @@ final class ViewModelNotationPasteTests: XCTestCase {
         viewModel.undoManager = undoManager
         let sourceMeasure = try notationMeasure(1, in: viewModel)
         let targetMeasure = try notationMeasure(2, in: viewModel)
-        let pitch = NotationPitch(step: .e, octave: 4)
+        let pitch = NotationPitch(step: .e, octave: 4, alter: 1)
         viewModel.notationItems = [
             NotationMeasureItem(
                 id: "source-note",
                 kind: .note,
                 pitch: pitch,
+                explicitAccidental: .sharp,
                 measureNumber: sourceMeasure.number,
                 measureStartTime: sourceMeasure.startTime,
                 offsetInQuarterNotes: 0,
@@ -121,6 +122,7 @@ final class ViewModelNotationPasteTests: XCTestCase {
         XCTAssertEqual(pastedMeasure.notationItems.map(\.durationInQuarterNotes), [1, 2, 1])
         XCTAssertEqual(pastedMeasure.notationItems.map(\.displayDuration.denominator), [4, 2, 4])
         XCTAssertEqual(pastedMeasure.notationItems.first?.pitch, pitch)
+        XCTAssertEqual(pastedMeasure.notationItems.first?.explicitAccidental, .sharp)
         XCTAssertEqual(pastedMeasure.notationItems.map(\.measureNumber), [
             targetMeasure.number,
             targetMeasure.number,
@@ -146,6 +148,7 @@ final class ViewModelNotationPasteTests: XCTestCase {
         let redoneMeasure = try notationMeasure(2, in: viewModel)
         XCTAssertEqual(redoneMeasure.notationItems.map(\.kind), [.note, .rest, .rest])
         XCTAssertEqual(redoneMeasure.notationItems.first?.pitch, pitch)
+        XCTAssertEqual(redoneMeasure.notationItems.first?.explicitAccidental, .sharp)
         XCTAssertTrue(viewModel.isProjectModified)
     }
 

@@ -277,7 +277,14 @@ final class MIDIPianoRollTests: XCTestCase {
     }
 
     func testPlannerMovesNoteBySixteenthGridAndSemitoneWithoutChangingDuration() throws {
-        let source = makeNote(id: "source", measureNumber: 1, measureStartTime: 0, offset: 0, duration: 1)
+        let source = makeNote(
+            id: "source",
+            measureNumber: 1,
+            measureStartTime: 0,
+            offset: 0,
+            duration: 1,
+            explicitAccidental: .natural
+        )
         let measure = makeMeasure(notationItems: [source])
         let request = NotationNoteEditRequest(
             partID: .main,
@@ -301,6 +308,7 @@ final class MIDIPianoRollTests: XCTestCase {
         XCTAssertEqual(moved.offsetInQuarterNotes, 1.25, accuracy: 0.0001)
         XCTAssertEqual(moved.durationInQuarterNotes, 1, accuracy: 0.0001)
         XCTAssertEqual(moved.pitch?.midiNoteNumber, 62)
+        XCTAssertNil(moved.explicitAccidental)
         XCTAssertEqual(
             try XCTUnwrap(plan.replacements.first).items.reduce(0) { $0 + $1.durationInQuarterNotes },
             4,
@@ -367,7 +375,14 @@ final class MIDIPianoRollTests: XCTestCase {
     }
 
     func testPlannerResizesAcrossMeasureAsSingleTiedLogicalNote() throws {
-        let source = makeNote(id: "root", measureNumber: 1, measureStartTime: 0, offset: 1, duration: 1)
+        let source = makeNote(
+            id: "root",
+            measureNumber: 1,
+            measureStartTime: 0,
+            offset: 1,
+            duration: 1,
+            explicitAccidental: .sharp
+        )
         let first = makeMeasure(number: 1, startTime: 0, endTime: 2, notationItems: [source])
         let second = makeMeasure(number: 2, startTime: 2, endTime: 4)
         let request = NotationNoteEditRequest(
@@ -391,6 +406,8 @@ final class MIDIPianoRollTests: XCTestCase {
         XCTAssertEqual(preview.previewItems.map(\.durationInQuarterNotes).reduce(0, +), 5, accuracy: 0.0001)
         XCTAssertEqual(preview.previewItems.first?.tieTargetItemID, preview.previewItems.last?.id)
         XCTAssertNil(preview.previewItems.last?.tieTargetItemID)
+        XCTAssertEqual(preview.previewItems.first?.explicitAccidental, .sharp)
+        XCTAssertNil(preview.previewItems.last?.explicitAccidental)
         XCTAssertEqual(Set(plan.replacements.map(\.measureNumber)), Set([1, 2]))
     }
 
@@ -1255,6 +1272,7 @@ final class MIDIPianoRollTests: XCTestCase {
         offset: Double,
         duration: Double,
         midiNoteNumber: Int = 60,
+        explicitAccidental: NotationAccidental? = nil,
         tieTargetItemID: String? = nil
     ) -> NotationMeasureItem {
         NotationMeasureItem(
@@ -1262,6 +1280,7 @@ final class MIDIPianoRollTests: XCTestCase {
             partID: partID,
             kind: .note,
             pitch: NotationPitchMapper.pitch(forMIDINoteNumber: midiNoteNumber, keySignature: .cMajor),
+            explicitAccidental: explicitAccidental,
             measureNumber: measureNumber,
             measureStartTime: measureStartTime,
             offsetInQuarterNotes: offset,

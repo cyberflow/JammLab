@@ -8,6 +8,7 @@ struct NotationNotePlacement: Equatable {
     var durationInQuarterNotes: Double
     var displayDuration: NotationDuration
     var pitch: NotationPitch
+    var explicitAccidental: NotationAccidental?
 
     var x: CGFloat
     var y: CGFloat
@@ -19,6 +20,7 @@ struct NotationNotePlacement: Equatable {
         durationInQuarterNotes: Double,
         displayDuration: NotationDuration,
         pitch: NotationPitch,
+        explicitAccidental: NotationAccidental? = nil,
         x: CGFloat,
         y: CGFloat
     ) {
@@ -27,7 +29,12 @@ struct NotationNotePlacement: Equatable {
         self.offsetInQuarterNotes = offsetInQuarterNotes
         self.durationInQuarterNotes = durationInQuarterNotes
         self.displayDuration = displayDuration
-        self.pitch = pitch
+        var resolvedPitch = pitch
+        if let explicitAccidental {
+            resolvedPitch.alter = explicitAccidental.alter
+        }
+        self.pitch = resolvedPitch
+        self.explicitAccidental = explicitAccidental
         self.x = x
         self.y = y
     }
@@ -67,6 +74,7 @@ enum NotationNotePlacementResolver {
         staffTop: CGFloat,
         selectedDuration: NotationDuration,
         partID: NotationPartID = .main,
+        explicitAccidental: NotationAccidental? = nil,
         selectedDrumInstrumentMIDINoteNumber: Int? = nil,
         lineSpacing: CGFloat = AppTheme.Timeline.notationStaffLineSpacing
     ) -> NotationNotePlacement? {
@@ -116,6 +124,7 @@ enum NotationNotePlacementResolver {
             durationInQuarterNotes: selectedLength,
             displayDuration: selectedDuration,
             pitch: pitch,
+            explicitAccidental: measure.attributes.clef == .drums ? nil : explicitAccidental,
             x: x,
             y: y
         )

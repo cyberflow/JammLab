@@ -63,6 +63,21 @@ enum NotationAugmentationDotSymbol: Equatable {
     }
 }
 
+extension NotationAccidental {
+    var codepoint: UInt32 {
+        switch self {
+        case .flat: return 0xE260
+        case .natural: return 0xE261
+        case .sharp: return 0xE262
+        }
+    }
+
+    var glyph: String {
+        guard let scalar = UnicodeScalar(codepoint) else { return "" }
+        return String(Character(scalar))
+    }
+}
+
 enum NotationAugmentationDotLayout {
     static func noteDotStaffPosition(for noteStaffPosition: Int) -> Int {
         noteStaffPosition.isMultiple(of: 2) ? noteStaffPosition - 1 : noteStaffPosition
@@ -476,6 +491,13 @@ enum NotationMusicFontRegistry {
         fontSize: CGFloat
     ) -> NotationSMuFLGlyphPath? {
         glyphPath(forCodepoint: symbol.codepoint, fontSize: fontSize)
+    }
+
+    static func glyphPath(
+        for accidental: NotationAccidental,
+        fontSize: CGFloat
+    ) -> NotationSMuFLGlyphPath? {
+        glyphPath(forCodepoint: accidental.codepoint, fontSize: fontSize)
     }
 
     static func glyphPath(

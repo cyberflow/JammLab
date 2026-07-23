@@ -241,6 +241,7 @@ enum NotationNoteInsertionPlanner {
             sourceLocation: nil,
             partID: placement.partID,
             pitch: placement.pitch,
+            explicitAccidental: placement.explicitAccidental,
             selectedDuration: placement.displayDuration,
             consumedSpans: consumedSpans
         )
@@ -276,6 +277,7 @@ enum NotationNoteInsertionPlanner {
                     partID: context.partID,
                     kind: .note,
                     pitch: context.pitch,
+                    explicitAccidental: insertedItems.isEmpty ? context.explicitAccidental : nil,
                     measureNumber: measure.number,
                     measureStartTime: measure.startTime,
                     offsetInQuarterNotes: offset,
@@ -353,6 +355,7 @@ enum NotationNoteInsertionPlanner {
         var sourceLocation: SourceLocation?
         var partID: NotationPartID
         var pitch: NotationPitch
+        var explicitAccidental: NotationAccidental?
         var selectedDuration: NotationDuration
         var consumedSpans: [ConsumedSpan]
     }
@@ -403,6 +406,7 @@ enum NotationNoteInsertionPlanner {
             sourceLocation: sourceLocation,
             partID: sourceLocation.item.partID,
             pitch: pitch,
+            explicitAccidental: nil,
             selectedDuration: selectedDuration,
             consumedSpans: consumedSpans
         )

@@ -72,11 +72,39 @@ final class ProjectStateNormalizerTests: XCTestCase {
             displayDuration: NotationDuration(denominator: 4)
         )
 
-        let items = ProjectStateNormalizer.normalizedNotationItems([invalidNote, note], duration: 4)
+        let items = ProjectStateNormalizer.normalizedNotationItems(
+            [invalidNote, note],
+            duration: 4,
+            notationPartClefs: [:]
+        )
 
         XCTAssertEqual(items.map(\.id), ["note"])
         XCTAssertEqual(items.first?.kind, .note)
         XCTAssertEqual(items.first?.pitch, NotationPitch(step: .f, octave: 5, alter: 1))
+    }
+
+    func testProjectStateNormalizerClearsExplicitAccidentalsFromDrumParts() {
+        let drumPartID = NotationPartID.stem(.drums)
+        let note = NotationMeasureItem(
+            id: "drum",
+            partID: drumPartID,
+            kind: .note,
+            pitch: NotationPitchMapper.pitch(forMIDINoteNumber: 38, keySignature: .cMajor),
+            explicitAccidental: .sharp,
+            measureNumber: 1,
+            measureStartTime: 0,
+            offsetInQuarterNotes: 0,
+            durationInQuarterNotes: 1,
+            displayDuration: NotationDuration(denominator: 4)
+        )
+
+        let normalized = ProjectStateNormalizer.normalizedNotationItems(
+            [note],
+            duration: 4,
+            notationPartClefs: [:]
+        )
+
+        XCTAssertNil(normalized.first?.explicitAccidental)
     }
 
     func testProjectStateNormalizerUsesSliderDefaultsForPlaybackControls() {

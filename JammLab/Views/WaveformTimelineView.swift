@@ -36,6 +36,7 @@ struct TimelineViewState: Equatable {
     var stemNotationViewports: [StemType: NotationViewportState]
     var notationDurationDenominator: Int
     var notationDurationIsDotted: Bool
+    var pendingNotationAccidental: NotationAccidental?
     var selectedDrumInstrumentMIDINoteNumber: Int = DrumInstrumentMap.defaultMIDINoteNumber
     var canChangeNotationDuration: Bool
     var tieCommandStatus: NotationTieCommandStatus
@@ -83,6 +84,7 @@ struct TimelineViewActions {
     var stemNoteDisplayModeToggled: (StemType) -> Void
     var notationDurationChanged: (Int) -> Void
     var notationDurationDotToggled: () -> Void
+    var notationAccidentalSelected: (NotationAccidental) -> Void = { _ in }
     var notationNoteEntryModeToggled: () -> Void
     var notationRestEntryModeToggled: () -> Void
     var addTiedNotationNote: () -> Void
@@ -212,6 +214,7 @@ struct WaveformTimelineView: View {
             tieCommandStatus: state.tieCommandStatus,
             notationDurationDenominator: state.notationDurationDenominator,
             notationDurationIsDotted: state.notationDurationIsDotted,
+            pendingNotationAccidental: state.pendingNotationAccidental,
             notationViewports: state.stemNotationViewports,
             notationCollapsed: state.stemNotationTrackCollapsed,
             noteDisplayModes: state.stemNoteDisplayModes,
@@ -432,6 +435,7 @@ struct WaveformTimelineView: View {
                 ),
                 selectedDrumInstrumentMIDINoteNumber: state.selectedDrumInstrumentMIDINoteNumber,
                 entryMode: state.notationEntryMode,
+                pendingNotationAccidental: state.pendingNotationAccidental,
                 pendingEditorRequest: state.pendingHarmonyEditorRequest,
                 actions: actions.notationTrackActions(allowsHarmony: true)
             )
@@ -464,48 +468,32 @@ struct WaveformTimelineView: View {
                     )
                 }
 
-                NotationDurationControl(
-                    denominator: Binding(
-                        get: { state.notationDurationDenominator },
-                        set: { actions.notationDurationChanged($0) }
+                CompactNotationEntryControls(
+                    duration: state.duration,
+                    entryMode: state.notationEntryMode,
+                    notePresentation: .init(
+                        help: "Add notes to Notation (N)",
+                        accessibilityLabel: "Notation Note Entry",
+                        accessibilityValue: isNotationNoteEntryModeEnabled ? "Enabled" : "Disabled"
                     ),
-                    isEnabled: state.canChangeNotationDuration
+                    restPresentation: .init(
+                        help: "Add rests to Notation",
+                        accessibilityLabel: "Notation Rest Entry",
+                        accessibilityValue: isNotationRestEntryModeEnabled ? "Enabled" : "Disabled"
+                    ),
+                    notationDurationDenominator: state.notationDurationDenominator,
+                    notationDurationIsDotted: state.notationDurationIsDotted,
+                    pendingNotationAccidental: state.pendingNotationAccidental,
+                    showsAccidental: state.notationViewport.clef != .drums,
+                    canChangeNotationDuration: state.canChangeNotationDuration,
+                    tieCommandStatus: state.tieCommandStatus,
+                    notationNoteEntryModeToggled: actions.notationNoteEntryModeToggled,
+                    notationRestEntryModeToggled: actions.notationRestEntryModeToggled,
+                    notationDurationChanged: actions.notationDurationChanged,
+                    notationDurationDotToggled: actions.notationDurationDotToggled,
+                    notationAccidentalSelected: actions.notationAccidentalSelected,
+                    addTiedNotationNote: actions.addTiedNotationNote
                 )
-
-                HStack(spacing: AppTheme.Spacing.xs) {
-                    NotationEntryModeButton(
-                        mode: .note,
-                        isActive: isNotationNoteEntryModeEnabled
-                    ) {
-                        actions.notationNoteEntryModeToggled()
-                    }
-                    .disabled(state.duration <= 0)
-                    .help("Add notes to Notation (N)")
-                    .accessibilityLabel("Notation Note Entry")
-                    .accessibilityValue(isNotationNoteEntryModeEnabled ? "Enabled" : "Disabled")
-
-                    NotationEntryModeButton(
-                        mode: .rest,
-                        isActive: isNotationRestEntryModeEnabled
-                    ) {
-                        actions.notationRestEntryModeToggled()
-                    }
-                    .disabled(state.duration <= 0)
-                    .help("Add rests to Notation")
-                    .accessibilityLabel("Notation Rest Entry")
-                    .accessibilityValue(isNotationRestEntryModeEnabled ? "Enabled" : "Disabled")
-
-                    NotationAugmentationDotButton(
-                        isActive: state.notationDurationIsDotted,
-                        action: actions.notationDurationDotToggled
-                    )
-                    .disabled(!state.canChangeNotationDuration)
-
-                    NotationTieButton(
-                        status: state.tieCommandStatus,
-                        action: actions.addTiedNotationNote
-                    )
-                }
             }
         }
         .padding(.horizontal, AppTheme.Spacing.md)
@@ -653,6 +641,7 @@ private struct StemTracksSection: View {
     let tieCommandStatus: NotationTieCommandStatus
     let notationDurationDenominator: Int
     let notationDurationIsDotted: Bool
+    let pendingNotationAccidental: NotationAccidental?
     let notationViewports: [StemType: NotationViewportState]
     let notationCollapsed: [StemType: Bool]
     let noteDisplayModes: [StemType: StemNoteDisplayMode]
@@ -861,6 +850,7 @@ private struct StemTracksSection: View {
                 selectedDuration: selectedDuration,
                 selectedDrumInstrumentMIDINoteNumber: selectedDrumInstrumentMIDINoteNumber,
                 entryMode: entryMode,
+                pendingNotationAccidental: pendingNotationAccidental,
                 pendingEditorRequest: nil,
                 actions: notationActions.notationTrackActions(allowsHarmony: false)
             )
@@ -881,46 +871,31 @@ private struct StemTracksSection: View {
                 )
             }
 
-            NotationDurationControl(
-                denominator: Binding(
-                    get: { notationDurationDenominator },
-                    set: { notationActions.notationDurationChanged($0) }
+            CompactNotationEntryControls(
+                duration: duration,
+                entryMode: entryMode,
+                notePresentation: .init(
+                    help: "Add notes to \(type.title) \(noteDisplayTitle(for: type)) (N)",
+                    accessibilityLabel: "\(type.title) \(noteDisplayTitle(for: type)) Note Entry"
                 ),
-                isEnabled: canChangeNotationDuration
+                restPresentation: .init(
+                    help: "Add rests to \(type.title) \(noteDisplayTitle(for: type))",
+                    accessibilityLabel: "\(type.title) \(noteDisplayTitle(for: type)) Rest Entry"
+                ),
+                notationDurationDenominator: notationDurationDenominator,
+                notationDurationIsDotted: notationDurationIsDotted,
+                pendingNotationAccidental: pendingNotationAccidental,
+                showsAccidental: noteDisplayMode(for: type) == .notation
+                    && (notationViewports[type]?.clef ?? .treble) != .drums,
+                canChangeNotationDuration: canChangeNotationDuration,
+                tieCommandStatus: tieCommandStatus,
+                notationNoteEntryModeToggled: notationActions.notationNoteEntryModeToggled,
+                notationRestEntryModeToggled: notationActions.notationRestEntryModeToggled,
+                notationDurationChanged: notationActions.notationDurationChanged,
+                notationDurationDotToggled: notationActions.notationDurationDotToggled,
+                notationAccidentalSelected: notationActions.notationAccidentalSelected,
+                addTiedNotationNote: notationActions.addTiedNotationNote
             )
-
-            HStack(spacing: AppTheme.Spacing.xs) {
-                NotationEntryModeButton(
-                    mode: .note,
-                    isActive: entryMode == .note
-                ) {
-                    notationActions.notationNoteEntryModeToggled()
-                }
-                .disabled(duration <= 0)
-                .help("Add notes to \(type.title) \(noteDisplayTitle(for: type)) (N)")
-                .accessibilityLabel("\(type.title) \(noteDisplayTitle(for: type)) Note Entry")
-
-                NotationEntryModeButton(
-                    mode: .rest,
-                    isActive: entryMode == .rest
-                ) {
-                    notationActions.notationRestEntryModeToggled()
-                }
-                .disabled(duration <= 0)
-                .help("Add rests to \(type.title) \(noteDisplayTitle(for: type))")
-                .accessibilityLabel("\(type.title) \(noteDisplayTitle(for: type)) Rest Entry")
-
-                NotationAugmentationDotButton(
-                    isActive: notationDurationIsDotted,
-                    action: notationActions.notationDurationDotToggled
-                )
-                .disabled(!canChangeNotationDuration)
-
-                NotationTieButton(
-                    status: tieCommandStatus,
-                    action: notationActions.addTiedNotationNote
-                )
-            }
         }
         .padding(.horizontal, AppTheme.Spacing.md)
         .padding(.vertical, AppTheme.Spacing.sm)
@@ -961,6 +936,99 @@ private struct StemTracksSection: View {
                 }
             }
         )
+    }
+}
+
+private struct CompactNotationEntryControls: View {
+    struct EntryButtonPresentation {
+        var help: String
+        var accessibilityLabel: String
+        var accessibilityValue: String?
+    }
+
+    let duration: TimeInterval
+    let entryMode: NotationEntryMode?
+    let notePresentation: EntryButtonPresentation
+    let restPresentation: EntryButtonPresentation
+    let notationDurationDenominator: Int
+    let notationDurationIsDotted: Bool
+    let pendingNotationAccidental: NotationAccidental?
+    let showsAccidental: Bool
+    let canChangeNotationDuration: Bool
+    let tieCommandStatus: NotationTieCommandStatus
+    let notationNoteEntryModeToggled: () -> Void
+    let notationRestEntryModeToggled: () -> Void
+    let notationDurationChanged: (Int) -> Void
+    let notationDurationDotToggled: () -> Void
+    let notationAccidentalSelected: (NotationAccidental) -> Void
+    let addTiedNotationNote: () -> Void
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: AppTheme.Spacing.sm) {
+            HStack(spacing: AppTheme.Spacing.xs) {
+                entryModeButton(
+                    mode: .note,
+                    isActive: entryMode == .note,
+                    presentation: notePresentation,
+                    action: notationNoteEntryModeToggled
+                )
+
+                entryModeButton(
+                    mode: .rest,
+                    isActive: entryMode == .rest,
+                    presentation: restPresentation,
+                    action: notationRestEntryModeToggled
+                )
+
+                NotationDurationMenu(
+                    denominator: Binding(
+                        get: { notationDurationDenominator },
+                        set: { notationDurationChanged($0) }
+                    ),
+                    isEnabled: canChangeNotationDuration
+                )
+            }
+
+            HStack(spacing: AppTheme.Spacing.xs) {
+                NotationAugmentationDotButton(
+                    isActive: notationDurationIsDotted,
+                    action: notationDurationDotToggled
+                )
+                .disabled(!canChangeNotationDuration)
+
+                if showsAccidental {
+                    NotationAccidentalMenu(
+                        pendingAccidental: pendingNotationAccidental,
+                        action: notationAccidentalSelected
+                    )
+                    .disabled(duration <= 0)
+                }
+
+                NotationTieButton(
+                    status: tieCommandStatus,
+                    action: addTiedNotationNote
+                )
+            }
+        }
+    }
+
+    @ViewBuilder
+    private func entryModeButton(
+        mode: NotationEntryMode,
+        isActive: Bool,
+        presentation: EntryButtonPresentation,
+        action: @escaping () -> Void
+    ) -> some View {
+        let button = NotationEntryModeButton(mode: mode, isActive: isActive, action: action)
+            .disabled(duration <= 0)
+            .help(presentation.help)
+            .accessibilityLabel(presentation.accessibilityLabel)
+
+        if let accessibilityValue = presentation.accessibilityValue {
+            button.accessibilityValue(accessibilityValue)
+        } else {
+            button
+        }
     }
 }
 

@@ -13,6 +13,75 @@ final class NotationTrackLayoutItemsTests: XCTestCase {
         )
     }
 
+    func testInlineAccidentalsUseSeparateColumnsForAdjacentChordNotes() {
+        let notes = [
+            NotationMeasureItem(
+                id: "c",
+                kind: .note,
+                pitch: NotationPitch(step: .c, octave: 4),
+                explicitAccidental: .natural,
+                measureNumber: 1,
+                measureStartTime: 0,
+                offsetInQuarterNotes: 0,
+                durationInQuarterNotes: 1,
+                displayDuration: NotationDuration(denominator: 4)
+            ),
+            NotationMeasureItem(
+                id: "d",
+                kind: .note,
+                pitch: NotationPitch(step: .d, octave: 4),
+                explicitAccidental: .sharp,
+                measureNumber: 1,
+                measureStartTime: 0,
+                offsetInQuarterNotes: 0,
+                durationInQuarterNotes: 1,
+                displayDuration: NotationDuration(denominator: 4)
+            )
+        ]
+        let measure = ScoreMeasure(
+            number: 1,
+            startTime: 0,
+            endTime: 2,
+            attributes: .defaultTreble,
+            notationItems: notes
+        )
+        let layoutItems = notes.map {
+            NotationItemLayoutItem(
+                measure: measure,
+                notationItem: $0,
+                selection: NotationItemSelection(measure: measure, item: $0),
+                x: 100,
+                stemDirectionOverride: nil
+            )
+        }
+
+        let accidentals = NotationTrackLayoutItems.accidentals(from: layoutItems)
+
+        XCTAssertEqual(accidentals.count, 2)
+        XCTAssertEqual(Set(accidentals.map(\.accidental)), [.natural, .sharp])
+        XCTAssertEqual(Set(accidentals.map(\.x)), [84, 91])
+
+        let drumMeasure = ScoreMeasure(
+            number: 1,
+            startTime: 0,
+            endTime: 2,
+            attributes: MeasureAttributes(
+                keySignature: .cMajor,
+                timeSignature: .fourFour,
+                clef: .drums
+            ),
+            notationItems: [notes[0]]
+        )
+        let drumLayoutItem = NotationItemLayoutItem(
+            measure: drumMeasure,
+            notationItem: notes[0],
+            selection: NotationItemSelection(measure: drumMeasure, item: notes[0]),
+            x: 100,
+            stemDirectionOverride: nil
+        )
+        XCTAssertTrue(NotationTrackLayoutItems.accidentals(from: [drumLayoutItem]).isEmpty)
+    }
+
     func testTimelineNotationActionAdapterSuppressesOnlyStemHarmonyActions() {
         let recorder = TimelineNotationActionRecorder()
         let actions = timelineViewActions(recorder: recorder)

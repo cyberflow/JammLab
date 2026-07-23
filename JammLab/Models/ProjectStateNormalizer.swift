@@ -120,7 +120,8 @@ struct ProjectStateNormalizer {
 
     static func normalizedNotationItems(
         _ items: [NotationMeasureItem],
-        duration: TimeInterval
+        duration: TimeInterval,
+        notationPartClefs: [NotationPartID: Clef]
     ) -> [NotationMeasureItem] {
         let duration = normalizedDuration(duration)
         let persistedItems = items.filter { item in
@@ -143,6 +144,13 @@ struct ProjectStateNormalizer {
                     partID: item.partID,
                     kind: item.kind,
                     pitch: item.kind == .note ? item.pitch : nil,
+                    explicitAccidental: item.kind == .note
+                        && NotationPartClefOverrides.clef(
+                            for: item.partID,
+                            in: notationPartClefs
+                        ) != .drums
+                        ? item.explicitAccidental
+                        : nil,
                     measureNumber: max(1, item.measureNumber),
                     measureStartTime: min(max(0, finiteTime(item.measureStartTime)), duration),
                     offsetInQuarterNotes: max(0, finiteTime(item.offsetInQuarterNotes)),

@@ -27,6 +27,9 @@ enum AppHotkey: CaseIterable, Hashable {
     case setNotationDurationWhole
     case toggleNotationDurationDot
     case addTiedNotationNote
+    case setNotationAccidentalFlat
+    case setNotationAccidentalNatural
+    case setNotationAccidentalSharp
 
     static let notationDurationHotkeys = Set(allCases.filter {
         $0.notationDurationDenominator != nil
@@ -35,6 +38,12 @@ enum AppHotkey: CaseIterable, Hashable {
     static let notationDurationEditingHotkeys = notationDurationHotkeys.union([
         .toggleNotationDurationDot
     ])
+
+    static let notationAccidentalHotkeys: Set<AppHotkey> = [
+        .setNotationAccidentalFlat,
+        .setNotationAccidentalNatural,
+        .setNotationAccidentalSharp
+    ]
 
     // Keep this enum as the single source of truth for keyboard shortcuts.
     // When adding a new handled hotkey, add a case here with its help metadata
@@ -57,6 +66,8 @@ enum AppHotkey: CaseIterable, Hashable {
             self = .toggleVideoWindow
         case (8, [.shift]):
             self = .addTempoTimeSignatureMarker
+        case (24, [.shift]):
+            self = .setNotationAccidentalSharp
         default:
             guard relevantModifiers.isEmpty else {
                 return nil
@@ -104,6 +115,10 @@ enum AppHotkey: CaseIterable, Hashable {
             self = .toggleNotationDurationDot
         case 17:
             self = .addTiedNotationNote
+        case 27:
+            self = .setNotationAccidentalFlat
+        case 24:
+            self = .setNotationAccidentalNatural
         case 53:
             self = .clearNotationMeasureSelection
         default:
@@ -163,6 +178,12 @@ enum AppHotkey: CaseIterable, Hashable {
             return ".; Num.; Num,"
         case .addTiedNotationNote:
             return "T"
+        case .setNotationAccidentalFlat:
+            return "-"
+        case .setNotationAccidentalNatural:
+            return "="
+        case .setNotationAccidentalSharp:
+            return "+"
         }
     }
 
@@ -218,6 +239,12 @@ enum AppHotkey: CaseIterable, Hashable {
             return "Augmentation dot"
         case .addTiedNotationNote:
             return "Tie"
+        case .setNotationAccidentalFlat:
+            return "Flat"
+        case .setNotationAccidentalNatural:
+            return "Natural"
+        case .setNotationAccidentalSharp:
+            return "Sharp"
         }
     }
 
@@ -273,6 +300,12 @@ enum AppHotkey: CaseIterable, Hashable {
             return "Toggle duration dot"
         case .addTiedNotationNote:
             return "Add tied note"
+        case .setNotationAccidentalFlat:
+            return "Apply a flat to the selected note or the next note entered."
+        case .setNotationAccidentalNatural:
+            return "Apply a natural to the selected note or the next note entered."
+        case .setNotationAccidentalSharp:
+            return "Apply a sharp to the selected note or the next note entered."
         }
     }
 
@@ -288,6 +321,19 @@ enum AppHotkey: CaseIterable, Hashable {
             return 2
         case .setNotationDurationWhole:
             return 1
+        default:
+            return nil
+        }
+    }
+
+    var notationAccidental: NotationAccidental? {
+        switch self {
+        case .setNotationAccidentalFlat:
+            return .flat
+        case .setNotationAccidentalNatural:
+            return .natural
+        case .setNotationAccidentalSharp:
+            return .sharp
         default:
             return nil
         }

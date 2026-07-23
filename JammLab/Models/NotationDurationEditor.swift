@@ -54,6 +54,7 @@ enum NotationDurationEditor {
             partID: selected.partID,
             kind: selected.kind,
             pitch: selected.pitch,
+            explicitAccidental: selected.explicitAccidental,
             measureNumber: measure.number,
             measureStartTime: measure.startTime,
             offsetInQuarterNotes: startOffset,

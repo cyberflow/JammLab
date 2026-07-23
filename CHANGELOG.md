@@ -8,6 +8,7 @@ development artifact builds use `vMAJOR.MINOR.PATCH-dev.N`.
 
 ## Unreleased
 
+- Added inline flat, natural, and sharp signs to Notation with Leland glyphs, one-shot note entry, selected tied-note editing, compact duration and accidental track menus, keyboard shortcuts, persistence, and MusicXML export.
 - Added automatic rhythmic beaming for eighth and sixteenth notes in supported simple and compound Notation meters, including shared stem direction, sloped beams, secondary beam breaks, and beamlets.
 - Fixed Leland eighth-note and shorter flags separating from their stems in Notation chord and Drum rendering.
 - Added Drum Clef notation with a 16-sound GM drum palette, percussion noteheads, voice-aware stem directions, constrained Notation/MIDI entry, percussion preview, legacy-project clef migration, and unpitched MusicXML export.

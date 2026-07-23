@@ -30,6 +30,7 @@ struct NotationTrackView: View {
     let selectedDuration: NotationDuration
     let selectedDrumInstrumentMIDINoteNumber: Int
     let entryMode: NotationEntryMode?
+    let pendingNotationAccidental: NotationAccidental?
     let pendingEditorRequest: HarmonyEditorRequest?
     let showsRegionLabels: Bool
     let actions: NotationTrackActions
@@ -52,6 +53,7 @@ struct NotationTrackView: View {
         selectedDuration: NotationDuration = NotationDuration(),
         selectedDrumInstrumentMIDINoteNumber: Int = DrumInstrumentMap.defaultMIDINoteNumber,
         entryMode: NotationEntryMode? = nil,
+        pendingNotationAccidental: NotationAccidental? = nil,
         pendingEditorRequest: HarmonyEditorRequest? = nil,
         showsRegionLabels: Bool = true,
         actions: NotationTrackActions = .noop,
@@ -66,6 +68,7 @@ struct NotationTrackView: View {
         self.selectedDuration = selectedDuration
         self.selectedDrumInstrumentMIDINoteNumber = selectedDrumInstrumentMIDINoteNumber
         self.entryMode = entryMode
+        self.pendingNotationAccidental = pendingNotationAccidental
         self.pendingEditorRequest = pendingEditorRequest
         self.showsRegionLabels = showsRegionLabels
         self.actions = actions
@@ -322,6 +325,24 @@ struct NotationTrackView: View {
         let beamItemIDs = Set(beamGroups.flatMap(\.notationItemIDs))
         let chordGroups = NotationTrackLayoutItems.chordRenderGroups(from: layoutItems)
         let chordItemIDs = Set(chordGroups.flatMap { $0.items.map(\.notationItem.id) })
+        let layoutItemsByID = Dictionary(uniqueKeysWithValues: layoutItems.map {
+            ($0.notationItem.id, $0)
+        })
+
+        for accidentalLayout in NotationTrackLayoutItems.accidentals(from: layoutItems) {
+            guard let item = layoutItemsByID[accidentalLayout.itemID],
+                  draggedNotePitchPreview?.matches(item.selection) != true
+            else { continue }
+            drawAccidental(
+                accidentalLayout.accidental,
+                x: accidentalLayout.x,
+                staffPosition: accidentalLayout.staffPosition,
+                staffTop: staffTop,
+                color: notationItemColor(item),
+                opacity: 1,
+                in: &context
+            )
+        }
 
         for item in layoutItems where !chordItemIDs.contains(item.notationItem.id)
             && !beamItemIDs.contains(item.notationItem.id) {
@@ -382,6 +403,18 @@ struct NotationTrackView: View {
                 for: hoveredNotePlacement.pitch,
                 clef: hoveredNotePlacement.measure.attributes.clef
             )
+            if let accidental = hoveredNotePlacement.explicitAccidental {
+                drawAccidental(
+                    accidental,
+                    x: hoveredNotePlacement.x
+                        - AppTheme.Timeline.notationInlineAccidentalNoteOffset,
+                    staffPosition: staffPosition,
+                    staffTop: staffTop,
+                    color: appColors.accent,
+                    opacity: 0.56,
+                    in: &context
+                )
+            }
             drawNoteGlyphWithLedgerLines(
                 duration: hoveredNotePlacement.displayDuration,
                 x: hoveredNotePlacement.x,
@@ -655,6 +688,35 @@ struct NotationTrackView: View {
             )
             context.fill(Path(path), with: .color(color))
         }
+    }
+
+    private func drawAccidental(
+        _ accidental: NotationAccidental,
+        x: CGFloat,
+        staffPosition: Int,
+        staffTop: CGFloat,
+        color: Color,
+        opacity: Double,
+        in context: inout GraphicsContext
+    ) {
+        guard let glyphPath = NotationMusicFontRegistry.glyphPath(
+            for: accidental,
+            fontSize: AppTheme.Timeline.notationInlineAccidentalGlyphSize
+        ) else { return }
+        let target = CGPoint(
+            x: x,
+            y: NotationNotePlacementResolver.yPosition(
+                forStaffPosition: staffPosition,
+                staffTop: staffTop
+            )
+        )
+        let anchor = CGPoint(x: glyphPath.bounds.midX, y: glyphPath.bounds.midY)
+        context.fill(
+            Path(glyphPath.path).applying(
+                glyphPath.anchoredTransform(anchor: anchor, target: target)
+            ),
+            with: .color(color.opacity(opacity))
+        )
     }
 
     private func drawNoteGlyphWithLedgerLines(
@@ -2023,6 +2085,7 @@ struct NotationTrackView: View {
             staffTop: staffTop(in: height),
             selectedDuration: selectedDuration,
             partID: partID,
+            explicitAccidental: pendingNotationAccidental,
             selectedDrumInstrumentMIDINoteNumber: selectedDrumInstrumentMIDINoteNumber
         ), actions.canInsertNotationNote(placement) else { return nil }
         return placement

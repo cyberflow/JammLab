@@ -292,6 +292,11 @@ struct ContentView: View {
             return viewModel.toggleNotationDurationDot()
         case .addTiedNotationNote:
             return viewModel.handleAddTiedNotationNoteCommand()
+        case .setNotationAccidentalFlat,
+                .setNotationAccidentalNatural,
+                .setNotationAccidentalSharp:
+            guard let accidental = hotkey.notationAccidental else { return false }
+            return viewModel.handleNotationAccidentalCommand(accidental)
         }
     }
 

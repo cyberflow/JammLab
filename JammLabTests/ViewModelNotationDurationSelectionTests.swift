@@ -4,6 +4,293 @@ import XCTest
 
 final class ViewModelNotationDurationSelectionTests: XCTestCase {
     @MainActor
+    func testAccidentalCommandArmsOneShotAcrossEntryModesAndConsumesOnlySuccessfulTonalInsertion() throws {
+        let viewModel = try loadedNotationViewModel(duration: 8)
+        viewModel.setNotationNoteEntryModeEnabled(true)
+
+        XCTAssertTrue(viewModel.handleNotationAccidentalCommand(.flat))
+        XCTAssertEqual(viewModel.pendingNotationAccidental, .flat)
+
+        viewModel.toggleNotationRestEntryMode()
+        XCTAssertEqual(viewModel.pendingNotationAccidental, .flat)
+        viewModel.toggleNotationNoteEntryMode()
+        XCTAssertEqual(viewModel.pendingNotationAccidental, .flat)
+
+        let measure = try notationMeasure(1, in: viewModel)
+        let invalidPlacement = NotationNotePlacement(
+            measure: measure,
+            offsetInQuarterNotes: 0,
+            durationInQuarterNotes: 2,
+            displayDuration: NotationDuration(denominator: 4),
+            pitch: NotationPitch(step: .c, octave: 4),
+            explicitAccidental: .flat,
+            x: 0,
+            y: 0
+        )
+        XCTAssertFalse(viewModel.insertNotationNote(invalidPlacement))
+        XCTAssertEqual(viewModel.pendingNotationAccidental, .flat)
+
+        let drumPartID = NotationPartID.stem(.drums)
+        let drumMeasure = try notationMeasure(1, in: viewModel, partID: drumPartID)
+        let drumPlacement = NotationNotePlacement(
+            measure: drumMeasure,
+            partID: drumPartID,
+            offsetInQuarterNotes: 0,
+            durationInQuarterNotes: 1,
+            displayDuration: NotationDuration(denominator: 4),
+            pitch: NotationPitchMapper.pitch(
+                forMIDINoteNumber: 38,
+                keySignature: .cMajor
+            ),
+            x: 0,
+            y: 0
+        )
+        XCTAssertTrue(viewModel.insertNotationNote(drumPlacement))
+        XCTAssertEqual(viewModel.pendingNotationAccidental, .flat)
+
+        let placement = NotationNotePlacement(
+            measure: measure,
+            offsetInQuarterNotes: 0,
+            durationInQuarterNotes: 1,
+            displayDuration: NotationDuration(denominator: 4),
+            pitch: NotationPitch(step: .c, octave: 4),
+            explicitAccidental: .flat,
+            x: 0,
+            y: 0
+        )
+        XCTAssertTrue(viewModel.insertNotationNote(placement))
+
+        let note = try XCTUnwrap(viewModel.notationItems.first { $0.kind == .note })
+        XCTAssertEqual(note.pitch, NotationPitch(step: .c, octave: 4, alter: -1))
+        XCTAssertEqual(note.explicitAccidental, .flat)
+        XCTAssertNil(viewModel.pendingNotationAccidental)
+        XCTAssertTrue(viewModel.isNotationNoteEntryModeEnabled)
+
+        viewModel.clearNotationItemSelection()
+        XCTAssertTrue(viewModel.handleNotationAccidentalCommand(.sharp))
+        XCTAssertEqual(viewModel.pendingNotationAccidental, .sharp)
+        XCTAssertTrue(viewModel.handleNotationAccidentalCommand(.sharp))
+        XCTAssertNil(viewModel.pendingNotationAccidental)
+        XCTAssertTrue(viewModel.handleNotationAccidentalCommand(.natural))
+        viewModel.clearNotationEntryMode()
+        XCTAssertNil(viewModel.pendingNotationAccidental)
+    }
+
+    @MainActor
+    func testAccidentalCommandUpdatesWholeSelectedTieChainAndOnlyRootDisplaysGlyph() throws {
+        let viewModel = try loadedNotationViewModel(duration: 8)
+        let undoManager = UndoManager()
+        viewModel.undoManager = undoManager
+        viewModel.notationItems = [
+            NotationMeasureItem(
+                id: "root",
+                kind: .note,
+                pitch: NotationPitch(step: .c, octave: 4),
+                measureNumber: 1,
+                measureStartTime: 0,
+                offsetInQuarterNotes: 0,
+                durationInQuarterNotes: 1,
+                displayDuration: NotationDuration(denominator: 4),
+                tieTargetItemID: "continuation"
+            ),
+            NotationMeasureItem(
+                id: "continuation",
+                kind: .note,
+                pitch: NotationPitch(step: .c, octave: 4),
+                measureNumber: 1,
+                measureStartTime: 0,
+                offsetInQuarterNotes: 1,
+                durationInQuarterNotes: 1,
+                displayDuration: NotationDuration(denominator: 4)
+            )
+        ]
+        let measure = try notationMeasure(1, in: viewModel)
+        let continuation = try XCTUnwrap(measure.notationItems.first { $0.id == "continuation" })
+        viewModel.selectNotationItem(
+            NotationItemSelection(measure: measure, item: continuation),
+            shouldAudition: false
+        )
+        viewModel.markProjectClean()
+
+        XCTAssertTrue(viewModel.handleNotationAccidentalCommand(.sharp))
+        XCTAssertEqual(viewModel.notationItems.first { $0.id == "root" }?.pitch?.alter, 1)
+        XCTAssertEqual(viewModel.notationItems.first { $0.id == "continuation" }?.pitch?.alter, 1)
+        XCTAssertEqual(viewModel.notationItems.first { $0.id == "root" }?.explicitAccidental, .sharp)
+        XCTAssertNil(viewModel.notationItems.first { $0.id == "continuation" }?.explicitAccidental)
+        XCTAssertEqual(viewModel.selectedNotationItem?.itemID, "continuation")
+        XCTAssertTrue(viewModel.isProjectModified)
+
+        viewModel.undoLastEdit()
+        XCTAssertEqual(viewModel.notationItems.first { $0.id == "root" }?.pitch?.alter, 0)
+        XCTAssertEqual(viewModel.notationItems.first { $0.id == "continuation" }?.pitch?.alter, 0)
+        XCTAssertNil(viewModel.notationItems.first { $0.id == "root" }?.explicitAccidental)
+        XCTAssertNil(viewModel.notationItems.first { $0.id == "continuation" }?.explicitAccidental)
+        XCTAssertFalse(viewModel.isProjectModified)
+
+        viewModel.redoLastEdit()
+        XCTAssertEqual(viewModel.notationItems.first { $0.id == "root" }?.pitch?.alter, 1)
+        XCTAssertEqual(viewModel.notationItems.first { $0.id == "continuation" }?.pitch?.alter, 1)
+        XCTAssertEqual(viewModel.notationItems.first { $0.id == "root" }?.explicitAccidental, .sharp)
+        XCTAssertNil(viewModel.notationItems.first { $0.id == "continuation" }?.explicitAccidental)
+        XCTAssertTrue(viewModel.isProjectModified)
+    }
+
+    @MainActor
+    func testReapplyingSameAccidentalToSelectedTieChainDoesNotMutateUndoOrAudition() throws {
+        let auditioner = MockNotationNoteAuditioner()
+        let viewModel = try loadedNotationViewModel(
+            duration: 8,
+            notationNoteAuditioner: auditioner
+        )
+        let undoManager = UndoManager()
+        viewModel.undoManager = undoManager
+        viewModel.notationItems = [
+            NotationMeasureItem(
+                id: "root",
+                kind: .note,
+                pitch: NotationPitch(step: .c, octave: 4, alter: 1),
+                explicitAccidental: .sharp,
+                measureNumber: 1,
+                measureStartTime: 0,
+                offsetInQuarterNotes: 0,
+                durationInQuarterNotes: 1,
+                displayDuration: NotationDuration(denominator: 4),
+                tieTargetItemID: "continuation"
+            ),
+            NotationMeasureItem(
+                id: "continuation",
+                kind: .note,
+                pitch: NotationPitch(step: .c, octave: 4, alter: 1),
+                measureNumber: 1,
+                measureStartTime: 0,
+                offsetInQuarterNotes: 1,
+                durationInQuarterNotes: 1,
+                displayDuration: NotationDuration(denominator: 4)
+            )
+        ]
+        let measure = try notationMeasure(1, in: viewModel)
+        let continuation = try XCTUnwrap(measure.notationItems.first { $0.id == "continuation" })
+        viewModel.selectNotationItem(
+            NotationItemSelection(measure: measure, item: continuation),
+            shouldAudition: false
+        )
+        let unchangedItems = viewModel.notationItems
+        viewModel.markProjectClean()
+        undoManager.removeAllActions()
+
+        XCTAssertTrue(viewModel.handleNotationAccidentalCommand(.sharp))
+        XCTAssertEqual(viewModel.notationItems, unchangedItems)
+        XCTAssertFalse(viewModel.isProjectModified)
+        XCTAssertFalse(undoManager.canUndo)
+        XCTAssertTrue(auditioner.attemptedPitches.isEmpty)
+        XCTAssertTrue(auditioner.auditionedPitches.isEmpty)
+    }
+
+    @MainActor
+    func testNaturalCommandCanAddDisplayIntentWithoutChangingPitch() throws {
+        let viewModel = try loadedNotationViewModel(duration: 8)
+        viewModel.notationItems = [
+            NotationMeasureItem(
+                id: "natural-note",
+                kind: .note,
+                pitch: NotationPitch(step: .d, octave: 4),
+                measureNumber: 1,
+                measureStartTime: 0,
+                offsetInQuarterNotes: 0,
+                durationInQuarterNotes: 1,
+                displayDuration: NotationDuration(denominator: 4)
+            )
+        ]
+        let measure = try notationMeasure(1, in: viewModel)
+        let note = try XCTUnwrap(measure.notationItems.first { $0.id == "natural-note" })
+        viewModel.selectNotationItem(
+            NotationItemSelection(measure: measure, item: note),
+            shouldAudition: false
+        )
+
+        XCTAssertTrue(viewModel.handleNotationAccidentalCommand(.natural))
+        XCTAssertEqual(viewModel.notationItems.first?.pitch?.alter, 0)
+        XCTAssertEqual(viewModel.notationItems.first?.explicitAccidental, .natural)
+    }
+
+    @MainActor
+    func testAccidentalCommandRejectsDuplicatePitchAtomically() throws {
+        let viewModel = try loadedNotationViewModel(duration: 8)
+        let undoManager = UndoManager()
+        viewModel.undoManager = undoManager
+        viewModel.notationItems = [
+            NotationMeasureItem(
+                id: "source",
+                kind: .note,
+                pitch: NotationPitch(step: .f, octave: 4),
+                measureNumber: 1,
+                measureStartTime: 0,
+                offsetInQuarterNotes: 0,
+                durationInQuarterNotes: 1,
+                displayDuration: NotationDuration(denominator: 4)
+            ),
+            NotationMeasureItem(
+                id: "blocker",
+                kind: .note,
+                pitch: NotationPitch(step: .g, octave: 4, alter: -1),
+                measureNumber: 1,
+                measureStartTime: 0,
+                offsetInQuarterNotes: 0,
+                durationInQuarterNotes: 2,
+                displayDuration: NotationDuration(denominator: 2)
+            )
+        ]
+        let measure = try notationMeasure(1, in: viewModel)
+        let source = try XCTUnwrap(measure.notationItems.first { $0.id == "source" })
+        viewModel.selectNotationItem(
+            NotationItemSelection(measure: measure, item: source),
+            shouldAudition: false
+        )
+        viewModel.markProjectClean()
+
+        XCTAssertFalse(viewModel.handleNotationAccidentalCommand(.sharp))
+        XCTAssertEqual(viewModel.notationItems.first { $0.id == "source" }?.pitch?.alter, 0)
+        XCTAssertNil(viewModel.notationItems.first { $0.id == "source" }?.explicitAccidental)
+        XCTAssertFalse(viewModel.isProjectModified)
+        XCTAssertFalse(undoManager.canUndo)
+    }
+
+    @MainActor
+    func testExactExistingNoteSelectionCancelsPendingAccidentalWithoutMutatingNote() throws {
+        let viewModel = try loadedNotationViewModel(duration: 8)
+        viewModel.notationItems = [
+            NotationMeasureItem(
+                id: "existing-flat",
+                kind: .note,
+                pitch: NotationPitch(step: .c, octave: 4, alter: -1),
+                measureNumber: 1,
+                measureStartTime: 0,
+                offsetInQuarterNotes: 0,
+                durationInQuarterNotes: 1,
+                displayDuration: NotationDuration(denominator: 4)
+            )
+        ]
+        viewModel.setNotationNoteEntryModeEnabled(true)
+        XCTAssertTrue(viewModel.handleNotationAccidentalCommand(.flat))
+        let measure = try notationMeasure(1, in: viewModel)
+        let placement = NotationNotePlacement(
+            measure: measure,
+            offsetInQuarterNotes: 0,
+            durationInQuarterNotes: 1,
+            displayDuration: NotationDuration(denominator: 4),
+            pitch: NotationPitch(step: .c, octave: 4),
+            explicitAccidental: .flat,
+            x: 0,
+            y: 0
+        )
+
+        XCTAssertTrue(viewModel.insertNotationNote(placement))
+        XCTAssertEqual(viewModel.selectedNotationItem?.itemID, "existing-flat")
+        XCTAssertNil(viewModel.pendingNotationAccidental)
+        XCTAssertNil(viewModel.notationItems.first?.explicitAccidental)
+    }
+
+    @MainActor
     func testAugmentationDotModePersistsUntilToggledOff() throws {
         let viewModel = try loadedNotationViewModel(duration: 8)
         viewModel.setNotationNoteEntryModeEnabled(true)
@@ -1682,6 +1969,7 @@ final class ViewModelNotationDurationSelectionTests: XCTestCase {
                 partID: drumPartID,
                 kind: .note,
                 pitch: NotationPitchMapper.pitch(forMIDINoteNumber: 38, keySignature: .cMajor),
+                explicitAccidental: .natural,
                 measureNumber: 1,
                 measureStartTime: 0,
                 offsetInQuarterNotes: 0,
@@ -1696,16 +1984,19 @@ final class ViewModelNotationDurationSelectionTests: XCTestCase {
         XCTAssertEqual(viewModel.notationClef(for: drumPartID), .drums)
         XCTAssertNil(viewModel.notationPartClefs[drumPartID])
         XCTAssertEqual(viewModel.notationItems.first?.pitch?.midiNoteNumber, 38)
+        XCTAssertNil(viewModel.notationItems.first?.explicitAccidental)
         XCTAssertTrue(viewModel.isProjectModified)
         XCTAssertTrue(viewModel.canUndo)
 
         viewModel.undoLastEdit()
         XCTAssertEqual(viewModel.notationClef(for: drumPartID), .treble)
         XCTAssertEqual(viewModel.notationItems.first?.pitch?.midiNoteNumber, 38)
+        XCTAssertEqual(viewModel.notationItems.first?.explicitAccidental, .natural)
 
         viewModel.redoLastEdit()
         XCTAssertEqual(viewModel.notationClef(for: drumPartID), .drums)
         XCTAssertEqual(viewModel.notationItems.first?.pitch?.midiNoteNumber, 38)
+        XCTAssertNil(viewModel.notationItems.first?.explicitAccidental)
     }
 
     @MainActor

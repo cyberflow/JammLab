@@ -152,6 +152,7 @@ struct NotationMeasureClipboardNotationItem: Equatable {
     var sourceItemID: String
     var kind: NotationMeasureItem.Kind = .rest
     var pitch: NotationPitch? = nil
+    var explicitAccidental: NotationAccidental? = nil
     var offsetInQuarterNotes: Double
     var durationInQuarterNotes: Double
     var displayDuration: NotationDuration
@@ -417,6 +418,24 @@ struct NotationDuration: Codable, Equatable, Identifiable {
     }
 }
 
+enum NotationAccidental: String, Codable, CaseIterable, Equatable {
+    case flat
+    case natural
+    case sharp
+
+    var alter: Int {
+        switch self {
+        case .flat: return -1
+        case .natural: return 0
+        case .sharp: return 1
+        }
+    }
+
+    var displayName: String {
+        rawValue.capitalized
+    }
+}
+
 struct NotationMeasureItem: Identifiable, Codable, Equatable {
     enum Kind: String, Codable, Equatable {
         case rest
@@ -427,6 +446,7 @@ struct NotationMeasureItem: Identifiable, Codable, Equatable {
     var partID: NotationPartID
     var kind: Kind
     var pitch: NotationPitch?
+    var explicitAccidental: NotationAccidental?
     var measureNumber: Int
     var measureStartTime: TimeInterval
     var offsetInQuarterNotes: Double
@@ -440,6 +460,7 @@ struct NotationMeasureItem: Identifiable, Codable, Equatable {
         partID: NotationPartID = .main,
         kind: Kind = .rest,
         pitch: NotationPitch? = nil,
+        explicitAccidental: NotationAccidental? = nil,
         measureNumber: Int,
         measureStartTime: TimeInterval,
         offsetInQuarterNotes: Double,
@@ -451,7 +472,15 @@ struct NotationMeasureItem: Identifiable, Codable, Equatable {
         self.id = id
         self.partID = partID
         self.kind = kind
-        self.pitch = kind == .note ? pitch : nil
+        if kind == .note, var pitch {
+            if let explicitAccidental {
+                pitch.alter = explicitAccidental.alter
+            }
+            self.pitch = pitch
+        } else {
+            self.pitch = nil
+        }
+        self.explicitAccidental = kind == .note ? explicitAccidental : nil
         self.measureNumber = measureNumber
         self.measureStartTime = measureStartTime
         self.offsetInQuarterNotes = offsetInQuarterNotes
@@ -467,6 +496,7 @@ struct NotationMeasureItem: Identifiable, Codable, Equatable {
             partID: partID,
             kind: kind,
             pitch: pitch,
+            explicitAccidental: explicitAccidental,
             measureNumber: measureNumber,
             measureStartTime: measureStartTime,
             offsetInQuarterNotes: offsetInQuarterNotes,
@@ -481,6 +511,7 @@ struct NotationMeasureItem: Identifiable, Codable, Equatable {
         case partID
         case kind
         case pitch
+        case explicitAccidental
         case measureNumber
         case measureStartTime
         case offsetInQuarterNotes
@@ -495,8 +526,15 @@ struct NotationMeasureItem: Identifiable, Codable, Equatable {
         id = try container.decodeIfPresent(String.self, forKey: .id) ?? UUID().uuidString
         partID = try container.decodeIfPresent(NotationPartID.self, forKey: .partID) ?? .main
         kind = try container.decodeIfPresent(Kind.self, forKey: .kind) ?? .rest
-        let decodedPitch = try container.decodeIfPresent(NotationPitch.self, forKey: .pitch)
+        var decodedPitch = try container.decodeIfPresent(NotationPitch.self, forKey: .pitch)
+        let decodedExplicitAccidental = kind == .note
+            ? try container.decodeIfPresent(NotationAccidental.self, forKey: .explicitAccidental)
+            : nil
+        if let decodedExplicitAccidental {
+            decodedPitch?.alter = decodedExplicitAccidental.alter
+        }
         pitch = kind == .note ? decodedPitch : nil
+        explicitAccidental = decodedExplicitAccidental
         measureNumber = try container.decode(Int.self, forKey: .measureNumber)
         measureStartTime = try container.decode(TimeInterval.self, forKey: .measureStartTime)
         offsetInQuarterNotes = try container.decode(Double.self, forKey: .offsetInQuarterNotes)

@@ -151,6 +151,80 @@ struct NotationDurationControl: View {
     }
 }
 
+struct NotationDurationMenu: View {
+    @Binding var denominator: Int
+    let isEnabled: Bool
+
+    @State private var isPresented = false
+
+    private var options: [NotationDurationOption] {
+        NotationDuration.entryDenominators
+            .reversed()
+            .compactMap(NotationDurationOption.init)
+    }
+
+    private var normalizedDenominator: Int {
+        NotationDuration.normalizedDenominator(denominator)
+    }
+
+    private var selectedOption: NotationDurationOption {
+        options.first(where: { $0.denominator == normalizedDenominator })
+            ?? NotationDurationOption(denominator: NotationDuration.defaultDenominator)!
+    }
+
+    var body: some View {
+        NotationSelectableButton(isActive: true) {
+            isPresented.toggle()
+        } label: { iconColor in
+            NotationDurationGlyphView(
+                symbol: selectedOption.symbol,
+                color: iconColor
+            )
+            .accessibilityHidden(true)
+        }
+        .disabled(!isEnabled)
+        .frame(
+            width: AppTheme.ControlSize.notationCompactMenuButtonWidth,
+            height: AppTheme.ControlSize.notationCompactMenuButtonHeight
+        )
+        .popover(isPresented: $isPresented, arrowEdge: .bottom) {
+            NotationCompactMenuContent {
+                ForEach(options) { option in
+                    durationButton(for: option)
+                }
+            }
+        }
+        .help(Text(NotationDurationControlHelpText.menuTooltip(for: selectedOption.duration)))
+        .accessibilityLabel(NotationDurationControlHelpText.menuAccessibilityLabel)
+        .accessibilityHint(NotationDurationControlHelpText.menuAccessibilityHint)
+        .accessibilityValue(selectedOption.duration.capitalizedDisplayName)
+    }
+
+    private func durationButton(for option: NotationDurationOption) -> some View {
+        let isSelected = normalizedDenominator == option.denominator
+
+        return NotationSelectableButton(isActive: isSelected) {
+            denominator = option.denominator
+            isPresented = false
+        } label: { iconColor in
+            NotationDurationGlyphView(
+                symbol: option.symbol,
+                color: iconColor
+            )
+            .accessibilityHidden(true)
+        }
+        .help(Text(NotationDurationControlHelpText.tooltip(for: option.duration)))
+        .accessibilityLabel(NotationDurationControlHelpText.accessibilityLabel(for: option.duration))
+        .accessibilityHint(NotationDurationControlHelpText.accessibilityHint(for: option.duration))
+        .accessibilityValue(isSelected ? "Selected" : "Not selected")
+        .accessibilityAddTraits(isSelected ? [.isSelected] : [])
+        .frame(
+            width: AppTheme.ControlSize.notationCompactMenuButtonWidth,
+            height: AppTheme.ControlSize.notationCompactMenuButtonHeight
+        )
+    }
+}
+
 struct NotationEntryModeButton: View {
     let mode: NotationEntryMode
     let isActive: Bool
@@ -208,6 +282,85 @@ struct NotationTieButton: View {
     }
 }
 
+struct NotationAccidentalButton: View {
+    let accidental: NotationAccidental
+    let isActive: Bool
+    let action: () -> Void
+
+    var body: some View {
+        NotationSelectableButton(isActive: isActive, action: action) { iconColor in
+            NotationAccidentalGlyphView(accidental: accidental, color: iconColor)
+                .accessibilityHidden(true)
+        }
+        .help(Text(NotationAccidentalHelpText.tooltip(for: accidental)))
+        .accessibilityLabel(NotationAccidentalHelpText.accessibilityLabel(for: accidental))
+        .accessibilityHint(NotationAccidentalHelpText.accessibilityHint(for: accidental))
+        .accessibilityValue(isActive ? "Armed for next note" : "Not armed")
+        .accessibilityAddTraits(isActive ? [.isSelected] : [])
+    }
+}
+
+struct NotationAccidentalMenu: View {
+    let pendingAccidental: NotationAccidental?
+    let action: (NotationAccidental) -> Void
+
+    @State private var isPresented = false
+
+    var body: some View {
+        NotationSelectableButton(isActive: pendingAccidental != nil) {
+            isPresented.toggle()
+        } label: { iconColor in
+            NotationAccidentalGlyphView(
+                accidental: .sharp,
+                color: iconColor
+            )
+            .accessibilityHidden(true)
+        }
+        .frame(
+            width: AppTheme.ControlSize.notationCompactMenuButtonWidth,
+            height: AppTheme.ControlSize.notationCompactMenuButtonHeight
+        )
+        .popover(isPresented: $isPresented, arrowEdge: .bottom) {
+            NotationCompactMenuContent {
+                ForEach(NotationAccidental.allCases, id: \.self) { accidental in
+                    NotationAccidentalButton(
+                        accidental: accidental,
+                        isActive: pendingAccidental == accidental
+                    ) {
+                        action(accidental)
+                        isPresented = false
+                    }
+                    .frame(
+                        width: AppTheme.ControlSize.notationCompactMenuButtonWidth,
+                        height: AppTheme.ControlSize.notationCompactMenuButtonHeight
+                    )
+                }
+            }
+        }
+        .help(Text(NotationAccidentalHelpText.menuTooltip))
+        .accessibilityLabel("Notation accidentals")
+        .accessibilityHint("Choose flat, natural, or sharp for the selected note or next note entered.")
+        .accessibilityValue(pendingAccidental.map { "\($0.displayName) armed" } ?? "No accidental armed")
+    }
+}
+
+private struct NotationCompactMenuContent<Content: View>: View {
+    private let content: Content
+    @Environment(\.appColors) private var appColors
+
+    init(@ViewBuilder content: () -> Content) {
+        self.content = content()
+    }
+
+    var body: some View {
+        VStack(spacing: AppTheme.ControlSize.notationCompactMenuItemSpacing) {
+            content
+        }
+        .padding(AppTheme.ControlSize.notationCompactMenuPadding)
+        .background(appColors.elevatedSurface)
+    }
+}
+
 private struct NotationSelectableButton<Label: View>: View {
     let isActive: Bool
     let action: () -> Void
@@ -229,8 +382,8 @@ private struct NotationSelectableButton<Label: View>: View {
         Button(action: action) {
             label(iconColor)
                 .frame(
-                    width: AppTheme.ControlSize.notationModeButtonWidth,
-                    height: AppTheme.ControlSize.notationDurationControlHeight
+                    width: AppTheme.ControlSize.notationActionButtonWidth,
+                    height: AppTheme.ControlSize.notationActionButtonHeight
                 )
                 .background(isActive ? appColors.accent : appColors.statusButtonFill)
                 .clipShape(RoundedRectangle(cornerRadius: AppTheme.Radius.small, style: .continuous))
@@ -257,6 +410,36 @@ enum NotationAugmentationDotHelpText {
     ].joined(separator: "\n")
     static let accessibilityLabel = AppHotkey.toggleNotationDurationDot.title
     static let accessibilityHint = AppHotkey.toggleNotationDurationDot.detail
+}
+
+enum NotationAccidentalHelpText {
+    static func tooltip(for accidental: NotationAccidental) -> String {
+        guard let hotkey = AppHotkey.allCases.first(where: {
+            $0.notationAccidental == accidental
+        }) else {
+            return accidental.displayName
+        }
+        return ["\(hotkey.title) (\(hotkey.key))", hotkey.detail].joined(separator: "\n")
+    }
+
+    static func accessibilityLabel(for accidental: NotationAccidental) -> String {
+        AppHotkey.allCases.first(where: { $0.notationAccidental == accidental })?.title
+            ?? accidental.displayName
+    }
+
+    static func accessibilityHint(for accidental: NotationAccidental) -> String {
+        AppHotkey.allCases.first(where: { $0.notationAccidental == accidental })?.detail
+            ?? "Apply \(accidental.displayName.lowercased()) to notation."
+    }
+
+    static var menuTooltip: String {
+        let choices = NotationAccidental.allCases.compactMap { accidental in
+            AppHotkey.allCases.first(where: { $0.notationAccidental == accidental }).map {
+                "\($0.title) (\($0.key))"
+            }
+        }
+        return "Notation accidentals: \(choices.joined(separator: ", "))"
+    }
 }
 
 enum NotationTieHelpText {
@@ -362,6 +545,34 @@ private struct NotationAugmentationDotGlyphView: View {
     }
 }
 
+private struct NotationAccidentalGlyphView: View {
+    let accidental: NotationAccidental
+    let color: Color
+
+    var body: some View {
+        ZStack {
+            if let glyphPath = NotationMusicFontRegistry.glyphPath(
+                for: accidental,
+                fontSize: AppTheme.ControlSize.notationAccidentalGlyphSize
+            ) {
+                Canvas { context, size in
+                    context.fill(
+                        Path(glyphPath.path).applying(glyphPath.centeredTransform(in: size)),
+                        with: .color(color)
+                    )
+                }
+            } else {
+                Text(accidental.glyph)
+                    .font(.custom(
+                        NotationMusicFontRegistry.fontName,
+                        size: AppTheme.ControlSize.notationAccidentalGlyphSize
+                    ))
+                    .foregroundStyle(color)
+            }
+        }
+    }
+}
+
 private struct NotationDurationGlyphView: View {
     let symbol: NotationDurationControlSymbol
     let color: Color
@@ -452,6 +663,13 @@ enum NotationDurationControlHelpText {
     static func accessibilityHint(for duration: NotationDuration) -> String {
         "Sets notation duration to \(duration.displayName) note"
     }
+
+    static func menuTooltip(for duration: NotationDuration) -> String {
+        "Notation duration: \(title(for: duration))"
+    }
+
+    static let menuAccessibilityLabel = "Notation duration"
+    static let menuAccessibilityHint = "Choose the duration for notation note or rest entry."
 
     private static func title(for duration: NotationDuration) -> String {
         "\(duration.capitalizedDisplayName) (\(traditionalName(for: duration))) note"

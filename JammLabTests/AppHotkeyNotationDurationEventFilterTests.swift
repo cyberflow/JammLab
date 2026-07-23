@@ -105,6 +105,49 @@ final class AppHotkeyNotationDurationEventFilterTests: XCTestCase {
         ))
     }
 
+    func testAppHotkeyEventFilterScopesAccidentalsWithoutStealingTextInputOrRepeats() throws {
+        let events: [(NSEvent, AppHotkey)] = [
+            (try keyEvent(key: "-", keyCode: 27), .setNotationAccidentalFlat),
+            (try keyEvent(key: "=", keyCode: 24), .setNotationAccidentalNatural),
+            (
+                try keyEvent(key: "+", keyCode: 24, modifierFlags: [.shift]),
+                .setNotationAccidentalSharp
+            )
+        ]
+
+        for (event, expectedHotkey) in events {
+            XCTAssertEqual(
+                AppHotkeyEventFilter.hotkey(
+                    for: event,
+                    attachedWindowNumber: 42,
+                    firstResponder: nil,
+                    allowedHotkeys: AppHotkey.notationAccidentalHotkeys
+                ),
+                expectedHotkey
+            )
+            XCTAssertNil(AppHotkeyEventFilter.hotkey(
+                for: event,
+                attachedWindowNumber: 42,
+                firstResponder: NSTextView(),
+                allowedHotkeys: AppHotkey.notationAccidentalHotkeys
+            ))
+            XCTAssertNil(AppHotkeyEventFilter.hotkey(
+                for: event,
+                attachedWindowNumber: 42,
+                firstResponder: nil,
+                allowedHotkeys: [.playPause]
+            ))
+        }
+
+        let repeatedFlat = try keyEvent(key: "-", keyCode: 27, isRepeat: true)
+        XCTAssertNil(AppHotkeyEventFilter.hotkey(
+            for: repeatedFlat,
+            attachedWindowNumber: 42,
+            firstResponder: nil,
+            allowedHotkeys: AppHotkey.notationAccidentalHotkeys
+        ))
+    }
+
     private func keyEvent(
         key: String,
         keyCode: UInt16,
