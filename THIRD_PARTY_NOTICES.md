@@ -38,6 +38,11 @@ Apple system frameworks used by the native macOS app are not listed here.
 | PyInstaller | 6.20.0 | GPLv2-or-later with PyInstaller exception | Used to package `JammLabSeparatorHelper`. |
 | PyTorch / `torch` | 2.12.0 | BSD-3-Clause | Bundled ML runtime dependency. |
 | ONNX Runtime / `onnxruntime` | 1.26.0 | MIT | Bundled inference runtime dependency. |
+| Spotify Basic Pitch | `fa5997a` | Apache-2.0 | Model architecture and model weights used by native stem transcription. |
+| NeuralNote | `f979e51` | Apache-2.0 | Source of the extracted native Basic Pitch inference and note-decoding pipeline. |
+| RTNeural | `2ca066e` | BSD-3-Clause | STL backend used by the native Basic Pitch CNN. |
+| ONNX Runtime (native transcription) | 1.14.1 (`c57cf37`) | MIT | arm64 static runtime used only for Basic Pitch feature extraction. |
+| nlohmann/json | 3.11.1 | MIT | Parses the bundled RTNeural JSON weights. |
 | NumPy | 2.4.6 | BSD-3-Clause and other permissive notices | Bundled numeric dependency. |
 | SciPy | 1.17.1 | BSD-3-Clause, plus bundled native library notices | Bundled scientific dependency. |
 | librosa | 0.11.0 | ISC | Bundled audio analysis dependency of separator stack. |
@@ -127,3 +132,8 @@ Apple system frameworks used by the native macOS app are not listed here.
 - FFmpeg license documentation for `--enable-gpl` behavior.
 - Local bundled Leland font files in `JammLab/Resources/Fonts`, including
   `Leland-README.md`, `Leland-LICENSE.txt`, and `Leland-OFL-FAQ.txt`.
+- Native transcription provenance and adaptations are recorded in
+  `JammLab/Transcription/UPSTREAM.md`.
+- Redistributable license and notice texts for Basic Pitch, NeuralNote,
+  RTNeural, ONNX Runtime, and nlohmann/json are bundled under
+  `JammLab/Resources/ThirdPartyNotices`.

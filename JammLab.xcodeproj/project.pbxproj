@@ -248,6 +248,22 @@
 		9FCE01022F20000100112233 /* NotationDurationEditor.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9FCE00022F20000100112233 /* NotationDurationEditor.swift */; };
 		9FCE01032F20000100112233 /* NotationDurationEditorTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9FCE00032F20000100112233 /* NotationDurationEditorTests.swift */; };
 		9FD001012D20000100112233 /* ControlHelpText.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9FD001002D20000100112233 /* ControlHelpText.swift */; };
+		9F7001012F80000100112233 /* StemTranscriptionModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9F7000012F80000100112233 /* StemTranscriptionModels.swift */; };
+		9F7001022F80000100112233 /* StemTranscriptionService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9F7000022F80000100112233 /* StemTranscriptionService.swift */; };
+		9F7001032F80000100112233 /* StemTranscriptionNotationMapper.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9F7000032F80000100112233 /* StemTranscriptionNotationMapper.swift */; };
+		9F7001042F80000100112233 /* StemTranscriptionMIDIExporter.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9F7000042F80000100112233 /* StemTranscriptionMIDIExporter.swift */; };
+		9F7001052F80000100112233 /* AudioPlayerViewModel+StemTranscription.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9F7000052F80000100112233 /* AudioPlayerViewModel+StemTranscription.swift */; };
+		9F7001102F80000100112233 /* BasicPitchTranscriptionEngine.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 9F7000102F80000100112233 /* BasicPitchTranscriptionEngine.cpp */; };
+		9F7001112F80000100112233 /* BasicPitch.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 9F7000112F80000100112233 /* BasicPitch.cpp */; };
+		9F7001122F80000100112233 /* BasicPitchCNN.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 9F7000122F80000100112233 /* BasicPitchCNN.cpp */; };
+		9F7001132F80000100112233 /* Features.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 9F7000132F80000100112233 /* Features.cpp */; };
+		9F7001142F80000100112233 /* Notes.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 9F7000142F80000100112233 /* Notes.cpp */; };
+		9F7001152F80000100112233 /* JMBasicPitchBridge.mm in Sources */ = {isa = PBXBuildFile; fileRef = 9F7000152F80000100112233 /* JMBasicPitchBridge.mm */; };
+		9F7001162F80000100112233 /* libonnxruntime.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 9F7000162F80000100112233 /* libonnxruntime.a */; };
+		9F7001172F80000100112233 /* BasicPitchModel in Resources */ = {isa = PBXBuildFile; fileRef = 9F7000172F80000100112233 /* BasicPitchModel */; };
+		9F7001212F80000100112233 /* ThirdPartyNotices in Resources */ = {isa = PBXBuildFile; fileRef = 9F7000212F80000100112233 /* ThirdPartyNotices */; };
+		9F7001222F80000100112233 /* StemTranscriptionTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9F7000222F80000100112233 /* StemTranscriptionTests.swift */; };
+		9F7001232F80000100112233 /* BasicPitchNativeTests.mm in Sources */ = {isa = PBXBuildFile; fileRef = 9F7000232F80000100112233 /* BasicPitchNativeTests.mm */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -535,6 +551,31 @@
 		9FC100052D10000100112233 /* Signing-Local.xcconfig.example */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = "Signing-Local.xcconfig.example"; sourceTree = "<group>"; };
 		9FC100062D10000100112233 /* README.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = README.md; sourceTree = "<group>"; };
 		9FD001002D20000100112233 /* ControlHelpText.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ControlHelpText.swift; sourceTree = "<group>"; };
+		9F7000012F80000100112233 /* StemTranscriptionModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StemTranscriptionModels.swift; sourceTree = "<group>"; };
+		9F7000022F80000100112233 /* StemTranscriptionService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StemTranscriptionService.swift; sourceTree = "<group>"; };
+		9F7000032F80000100112233 /* StemTranscriptionNotationMapper.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StemTranscriptionNotationMapper.swift; sourceTree = "<group>"; };
+		9F7000042F80000100112233 /* StemTranscriptionMIDIExporter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StemTranscriptionMIDIExporter.swift; sourceTree = "<group>"; };
+		9F7000052F80000100112233 /* AudioPlayerViewModel+StemTranscription.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "AudioPlayerViewModel+StemTranscription.swift"; sourceTree = "<group>"; };
+		9F7000102F80000100112233 /* BasicPitchTranscriptionEngine.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = BasicPitchTranscriptionEngine.cpp; sourceTree = "<group>"; };
+		9F7000182F80000100112233 /* BasicPitchTranscriptionEngine.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = BasicPitchTranscriptionEngine.h; sourceTree = "<group>"; };
+		9F7000112F80000100112233 /* BasicPitch.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = BasicPitch.cpp; sourceTree = "<group>"; };
+		9F7000192F80000100112233 /* BasicPitch.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = BasicPitch.h; sourceTree = "<group>"; };
+		9F7000122F80000100112233 /* BasicPitchCNN.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = BasicPitchCNN.cpp; sourceTree = "<group>"; };
+		9F70001A2F80000100112233 /* BasicPitchCNN.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = BasicPitchCNN.h; sourceTree = "<group>"; };
+		9F7000132F80000100112233 /* Features.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = Features.cpp; sourceTree = "<group>"; };
+		9F70001B2F80000100112233 /* Features.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = Features.h; sourceTree = "<group>"; };
+		9F7000142F80000100112233 /* Notes.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = Notes.cpp; sourceTree = "<group>"; };
+		9F70001C2F80000100112233 /* Notes.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = Notes.h; sourceTree = "<group>"; };
+		9F70001D2F80000100112233 /* BasicPitchConstants.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = BasicPitchConstants.h; sourceTree = "<group>"; };
+		9F70001E2F80000100112233 /* Utils.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = Utils.h; sourceTree = "<group>"; };
+		9F7000152F80000100112233 /* JMBasicPitchBridge.mm */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.objcpp; path = JMBasicPitchBridge.mm; sourceTree = "<group>"; };
+		9F70001F2F80000100112233 /* JMBasicPitchBridge.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = JMBasicPitchBridge.h; sourceTree = "<group>"; };
+		9F7000162F80000100112233 /* libonnxruntime.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; path = ThirdParty/onnxruntime/lib/libonnxruntime.a; sourceTree = "<group>"; };
+		9F7000172F80000100112233 /* BasicPitchModel */ = {isa = PBXFileReference; lastKnownFileType = folder; path = BasicPitchModel; sourceTree = "<group>"; };
+		9F7000202F80000100112233 /* JammLab-Bridging-Header.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = "JammLab-Bridging-Header.h"; sourceTree = "<group>"; };
+		9F7000212F80000100112233 /* ThirdPartyNotices */ = {isa = PBXFileReference; lastKnownFileType = folder; path = ThirdPartyNotices; sourceTree = "<group>"; };
+		9F7000222F80000100112233 /* StemTranscriptionTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StemTranscriptionTests.swift; sourceTree = "<group>"; };
+		9F7000232F80000100112233 /* BasicPitchNativeTests.mm */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.objcpp; path = BasicPitchNativeTests.mm; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -542,6 +583,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				9F7001162F80000100112233 /* libonnxruntime.a in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -593,8 +635,10 @@
 				9F8A03062C00000100112233 /* Views */,
 				9F8A03072C00000100112233 /* Utilities */,
 				9F2700062EA0000100112233 /* Resources */,
+				9F7003002F80000100112233 /* Transcription */,
 				9F8A000B2C00000100112233 /* Assets.xcassets */,
 				9F8A000C2C00000100112233 /* JammLab.entitlements */,
+				9F7000202F80000100112233 /* JammLab-Bridging-Header.h */,
 			);
 			path = JammLab;
 			sourceTree = "<group>";
@@ -618,6 +662,7 @@
 				9FCE00022F20000100112233 /* NotationDurationEditor.swift */,
 				9F9300012C90000100112233 /* StemBackendResolver.swift */,
 				9F8D00012C30000100112233 /* StemModels.swift */,
+				9F7000012F80000100112233 /* StemTranscriptionModels.swift */,
 				9F8E00012C40000100112233 /* StemSeparationJobModels.swift */,
 				9F8A00122C00000100112233 /* TimecodedNote.swift */,
 				9F8B00012C10000100112233 /* TimelineViewport.swift */,
@@ -659,6 +704,9 @@
 				9F8D00032C30000100112233 /* MultiTrackAudioPlayer.swift */,
 				9F9200012C80000100112233 /* StemHelperProcessController.swift */,
 				9F8D00022C30000100112233 /* StemSeparationService.swift */,
+				9F7000022F80000100112233 /* StemTranscriptionService.swift */,
+				9F7000032F80000100112233 /* StemTranscriptionNotationMapper.swift */,
+				9F7000042F80000100112233 /* StemTranscriptionMIDIExporter.swift */,
 				9F9100012C70000100112233 /* TempoGridCalculator.swift */,
 				9FBA00022D40000100112233 /* TrackPitchAnalyzer.swift */,
 				9FBA00032D40000100112233 /* TunerInputService.swift */,
@@ -673,6 +721,8 @@
 			isa = PBXGroup;
 			children = (
 				9F2700072EA0000100112233 /* Fonts */,
+				9F7000172F80000100112233 /* BasicPitchModel */,
+				9F7000212F80000100112233 /* ThirdPartyNotices */,
 			);
 			path = Resources;
 			sourceTree = "<group>";
@@ -697,6 +747,7 @@
 				9FDE00052F60000100112233 /* AudioPlayerViewModel+Peakform.swift */,
 				9FB201022D30000100112233 /* AudioPlayerViewModel+Playback.swift */,
 				9FB201032D30000100112233 /* AudioPlayerViewModel+Stems.swift */,
+				9F7000052F80000100112233 /* AudioPlayerViewModel+StemTranscription.swift */,
 				9FB201042D30000100112233 /* AudioPlayerViewModel+Timeline.swift */,
 				9FB201082D30000100112233 /* AudioPlayerViewModel+Markers.swift */,
 				9FB201092D30000100112233 /* AudioPlayerViewModel+LoopEditing.swift */,
@@ -706,6 +757,44 @@
 				9FB201072D30000100112233 /* AudioPlayerViewModel+UndoDirty.swift */,
 			);
 			path = ViewModels;
+			sourceTree = "<group>";
+		};
+		9F7003002F80000100112233 /* Transcription */ = {
+			isa = PBXGroup;
+			children = (
+				9F7003012F80000100112233 /* Native */,
+			);
+			path = Transcription;
+			sourceTree = "<group>";
+		};
+		9F7003012F80000100112233 /* Native */ = {
+			isa = PBXGroup;
+			children = (
+				9F7000102F80000100112233 /* BasicPitchTranscriptionEngine.cpp */,
+				9F7000182F80000100112233 /* BasicPitchTranscriptionEngine.h */,
+				9F7000152F80000100112233 /* JMBasicPitchBridge.mm */,
+				9F70001F2F80000100112233 /* JMBasicPitchBridge.h */,
+				9F7003022F80000100112233 /* Engine */,
+				9F7000162F80000100112233 /* libonnxruntime.a */,
+			);
+			path = Native;
+			sourceTree = "<group>";
+		};
+		9F7003022F80000100112233 /* Engine */ = {
+			isa = PBXGroup;
+			children = (
+				9F7000112F80000100112233 /* BasicPitch.cpp */,
+				9F7000192F80000100112233 /* BasicPitch.h */,
+				9F7000122F80000100112233 /* BasicPitchCNN.cpp */,
+				9F70001A2F80000100112233 /* BasicPitchCNN.h */,
+				9F70001D2F80000100112233 /* BasicPitchConstants.h */,
+				9F7000132F80000100112233 /* Features.cpp */,
+				9F70001B2F80000100112233 /* Features.h */,
+				9F7000142F80000100112233 /* Notes.cpp */,
+				9F70001C2F80000100112233 /* Notes.h */,
+				9F70001E2F80000100112233 /* Utils.h */,
+			);
+			path = Engine;
 			sourceTree = "<group>";
 		};
 		9F8A03062C00000100112233 /* Views */ = {
@@ -762,6 +851,8 @@
 		9F8B03012C10000100112233 /* JammLabTests */ = {
 			isa = PBXGroup;
 			children = (
+				9F7000222F80000100112233 /* StemTranscriptionTests.swift */,
+				9F7000232F80000100112233 /* BasicPitchNativeTests.mm */,
 				9FAB00012CE0000100112233 /* AudioFileImporterDurationTests.swift */,
 				9FAB00022CE0000100112233 /* PeakformLogicTests.swift */,
 				9FBA00052D40000100112233 /* PitchDetectionTests.swift */,
@@ -1073,6 +1164,8 @@
 				9F2701032EA0000100112233 /* Leland-LICENSE.txt in Resources */,
 				9F2701042EA0000100112233 /* Leland-OFL-FAQ.txt in Resources */,
 				9F2701052EA0000100112233 /* Leland-README.md in Resources */,
+				9F7001172F80000100112233 /* BasicPitchModel in Resources */,
+				9F7001212F80000100112233 /* ThirdPartyNotices in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -1129,6 +1222,7 @@
 				9F8F01032C50000100112233 /* AudioPlaybackControlling.swift in Sources */,
 				9FCB01012D80000100112233 /* AudioSampleConverter.swift in Sources */,
 				9F8A01032C00000100112233 /* AudioPlayerViewModel.swift in Sources */,
+				9F7001052F80000100112233 /* AudioPlayerViewModel+StemTranscription.swift in Sources */,
 				9FB200012D30000100112233 /* AudioPlayerViewModel+Project.swift in Sources */,
 				9FDE01042F60000100112233 /* AudioPlayerViewModel+Analysis.swift in Sources */,
 				9FDE01052F60000100112233 /* AudioPlayerViewModel+Peakform.swift in Sources */,
@@ -1166,6 +1260,7 @@
 				9F8A01012C00000100112233 /* JammLabApp.swift in Sources */,
 				9FAF01012D02000100112233 /* JammLabAppDelegate.swift in Sources */,
 				9F8A01112C00000100112233 /* JammLabProject.swift in Sources */,
+				9F7001012F80000100112233 /* StemTranscriptionModels.swift in Sources */,
 				9F8C01062C20000100112233 /* MainWorkspacePanels.swift in Sources */,
 				9F8C01052C20000100112233 /* NoteRowView.swift in Sources */,
 				9FEA01042D70000100112233 /* NotationTrackView.swift in Sources */,
@@ -1208,6 +1303,9 @@
 				9F9201012C80000100112233 /* StemHelperProcessController.swift in Sources */,
 				9F8E01012C40000100112233 /* StemSeparationJobModels.swift in Sources */,
 				9F8D01022C30000100112233 /* StemSeparationService.swift in Sources */,
+				9F7001022F80000100112233 /* StemTranscriptionService.swift in Sources */,
+				9F7001032F80000100112233 /* StemTranscriptionNotationMapper.swift in Sources */,
+				9F7001042F80000100112233 /* StemTranscriptionMIDIExporter.swift in Sources */,
 				9F9101012C70000100112233 /* TempoGridCalculator.swift in Sources */,
 				9F9101022C70000100112233 /* TempoGridRulerView.swift in Sources */,
 				9FDD01062D60000100112233 /* SettingsContentViews.swift in Sources */,
@@ -1243,6 +1341,12 @@
 				9F8A010C2C00000100112233 /* PeakformProvider.swift in Sources */,
 				9FAF01022D02000100112233 /* WindowCloseGuard.swift in Sources */,
 				9F8C01082C20000100112233 /* WindowTitleUpdater.swift in Sources */,
+				9F7001102F80000100112233 /* BasicPitchTranscriptionEngine.cpp in Sources */,
+				9F7001112F80000100112233 /* BasicPitch.cpp in Sources */,
+				9F7001122F80000100112233 /* BasicPitchCNN.cpp in Sources */,
+				9F7001132F80000100112233 /* Features.cpp in Sources */,
+				9F7001142F80000100112233 /* Notes.cpp in Sources */,
+				9F7001152F80000100112233 /* JMBasicPitchBridge.mm in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -1250,6 +1354,8 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				9F7001222F80000100112233 /* StemTranscriptionTests.swift in Sources */,
+				9F7001232F80000100112233 /* BasicPitchNativeTests.mm in Sources */,
 				9FAB01012CE0000100112233 /* AudioFileImporterDurationTests.swift in Sources */,
 				9FAB01022CE0000100112233 /* PeakformLogicTests.swift in Sources */,
 				9FBA01052D40000100112233 /* PitchDetectionTests.swift in Sources */,
@@ -1512,6 +1618,20 @@
 				AUTOMATION_APPLE_EVENTS = NO;
 				CODE_SIGN_ENTITLEMENTS = JammLab/JammLab.entitlements;
 				CODE_SIGN_STYLE = Automatic;
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					"$(inherited)",
+					"RTNEURAL_USE_STL=1",
+					"RTNEURAL_USE_EIGEN=0",
+					"RTNEURAL_USE_XSIMD=0",
+					"RTNEURAL_NO_DEBUG=1",
+					"RTNEURAL_DEFAULT_ALIGNMENT=16",
+				);
+				HEADER_SEARCH_PATHS = (
+					"$(inherited)",
+					"$(SRCROOT)/JammLab/Transcription/Native",
+					"$(SRCROOT)/JammLab/Transcription/Native/ThirdParty",
+					"$(SRCROOT)/JammLab/Transcription/Native/ThirdParty/onnxruntime/include",
+				);
 				COMBINE_HIDPI_IMAGES = YES;
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_ASSET_PATHS = "";
@@ -1541,6 +1661,10 @@
 					"$(inherited)",
 					"@executable_path/../Frameworks",
 				);
+				LIBRARY_SEARCH_PATHS = (
+					"$(inherited)",
+					"$(SRCROOT)/JammLab/Transcription/Native/ThirdParty/onnxruntime/lib",
+				);
 				MARKETING_VERSION = 1.0;
 				PRODUCT_BUNDLE_IDENTIFIER = com.cyberflow.JammLab;
 				RUNTIME_EXCEPTION_ALLOW_DYLD_ENVIRONMENT_VARIABLES = NO;
@@ -1550,6 +1674,7 @@
 				RUNTIME_EXCEPTION_DISABLE_EXECUTABLE_PAGE_PROTECTION = NO;
 				RUNTIME_EXCEPTION_DISABLE_LIBRARY_VALIDATION = NO;
 				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_OBJC_BRIDGING_HEADER = "JammLab/JammLab-Bridging-Header.h";
 			};
 			name = Debug;
 		};
@@ -1562,6 +1687,20 @@
 				AUTOMATION_APPLE_EVENTS = NO;
 				CODE_SIGN_ENTITLEMENTS = JammLab/JammLab.entitlements;
 				CODE_SIGN_STYLE = Automatic;
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					"$(inherited)",
+					"RTNEURAL_USE_STL=1",
+					"RTNEURAL_USE_EIGEN=0",
+					"RTNEURAL_USE_XSIMD=0",
+					"RTNEURAL_NO_DEBUG=1",
+					"RTNEURAL_DEFAULT_ALIGNMENT=16",
+				);
+				HEADER_SEARCH_PATHS = (
+					"$(inherited)",
+					"$(SRCROOT)/JammLab/Transcription/Native",
+					"$(SRCROOT)/JammLab/Transcription/Native/ThirdParty",
+					"$(SRCROOT)/JammLab/Transcription/Native/ThirdParty/onnxruntime/include",
+				);
 				COMBINE_HIDPI_IMAGES = YES;
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_ASSET_PATHS = "";
@@ -1590,6 +1729,10 @@
 					"$(inherited)",
 					"@executable_path/../Frameworks",
 				);
+				LIBRARY_SEARCH_PATHS = (
+					"$(inherited)",
+					"$(SRCROOT)/JammLab/Transcription/Native/ThirdParty/onnxruntime/lib",
+				);
 				MARKETING_VERSION = 1.0;
 				PRODUCT_BUNDLE_IDENTIFIER = com.cyberflow.JammLab;
 				RUNTIME_EXCEPTION_ALLOW_DYLD_ENVIRONMENT_VARIABLES = NO;
@@ -1599,6 +1742,7 @@
 				RUNTIME_EXCEPTION_DISABLE_EXECUTABLE_PAGE_PROTECTION = NO;
 				RUNTIME_EXCEPTION_DISABLE_LIBRARY_VALIDATION = NO;
 				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_OBJC_BRIDGING_HEADER = "JammLab/JammLab-Bridging-Header.h";
 			};
 			name = Release;
 		};
