@@ -322,6 +322,30 @@ final class AppHotkeyNotationMappingTests: XCTestCase {
         XCTAssertEqual(AppHotkey.clearNotationMeasureSelection.title, "Clear Measure Selection")
     }
 
+    func testAppHotkeyRecognizesNotationAccidentalsAndMetadata() throws {
+        let flatEvent = try keyEvent(key: "-", keyCode: 27)
+        let naturalEvent = try keyEvent(key: "=", keyCode: 24)
+        let sharpEvent = try keyEvent(key: "+", keyCode: 24, modifierFlags: [.shift])
+
+        XCTAssertEqual(AppHotkey(event: flatEvent), .setNotationAccidentalFlat)
+        XCTAssertEqual(AppHotkey(event: naturalEvent), .setNotationAccidentalNatural)
+        XCTAssertEqual(AppHotkey(event: sharpEvent), .setNotationAccidentalSharp)
+        XCTAssertEqual(AppHotkey.setNotationAccidentalFlat.notationAccidental, .flat)
+        XCTAssertEqual(AppHotkey.setNotationAccidentalNatural.notationAccidental, .natural)
+        XCTAssertEqual(AppHotkey.setNotationAccidentalSharp.notationAccidental, .sharp)
+        XCTAssertEqual(AppHotkey.setNotationAccidentalFlat.key, "-")
+        XCTAssertEqual(AppHotkey.setNotationAccidentalNatural.key, "=")
+        XCTAssertEqual(AppHotkey.setNotationAccidentalSharp.key, "+")
+        XCTAssertEqual(
+            AppHotkey.notationAccidentalHotkeys,
+            [
+                .setNotationAccidentalFlat,
+                .setNotationAccidentalNatural,
+                .setNotationAccidentalSharp
+            ]
+        )
+    }
+
     private func keyEvent(
         key: String,
         keyCode: UInt16,

@@ -35,7 +35,11 @@ extension AudioPlayerViewModel {
         return ProjectPersistedEditableState(
             notes: ProjectStateNormalizer.normalizedNotes(notes, duration: duration),
             harmonySymbols: ProjectStateNormalizer.normalizedHarmonySymbols(harmonySymbols, duration: duration),
-            notationItems: ProjectStateNormalizer.normalizedNotationItems(notationItems, duration: duration),
+            notationItems: ProjectStateNormalizer.normalizedNotationItems(
+                notationItems,
+                duration: duration,
+                notationPartClefs: notationPartClefs
+            ),
             notationPartClefs: NotationPartClefOverrides.normalized(notationPartClefs),
             stemNotationTrackCollapsed: stemNotationTrackCollapsed,
             stemNoteDisplayModes: StemNoteDisplayModes.normalized(stemNoteDisplayModes),
@@ -81,8 +85,13 @@ extension AudioPlayerViewModel {
         shouldAcceptAnalyzedTempo = false
         notes = ProjectStateNormalizer.normalizedNotes(state.notes, duration: duration)
         harmonySymbols = ProjectStateNormalizer.normalizedHarmonySymbols(state.harmonySymbols, duration: duration)
-        notationItems = ProjectStateNormalizer.normalizedNotationItems(state.notationItems, duration: duration)
-        notationPartClefs = NotationPartClefOverrides.normalized(state.notationPartClefs)
+        let restoredClefs = NotationPartClefOverrides.normalized(state.notationPartClefs)
+        notationItems = ProjectStateNormalizer.normalizedNotationItems(
+            state.notationItems,
+            duration: duration,
+            notationPartClefs: restoredClefs
+        )
+        notationPartClefs = restoredClefs
         sanitizeNotationTieRelationships()
         visibleNotationPartIDs = normalizedVisibleNotationPartIDs(from: state.visibleNotationPartIDs)
         projectKeySelection = state.projectKeySelection

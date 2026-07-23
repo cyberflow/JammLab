@@ -56,6 +56,7 @@ final class ViewModelNotationClipboardTests: XCTestCase {
                 id: "note",
                 kind: .note,
                 pitch: pitch,
+                explicitAccidental: .sharp,
                 measureNumber: measure.number,
                 measureStartTime: measure.startTime,
                 offsetInQuarterNotes: 0,
@@ -84,6 +85,7 @@ final class ViewModelNotationClipboardTests: XCTestCase {
                 sourceItemID: "note",
                 kind: .note,
                 pitch: pitch,
+                explicitAccidental: .sharp,
                 offsetInQuarterNotes: 0,
                 durationInQuarterNotes: 1,
                 displayDuration: NotationDuration(denominator: 4)

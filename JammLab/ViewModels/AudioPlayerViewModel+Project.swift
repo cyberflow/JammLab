@@ -254,11 +254,13 @@ extension AudioPlayerViewModel {
                 project.harmonySymbols,
                 duration: resolvedProjectDuration
             )
+            let restoredClefs = restoredNotationPartClefs(from: project)
             notationItems = ProjectStateNormalizer.normalizedNotationItems(
                 project.notationItems,
-                duration: resolvedProjectDuration
+                duration: resolvedProjectDuration,
+                notationPartClefs: restoredClefs
             )
-            notationPartClefs = restoredNotationPartClefs(from: project)
+            notationPartClefs = restoredClefs
             sanitizeNotationTieRelationships()
             projectKeySelection = project.projectKeySelection
             clearTransientEditingState()
@@ -336,6 +338,7 @@ extension AudioPlayerViewModel {
         notationEntryDurationIsDotted = false
         selectedDrumInstrumentMIDINoteNumber = DrumInstrumentMap.defaultMIDINoteNumber
         notationEntryMode = nil
+        clearPendingNotationAccidental()
         activeLoopRegionID = nil
     }
 

@@ -194,7 +194,13 @@ enum NotationNoteEditPlanner {
             for: candidate,
             rootItemID: sourceChain.rootItemID,
             partID: request.partID,
-            context: context
+            context: context,
+            preservedPitch: candidate.midiNoteNumber == rootPitch.midiNoteNumber
+                ? rootPitch
+                : nil,
+            preservedExplicitAccidental: candidate.midiNoteNumber == rootPitch.midiNoteNumber
+                ? sourceChain.locations.first?.item.explicitAccidental
+                : nil
         ) else {
             return invalid(.duration)
         }
@@ -325,13 +331,15 @@ enum NotationNoteEditPlanner {
         for candidate: Candidate,
         rootItemID: String,
         partID: NotationPartID,
-        context: Context
+        context: Context,
+        preservedPitch: NotationPitch?,
+        preservedExplicitAccidental: NotationAccidental?
     ) -> [NotationMeasureItem]? {
         var output: [NotationMeasureItem] = []
         guard let pitchMeasureIndex = context.measureIndex(
             containingGlobalTick: candidate.startTick
         ) else { return nil }
-        let pitch = NotationPitchMapper.pitch(
+        let pitch = preservedPitch ?? NotationPitchMapper.pitch(
             forMIDINoteNumber: candidate.midiNoteNumber,
             keySignature: context.measures[pitchMeasureIndex].attributes.keySignature
         )
@@ -354,6 +362,7 @@ enum NotationNoteEditPlanner {
                     partID: partID,
                     kind: .note,
                     pitch: pitch,
+                    explicitAccidental: output.isEmpty ? preservedExplicitAccidental : nil,
                     measureNumber: measure.number,
                     measureStartTime: measure.startTime,
                     offsetInQuarterNotes: Double(tickOffset) / Double(NotationRhythmicGrid.ticksPerQuarter),

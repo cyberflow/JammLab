@@ -24,6 +24,7 @@ final class NotationDurationEditorTests: XCTestCase {
             id: "selected-note",
             kind: .note,
             pitch: NotationPitch(step: .e, octave: 4),
+            explicitAccidental: .sharp,
             measureNumber: 1,
             measureStartTime: 0,
             offsetInQuarterNotes: 0,
@@ -62,6 +63,7 @@ final class NotationDurationEditorTests: XCTestCase {
         XCTAssertEqual(items.count, 3)
         XCTAssertEqual(items.first?.id, "selected-note")
         XCTAssertEqual(items.first?.pitch, selectedNote.pitch)
+        XCTAssertEqual(items.first?.explicitAccidental, .sharp)
         XCTAssertEqual(items.first?.durationInQuarterNotes, 1.5)
         XCTAssertEqual(items[1].kind, .rest)
         XCTAssertEqual(items[1].durationInQuarterNotes, 0.5)

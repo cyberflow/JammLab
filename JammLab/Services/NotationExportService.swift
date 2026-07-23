@@ -792,6 +792,7 @@ final class MusicXMLNotationExportRenderer: NotationExportRenderer {
             for: item,
             tieRole: tieRole,
             voice: voice,
+            accidental: clef == .drums ? nil : item.explicitAccidental,
             notehead: notehead
         )
         return note
@@ -810,6 +811,7 @@ final class MusicXMLNotationExportRenderer: NotationExportRenderer {
         for item: NotationMeasureItem,
         tieRole: MusicXMLTieRole? = nil,
         voice: Int = 1,
+        accidental: NotationAccidental? = nil,
         notehead: String? = nil
     ) {
         note.addChild(element("duration", stringValue: "\(durationValue(forQuarterOffset: item.durationInQuarterNotes))"))
@@ -823,6 +825,9 @@ final class MusicXMLNotationExportRenderer: NotationExportRenderer {
         note.addChild(element("type", stringValue: item.displayDuration.displayName))
         if item.displayDuration.isDotted {
             note.addChild(element("dot"))
+        }
+        if let accidental {
+            note.addChild(element("accidental", stringValue: accidental.rawValue))
         }
         if let notehead {
             note.addChild(element("notehead", stringValue: notehead))

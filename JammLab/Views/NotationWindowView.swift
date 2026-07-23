@@ -77,6 +77,20 @@ struct NotationWindowView: View {
             }
             .disabled(!viewModel.canChangeNotationDuration)
 
+            if hasVisibleTonalPart {
+                HStack(spacing: AppTheme.Spacing.xs) {
+                    ForEach(NotationAccidental.allCases, id: \.self) { accidental in
+                        NotationAccidentalButton(
+                            accidental: accidental,
+                            isActive: viewModel.pendingNotationAccidental == accidental
+                        ) {
+                            viewModel.handleNotationAccidentalCommand(accidental)
+                        }
+                        .disabled(viewModel.duration <= 0)
+                    }
+                }
+            }
+
             NotationTieButton(status: viewModel.tieCommandStatus) {
                 viewModel.handleAddTiedNotationNoteCommand()
             }
@@ -209,6 +223,7 @@ struct NotationWindowView: View {
                             ),
                             selectedDrumInstrumentMIDINoteNumber: viewModel.selectedDrumInstrumentMIDINoteNumber,
                             entryMode: viewModel.notationEntryMode,
+                            pendingNotationAccidental: viewModel.pendingNotationAccidental,
                             pendingEditorRequest: staff.part.id.isMain ? viewModel.pendingHarmonyEditorRequest : nil,
                             showsRegionLabels: staff.showsRegionLabels,
                             actions: notationActions,
@@ -317,6 +332,12 @@ struct NotationWindowView: View {
         }
     }
 
+    private var hasVisibleTonalPart: Bool {
+        viewModel.visibleNotationParts.contains {
+            viewModel.notationClef(for: $0.id) != .drums
+        }
+    }
+
     private var allowedHotkeys: Set<AppHotkey> {
         var hotkeys: Set<AppHotkey> = [.playPause]
         if viewModel.canCopySelectedNotationMeasure {
@@ -339,6 +360,9 @@ struct NotationWindowView: View {
         }
         if viewModel.duration > 0 {
             hotkeys.insert(.toggleNotationNoteEntryMode)
+            if hasVisibleTonalPart {
+                hotkeys.formUnion(AppHotkey.notationAccidentalHotkeys)
+            }
         }
         if viewModel.canChangeSelectedNotationNotePitch(byStaffPositionDelta: -1) {
             hotkeys.insert(.moveSelectedNotationNotePitchUp)
@@ -387,6 +411,11 @@ struct NotationWindowView: View {
             return viewModel.toggleNotationDurationDot()
         case .addTiedNotationNote:
             return viewModel.handleAddTiedNotationNoteCommand()
+        case .setNotationAccidentalFlat,
+                .setNotationAccidentalNatural,
+                .setNotationAccidentalSharp:
+            guard let accidental = hotkey.notationAccidental else { return false }
+            return viewModel.handleNotationAccidentalCommand(accidental)
         default:
             return false
         }

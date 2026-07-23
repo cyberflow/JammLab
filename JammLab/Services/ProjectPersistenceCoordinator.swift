@@ -219,7 +219,11 @@ struct ProjectPersistenceCoordinator {
             mediaKind: snapshot.importedFile.mediaKind,
             notes: ProjectStateNormalizer.normalizedNotes(snapshot.notes, duration: snapshot.duration),
             harmonySymbols: ProjectStateNormalizer.normalizedHarmonySymbols(snapshot.harmonySymbols, duration: snapshot.duration),
-            notationItems: ProjectStateNormalizer.normalizedNotationItems(snapshot.notationItems, duration: snapshot.duration),
+            notationItems: ProjectStateNormalizer.normalizedNotationItems(
+                snapshot.notationItems,
+                duration: snapshot.duration,
+                notationPartClefs: snapshot.notationPartClefs
+            ),
             notationPartClefs: NotationPartClefOverrides.normalized(snapshot.notationPartClefs),
             projectKeySelection: snapshot.projectKeySelection,
             loopStart: snapshot.loopRegion.clamped(to: snapshot.duration, minimumLength: snapshot.loopMinimumLength).start,

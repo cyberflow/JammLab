@@ -5,6 +5,17 @@ private struct TiedNotationNoteInput {
     var sourceItem: NotationMeasureItem
 }
 
+private struct NotationAccidentalEditTarget {
+    var measureNumber: Int
+    var measureStartTime: TimeInterval
+    var selectedItemID: String
+    var partID: NotationPartID
+    var clef: Clef
+    var chainIDs: Set<String>
+    var rootItemID: String
+    var alreadyApplied: Bool
+}
+
 private enum TiedNotationNoteCommandResolution {
     case unavailable
     case blocked(NotationTieCommandBlockReason)
@@ -104,6 +115,9 @@ extension AudioPlayerViewModel {
             pitch.octave += octaveDelta
             var transposed = item
             transposed.pitch = pitch
+            if clef == .drums {
+                transposed.explicitAccidental = nil
+            }
             return transposed
         }
         let invalidPitch = candidateItems.first { item in
@@ -127,7 +141,8 @@ extension AudioPlayerViewModel {
             notationItems = candidateItems
             notationItems = ProjectStateNormalizer.normalizedNotationItems(
                 notationItems,
-                duration: duration
+                duration: duration,
+                notationPartClefs: notationPartClefs
             )
             refreshNotationSelections(for: partID)
         }
@@ -291,7 +306,11 @@ extension AudioPlayerViewModel {
         let resolvedMode = duration > 0 ? mode : nil
         guard notationEntryMode != resolvedMode else { return }
 
+        let exitsEntryMode = notationEntryMode != nil && resolvedMode == nil
         notationEntryMode = resolvedMode
+        if exitsEntryMode {
+            clearPendingNotationAccidental()
+        }
         if resolvedMode != nil {
             selectedNotationMeasures = []
             notationMeasureSelectionAnchor = nil
@@ -299,6 +318,131 @@ extension AudioPlayerViewModel {
             selectedNotationItem = nil
             pendingHarmonyEditorRequest = nil
         }
+    }
+
+    /// Applies an accidental to the selected tonal note, or arms it for the next
+    /// successfully inserted tonal note while note/rest entry remains enabled.
+    @discardableResult
+    func handleNotationAccidentalCommand(_ accidental: NotationAccidental) -> Bool {
+        if let selection = selectedNotationItem {
+            clearPendingNotationAccidental()
+            return applyNotationAccidental(accidental, to: selection)
+        }
+
+        guard duration > 0, notationEntryMode != nil else { return false }
+        pendingNotationAccidental = pendingNotationAccidental == accidental ? nil : accidental
+        return true
+    }
+
+    func clearPendingNotationAccidental() {
+        pendingNotationAccidental = nil
+    }
+
+    private func consumePendingNotationAccidental(
+        appliedBy placement: NotationNotePlacement
+    ) {
+        guard placement.measure.attributes.clef != .drums,
+              placement.explicitAccidental != nil,
+              placement.explicitAccidental == pendingNotationAccidental
+        else { return }
+        clearPendingNotationAccidental()
+    }
+
+    @discardableResult
+    private func applyNotationAccidental(
+        _ accidental: NotationAccidental,
+        to selection: NotationItemSelection
+    ) -> Bool {
+        guard let target = notationAccidentalEditTarget(for: selection, accidental: accidental) else {
+            return false
+        }
+        guard !target.alreadyApplied else { return true }
+
+        performUndoableEdit("Set \(accidental.displayName) Accidental") {
+            notationItems = notationItems.map { item in
+                guard target.chainIDs.contains(item.id), var pitch = item.pitch else { return item }
+                pitch.alter = accidental.alter
+                var updated = item
+                updated.pitch = pitch
+                updated.explicitAccidental = item.id == target.rootItemID ? accidental : nil
+                return updated
+            }
+            notationItems = ProjectStateNormalizer.normalizedNotationItems(
+                notationItems,
+                duration: duration,
+                notationPartClefs: notationPartClefs
+            )
+            sanitizeNotationTieRelationships()
+            reselectNotationItem(
+                inMeasureNumber: target.measureNumber,
+                measureStartTime: target.measureStartTime,
+                itemID: target.selectedItemID,
+                partID: target.partID
+            )
+        }
+
+        if let pitch = notationItems.first(where: { $0.id == target.selectedItemID })?.pitch {
+            auditionNotationNotePitch(pitch, clef: target.clef)
+        }
+        return true
+    }
+
+    private func notationAccidentalEditTarget(
+        for selection: NotationItemSelection,
+        accidental: NotationAccidental
+    ) -> NotationAccidentalEditTarget? {
+        guard let match = notationItemMatch(for: selection),
+              match.item.kind == .note,
+              match.item.pitch != nil,
+              match.measure.attributes.clef != .drums
+        else {
+            return nil
+        }
+
+        let chainIDs = NotationNoteEditPlanner.logicalChainItemIDs(
+            in: notationItems,
+            containing: match.item.id,
+            partID: match.item.partID
+        )
+        guard !chainIDs.isEmpty else { return nil }
+
+        let chainItems = notationItems.filter { chainIDs.contains($0.id) }
+        let incomingTargetIDs = Set(chainItems.compactMap(\.tieTargetItemID))
+        let rootItemID = chainItems.first(where: { !incomingTargetIDs.contains($0.id) })?.id
+            ?? match.item.id
+
+        let hasCollision = chainItems.contains { chainItem in
+            guard var pitch = chainItem.pitch else { return true }
+            pitch.alter = accidental.alter
+            return notationItems.contains { candidate in
+                !chainIDs.contains(candidate.id)
+                    && candidate.partID == chainItem.partID
+                    && candidate.kind == .note
+                    && candidate.pitch?.midiNoteNumber == pitch.midiNoteNumber
+                    && candidate.measureNumber == chainItem.measureNumber
+                    && abs(candidate.measureStartTime - chainItem.measureStartTime)
+                        < NotationMeasureTiming.timelineTolerance
+                    && abs(candidate.offsetInQuarterNotes - chainItem.offsetInQuarterNotes)
+                        < NotationMeasureTiming.timelineTolerance
+            }
+        }
+        guard !hasCollision else { return nil }
+
+        let alreadyApplied = chainItems.allSatisfy { item in
+            item.pitch?.alter == accidental.alter
+                && item.explicitAccidental == (item.id == rootItemID ? accidental : nil)
+        }
+
+        return NotationAccidentalEditTarget(
+            measureNumber: match.measure.number,
+            measureStartTime: match.measure.startTime,
+            selectedItemID: match.item.id,
+            partID: match.item.partID,
+            clef: match.measure.attributes.clef,
+            chainIDs: chainIDs,
+            rootItemID: rootItemID,
+            alreadyApplied: alreadyApplied
+        )
     }
 
     @discardableResult
@@ -344,6 +488,7 @@ extension AudioPlayerViewModel {
         selectedNotationMeasures = []
         notationMeasureSelectionAnchor = nil
         notationEntryMode = nil
+        clearPendingNotationAccidental()
         if let placement = harmonyPlacement(for: canonicalSelection) {
             selectedHarmonySymbolID = harmonySymbolID(at: placement.harmonyPlacement.time)
         } else {
@@ -415,6 +560,7 @@ extension AudioPlayerViewModel {
         selectedHarmonySymbolID = nil
         selectedNotationItem = nil
         notationEntryMode = nil
+        clearPendingNotationAccidental()
         locatePlaybackMarkerAtFirstSelectedNotationMeasure()
     }
 
@@ -436,6 +582,7 @@ extension AudioPlayerViewModel {
                 item: existing.item,
                 partID: placement.partID
             )
+            clearPendingNotationAccidental()
             auditionNotationNotePitch(placement.pitch, clef: placement.measure.attributes.clef)
             return true
         }
@@ -455,6 +602,7 @@ extension AudioPlayerViewModel {
         }
 
         auditionNotationNotePitch(placement.pitch, clef: placement.measure.attributes.clef)
+        consumePendingNotationAccidental(appliedBy: placement)
         return true
     }
 
@@ -513,7 +661,8 @@ extension AudioPlayerViewModel {
             }
             notationItems = ProjectStateNormalizer.normalizedNotationItems(
                 notationItems,
-                duration: duration
+                duration: duration,
+                notationPartClefs: notationPartClefs
             )
             sanitizeNotationTieRelationships()
             selectedNotationMeasures = []
@@ -862,6 +1011,7 @@ extension AudioPlayerViewModel {
                         partID: targetPartID,
                         kind: item.kind,
                         pitch: item.kind == .note ? item.pitch : nil,
+                        explicitAccidental: item.kind == .note ? item.explicitAccidental : nil,
                         measureNumber: targetMeasure.number,
                         measureStartTime: targetMeasure.startTime,
                         offsetInQuarterNotes: item.offsetInQuarterNotes,
@@ -875,7 +1025,11 @@ extension AudioPlayerViewModel {
             }
 
             harmonySymbols = ProjectStateNormalizer.normalizedHarmonySymbols(harmonySymbols, duration: duration)
-            notationItems = ProjectStateNormalizer.normalizedNotationItems(notationItems, duration: duration)
+            notationItems = ProjectStateNormalizer.normalizedNotationItems(
+                notationItems,
+                duration: duration,
+                notationPartClefs: notationPartClefs
+            )
             sanitizeNotationTieRelationships()
             selectedHarmonySymbolID = nil
             selectedNotationItem = nil
@@ -1142,6 +1296,7 @@ extension AudioPlayerViewModel {
                     sourceItemID: $0.id,
                     kind: $0.kind,
                     pitch: $0.pitch,
+                    explicitAccidental: $0.explicitAccidental,
                     offsetInQuarterNotes: $0.offsetInQuarterNotes,
                     durationInQuarterNotes: $0.durationInQuarterNotes,
                     displayDuration: $0.displayDuration,
@@ -1156,6 +1311,7 @@ extension AudioPlayerViewModel {
     private struct NotationClipboardSemanticItem: Equatable {
         var kind: NotationMeasureItem.Kind
         var pitch: NotationPitch?
+        var explicitAccidental: NotationAccidental?
         var offsetInQuarterNotes: Double
         var durationInQuarterNotes: Double
         var displayDuration: NotationDuration
@@ -1182,6 +1338,7 @@ extension AudioPlayerViewModel {
                 NotationClipboardSemanticItem(
                     kind: item.kind,
                     pitch: item.pitch,
+                    explicitAccidental: item.explicitAccidental,
                     offsetInQuarterNotes: item.offsetInQuarterNotes,
                     durationInQuarterNotes: item.durationInQuarterNotes,
                     displayDuration: item.displayDuration,
@@ -1305,7 +1462,11 @@ extension AudioPlayerViewModel {
                 && abs($0.measureStartTime - measure.startTime) < NotationMeasureTiming.timelineTolerance
         }
         notationItems.append(contentsOf: canonicalItems)
-        notationItems = ProjectStateNormalizer.normalizedNotationItems(notationItems, duration: duration)
+        notationItems = ProjectStateNormalizer.normalizedNotationItems(
+            notationItems,
+            duration: duration,
+            notationPartClefs: notationPartClefs
+        )
         sanitizeNotationTieRelationships()
     }
 
@@ -1333,7 +1494,8 @@ extension AudioPlayerViewModel {
         }
         notationItems = ProjectStateNormalizer.normalizedNotationItems(
             notationItems,
-            duration: duration
+            duration: duration,
+            notationPartClefs: notationPartClefs
         )
         sanitizeNotationTieRelationships()
     }

@@ -191,7 +191,8 @@ final class NotationTiePlannerTests: XCTestCase {
 
         let normalized = ProjectStateNormalizer.normalizedNotationItems(
             [source, invalidTarget],
-            duration: 4
+            duration: 4,
+            notationPartClefs: [:]
         )
 
         XCTAssertEqual(normalized.map(\.id), ["source"])

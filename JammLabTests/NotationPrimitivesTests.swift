@@ -91,6 +91,33 @@ final class NotationPrimitivesTests: XCTestCase {
         XCTAssertEqual(NotationAugmentationDotSymbol.augmentationDot.codepoint, 0xE1E7)
     }
 
+    func testNotationAccidentalsUseLelandCodepointsAndRepairPitchAlter() throws {
+        XCTAssertEqual(NotationAccidental.flat.codepoint, 0xE260)
+        XCTAssertEqual(NotationAccidental.natural.codepoint, 0xE261)
+        XCTAssertEqual(NotationAccidental.sharp.codepoint, 0xE262)
+
+        let note = NotationMeasureItem(
+            id: "explicit-flat",
+            kind: .note,
+            pitch: NotationPitch(step: .b, octave: 4, alter: 1),
+            explicitAccidental: .flat,
+            measureNumber: 1,
+            measureStartTime: 0,
+            offsetInQuarterNotes: 0,
+            durationInQuarterNotes: 1,
+            displayDuration: NotationDuration(denominator: 4)
+        )
+        XCTAssertEqual(note.pitch?.alter, -1)
+
+        let decoded = try JSONDecoder().decode(
+            NotationMeasureItem.self,
+            from: JSONEncoder().encode(note)
+        )
+        XCTAssertEqual(decoded.explicitAccidental, .flat)
+        XCTAssertEqual(decoded.pitch?.alter, -1)
+        XCTAssertEqual(note.persistedCopy().explicitAccidental, .flat)
+    }
+
     func testNotationClefSymbolsUseLelandSMuFLCodepointsAndReferenceLines() {
         let treble = NotationClefSymbol(.treble)
         let bass = NotationClefSymbol(.bass)
@@ -293,23 +320,26 @@ final class NotationPrimitivesTests: XCTestCase {
         XCTAssertEqual(noteTarget.y, restTarget.y, accuracy: 0.0001)
     }
 
-    func testFiveDurationButtonsFitNotationTrackControls() {
-        let buttonCount = CGFloat(NotationDuration.entryDenominators.count)
+    func testThreeCompactButtonsFitEachNotationTrackControlRow() {
+        let buttonCount: CGFloat = 3
         let spacingCount = max(0, buttonCount - 1)
-        let controlWidth = buttonCount * AppTheme.ControlSize.notationDurationButtonWidth
-            + spacingCount * AppTheme.ControlSize.notationDurationButtonSpacing
+        let controlWidth = buttonCount * AppTheme.ControlSize.notationActionButtonWidth
+            + spacingCount * AppTheme.Spacing.xs
         let availableWidth = AppTheme.Timeline.trackControlWidth - 2 * AppTheme.Spacing.md
 
         XCTAssertLessThanOrEqual(controlWidth, availableWidth)
-        XCTAssertEqual(AppTheme.ControlSize.notationModeButtonWidth, 32)
-    }
-
-    func testThreeEntryModeButtonsFitNotationTrackControls() {
-        let controlWidth = 3 * AppTheme.ControlSize.notationModeButtonWidth
-            + 2 * AppTheme.Spacing.sm
-        let availableWidth = AppTheme.Timeline.trackControlWidth - 2 * AppTheme.Spacing.md
-
-        XCTAssertLessThanOrEqual(controlWidth, availableWidth)
+        XCTAssertEqual(
+            AppTheme.ControlSize.notationCompactMenuButtonWidth,
+            AppTheme.ControlSize.notationActionButtonWidth
+        )
+        XCTAssertEqual(
+            AppTheme.ControlSize.notationCompactMenuButtonHeight,
+            AppTheme.ControlSize.notationActionButtonHeight
+        )
+        XCTAssertEqual(
+            AppTheme.ControlSize.notationCompactMenuButtonHeight,
+            AppTheme.ControlSize.notationDurationControlHeight
+        )
     }
 
     func testNotationRestItemFactoryUsesGreedyAllowedDurationDecomposition() {
@@ -1306,6 +1336,13 @@ final class NotationPrimitivesTests: XCTestCase {
             "Augmentation dot (.; Num.; Num,)\nToggle duration dot"
         )
         XCTAssertEqual(NotationAugmentationDotHelpText.accessibilityLabel, "Augmentation dot")
+    }
+
+    func testAccidentalMenuHelpTextMatchesCentralizedHotkeys() {
+        XCTAssertEqual(
+            NotationAccidentalHelpText.menuTooltip,
+            "Notation accidentals: Flat (-), Natural (=), Sharp (+)"
+        )
     }
 
     func testWholeRestVisualCenterUsesStandardStaffPosition() {

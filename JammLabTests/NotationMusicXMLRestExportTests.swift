@@ -223,6 +223,89 @@ final class NotationMusicXMLRestExportTests: XCTestCase {
         XCTAssertTrue(undottedRest.elements(forName: "dot").isEmpty)
     }
 
+    func testMusicXMLExportsExplicitSharpNaturalAndFlatInSchemaOrder() throws {
+        let state = NotationViewportFactory().scoreState(
+            tempoMap: fourFourTempoMap(duration: 8),
+            duration: 8,
+            currentTime: 0,
+            playbackMarkerTime: 0,
+            isPlaying: false,
+            keyName: "C major",
+            notationItems: [
+                NotationMeasureItem(
+                    id: "sharp",
+                    kind: .note,
+                    pitch: NotationPitch(step: .f, octave: 4),
+                    explicitAccidental: .sharp,
+                    measureNumber: 1,
+                    measureStartTime: 0,
+                    offsetInQuarterNotes: 0,
+                    durationInQuarterNotes: 1,
+                    displayDuration: NotationDuration(denominator: 4)
+                ),
+                NotationMeasureItem(
+                    id: "natural",
+                    kind: .note,
+                    pitch: NotationPitch(step: .f, octave: 4, alter: 1),
+                    explicitAccidental: .natural,
+                    measureNumber: 2,
+                    measureStartTime: 2,
+                    offsetInQuarterNotes: 0,
+                    durationInQuarterNotes: 1,
+                    displayDuration: NotationDuration(denominator: 4)
+                ),
+                NotationMeasureItem(
+                    id: "flat",
+                    kind: .note,
+                    pitch: NotationPitch(step: .b, octave: 4),
+                    explicitAccidental: .flat,
+                    measureNumber: 3,
+                    measureStartTime: 4,
+                    offsetInQuarterNotes: 0,
+                    durationInQuarterNotes: 1,
+                    displayDuration: NotationDuration(denominator: 4)
+                )
+            ]
+        )
+
+        let document = try exportedMusicXMLDocument(for: state)
+        let part = try XCTUnwrap(document.rootElement()?.elements(forName: "part").first)
+        let measures = part.elements(forName: "measure")
+        let sharpNote = try XCTUnwrap(measures[0].elements(forName: "note").first {
+            $0.elements(forName: "pitch").first?.elements(forName: "step").first?.stringValue == "F"
+        })
+        let naturalNote = try XCTUnwrap(measures[1].elements(forName: "note").first {
+            $0.elements(forName: "pitch").first?.elements(forName: "step").first?.stringValue == "F"
+        })
+        let flatNote = try XCTUnwrap(measures[2].elements(forName: "note").first {
+            $0.elements(forName: "pitch").first?.elements(forName: "step").first?.stringValue == "B"
+        })
+
+        XCTAssertEqual(
+            sharpNote.elements(forName: "pitch").first?
+                .elements(forName: "alter").first?.stringValue,
+            "1"
+        )
+        XCTAssertEqual(sharpNote.elements(forName: "accidental").first?.stringValue, "sharp")
+        XCTAssertTrue(
+            naturalNote.elements(forName: "pitch").first?
+                .elements(forName: "alter").isEmpty == true
+        )
+        XCTAssertEqual(naturalNote.elements(forName: "accidental").first?.stringValue, "natural")
+        XCTAssertEqual(
+            flatNote.elements(forName: "pitch").first?
+                .elements(forName: "alter").first?.stringValue,
+            "-1"
+        )
+        XCTAssertEqual(flatNote.elements(forName: "accidental").first?.stringValue, "flat")
+        for note in [sharpNote, naturalNote, flatNote] {
+            let names = childElements(in: note).compactMap(\.name)
+            let typeIndex = try XCTUnwrap(names.firstIndex(of: "type"))
+            let accidentalIndex = try XCTUnwrap(names.firstIndex(of: "accidental"))
+            XCTAssertEqual(accidentalIndex, typeIndex + 1)
+        }
+    }
+
     func testMusicXMLExportsChordOverlapsVoicesAndOneGlobalRestSequence() throws {
         let state = NotationViewportFactory().scoreState(
             tempoMap: fourFourTempoMap(duration: 2),

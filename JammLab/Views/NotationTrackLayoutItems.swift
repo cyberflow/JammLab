@@ -42,6 +42,15 @@ struct NotationTieLayoutItem: Equatable, Identifiable {
     var id: String { connection.id }
 }
 
+struct NotationAccidentalLayoutItem: Equatable, Identifiable {
+    var itemID: String
+    var accidental: NotationAccidental
+    var x: CGFloat
+    var staffPosition: Int
+
+    var id: String { itemID }
+}
+
 struct NotationChordRenderGroup: Equatable, Identifiable {
     var measure: ScoreMeasure
     var items: [NotationItemLayoutItem]
@@ -209,6 +218,69 @@ enum NotationTrackLayoutItems {
                 stemDirection: direction
             )
         }.sorted { $0.id < $1.id }
+    }
+
+    static func accidentals(
+        from layoutItems: [NotationItemLayoutItem]
+    ) -> [NotationAccidentalLayoutItem] {
+        let candidates = layoutItems.compactMap { item -> AccidentalCandidate? in
+            guard item.measure.attributes.clef != .drums,
+                  item.notationItem.kind == .note,
+                  let pitch = item.notationItem.pitch,
+                  let accidental = item.notationItem.explicitAccidental
+            else { return nil }
+            return AccidentalCandidate(
+                itemID: item.notationItem.id,
+                measureNumber: item.measure.number,
+                measureStartTime: item.measure.startTime,
+                onset: item.notationItem.offsetInQuarterNotes,
+                accidental: accidental,
+                noteX: item.x,
+                staffPosition: NotationPitchMapper.staffPosition(
+                    for: pitch,
+                    clef: item.measure.attributes.clef
+                )
+            )
+        }
+        let grouped = Dictionary(grouping: candidates) {
+            AccidentalGroupKey(
+                measureNumber: $0.measureNumber,
+                measureStartTick: Int(($0.measureStartTime * 1_000_000).rounded()),
+                onsetTick: Int(($0.onset * 1_000_000).rounded())
+            )
+        }
+
+        return grouped.values.flatMap { group -> [NotationAccidentalLayoutItem] in
+            var staffPositionsByColumn: [[Int]] = []
+            return group.sorted {
+                if $0.staffPosition != $1.staffPosition {
+                    return $0.staffPosition < $1.staffPosition
+                }
+                return $0.itemID < $1.itemID
+            }.map { candidate in
+                let column = staffPositionsByColumn.firstIndex {
+                    columnPositions in
+                    columnPositions.allSatisfy {
+                        abs($0 - candidate.staffPosition)
+                            >= AppTheme.Timeline.notationInlineAccidentalMinimumStaffPositionDistance
+                    }
+                } ?? staffPositionsByColumn.count
+                if column == staffPositionsByColumn.count {
+                    staffPositionsByColumn.append([])
+                }
+                staffPositionsByColumn[column].append(candidate.staffPosition)
+                return NotationAccidentalLayoutItem(
+                    itemID: candidate.itemID,
+                    accidental: candidate.accidental,
+                    x: candidate.noteX
+                        - AppTheme.Timeline.notationInlineAccidentalNoteOffset
+                        - CGFloat(column)
+                            * AppTheme.Timeline.notationInlineAccidentalColumnSpacing,
+                    staffPosition: candidate.staffPosition
+                )
+            }
+        }
+        .sorted { $0.itemID < $1.itemID }
     }
 
     private static func chordLayout(in measure: ScoreMeasure) -> NotationChordLayout {
@@ -385,6 +457,22 @@ enum NotationTrackLayoutItems {
             )
         }
     }
+}
+
+private struct AccidentalCandidate {
+    var itemID: String
+    var measureNumber: Int
+    var measureStartTime: TimeInterval
+    var onset: Double
+    var accidental: NotationAccidental
+    var noteX: CGFloat
+    var staffPosition: Int
+}
+
+private struct AccidentalGroupKey: Hashable {
+    var measureNumber: Int
+    var measureStartTick: Int
+    var onsetTick: Int
 }
 
 private struct NotationChordLayout {

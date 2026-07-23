@@ -54,6 +54,7 @@ final class AudioPlayerViewModel: ObservableObject {
     @Published var notationPartClefs: [NotationPartID: Clef] = [:]
     @Published var selectedDrumInstrumentMIDINoteNumber = DrumInstrumentMap.defaultMIDINoteNumber
     @Published var notationEntryMode: NotationEntryMode?
+    @Published var pendingNotationAccidental: NotationAccidental?
     @Published var pendingHarmonyEditorRequest: HarmonyEditorRequest?
     @Published var activeLoopRegionID: TimecodedNote.ID?
     @Published var loopRegion: LoopRegion = .empty
