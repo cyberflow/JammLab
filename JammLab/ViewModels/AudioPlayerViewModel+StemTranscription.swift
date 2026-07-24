@@ -15,23 +15,21 @@ extension AudioPlayerViewModel {
     ) {
         guard stemType.supportsBasicPitchTranscription,
               stemTranscriptionTasks[stemType] == nil,
-              let stem = stemFiles.first(where: { $0.type == stemType })
+              let stem = stemFile(for: stemType)
         else { return }
 
         let sourceFingerprint: StemSourceFingerprint
         do {
-            sourceFingerprint = try stemSeparationService.sourceFingerprint(for: stem.url)
+            sourceFingerprint = try stemSourceFingerprint(for: stem)
         } catch {
             errorMessage = StemTranscriptionError.stemAudioUnavailable.localizedDescription
             return
         }
 
         if hasMeaningfulStemNotationContent(for: stemType) {
-            pendingStemTranscriptionOverwrite = StemTranscriptionOverwriteRequest(
+            pendingStemTranscriptionOverwrite = makeOverwriteRequest(
                 stemType: stemType,
-                projectURL: currentProjectURL,
-                importedFileURL: importedFile?.url,
-                stemURL: stem.url,
+                stem: stem,
                 sourceFingerprint: sourceFingerprint,
                 configuration: configuration
             )
@@ -44,14 +42,7 @@ extension AudioPlayerViewModel {
     func confirmPendingStemTranscriptionOverwrite() {
         guard let request = pendingStemTranscriptionOverwrite else { return }
         pendingStemTranscriptionOverwrite = nil
-        guard request.stemType.supportsBasicPitchTranscription,
-              stemTranscriptionTasks[request.stemType] == nil,
-              currentProjectURL == request.projectURL,
-              importedFile?.url == request.importedFileURL,
-              stemFiles.first(where: { $0.type == request.stemType })?.url == request.stemURL,
-              (try? stemSeparationService.sourceFingerprint(for: request.stemURL))
-                  .map({ $0.hasSameFileIdentity(as: request.sourceFingerprint) }) == true
-        else { return }
+        guard isCurrentOverwriteRequest(request) else { return }
         startStemTranscription(request.stemType, configuration: request.configuration)
     }
 
@@ -71,17 +62,13 @@ extension AudioPlayerViewModel {
         _ stemType: StemType,
         configuration: StemTranscriptionConfiguration
     ) {
-        guard let stem = stemFiles.first(where: { $0.type == stemType }) else { return }
+        guard let stem = stemFile(for: stemType) else { return }
 
         let fingerprint: StemSourceFingerprint
         do {
-            fingerprint = try stemSeparationService.sourceFingerprint(for: stem.url)
+            fingerprint = try stemSourceFingerprint(for: stem)
         } catch {
-            stemTranscriptionStates[stemType] = StemTranscriptionViewState(
-                phase: .failed,
-                status: StemTranscriptionError.stemAudioUnavailable.localizedDescription
-            )
-            errorMessage = StemTranscriptionError.stemAudioUnavailable.localizedDescription
+            failStemTranscriptionAsUnavailable(stemType)
             return
         }
 
@@ -116,20 +103,14 @@ extension AudioPlayerViewModel {
                     }
                 }
 
-                guard !Task.isCancelled,
-                      stemTranscriptionRunIDs[stemType] == runID,
-                      currentProjectURL == capturedProjectURL,
-                      importedFile?.url == capturedImportedFileURL,
-                      let currentStem = stemFiles.first(where: { $0.type == stemType }),
-                      currentStem.url == stem.url
-                else {
-                    throw StemTranscriptionError.sourceStemChanged
-                }
-
-                let currentFingerprint = try stemSeparationService.sourceFingerprint(for: currentStem.url)
-                guard currentFingerprint.hasSameFileIdentity(as: fingerprint) else {
-                    throw StemTranscriptionError.sourceStemChanged
-                }
+                try validateStemTranscriptionRunContext(
+                    stemType: stemType,
+                    runID: runID,
+                    stem: stem,
+                    projectURL: capturedProjectURL,
+                    importedFileURL: capturedImportedFileURL,
+                    sourceFingerprint: fingerprint
+                )
 
                 let trackID = UUID()
                 let notationPartID = NotationPartID.stem(stemType)
@@ -145,27 +126,10 @@ extension AudioPlayerViewModel {
                     projectDuration: duration,
                     keyName: effectiveKeyName
                 )
-                guard stemTranscriptionRunIDs[stemType] == runID else {
-                    throw StemTranscriptionError.cancelled
-                }
+                try validateStemTranscriptionRunIsActive(stemType: stemType, runID: runID)
 
                 performUndoableEdit("Transcribe \(stemType.title)") {
-                    let removedPartIDs = Set(
-                        self.notationItems
-                            .filter { $0.partID.stemType == stemType }
-                            .map(\.partID)
-                    ).union(
-                        self.stemTranscriptionTracks
-                            .filter { $0.stemType == stemType }
-                            .map(\.notationPartID)
-                    )
-                    self.notationItems.removeAll { $0.partID.stemType == stemType }
-                    self.stemTranscriptionTracks.removeAll { $0.stemType == stemType }
-                    self.visibleNotationPartIDs.subtract(removedPartIDs)
-                    self.notationItems.append(contentsOf: mapped.notationItems)
-                    self.stemTranscriptionTracks.append(mapped.track)
-                    self.visibleNotationPartIDs.insert(mapped.track.notationPartID)
-                    self.stemNotationTrackCollapsed[stemType] = false
+                    self.replaceStemTranscriptionContent(stemType: stemType, with: mapped)
                 }
                 stemTranscriptionStates[stemType] = StemTranscriptionViewState(
                     phase: .completed,
@@ -189,6 +153,104 @@ extension AudioPlayerViewModel {
                 finishStemTranscription(stemType, runID: runID)
             }
         }
+    }
+
+    private func stemFile(for stemType: StemType) -> StemFile? {
+        stemFiles.first { $0.type == stemType }
+    }
+
+    private func stemSourceFingerprint(for stem: StemFile) throws -> StemSourceFingerprint {
+        try stemSeparationService.sourceFingerprint(for: stem.url)
+    }
+
+    private func makeOverwriteRequest(
+        stemType: StemType,
+        stem: StemFile,
+        sourceFingerprint: StemSourceFingerprint,
+        configuration: StemTranscriptionConfiguration
+    ) -> StemTranscriptionOverwriteRequest {
+        StemTranscriptionOverwriteRequest(
+            stemType: stemType,
+            projectURL: currentProjectURL,
+            importedFileURL: importedFile?.url,
+            stemURL: stem.url,
+            sourceFingerprint: sourceFingerprint,
+            configuration: configuration
+        )
+    }
+
+    private func isCurrentOverwriteRequest(_ request: StemTranscriptionOverwriteRequest) -> Bool {
+        guard request.stemType.supportsBasicPitchTranscription,
+              stemTranscriptionTasks[request.stemType] == nil,
+              currentProjectURL == request.projectURL,
+              importedFile?.url == request.importedFileURL,
+              stemFile(for: request.stemType)?.url == request.stemURL
+        else {
+            return false
+        }
+
+        return (try? stemSeparationService.sourceFingerprint(for: request.stemURL))
+            .map { $0.hasSameFileIdentity(as: request.sourceFingerprint) } == true
+    }
+
+    private func failStemTranscriptionAsUnavailable(_ stemType: StemType) {
+        stemTranscriptionStates[stemType] = StemTranscriptionViewState(
+            phase: .failed,
+            status: StemTranscriptionError.stemAudioUnavailable.localizedDescription
+        )
+        errorMessage = StemTranscriptionError.stemAudioUnavailable.localizedDescription
+    }
+
+    private func validateStemTranscriptionRunContext(
+        stemType: StemType,
+        runID: UUID,
+        stem: StemFile,
+        projectURL: URL?,
+        importedFileURL: URL?,
+        sourceFingerprint: StemSourceFingerprint
+    ) throws {
+        guard !Task.isCancelled,
+              stemTranscriptionRunIDs[stemType] == runID,
+              currentProjectURL == projectURL,
+              importedFile?.url == importedFileURL,
+              let currentStem = stemFile(for: stemType),
+              currentStem.url == stem.url
+        else {
+            throw StemTranscriptionError.sourceStemChanged
+        }
+
+        let currentFingerprint = try stemSourceFingerprint(for: currentStem)
+        guard currentFingerprint.hasSameFileIdentity(as: sourceFingerprint) else {
+            throw StemTranscriptionError.sourceStemChanged
+        }
+    }
+
+    private func validateStemTranscriptionRunIsActive(stemType: StemType, runID: UUID) throws {
+        guard stemTranscriptionRunIDs[stemType] == runID else {
+            throw StemTranscriptionError.cancelled
+        }
+    }
+
+    private func replaceStemTranscriptionContent(
+        stemType: StemType,
+        with output: StemTranscriptionNotationOutput
+    ) {
+        let removedPartIDs = Set(
+            notationItems
+                .filter { $0.partID.stemType == stemType }
+                .map(\.partID)
+        ).union(
+            stemTranscriptionTracks
+                .filter { $0.stemType == stemType }
+                .map(\.notationPartID)
+        )
+        notationItems.removeAll { $0.partID.stemType == stemType }
+        stemTranscriptionTracks.removeAll { $0.stemType == stemType }
+        visibleNotationPartIDs.subtract(removedPartIDs)
+        notationItems.append(contentsOf: output.notationItems)
+        stemTranscriptionTracks.append(output.track)
+        visibleNotationPartIDs.insert(output.track.notationPartID)
+        stemNotationTrackCollapsed[stemType] = false
     }
 
     func cancelStemTranscription(_ stemType: StemType) {

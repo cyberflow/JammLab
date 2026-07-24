@@ -122,14 +122,7 @@ final class StemTranscriptionService: StemTranscribing, @unchecked Sendable {
             guard !operation.isCancelled else { throw StemTranscriptionError.cancelled }
             progress(.loadingModel, 0)
 
-            let nativeConfiguration = JMTranscriptionConfiguration()
-            nativeConfiguration.minimumNoteDurationMilliseconds =
-                Float(configuration.minimumNoteDurationMilliseconds)
-            nativeConfiguration.noteSensitivity = Float(configuration.noteSensitivity)
-            nativeConfiguration.splitSensitivity = Float(configuration.splitSensitivity)
-            nativeConfiguration.includePitchBends = configuration.includePitchBends
-            nativeConfiguration.windowDurationSeconds = 30
-            nativeConfiguration.overlapDurationSeconds = 2
+            let nativeConfiguration = self.makeNativeConfiguration(from: configuration)
 
             let result: JMTranscriptionResult
             do {
@@ -147,41 +140,13 @@ final class StemTranscriptionService: StemTranscribing, @unchecked Sendable {
             guard !operation.isCancelled else { throw StemTranscriptionError.cancelled }
             progress(.processingNotes, 0)
 
-            let notes = result.notes.compactMap { note -> RawStemTranscriptionNote? in
-                guard (0...127).contains(note.pitch),
-                      note.startTimeSeconds.isFinite,
-                      note.endTimeSeconds.isFinite,
-                      note.endTimeSeconds > note.startTimeSeconds,
-                      note.confidence.isFinite
-                else { return nil }
-                return RawStemTranscriptionNote(
-                    midiPitch: note.pitch,
-                    startTimeSeconds: note.startTimeSeconds,
-                    endTimeSeconds: note.endTimeSeconds,
-                    confidence: note.confidence,
-                    pitchBends: note.pitchBends.map(\.intValue)
-                )
-            }
-            guard notes.count == result.notes.count else {
-                throw StemTranscriptionError.invalidModelOutput
-            }
-
-            let elapsed = totalStart.duration(to: .now)
-            let totalSeconds = Double(elapsed.components.seconds)
-                + Double(elapsed.components.attoseconds) / 1e18
-            progress(.processingNotes, 1)
-            return RawStemTranscriptionResult(
-                notes: notes,
-                timings: StemTranscriptionTimings(
-                    audioPreparationSeconds: prepared.preparationDuration,
-                    modelLoadSeconds: result.timings.modelLoadSeconds,
-                    inferenceSeconds: result.timings.inferenceSeconds,
-                    postProcessingSeconds: result.timings.postProcessingSeconds,
-                    totalSeconds: totalSeconds,
-                    processedDurationSeconds: result.processedDurationSeconds
-                ),
-                warnings: result.warnings
+            let rawResult = try self.makeRawResult(
+                from: result,
+                preparedAudio: prepared,
+                totalStart: totalStart
             )
+            progress(.processingNotes, 1)
+            return rawResult
         }.value
     }
 
@@ -326,6 +291,70 @@ final class StemTranscriptionService: StemTranscribing, @unchecked Sendable {
         )
     }
 
+    private func makeNativeConfiguration(
+        from configuration: StemTranscriptionConfiguration
+    ) -> JMTranscriptionConfiguration {
+        let nativeConfiguration = JMTranscriptionConfiguration()
+        nativeConfiguration.minimumNoteDurationMilliseconds =
+            Float(configuration.minimumNoteDurationMilliseconds)
+        nativeConfiguration.noteSensitivity = Float(configuration.noteSensitivity)
+        nativeConfiguration.splitSensitivity = Float(configuration.splitSensitivity)
+        nativeConfiguration.includePitchBends = configuration.includePitchBends
+        nativeConfiguration.windowDurationSeconds = 30
+        nativeConfiguration.overlapDurationSeconds = 2
+        return nativeConfiguration
+    }
+
+    private func makeRawResult(
+        from result: JMTranscriptionResult,
+        preparedAudio: PreparedTranscriptionAudio,
+        totalStart: ContinuousClock.Instant
+    ) throws -> RawStemTranscriptionResult {
+        let notes = try makeRawNotes(from: result.notes)
+        return RawStemTranscriptionResult(
+            notes: notes,
+            timings: StemTranscriptionTimings(
+                audioPreparationSeconds: preparedAudio.preparationDuration,
+                modelLoadSeconds: result.timings.modelLoadSeconds,
+                inferenceSeconds: result.timings.inferenceSeconds,
+                postProcessingSeconds: result.timings.postProcessingSeconds,
+                totalSeconds: elapsedSeconds(since: totalStart),
+                processedDurationSeconds: result.processedDurationSeconds
+            ),
+            warnings: result.warnings
+        )
+    }
+
+    private func makeRawNotes(
+        from notes: [JMTranscriptionNote]
+    ) throws -> [RawStemTranscriptionNote] {
+        let rawNotes = notes.compactMap { note -> RawStemTranscriptionNote? in
+            guard (0...127).contains(note.pitch),
+                  note.startTimeSeconds.isFinite,
+                  note.endTimeSeconds.isFinite,
+                  note.endTimeSeconds > note.startTimeSeconds,
+                  note.confidence.isFinite
+            else { return nil }
+            return RawStemTranscriptionNote(
+                midiPitch: note.pitch,
+                startTimeSeconds: note.startTimeSeconds,
+                endTimeSeconds: note.endTimeSeconds,
+                confidence: note.confidence,
+                pitchBends: note.pitchBends.map(\.intValue)
+            )
+        }
+        guard rawNotes.count == notes.count else {
+            throw StemTranscriptionError.invalidModelOutput
+        }
+        return rawNotes
+    }
+
+    private func elapsedSeconds(since start: ContinuousClock.Instant) -> Double {
+        let elapsed = start.duration(to: .now)
+        return Double(elapsed.components.seconds)
+            + Double(elapsed.components.attoseconds) / 1e18
+    }
+
     private func mapBridgeError(_ error: NSError?, cancelled: Bool) -> StemTranscriptionError {
         if cancelled {
             return .cancelled
@@ -333,24 +362,34 @@ final class StemTranscriptionService: StemTranscribing, @unchecked Sendable {
         guard error?.domain == JMTranscriptionErrorDomain else {
             return .inferenceFailed
         }
-        if error?.code == 8 {
+        if error?.code == BridgeErrorCode.cancelled {
             return .cancelled
         }
         switch error?.code {
-        case 1:
+        case BridgeErrorCode.emptyInput:
             return .audioDecodingFailed
-        case 2:
+        case BridgeErrorCode.unsupportedSampleRate:
             return .resamplingFailed
-        case 3:
+        case BridgeErrorCode.audioReadFailed:
             return .audioDecodingFailed
-        case 4:
+        case BridgeErrorCode.modelResourceMissing:
             return .modelResourceMissing
-        case 5:
+        case BridgeErrorCode.modelInitializationFailed:
             return .modelInitializationFailed
-        case 7:
+        case BridgeErrorCode.invalidModelOutput:
             return .invalidModelOutput
         default:
             return .inferenceFailed
         }
+    }
+
+    private enum BridgeErrorCode {
+        static let emptyInput = 1
+        static let unsupportedSampleRate = 2
+        static let audioReadFailed = 3
+        static let modelResourceMissing = 4
+        static let modelInitializationFailed = 5
+        static let invalidModelOutput = 7
+        static let cancelled = 8
     }
 }
