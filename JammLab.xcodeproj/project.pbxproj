@@ -264,6 +264,7 @@
 		9F7001212F80000100112233 /* ThirdPartyNotices in Resources */ = {isa = PBXBuildFile; fileRef = 9F7000212F80000100112233 /* ThirdPartyNotices */; };
 		9F7001222F80000100112233 /* StemTranscriptionTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9F7000222F80000100112233 /* StemTranscriptionTests.swift */; };
 		9F7001232F80000100112233 /* BasicPitchNativeTests.mm in Sources */ = {isa = PBXBuildFile; fileRef = 9F7000232F80000100112233 /* BasicPitchNativeTests.mm */; };
+		9F7001242F80000100112233 /* StemTranscriptionPerformanceTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9F7000242F80000100112233 /* StemTranscriptionPerformanceTests.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -576,6 +577,7 @@
 		9F7000212F80000100112233 /* ThirdPartyNotices */ = {isa = PBXFileReference; lastKnownFileType = folder; path = ThirdPartyNotices; sourceTree = "<group>"; };
 		9F7000222F80000100112233 /* StemTranscriptionTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StemTranscriptionTests.swift; sourceTree = "<group>"; };
 		9F7000232F80000100112233 /* BasicPitchNativeTests.mm */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.objcpp; path = BasicPitchNativeTests.mm; sourceTree = "<group>"; };
+		9F7000242F80000100112233 /* StemTranscriptionPerformanceTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StemTranscriptionPerformanceTests.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -967,6 +969,7 @@
 			isa = PBXGroup;
 			children = (
 				9FCD00012D50000100112233 /* PerformanceBenchmarkTests.swift */,
+				9F7000242F80000100112233 /* StemTranscriptionPerformanceTests.swift */,
 			);
 			path = JammLabPerformanceTests;
 			sourceTree = "<group>";
@@ -1470,6 +1473,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				9FCD01012D50000100112233 /* PerformanceBenchmarkTests.swift in Sources */,
+				9F7001242F80000100112233 /* StemTranscriptionPerformanceTests.swift in Sources */,
 				9FCD01022D50000100112233 /* TestSupport.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;

@@ -1,7 +1,9 @@
+import AVFAudio
 import Foundation
 import XCTest
 @testable import JammLab
 
+@MainActor
 final class StemTranscriptionTests: XCTestCase {
     func testTimelineMappingSupportsTrimAndProjectRate() {
         let mapping = StemTimelineMapping(
@@ -14,6 +16,76 @@ final class StemTranscriptionTests: XCTestCase {
         XCTAssertEqual(mapping.projectTime(forSourceTime: 2), 10, accuracy: 0.000_001)
         XCTAssertEqual(mapping.projectTime(forSourceTime: 6), 12, accuracy: 0.000_001)
         XCTAssertEqual(mapping.projectTime(forSourceTime: 10), 14, accuracy: 0.000_001)
+    }
+
+    func testAudioPreparationDownmixesStereoAndReportsResampledProgress() throws {
+        let sourceURL = FileManager.default.temporaryDirectory
+            .appendingPathComponent("transcription-stereo-\(UUID().uuidString).wav")
+        defer { try? FileManager.default.removeItem(at: sourceURL) }
+        let format = try XCTUnwrap(
+            AVAudioFormat(
+                commonFormat: .pcmFormatFloat32,
+                sampleRate: 44_100,
+                channels: 2,
+                interleaved: false
+            )
+        )
+        do {
+            let file = try AVAudioFile(forWriting: sourceURL, settings: format.settings)
+            let buffer = try XCTUnwrap(
+                AVAudioPCMBuffer(pcmFormat: format, frameCapacity: 4_410)
+            )
+            buffer.frameLength = buffer.frameCapacity
+            let channels = try XCTUnwrap(buffer.floatChannelData)
+            for index in 0..<Int(buffer.frameLength) {
+                channels[0][index] = 0.5
+                channels[1][index] = -0.5
+            }
+            try file.write(from: buffer)
+        }
+
+        var progressValues: [Double] = []
+        let prepared = try StemTranscriptionService().prepareAudio(
+            at: sourceURL,
+            operation: StemTranscriptionOperation(),
+            progress: { progressValues.append($0) }
+        )
+        defer { prepared.cleanup() }
+        let data = try Data(contentsOf: prepared.url)
+        let samples = data.withUnsafeBytes { Array($0.bindMemory(to: Float.self)) }
+
+        XCTAssertLessThanOrEqual(abs(prepared.sampleCount - 2_205), 1)
+        XCTAssertEqual(samples.count, prepared.sampleCount)
+        XCTAssertTrue(samples.allSatisfy(\.isFinite))
+        XCTAssertLessThan(samples.map { abs($0) }.max() ?? 1, 0.000_1)
+        XCTAssertEqual(progressValues.last, 1)
+        XCTAssertEqual(progressValues, progressValues.sorted())
+        XCTAssertTrue(FileManager.default.fileExists(atPath: prepared.temporaryDirectory.path))
+        prepared.cleanup()
+        XCTAssertFalse(FileManager.default.fileExists(atPath: prepared.temporaryDirectory.path))
+    }
+
+    func testBridgeMapsPreCancelledOperationToTypedErrorWithoutProgress() {
+        let bridge = JMBasicPitchBridge()
+        let token = JMTranscriptionCancellationToken()
+        token.cancel()
+        var progressValues: [Double] = []
+
+        XCTAssertThrowsError(
+            try bridge.transcribePCMFile(
+                at: URL(fileURLWithPath: "/missing.f32"),
+                sampleCount: 1,
+                sampleRate: StemTranscriptionService.modelSampleRate,
+                configuration: JMTranscriptionConfiguration(),
+                cancellationToken: token,
+                progress: { progressValues.append($0) }
+            )
+        ) { error in
+            let error = error as NSError
+            XCTAssertEqual(error.domain, JMTranscriptionErrorDomain)
+            XCTAssertEqual(error.code, 8)
+        }
+        XCTAssertTrue(progressValues.isEmpty)
     }
 
     func testNotationMappingPreservesRawTimesAndOverlappingPolyphony() throws {
@@ -102,6 +174,47 @@ final class StemTranscriptionTests: XCTestCase {
         XCTAssertNil(output.notationItems[1].tieTargetItemID)
     }
 
+    func testNotationMappingAppliesSourceTrimAndProjectRateWithoutChangingRawTimes() throws {
+        let result = RawStemTranscriptionResult(
+            notes: [
+                RawStemTranscriptionNote(
+                    midiPitch: 62,
+                    startTimeSeconds: 3,
+                    endTimeSeconds: 4,
+                    confidence: 0.8,
+                    pitchBends: []
+                )
+            ],
+            timings: timings,
+            warnings: []
+        )
+        let output = try StemTranscriptionNotationMapper.map(
+            result: result,
+            stemType: .guitar,
+            sourceFingerprint: fingerprint,
+            timelineMapping: StemTimelineMapping(
+                sourceStartTime: 2,
+                sourceDuration: 4,
+                projectStartTime: 1,
+                projectDuration: 2
+            ),
+            configuration: .neuralNoteDefaults,
+            tempoMap: TempoMap(
+                baseSettings: BeatGridSettings(bpm: 120),
+                markers: [],
+                duration: 4
+            ),
+            projectDuration: 4,
+            keyName: nil
+        )
+
+        let note = try XCTUnwrap(output.track.notes.first)
+        XCTAssertEqual(note.rawStartTimeSeconds, 3)
+        XCTAssertEqual(note.rawEndTimeSeconds, 4)
+        XCTAssertEqual(note.projectStartTimeSeconds, 1.5, accuracy: 0.000_001)
+        XCTAssertEqual(note.projectEndTimeSeconds, 2, accuracy: 0.000_001)
+    }
+
     func testTranscriptionTrackRoundTripsThroughJSON() throws {
         let track = StemTranscriptionTrack(
             stemType: .bass,
@@ -125,6 +238,26 @@ final class StemTranscriptionTests: XCTestCase {
         let decoded = try JSONDecoder().decode(StemTranscriptionTrack.self, from: data)
 
         XCTAssertEqual(decoded, track)
+    }
+
+    func testLegacyTranscriptionTrackDefaultsToStemNotationPart() throws {
+        let track = StemTranscriptionTrack(
+            stemType: .bass,
+            sourceFingerprint: fingerprint,
+            configuration: .neuralNoteDefaults,
+            notes: []
+        )
+        var object = try XCTUnwrap(
+            JSONSerialization.jsonObject(with: JSONEncoder().encode(track)) as? [String: Any]
+        )
+        object.removeValue(forKey: "notationPartID")
+
+        let decoded = try JSONDecoder().decode(
+            StemTranscriptionTrack.self,
+            from: JSONSerialization.data(withJSONObject: object)
+        )
+
+        XCTAssertEqual(decoded.notationPartID, .stem(.bass))
     }
 
     func testProjectPersistsTranscriptionTrackWithRawNoteMetadata() throws {
@@ -165,6 +298,47 @@ final class StemTranscriptionTests: XCTestCase {
         XCTAssertEqual(decoded.stemTranscriptionTracks, [track])
     }
 
+    func testProjectNormalizerClampsMetadataAndRemovesDanglingNotationLinks() {
+        let item = makeNotationItem(id: "linked", partID: .stem(.bass))
+        let track = StemTranscriptionTrack(
+            stemType: .bass,
+            sourceFingerprint: fingerprint,
+            configuration: .neuralNoteDefaults,
+            notes: [
+                StemTranscriptionNote(
+                    midiPitch: 40,
+                    rawStartTimeSeconds: 0,
+                    rawEndTimeSeconds: 8,
+                    projectStartTimeSeconds: -1,
+                    projectEndTimeSeconds: 8,
+                    confidence: 1.5,
+                    notationItemIDs: ["linked", "missing"]
+                ),
+                StemTranscriptionNote(
+                    midiPitch: 200,
+                    rawStartTimeSeconds: 0,
+                    rawEndTimeSeconds: 1,
+                    projectStartTimeSeconds: 0,
+                    projectEndTimeSeconds: 1,
+                    confidence: 1
+                )
+            ]
+        )
+
+        let normalized = ProjectStateNormalizer.normalizedStemTranscriptionTracks(
+            [track],
+            duration: 4,
+            notationItems: [item]
+        )
+
+        XCTAssertEqual(normalized.count, 1)
+        XCTAssertEqual(normalized[0].notes.count, 1)
+        XCTAssertEqual(normalized[0].notes[0].projectStartTimeSeconds, 0)
+        XCTAssertEqual(normalized[0].notes[0].projectEndTimeSeconds, 4)
+        XCTAssertEqual(normalized[0].notes[0].confidence, 1)
+        XCTAssertEqual(normalized[0].notes[0].notationItemIDs, ["linked"])
+    }
+
     func testMIDIExporterWritesStandardHeaderAndPolyphonicEvents() {
         let track = StemTranscriptionTrack(
             stemType: .piano,
@@ -196,6 +370,135 @@ final class StemTranscriptionTests: XCTestCase {
         XCTAssertGreaterThan(data.count, 30)
     }
 
+    func testViewModelSuccessfulTranscriptionCommitsAtomicallyAndMarksProjectDirty() async throws {
+        let stemURL = try makeTemporaryStemFile()
+        defer { try? FileManager.default.removeItem(at: stemURL) }
+        let service = StubStemTranscriptionService(result: rawResult)
+        let viewModel = makeViewModel(stemURL: stemURL, service: service)
+
+        viewModel.transcribeStem(.bass)
+        await waitUntil { viewModel.stemTranscriptionState(for: .bass).phase == .completed }
+
+        XCTAssertEqual(viewModel.stemTranscriptionTracks.count, 1)
+        XCTAssertFalse(viewModel.notationItems.isEmpty)
+        XCTAssertEqual(viewModel.stemTranscriptionTracks[0].notationPartID, .stem(.bass))
+        XCTAssertTrue(viewModel.visibleNotationPartIDs.contains(.stem(.bass)))
+        XCTAssertTrue(viewModel.isProjectModified)
+    }
+
+    func testViewModelCreateNewUsesIndependentNotationPart() async throws {
+        let stemURL = try makeTemporaryStemFile()
+        defer { try? FileManager.default.removeItem(at: stemURL) }
+        let service = StubStemTranscriptionService(result: rawResult)
+        let viewModel = makeViewModel(stemURL: stemURL, service: service)
+        let existingItem = makeNotationItem(id: "existing-generated", partID: .stem(.bass))
+        viewModel.notationItems = [existingItem]
+        viewModel.stemTranscriptionTracks = [
+            StemTranscriptionTrack(
+                stemType: .bass,
+                sourceFingerprint: try StemSeparationService().sourceFingerprint(for: stemURL),
+                configuration: .neuralNoteDefaults,
+                notes: [
+                    StemTranscriptionNote(
+                        midiPitch: 48,
+                        rawStartTimeSeconds: 0,
+                        rawEndTimeSeconds: 0.5,
+                        projectStartTimeSeconds: 0,
+                        projectEndTimeSeconds: 0.5,
+                        confidence: 0.8,
+                        notationItemIDs: [existingItem.id]
+                    )
+                ]
+            )
+        ]
+
+        viewModel.transcribeStem(.bass, conflictChoice: .createNew)
+        await waitUntil { viewModel.stemTranscriptionState(for: .bass).phase == .completed }
+
+        XCTAssertEqual(viewModel.stemTranscriptionTracks.count, 2)
+        let newTrack = try XCTUnwrap(
+            viewModel.stemTranscriptionTracks.first { $0.notationPartID != .stem(.bass) }
+        )
+        XCTAssertEqual(newTrack.notationPartID.stemType, .bass)
+        XCTAssertTrue(viewModel.notationItems.contains { $0.id == existingItem.id })
+        XCTAssertTrue(viewModel.notationItems.contains { $0.partID == newTrack.notationPartID })
+        XCTAssertTrue(viewModel.availableNotationParts.contains { $0.id == newTrack.notationPartID })
+        XCTAssertTrue(viewModel.visibleNotationPartIDs.contains(newTrack.notationPartID))
+    }
+
+    func testViewModelReplacePreservesManualNotes() async throws {
+        let stemURL = try makeTemporaryStemFile()
+        defer { try? FileManager.default.removeItem(at: stemURL) }
+        let service = StubStemTranscriptionService(result: rawResult)
+        let viewModel = makeViewModel(stemURL: stemURL, service: service)
+        let generated = makeNotationItem(id: "old-generated", partID: .stem(.bass))
+        let manual = makeNotationItem(id: "manual-note", partID: .stem(.bass))
+        viewModel.notationItems = [generated, manual]
+        viewModel.stemTranscriptionTracks = [
+            StemTranscriptionTrack(
+                stemType: .bass,
+                sourceFingerprint: try StemSeparationService().sourceFingerprint(for: stemURL),
+                configuration: .neuralNoteDefaults,
+                notes: [
+                    StemTranscriptionNote(
+                        midiPitch: 48,
+                        rawStartTimeSeconds: 0,
+                        rawEndTimeSeconds: 0.5,
+                        projectStartTimeSeconds: 0,
+                        projectEndTimeSeconds: 0.5,
+                        confidence: 0.8,
+                        notationItemIDs: [generated.id]
+                    )
+                ]
+            )
+        ]
+
+        viewModel.transcribeStem(.bass, conflictChoice: .replace)
+        await waitUntil { viewModel.stemTranscriptionState(for: .bass).phase == .completed }
+
+        XCTAssertEqual(viewModel.stemTranscriptionTracks.count, 1)
+        XCTAssertEqual(viewModel.stemTranscriptionTracks[0].notationPartID, .stem(.bass))
+        XCTAssertFalse(viewModel.notationItems.contains { $0.id == generated.id })
+        XCTAssertTrue(viewModel.notationItems.contains { $0.id == manual.id })
+    }
+
+    func testViewModelCancellationDoesNotMutateProject() async throws {
+        let stemURL = try makeTemporaryStemFile()
+        defer { try? FileManager.default.removeItem(at: stemURL) }
+        let service = StubStemTranscriptionService(result: rawResult, waitsForRelease: true)
+        let viewModel = makeViewModel(stemURL: stemURL, service: service)
+
+        viewModel.transcribeStem(.bass)
+        await waitUntil { service.hasStarted }
+        viewModel.cancelStemTranscription(.bass)
+        service.release()
+        await waitUntil { viewModel.stemTranscriptionState(for: .bass).phase == .cancelled }
+
+        XCTAssertTrue(viewModel.stemTranscriptionTracks.isEmpty)
+        XCTAssertTrue(viewModel.notationItems.isEmpty)
+        XCTAssertFalse(viewModel.isProjectModified)
+    }
+
+    func testViewModelRejectsResultAfterStemRemoval() async throws {
+        let stemURL = try makeTemporaryStemFile()
+        defer { try? FileManager.default.removeItem(at: stemURL) }
+        let service = StubStemTranscriptionService(result: rawResult, waitsForRelease: true)
+        let viewModel = makeViewModel(stemURL: stemURL, service: service)
+
+        viewModel.transcribeStem(.bass)
+        await waitUntil { service.hasStarted }
+        viewModel.stemFiles = []
+        service.release()
+        await waitUntil { viewModel.stemTranscriptionState(for: .bass).phase == .failed }
+
+        XCTAssertTrue(viewModel.stemTranscriptionTracks.isEmpty)
+        XCTAssertTrue(viewModel.notationItems.isEmpty)
+        XCTAssertEqual(
+            viewModel.errorMessage,
+            StemTranscriptionError.sourceStemChanged.localizedDescription
+        )
+    }
+
     private var fingerprint: StemSourceFingerprint {
         StemSourceFingerprint(path: "/tmp/test.wav", fileSize: 123, modificationTime: 456)
     }
@@ -209,5 +512,119 @@ final class StemTranscriptionTests: XCTestCase {
             totalSeconds: 0.7,
             processedDurationSeconds: 4
         )
+    }
+
+    private var rawResult: RawStemTranscriptionResult {
+        RawStemTranscriptionResult(
+            notes: [
+                RawStemTranscriptionNote(
+                    midiPitch: 48,
+                    startTimeSeconds: 0.2,
+                    endTimeSeconds: 0.8,
+                    confidence: 0.9,
+                    pitchBends: []
+                )
+            ],
+            timings: timings,
+            warnings: []
+        )
+    }
+
+    private func makeViewModel(
+        stemURL: URL,
+        service: StubStemTranscriptionService
+    ) -> AudioPlayerViewModel {
+        let viewModel = AudioPlayerViewModel(
+            playbackEngine: MockPlaybackEngine(),
+            stemTranscriptionService: service
+        )
+        viewModel.duration = 4
+        viewModel.importedFile = ImportedAudioFile(
+            url: stemURL,
+            displayName: "Source",
+            duration: 4
+        )
+        viewModel.stemFiles = [
+            StemFile(type: .bass, url: stemURL, displayName: "Bass")
+        ]
+        viewModel.markProjectClean()
+        return viewModel
+    }
+
+    private func makeTemporaryStemFile() throws -> URL {
+        let url = FileManager.default.temporaryDirectory
+            .appendingPathComponent("stem-transcription-\(UUID().uuidString).wav")
+        try Data("test-stem".utf8).write(to: url)
+        return url
+    }
+
+    private func makeNotationItem(id: String, partID: NotationPartID) -> NotationMeasureItem {
+        NotationMeasureItem(
+            id: id,
+            partID: partID,
+            kind: .note,
+            pitch: NotationPitch(step: .c, octave: 3),
+            measureNumber: 1,
+            measureStartTime: 0,
+            offsetInQuarterNotes: 0,
+            durationInQuarterNotes: 1,
+            displayDuration: NotationDuration(denominator: 4)
+        )
+    }
+
+    private func waitUntil(
+        _ condition: @escaping @MainActor () -> Bool,
+        file: StaticString = #filePath,
+        line: UInt = #line
+    ) async {
+        for _ in 0..<2_000 {
+            if condition() {
+                return
+            }
+            await Task.yield()
+        }
+        XCTFail("Timed out waiting for transcription state", file: file, line: line)
+    }
+}
+
+private final class StubStemTranscriptionService: StemTranscribing, @unchecked Sendable {
+    private let lock = NSLock()
+    private let result: RawStemTranscriptionResult
+    private let waitsForRelease: Bool
+    private var started = false
+    private var released = false
+
+    init(result: RawStemTranscriptionResult, waitsForRelease: Bool = false) {
+        self.result = result
+        self.waitsForRelease = waitsForRelease
+    }
+
+    var hasStarted: Bool {
+        lock.withLock { started }
+    }
+
+    func release() {
+        lock.withLock { released = true }
+    }
+
+    func transcribe(
+        stemURL: URL,
+        configuration: StemTranscriptionConfiguration,
+        operation: StemTranscriptionOperation,
+        progress: @escaping @Sendable (StemTranscriptionPhase, Double) -> Void
+    ) async throws -> RawStemTranscriptionResult {
+        lock.withLock { started = true }
+        progress(.preparingAudio, 0.5)
+        while waitsForRelease && !lock.withLock({ released }) {
+            if operation.isCancelled {
+                throw StemTranscriptionError.cancelled
+            }
+            await Task.yield()
+        }
+        guard !operation.isCancelled else { throw StemTranscriptionError.cancelled }
+        progress(.loadingModel, 0)
+        progress(.transcribing, 0.5)
+        progress(.processingNotes, 1)
+        return result
     }
 }
