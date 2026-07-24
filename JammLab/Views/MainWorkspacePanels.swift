@@ -313,6 +313,7 @@ extension ContentView {
             changeNotationClef: { viewModel.setNotationClef($1, for: $0) },
             selectDrumInstrument: { viewModel.selectDrumInstrument(midiNoteNumber: $0) },
             auditionNotePitch: { viewModel.auditionNotationNotePitch($0, clef: $1) },
+            deleteSelectedNotationMeasureContents: { viewModel.deleteSelectedNotationMeasureContents() },
             deleteSelectedNotationNote: { viewModel.deleteSelectedNotationNote() },
             showNotationWindow: { openWindow(id: AppWindowID.notation) },
             beginNotationNoteEdit: { viewModel.beginNotationNoteEdit(partID: $0) },

@@ -98,6 +98,7 @@ struct TimelineViewActions {
     var changeNotationClef: (NotationPartID, Clef) -> Void
     var selectDrumInstrument: (Int) -> Void = { _ in }
     var auditionNotePitch: (NotationPitch, Clef) -> Void
+    var deleteSelectedNotationMeasureContents: () -> Bool = { false }
     var deleteSelectedNotationNote: () -> Bool
     var showNotationWindow: () -> Void
     var beginNotationNoteEdit: (NotationPartID) -> Void = { _ in }
@@ -133,6 +134,7 @@ extension TimelineViewActions {
             changeSelectedNotePitch: changeSelectedNotePitch,
             changeClef: changeNotationClef,
             auditionNotePitch: auditionNotePitch,
+            deleteSelectedNotationMeasureContents: deleteSelectedNotationMeasureContents,
             deleteSelectedNotationNote: deleteSelectedNotationNote,
             locatePlaybackMarkerExactly: locatePlaybackMarkerExactly,
             saveHarmony: saveHarmonyAction,

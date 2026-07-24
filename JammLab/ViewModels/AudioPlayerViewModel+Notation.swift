@@ -864,6 +864,28 @@ extension AudioPlayerViewModel {
     }
 
     @discardableResult
+    func deleteSelectedNotationMeasureContents() -> Bool {
+        guard let measures = validatedSelectedNotationMeasures() else { return false }
+        let partID = selectedNotationMeasures.first?.partID ?? .main
+        let belongsToSelection: (NotationMeasureItem) -> Bool = { item in
+            item.partID == partID
+                && measures.contains { measure in
+                    item.measureNumber == measure.number
+                        && abs(item.measureStartTime - measure.startTime)
+                            < NotationMeasureTiming.timelineTolerance
+                }
+        }
+        guard notationItems.contains(where: belongsToSelection) else { return false }
+
+        performUndoableEdit("Delete Measure Contents") {
+            notationItems.removeAll(where: belongsToSelection)
+            sanitizeNotationTieRelationships()
+        }
+
+        return true
+    }
+
+    @discardableResult
     func deleteSelectedNotationNote() -> Bool {
         replaceSelectedNotationNoteWithRest(
             undoActionName: "Delete Notation Note"

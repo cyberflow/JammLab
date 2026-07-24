@@ -13,6 +13,7 @@ struct NotationTrackActions {
     var changeSelectedNotePitch: (NotationPitch, Bool) -> Bool
     var changeClef: (NotationPartID, Clef) -> Void
     var auditionNotePitch: (NotationPitch, Clef) -> Void
+    var deleteSelectedNotationMeasureContents: () -> Bool
     var deleteSelectedNotationNote: () -> Bool
     var locatePlaybackMarkerExactly: (TimeInterval) -> Void
     var saveHarmony: (HarmonySymbol) -> Void
@@ -157,7 +158,7 @@ struct NotationTrackView: View {
             .focused($isTrackFocused)
             .focusEffectDisabled(true)
             .onDeleteCommand {
-                deleteSelectedNotationItemOrHarmony()
+                deleteSelectedNotationSelectionOrHarmony()
             }
             .onChange(of: pendingEditorRequest?.id) { _, _ in
                 if partID.isMain {
@@ -1956,7 +1957,15 @@ struct NotationTrackView: View {
         editingDraft = nil
     }
 
-    private func deleteSelectedNotationItemOrHarmony() {
+    private func deleteSelectedNotationSelectionOrHarmony() {
+        if selectedMeasures.contains(where: { $0.partID == partID }) {
+            if actions.deleteSelectedNotationMeasureContents() {
+                editingDraft = nil
+                draggedNotePitchPreview = nil
+            }
+            return
+        }
+
         if actions.deleteSelectedNotationNote() {
             editingDraft = nil
             draggedNotePitchPreview = nil
@@ -2295,6 +2304,7 @@ private extension NotationTrackActions {
             changeSelectedNotePitch: { _, _ in false },
             changeClef: { _, _ in },
             auditionNotePitch: { _, _ in },
+            deleteSelectedNotationMeasureContents: { false },
             deleteSelectedNotationNote: { false },
             locatePlaybackMarkerExactly: { _ in },
             saveHarmony: { _ in },
