@@ -225,7 +225,11 @@ struct ProjectPersistenceCoordinator {
                 duration: snapshot.duration,
                 notationPartClefs: snapshot.notationPartClefs
             ),
-            stemTranscriptionTracks: snapshot.stemTranscriptionTracks,
+            stemTranscriptionTracks: ProjectStateNormalizer.normalizedStemTranscriptionTracks(
+                snapshot.stemTranscriptionTracks,
+                duration: snapshot.duration,
+                notationItems: snapshot.notationItems
+            ),
             notationPartClefs: NotationPartClefOverrides.normalized(snapshot.notationPartClefs),
             projectKeySelection: snapshot.projectKeySelection,
             loopStart: snapshot.loopRegion.clamped(to: snapshot.duration, minimumLength: snapshot.loopMinimumLength).start,

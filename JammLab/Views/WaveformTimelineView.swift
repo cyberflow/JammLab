@@ -168,6 +168,7 @@ struct StemTrackActions {
     var soloToggled: (StemType) -> Void
     var transcribe: (StemType, StemTranscriptionConflictChoice) -> Void
     var cancelTranscription: (StemType) -> Void
+    var exportTranscriptionMIDI: (StemType) -> Void
 }
 
 struct WaveformTimelineView: View {
@@ -816,6 +817,7 @@ private struct StemTracksSection: View {
                 ProgressView(value: state.progress)
                     .progressViewStyle(.linear)
                     .frame(width: AppTheme.ControlSize.jammValueSliderWidth / 2)
+                    .help(state.status)
                     .accessibilityLabel("\(type.title) transcription progress")
                     .accessibilityValue("\(Int((state.progress * 100).rounded())) percent")
 
@@ -836,6 +838,10 @@ private struct StemTracksSection: View {
                     }
                     Button("Create New Transcription Track") {
                         actions.transcribe(type, .createNew)
+                    }
+                    Divider()
+                    Button("Export Latest Transcription as MIDI…") {
+                        actions.exportTranscriptionMIDI(type)
                     }
                 } else {
                     Button("Transcribe to Notes") {

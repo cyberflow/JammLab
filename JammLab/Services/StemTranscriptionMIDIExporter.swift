@@ -1,4 +1,6 @@
+import AppKit
 import Foundation
+import UniformTypeIdentifiers
 
 enum StemTranscriptionMIDIExporter {
     static func data(
@@ -68,5 +70,31 @@ enum StemTranscriptionMIDIExporter {
             buffer.insert(UInt8(value & 0x7F) | 0x80, at: 0)
         }
         return buffer
+    }
+}
+
+final class StemTranscriptionMIDIDocumentService {
+    @MainActor
+    func chooseExportURL(defaultName: String) -> URL? {
+        let panel = NSSavePanel()
+        panel.title = "Export Stem Transcription"
+        panel.prompt = "Export"
+        panel.canCreateDirectories = true
+        if let midiType = UTType(filenameExtension: "mid") {
+            panel.allowedContentTypes = [midiType]
+        }
+        panel.nameFieldStringValue = defaultName
+        guard panel.runModal() == .OK, let url = panel.url else { return nil }
+        return url.pathExtension.lowercased() == "mid"
+            ? url
+            : url.deletingPathExtension().appendingPathExtension("mid")
+    }
+
+    func save(_ data: Data, to url: URL) throws {
+        try FileManager.default.createDirectory(
+            at: url.deletingLastPathComponent(),
+            withIntermediateDirectories: true
+        )
+        try data.write(to: url, options: .atomic)
     }
 }

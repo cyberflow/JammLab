@@ -99,7 +99,8 @@ final class AudioPlayerViewModel: ObservableObject {
     let videoFollower: VideoFollowerControlling
     let appSettingsStore: AppSettingsStore
     let stemSeparationService: StemSeparationService
-    let stemTranscriptionService: StemTranscriptionService
+    let stemTranscriptionService: any StemTranscribing
+    let stemTranscriptionMIDIDocumentService: StemTranscriptionMIDIDocumentService
     let projectService: ProjectDocumentService
     let projectArtifactStore: ProjectArtifactStore
     let projectPersistenceCoordinator: ProjectPersistenceCoordinator
@@ -177,7 +178,9 @@ final class AudioPlayerViewModel: ObservableObject {
         videoFollower: VideoFollowerControlling? = nil,
         appSettingsStore: AppSettingsStore = AppSettingsStore(),
         stemSeparationService: StemSeparationService? = nil,
-        stemTranscriptionService: StemTranscriptionService = StemTranscriptionService(),
+        stemTranscriptionService: any StemTranscribing = StemTranscriptionService(),
+        stemTranscriptionMIDIDocumentService: StemTranscriptionMIDIDocumentService =
+            StemTranscriptionMIDIDocumentService(),
         projectService: ProjectDocumentService = ProjectDocumentService(),
         projectArtifactStore: ProjectArtifactStore = ProjectArtifactStore(),
         projectPersistenceCoordinator: ProjectPersistenceCoordinator? = nil,
@@ -196,6 +199,7 @@ final class AudioPlayerViewModel: ObservableObject {
         self.appSettingsStore = appSettingsStore
         self.stemSeparationService = resolvedStemSeparationService
         self.stemTranscriptionService = stemTranscriptionService
+        self.stemTranscriptionMIDIDocumentService = stemTranscriptionMIDIDocumentService
         self.projectService = projectService
         self.projectArtifactStore = projectArtifactStore
         self.projectPersistenceCoordinator = projectPersistenceCoordinator ?? ProjectPersistenceCoordinator(

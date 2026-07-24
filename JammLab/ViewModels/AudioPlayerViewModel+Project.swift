@@ -262,7 +262,11 @@ extension AudioPlayerViewModel {
                 duration: resolvedProjectDuration,
                 notationPartClefs: restoredClefs
             )
-            stemTranscriptionTracks = project.stemTranscriptionTracks
+            stemTranscriptionTracks = ProjectStateNormalizer.normalizedStemTranscriptionTracks(
+                project.stemTranscriptionTracks,
+                duration: resolvedProjectDuration,
+                notationItems: notationItems
+            )
             notationPartClefs = restoredClefs
             sanitizeNotationTieRelationships()
             projectKeySelection = project.projectKeySelection

@@ -81,9 +81,16 @@ extension AudioPlayerViewModel {
                     throw StemTranscriptionError.sourceStemChanged
                 }
 
+                let trackID = UUID()
+                let notationPartID: NotationPartID =
+                    existingTracks.isEmpty || conflictChoice == .replace
+                        ? .stem(stemType)
+                        : .stemTranscription(stemType, trackID: trackID)
                 let mapped = try StemTranscriptionNotationMapper.map(
                     result: result,
                     stemType: stemType,
+                    trackID: trackID,
+                    notationPartID: notationPartID,
                     sourceFingerprint: fingerprint,
                     timelineMapping: .aligned(duration: duration),
                     configuration: configuration,
@@ -107,7 +114,7 @@ extension AudioPlayerViewModel {
                     }
                     self.notationItems.append(contentsOf: mapped.notationItems)
                     self.stemTranscriptionTracks.append(mapped.track)
-                    self.visibleNotationPartIDs.insert(.stem(stemType))
+                    self.visibleNotationPartIDs.insert(mapped.track.notationPartID)
                     self.stemNotationTrackCollapsed[stemType] = false
                 }
                 stemTranscriptionStates[stemType] = StemTranscriptionViewState(
@@ -143,6 +150,32 @@ extension AudioPlayerViewModel {
             progress: 0,
             status: "Cancelling transcription"
         )
+    }
+
+    func exportLatestStemTranscriptionMIDI(_ stemType: StemType) {
+        guard let track = stemTranscriptionTracks
+            .filter({ $0.stemType == stemType })
+            .max(by: { $0.createdAt < $1.createdAt })
+        else {
+            errorMessage = "There is no \(stemType.title) transcription to export."
+            return
+        }
+        let sourceName = (importedFile?.displayName as NSString?)?.deletingPathExtension
+            ?? "Transcription"
+        guard let url = stemTranscriptionMIDIDocumentService.chooseExportURL(
+            defaultName: "\(sourceName)-\(stemType.rawValue)-transcription.mid"
+        ) else {
+            return
+        }
+        do {
+            let data = StemTranscriptionMIDIExporter.data(
+                for: track,
+                tempoBPM: beatGridSettings.bpm ?? AppDefaults.defaultTempoBPM
+            )
+            try stemTranscriptionMIDIDocumentService.save(data, to: url)
+        } catch {
+            errorMessage = "MIDI export failed: \(error.localizedDescription)"
+        }
     }
 
     private func finishStemTranscription(_ stemType: StemType, runID: UUID) {

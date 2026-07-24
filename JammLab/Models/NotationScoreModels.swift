@@ -170,9 +170,18 @@ struct NotationPartID: Codable, Hashable, Identifiable, Equatable {
         NotationPartID(rawValue: "stem:\(type.rawValue)")
     }
 
+    static func stemTranscription(_ type: StemType, trackID: UUID) -> NotationPartID {
+        NotationPartID(rawValue: "transcription:\(type.rawValue):\(trackID.uuidString.lowercased())")
+    }
+
     var stemType: StemType? {
-        guard rawValue.hasPrefix("stem:") else { return nil }
-        return StemType(rawValue: String(rawValue.dropFirst("stem:".count)))
+        if rawValue.hasPrefix("stem:") {
+            return StemType(rawValue: String(rawValue.dropFirst("stem:".count)))
+        }
+        guard rawValue.hasPrefix("transcription:") else { return nil }
+        let components = rawValue.split(separator: ":", omittingEmptySubsequences: false)
+        guard components.count == 3 else { return nil }
+        return StemType(rawValue: String(components[1]))
     }
 
     var isMain: Bool {
@@ -243,6 +252,21 @@ struct NotationPartDescriptor: Equatable, Identifiable {
                 instrumentSound: "keyboard.piano"
             )
         }
+    }
+
+    static func stemTranscription(
+        _ type: StemType,
+        id: NotationPartID,
+        sequence: Int
+    ) -> NotationPartDescriptor {
+        let base = stem(type)
+        return NotationPartDescriptor(
+            id: id,
+            title: "\(base.title) Transcription \(sequence)",
+            abbreviation: "\(base.abbreviation) T\(sequence)",
+            instrumentName: base.instrumentName,
+            instrumentSound: base.instrumentSound
+        )
     }
 
     private static func make(

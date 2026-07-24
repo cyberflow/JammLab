@@ -87,28 +87,67 @@ struct StemTranscriptionTimings: Codable, Equatable {
 struct StemTranscriptionTrack: Codable, Equatable, Identifiable {
     var id: UUID
     var stemType: StemType
+    var notationPartID: NotationPartID
     var sourceFingerprint: StemSourceFingerprint
     var createdAt: Date
     var configuration: StemTranscriptionConfiguration
+    /// Immutable detection provenance. Editable/quantized notation remains in
+    /// the project's shared `notationItems` collection.
     var notes: [StemTranscriptionNote]
     var timings: StemTranscriptionTimings?
+    var warnings: [String]
 
     init(
         id: UUID = UUID(),
         stemType: StemType,
+        notationPartID: NotationPartID? = nil,
         sourceFingerprint: StemSourceFingerprint,
         createdAt: Date = Date(),
         configuration: StemTranscriptionConfiguration,
         notes: [StemTranscriptionNote],
-        timings: StemTranscriptionTimings? = nil
+        timings: StemTranscriptionTimings? = nil,
+        warnings: [String] = []
     ) {
         self.id = id
         self.stemType = stemType
+        self.notationPartID = notationPartID ?? .stem(stemType)
         self.sourceFingerprint = sourceFingerprint
         self.createdAt = createdAt
         self.configuration = configuration
         self.notes = notes
         self.timings = timings
+        self.warnings = warnings
+    }
+
+    private enum CodingKeys: String, CodingKey {
+        case id
+        case stemType
+        case notationPartID
+        case sourceFingerprint
+        case createdAt
+        case configuration
+        case notes
+        case timings
+        case warnings
+    }
+
+    init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        id = try container.decode(UUID.self, forKey: .id)
+        stemType = try container.decode(StemType.self, forKey: .stemType)
+        notationPartID = try container.decodeIfPresent(
+            NotationPartID.self,
+            forKey: .notationPartID
+        ) ?? .stem(stemType)
+        sourceFingerprint = try container.decode(StemSourceFingerprint.self, forKey: .sourceFingerprint)
+        createdAt = try container.decode(Date.self, forKey: .createdAt)
+        configuration = try container.decode(
+            StemTranscriptionConfiguration.self,
+            forKey: .configuration
+        )
+        notes = try container.decode([StemTranscriptionNote].self, forKey: .notes)
+        timings = try container.decodeIfPresent(StemTranscriptionTimings.self, forKey: .timings)
+        warnings = try container.decodeIfPresent([String].self, forKey: .warnings) ?? []
     }
 
     var notationItemIDs: Set<String> {

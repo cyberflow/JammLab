@@ -9,6 +9,8 @@ enum StemTranscriptionNotationMapper {
     static func map(
         result: RawStemTranscriptionResult,
         stemType: StemType,
+        trackID: UUID = UUID(),
+        notationPartID: NotationPartID? = nil,
         sourceFingerprint: StemSourceFingerprint,
         timelineMapping: StemTimelineMapping,
         configuration: StemTranscriptionConfiguration,
@@ -16,11 +18,12 @@ enum StemTranscriptionNotationMapper {
         projectDuration: TimeInterval,
         keyName: String?
     ) throws -> StemTranscriptionNotationOutput {
+        let resolvedPartID = notationPartID ?? .stem(stemType)
         let content = NotationViewportFactory().scoreContent(
             tempoMap: tempoMap,
             duration: projectDuration,
             keyName: keyName,
-            partID: .stem(stemType)
+            partID: resolvedPartID
         )
         guard content.isReady, !content.measures.isEmpty else {
             throw StemTranscriptionError.resultCouldNotBeAdded
@@ -66,7 +69,7 @@ enum StemTranscriptionNotationMapper {
                 fromAbsoluteQuarter: quantizedStart,
                 toAbsoluteQuarter: quantizedEnd,
                 midiPitch: rawNote.midiPitch,
-                partID: .stem(stemType),
+                partID: resolvedPartID,
                 measures: content.measures,
                 measureStarts: measureStarts,
                 keySignature: keySignature
@@ -85,11 +88,14 @@ enum StemTranscriptionNotationMapper {
         }
 
         let track = StemTranscriptionTrack(
+            id: trackID,
             stemType: stemType,
+            notationPartID: resolvedPartID,
             sourceFingerprint: sourceFingerprint,
             configuration: configuration,
             notes: storedNotes,
-            timings: result.timings
+            timings: result.timings,
+            warnings: result.warnings
         )
         return StemTranscriptionNotationOutput(track: track, notationItems: notationItems)
     }
