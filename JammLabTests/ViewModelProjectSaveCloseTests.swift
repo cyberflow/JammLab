@@ -42,6 +42,7 @@ final class ViewModelProjectSaveCloseTests: XCTestCase {
 
         await viewModel.openRecentProject(entry)
         let bassPart = NotationPartID.stem(.bass)
+        viewModel.notationPartClefs[bassPart] = .treble
         viewModel.notationItems = [
             NotationMeasureItem(
                 id: "bass-note",

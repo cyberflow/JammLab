@@ -1537,6 +1537,7 @@ struct NotationClefMetrics: Equatable {
 enum Clef: String, Codable, CaseIterable, Identifiable, Equatable {
     case treble
     case bass
+    case bass8
     case drums
 
     var id: String { rawValue }
@@ -1544,7 +1545,7 @@ enum Clef: String, Codable, CaseIterable, Identifiable, Equatable {
     var sign: String {
         switch self {
         case .treble: return "G"
-        case .bass: return "F"
+        case .bass, .bass8: return "F"
         case .drums: return "percussion"
         }
     }
@@ -1552,7 +1553,7 @@ enum Clef: String, Codable, CaseIterable, Identifiable, Equatable {
     var line: Int? {
         switch self {
         case .treble: return 2
-        case .bass: return 4
+        case .bass, .bass8: return 4
         case .drums: return nil
         }
     }
@@ -1561,8 +1562,13 @@ enum Clef: String, Codable, CaseIterable, Identifiable, Equatable {
         switch self {
         case .treble: return "Treble Clef"
         case .bass: return "Bass Clef"
+        case .bass8: return "Bass 8 Clef"
         case .drums: return "Drum Clef"
         }
+    }
+
+    var musicXMLOctaveChange: Int? {
+        self == .bass8 ? -1 : nil
     }
 
     var notationMetrics: NotationClefMetrics {
@@ -1581,6 +1587,13 @@ enum Clef: String, Codable, CaseIterable, Identifiable, Equatable {
                 keySignatureStaffPositionOffset: 2,
                 storedPitchOctaveOffset: -2
             )
+        case .bass8:
+            return NotationClefMetrics(
+                editableStaffPositionRange: -3...15,
+                topLineDiatonicOrdinal: 2 * NotationPitchStep.allCases.count + NotationPitchStep.a.diatonicIndex,
+                keySignatureStaffPositionOffset: 2,
+                storedPitchOctaveOffset: -3
+            )
         case .drums:
             return NotationClefMetrics(
                 editableStaffPositionRange: -4...9,
@@ -1593,6 +1606,9 @@ enum Clef: String, Codable, CaseIterable, Identifiable, Equatable {
 }
 
 enum NotationPartClefOverrides {
+    private static let drumDefaultClefProjectFormatVersion = 14
+    private static let bass8DefaultClefProjectFormatVersion = 16
+
     static func normalized(_ overrides: [NotationPartID: Clef]) -> [NotationPartID: Clef] {
         overrides.filter { $0.value != defaultClef(for: $0.key) }
     }
@@ -1605,20 +1621,33 @@ enum NotationPartClefOverrides {
     }
 
     static func defaultClef(for partID: NotationPartID) -> Clef {
-        partID.stemType == .drums ? .drums : .treble
+        if partID.stemType == .drums {
+            return .drums
+        }
+        if partID.stemType == .bass {
+            return .bass8
+        }
+        return .treble
     }
 
     static func restored(
         _ overrides: [NotationPartID: Clef],
         projectFormatVersion: Int,
-        hasLegacyDrumNotationEvidence: Bool
+        hasLegacyDrumNotationEvidence: Bool,
+        legacyBassPartIDs: Set<NotationPartID>
     ) -> [NotationPartID: Clef] {
         var restored = overrides
         let drumPartID = NotationPartID.stem(.drums)
-        if projectFormatVersion < 14,
+        if projectFormatVersion < drumDefaultClefProjectFormatVersion,
            restored[drumPartID] == nil,
            hasLegacyDrumNotationEvidence {
             restored[drumPartID] = .treble
+        }
+        if projectFormatVersion < bass8DefaultClefProjectFormatVersion {
+            for partID in legacyBassPartIDs
+                where partID.stemType == .bass && restored[partID] == nil {
+                restored[partID] = .treble
+            }
         }
         return normalized(restored)
     }

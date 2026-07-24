@@ -194,20 +194,9 @@ struct ProjectStateNormalizer {
             notationItems.map { ($0.id, $0) },
             uniquingKeysWith: { first, _ in first }
         )
-        var seenTrackIDs = Set<UUID>()
-
-        return tracks.compactMap { track in
-            guard seenTrackIDs.insert(track.id).inserted,
-                  !track.sourceFingerprint.path.isEmpty,
-                  track.sourceFingerprint.fileSize >= 0,
-                  track.sourceFingerprint.modificationTime.isFinite
-            else {
-                return nil
-            }
-
-            let partID = track.notationPartID.stemType == track.stemType
-                ? track.notationPartID
-                : .stem(track.stemType)
+        return acceptedStemTranscriptionTracks(tracks).map { acceptedTrack in
+            let track = acceptedTrack.track
+            let partID = acceptedTrack.partID
             let notes = track.notes.compactMap { note -> StemTranscriptionNote? in
                 guard (0...127).contains(note.midiPitch),
                       note.rawStartTimeSeconds.isFinite,
@@ -253,6 +242,27 @@ struct ProjectStateNormalizer {
             )
         }
         .sorted { $0.createdAt < $1.createdAt }
+    }
+
+    static func acceptedStemTranscriptionTracks(
+        _ tracks: [StemTranscriptionTrack]
+    ) -> [(track: StemTranscriptionTrack, partID: NotationPartID)] {
+        var seenTrackIDs = Set<UUID>()
+
+        return tracks.compactMap { track in
+            guard seenTrackIDs.insert(track.id).inserted,
+                  !track.sourceFingerprint.path.isEmpty,
+                  track.sourceFingerprint.fileSize >= 0,
+                  track.sourceFingerprint.modificationTime.isFinite
+            else {
+                return nil
+            }
+
+            let partID = track.notationPartID.stemType == track.stemType
+                ? track.notationPartID
+                : .stem(track.stemType)
+            return (track, partID)
+        }
     }
 
     private static func normalizedTranscriptionTimings(

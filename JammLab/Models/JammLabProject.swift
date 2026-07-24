@@ -15,6 +15,8 @@ struct ProjectTimelineVisibleRange: Codable, Equatable {
 }
 
 struct JammLabProject: Codable {
+    static let currentFormatVersion = 16
+
     var formatVersion: Int
     var audioBookmarkData: Data
     var artifactRootBookmarkData: Data?
@@ -49,7 +51,7 @@ struct JammLabProject: Codable {
     var visibleNotationPartIDs: Set<NotationPartID>
 
     init(
-        formatVersion: Int = 15,
+        formatVersion: Int = JammLabProject.currentFormatVersion,
         audioBookmarkData: Data,
         artifactRootBookmarkData: Data? = nil,
         audioDisplayName: String,
