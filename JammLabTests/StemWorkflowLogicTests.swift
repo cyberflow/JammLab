@@ -45,6 +45,12 @@ final class StemWorkflowLogicTests: XCTestCase {
         XCTAssertFalse(mix.isAudible(.bass))
     }
 
+    func testBasicPitchTranscriptionPolicyExcludesDrumsOnly() {
+        XCTAssertFalse(StemType.drums.supportsBasicPitchTranscription)
+        XCTAssertTrue(StemType.bass.supportsBasicPitchTranscription)
+        XCTAssertTrue(StemType.piano.supportsBasicPitchTranscription)
+    }
+
     func testStemMixResetUsesStemVolumeGroupDefault() {
         var mix = StemMixState(items: [
             StemMixItem(type: .vocals, volume: 0.2, isMuted: true, isAvailable: true),

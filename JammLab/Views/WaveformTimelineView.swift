@@ -53,6 +53,7 @@ struct TimelineViewState: Equatable {
     var isLoadingStemPeakforms: Bool
     var stemTranscriptionStates: [StemType: StemTranscriptionViewState]
     var stemTypesWithTranscription: Set<StemType>
+    var hasPendingStemTranscriptionOverwrite: Bool
 }
 
 struct TimelineViewActions {
@@ -166,7 +167,7 @@ struct StemTrackActions {
     var volumeChanged: (StemType, Float) -> Void
     var muteToggled: (StemType) -> Void
     var soloToggled: (StemType) -> Void
-    var transcribe: (StemType, StemTranscriptionConflictChoice) -> Void
+    var transcribe: (StemType) -> Void
     var cancelTranscription: (StemType) -> Void
     var exportTranscriptionMIDI: (StemType) -> Void
 }
@@ -206,6 +207,7 @@ struct WaveformTimelineView: View {
             isLoadingStemPeakforms: state.isLoadingStemPeakforms,
             transcriptionStates: state.stemTranscriptionStates,
             stemTypesWithTranscription: state.stemTypesWithTranscription,
+            hasPendingTranscriptionOverwrite: state.hasPendingStemTranscriptionOverwrite,
             duration: state.duration,
             viewport: viewport,
             trackControlWidth: trackControlWidth,
@@ -638,6 +640,7 @@ private struct StemTracksSection: View {
     let isLoadingStemPeakforms: Bool
     let transcriptionStates: [StemType: StemTranscriptionViewState]
     let stemTypesWithTranscription: Set<StemType>
+    let hasPendingTranscriptionOverwrite: Bool
     let duration: TimeInterval
     let viewport: TimelineViewport
     let trackControlWidth: CGFloat
@@ -812,7 +815,7 @@ private struct StemTracksSection: View {
     @ViewBuilder
     private func transcriptionControl(type: StemType, isAvailable: Bool) -> some View {
         let state = transcriptionStates[type] ?? StemTranscriptionViewState()
-        if state.isRunning {
+        if type.supportsBasicPitchTranscription, state.isRunning {
             HStack(spacing: AppTheme.Spacing.sm) {
                 ProgressView(value: state.progress)
                     .progressViewStyle(.linear)
@@ -830,22 +833,15 @@ private struct StemTracksSection: View {
                 .help("Cancel \(type.title) transcription")
                 .accessibilityLabel("Cancel \(type.title) transcription")
             }
-        } else {
+        } else if type.supportsBasicPitchTranscription {
             Menu {
+                Button("Transcribe to Notes") {
+                    actions.transcribe(type)
+                }
                 if stemTypesWithTranscription.contains(type) {
-                    Button("Replace Existing Transcription") {
-                        actions.transcribe(type, .replace)
-                    }
-                    Button("Create New Transcription Track") {
-                        actions.transcribe(type, .createNew)
-                    }
                     Divider()
                     Button("Export Latest Transcription as MIDI…") {
                         actions.exportTranscriptionMIDI(type)
-                    }
-                } else {
-                    Button("Transcribe to Notes") {
-                        actions.transcribe(type, .createNew)
                     }
                 }
             } label: {
@@ -857,7 +853,7 @@ private struct StemTracksSection: View {
             }
             .menuStyle(.borderlessButton)
             .fixedSize()
-            .disabled(!isAvailable)
+            .disabled(!isAvailable || hasPendingTranscriptionOverwrite)
             .help("Transcribe \(type.title) to notes")
             .accessibilityLabel("Transcribe \(type.title) to Notes")
         }

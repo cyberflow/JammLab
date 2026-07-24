@@ -71,6 +71,7 @@ final class AudioPlayerViewModel: ObservableObject {
     @Published var stemMixState = StemMixState()
     @Published var stemSeparationState = StemSeparationViewState()
     @Published var stemTranscriptionStates: [StemType: StemTranscriptionViewState] = [:]
+    @Published var pendingStemTranscriptionOverwrite: StemTranscriptionOverwriteRequest?
     @Published var isLooping = false
     @Published var isClickEnabled = false
     @Published var isSnapEnabled = false

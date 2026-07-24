@@ -26,6 +26,15 @@ struct StemTranscriptionViewState: Equatable {
     }
 }
 
+struct StemTranscriptionOverwriteRequest: Equatable {
+    var stemType: StemType
+    var projectURL: URL?
+    var importedFileURL: URL?
+    var stemURL: URL
+    var sourceFingerprint: StemSourceFingerprint
+    var configuration: StemTranscriptionConfiguration
+}
+
 struct StemTranscriptionConfiguration: Codable, Equatable {
     var minimumNoteDurationMilliseconds: Double = 125
     var noteSensitivity: Double = 0.7
@@ -175,10 +184,4 @@ struct StemTimelineMapping: Equatable {
         let sourceProgress = (sourceTime - sourceStartTime) / sourceDuration
         return projectStartTime + sourceProgress * projectDuration
     }
-}
-
-enum StemTranscriptionConflictChoice: Equatable {
-    case replace
-    case createNew
-    case cancel
 }

@@ -2,6 +2,7 @@ import AudioToolbox
 import Foundation
 
 enum StemTranscriptionError: LocalizedError, Equatable {
+    case unsupportedStemType
     case stemAudioUnavailable
     case unsupportedAudioFormat
     case audioDecodingFailed
@@ -16,6 +17,8 @@ enum StemTranscriptionError: LocalizedError, Equatable {
 
     var errorDescription: String? {
         switch self {
+        case .unsupportedStemType:
+            return "Basic Pitch transcription is not available for Drum stems."
         case .stemAudioUnavailable:
             return "The selected stem audio is unavailable."
         case .unsupportedAudioFormat:
@@ -84,6 +87,7 @@ final class StemTranscriptionOperation: @unchecked Sendable {
 
 protocol StemTranscribing: Sendable {
     func transcribe(
+        stemType: StemType,
         stemURL: URL,
         configuration: StemTranscriptionConfiguration,
         operation: StemTranscriptionOperation,
@@ -96,12 +100,16 @@ final class StemTranscriptionService: StemTranscribing, @unchecked Sendable {
     private let bridge = JMBasicPitchBridge()
 
     func transcribe(
+        stemType: StemType,
         stemURL: URL,
         configuration: StemTranscriptionConfiguration,
         operation: StemTranscriptionOperation,
         progress: @escaping @Sendable (StemTranscriptionPhase, Double) -> Void
     ) async throws -> RawStemTranscriptionResult {
-        try await Task.detached(priority: .userInitiated) {
+        guard stemType.supportsBasicPitchTranscription else {
+            throw StemTranscriptionError.unsupportedStemType
+        }
+        return try await Task.detached(priority: .userInitiated) {
             let totalStart = ContinuousClock.now
             progress(.preparingAudio, 0)
             let prepared = try self.prepareAudio(

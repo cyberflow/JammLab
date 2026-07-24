@@ -14,6 +14,7 @@ enum PlaybackMode: String, Codable, CaseIterable, Identifiable {
             return "Stems"
         }
     }
+
 }
 
 enum StemType: String, Codable, CaseIterable, Identifiable {
@@ -44,6 +45,13 @@ enum StemType: String, Codable, CaseIterable, Identifiable {
         case .piano:
             return "Piano"
         }
+    }
+
+    /// Spotify Basic Pitch is intended for pitched audio, not percussion.
+    /// Keep this policy centralized so UI and application/service boundaries
+    /// cannot accidentally diverge.
+    var supportsBasicPitchTranscription: Bool {
+        self != .drums
     }
 
     var canonicalStemFilename: String {

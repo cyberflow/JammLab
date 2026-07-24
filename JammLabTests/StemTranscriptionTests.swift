@@ -18,6 +18,44 @@ final class StemTranscriptionTests: XCTestCase {
         XCTAssertEqual(mapping.projectTime(forSourceTime: 10), 14, accuracy: 0.000_001)
     }
 
+    func testSynthesizedDefaultRestsDoNotTriggerOverwriteWarning() throws {
+        let stemURL = try makeTemporaryStemFile()
+        defer { try? FileManager.default.removeItem(at: stemURL) }
+        let viewModel = makeViewModel(stemURL: stemURL, service: StubStemTranscriptionService(result: rawResult))
+        viewModel.notationItems = [
+            NotationMeasureItem(
+                id: "default-rest",
+                partID: .stem(.bass),
+                kind: .rest,
+                measureNumber: 1,
+                measureStartTime: 0,
+                offsetInQuarterNotes: 0,
+                durationInQuarterNotes: 4,
+                displayDuration: NotationDuration(denominator: 4),
+                isSynthesized: true
+            )
+        ]
+
+        XCTAssertFalse(viewModel.hasMeaningfulStemNotationContent(for: .bass))
+    }
+
+    func testServiceRejectsDrumStemBeforeReadingAudio() async {
+        do {
+            _ = try await StemTranscriptionService().transcribe(
+                stemType: .drums,
+                stemURL: URL(fileURLWithPath: "/missing.wav"),
+                configuration: .neuralNoteDefaults,
+                operation: StemTranscriptionOperation(),
+                progress: { _, _ in }
+            )
+            XCTFail("Expected Drum Stem transcription to be rejected")
+        } catch let error as StemTranscriptionError {
+            XCTAssertEqual(error, .unsupportedStemType)
+        } catch {
+            XCTFail("Unexpected error: \(error)")
+        }
+    }
+
     func testAudioPreparationDownmixesStereoAndReportsResampledProgress() throws {
         let sourceURL = FileManager.default.temporaryDirectory
             .appendingPathComponent("transcription-stereo-\(UUID().uuidString).wav")
@@ -386,57 +424,38 @@ final class StemTranscriptionTests: XCTestCase {
         XCTAssertTrue(viewModel.isProjectModified)
     }
 
-    func testViewModelCreateNewUsesIndependentNotationPart() async throws {
+    func testViewModelWarnsBeforeOverwritingMeaningfulStemContentAndCancelPreservesIt() async throws {
         let stemURL = try makeTemporaryStemFile()
         defer { try? FileManager.default.removeItem(at: stemURL) }
         let service = StubStemTranscriptionService(result: rawResult)
         let viewModel = makeViewModel(stemURL: stemURL, service: service)
         let existingItem = makeNotationItem(id: "existing-generated", partID: .stem(.bass))
         viewModel.notationItems = [existingItem]
-        viewModel.stemTranscriptionTracks = [
-            StemTranscriptionTrack(
-                stemType: .bass,
-                sourceFingerprint: try StemSeparationService().sourceFingerprint(for: stemURL),
-                configuration: .neuralNoteDefaults,
-                notes: [
-                    StemTranscriptionNote(
-                        midiPitch: 48,
-                        rawStartTimeSeconds: 0,
-                        rawEndTimeSeconds: 0.5,
-                        projectStartTimeSeconds: 0,
-                        projectEndTimeSeconds: 0.5,
-                        confidence: 0.8,
-                        notationItemIDs: [existingItem.id]
-                    )
-                ]
-            )
-        ]
 
-        viewModel.transcribeStem(.bass, conflictChoice: .createNew)
-        await waitUntil { viewModel.stemTranscriptionState(for: .bass).phase == .completed }
+        viewModel.transcribeStem(.bass)
 
-        XCTAssertEqual(viewModel.stemTranscriptionTracks.count, 2)
-        let newTrack = try XCTUnwrap(
-            viewModel.stemTranscriptionTracks.first { $0.notationPartID != .stem(.bass) }
-        )
-        XCTAssertEqual(newTrack.notationPartID.stemType, .bass)
-        XCTAssertTrue(viewModel.notationItems.contains { $0.id == existingItem.id })
-        XCTAssertTrue(viewModel.notationItems.contains { $0.partID == newTrack.notationPartID })
-        XCTAssertTrue(viewModel.availableNotationParts.contains { $0.id == newTrack.notationPartID })
-        XCTAssertTrue(viewModel.visibleNotationPartIDs.contains(newTrack.notationPartID))
+        XCTAssertEqual(viewModel.pendingStemTranscriptionOverwrite?.stemType, .bass)
+        XCTAssertFalse(service.hasStarted)
+        viewModel.cancelPendingStemTranscriptionOverwrite()
+        XCTAssertNil(viewModel.pendingStemTranscriptionOverwrite)
+        XCTAssertEqual(viewModel.notationItems, [existingItem])
     }
 
-    func testViewModelReplacePreservesManualNotes() async throws {
+    func testViewModelConfirmedOverwriteRemovesAllStemInformationIncludingLegacyParts() async throws {
         let stemURL = try makeTemporaryStemFile()
         defer { try? FileManager.default.removeItem(at: stemURL) }
         let service = StubStemTranscriptionService(result: rawResult)
         let viewModel = makeViewModel(stemURL: stemURL, service: service)
         let generated = makeNotationItem(id: "old-generated", partID: .stem(.bass))
         let manual = makeNotationItem(id: "manual-note", partID: .stem(.bass))
-        viewModel.notationItems = [generated, manual]
+        let legacyPart = NotationPartID.stemTranscription(.bass, trackID: UUID())
+        let legacyItem = makeNotationItem(id: "legacy-note", partID: legacyPart)
+        viewModel.notationItems = [generated, manual, legacyItem]
+        viewModel.visibleNotationPartIDs.insert(legacyPart)
         viewModel.stemTranscriptionTracks = [
             StemTranscriptionTrack(
                 stemType: .bass,
+                notationPartID: legacyPart,
                 sourceFingerprint: try StemSeparationService().sourceFingerprint(for: stemURL),
                 configuration: .neuralNoteDefaults,
                 notes: [
@@ -453,13 +472,35 @@ final class StemTranscriptionTests: XCTestCase {
             )
         ]
 
-        viewModel.transcribeStem(.bass, conflictChoice: .replace)
+        var customConfiguration = StemTranscriptionConfiguration.neuralNoteDefaults
+        customConfiguration.noteSensitivity = 0.42
+        viewModel.transcribeStem(.bass, configuration: customConfiguration)
+        XCTAssertEqual(viewModel.pendingStemTranscriptionOverwrite?.stemType, .bass)
+        viewModel.confirmPendingStemTranscriptionOverwrite()
         await waitUntil { viewModel.stemTranscriptionState(for: .bass).phase == .completed }
 
         XCTAssertEqual(viewModel.stemTranscriptionTracks.count, 1)
         XCTAssertEqual(viewModel.stemTranscriptionTracks[0].notationPartID, .stem(.bass))
         XCTAssertFalse(viewModel.notationItems.contains { $0.id == generated.id })
-        XCTAssertTrue(viewModel.notationItems.contains { $0.id == manual.id })
+        XCTAssertFalse(viewModel.notationItems.contains { $0.id == manual.id })
+        XCTAssertFalse(viewModel.notationItems.contains { $0.id == legacyItem.id })
+        XCTAssertTrue(viewModel.notationItems.allSatisfy { $0.partID == .stem(.bass) })
+        XCTAssertFalse(viewModel.visibleNotationPartIDs.contains(legacyPart))
+        XCTAssertEqual(service.configuration?.noteSensitivity ?? -1, 0.42, accuracy: 0.000_001)
+    }
+
+    func testViewModelDoesNotOfferBasicPitchForDrumStem() throws {
+        let stemURL = try makeTemporaryStemFile()
+        defer { try? FileManager.default.removeItem(at: stemURL) }
+        let service = StubStemTranscriptionService(result: rawResult)
+        let viewModel = makeViewModel(stemURL: stemURL, service: service)
+        viewModel.stemFiles = [StemFile(type: .drums, url: stemURL, displayName: "Drums")]
+
+        viewModel.transcribeStem(.drums)
+
+        XCTAssertFalse(service.hasStarted)
+        XCTAssertNil(viewModel.pendingStemTranscriptionOverwrite)
+        XCTAssertTrue(viewModel.stemTranscriptionTracks.isEmpty)
     }
 
     func testViewModelCancellationDoesNotMutateProject() async throws {
@@ -593,6 +634,7 @@ private final class StubStemTranscriptionService: StemTranscribing, @unchecked S
     private let waitsForRelease: Bool
     private var started = false
     private var released = false
+    private var capturedConfiguration: StemTranscriptionConfiguration?
 
     init(result: RawStemTranscriptionResult, waitsForRelease: Bool = false) {
         self.result = result
@@ -603,17 +645,25 @@ private final class StubStemTranscriptionService: StemTranscribing, @unchecked S
         lock.withLock { started }
     }
 
+    var configuration: StemTranscriptionConfiguration? {
+        lock.withLock { capturedConfiguration }
+    }
+
     func release() {
         lock.withLock { released = true }
     }
 
     func transcribe(
+        stemType: StemType,
         stemURL: URL,
         configuration: StemTranscriptionConfiguration,
         operation: StemTranscriptionOperation,
         progress: @escaping @Sendable (StemTranscriptionPhase, Double) -> Void
     ) async throws -> RawStemTranscriptionResult {
-        lock.withLock { started = true }
+        lock.withLock {
+            started = true
+            capturedConfiguration = configuration
+        }
         progress(.preparingAudio, 0.5)
         while waitsForRelease && !lock.withLock({ released }) {
             if operation.isCancelled {

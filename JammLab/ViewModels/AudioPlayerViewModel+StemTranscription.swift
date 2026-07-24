@@ -11,18 +11,67 @@ extension AudioPlayerViewModel {
 
     func transcribeStem(
         _ stemType: StemType,
-        conflictChoice: StemTranscriptionConflictChoice = .createNew,
         configuration: StemTranscriptionConfiguration = .neuralNoteDefaults
     ) {
-        guard conflictChoice != .cancel,
+        guard stemType.supportsBasicPitchTranscription,
               stemTranscriptionTasks[stemType] == nil,
               let stem = stemFiles.first(where: { $0.type == stemType })
         else { return }
 
-        let existingTracks = stemTranscriptionTracks.filter { $0.stemType == stemType }
-        guard existingTracks.isEmpty || conflictChoice == .replace || conflictChoice == .createNew else {
+        let sourceFingerprint: StemSourceFingerprint
+        do {
+            sourceFingerprint = try stemSeparationService.sourceFingerprint(for: stem.url)
+        } catch {
+            errorMessage = StemTranscriptionError.stemAudioUnavailable.localizedDescription
             return
         }
+
+        if hasMeaningfulStemNotationContent(for: stemType) {
+            pendingStemTranscriptionOverwrite = StemTranscriptionOverwriteRequest(
+                stemType: stemType,
+                projectURL: currentProjectURL,
+                importedFileURL: importedFile?.url,
+                stemURL: stem.url,
+                sourceFingerprint: sourceFingerprint,
+                configuration: configuration
+            )
+            return
+        }
+
+        startStemTranscription(stemType, configuration: configuration)
+    }
+
+    func confirmPendingStemTranscriptionOverwrite() {
+        guard let request = pendingStemTranscriptionOverwrite else { return }
+        pendingStemTranscriptionOverwrite = nil
+        guard request.stemType.supportsBasicPitchTranscription,
+              stemTranscriptionTasks[request.stemType] == nil,
+              currentProjectURL == request.projectURL,
+              importedFile?.url == request.importedFileURL,
+              stemFiles.first(where: { $0.type == request.stemType })?.url == request.stemURL,
+              (try? stemSeparationService.sourceFingerprint(for: request.stemURL))
+                  .map({ $0.hasSameFileIdentity(as: request.sourceFingerprint) }) == true
+        else { return }
+        startStemTranscription(request.stemType, configuration: request.configuration)
+    }
+
+    func cancelPendingStemTranscriptionOverwrite() {
+        pendingStemTranscriptionOverwrite = nil
+    }
+
+    func hasMeaningfulStemNotationContent(for stemType: StemType) -> Bool {
+        notationItems.contains {
+            $0.partID.stemType == stemType && !$0.isSynthesized
+        } || stemTranscriptionTracks.contains {
+            $0.stemType == stemType && !$0.notes.isEmpty
+        }
+    }
+
+    private func startStemTranscription(
+        _ stemType: StemType,
+        configuration: StemTranscriptionConfiguration
+    ) {
+        guard let stem = stemFiles.first(where: { $0.type == stemType }) else { return }
 
         let fingerprint: StemSourceFingerprint
         do {
@@ -52,6 +101,7 @@ extension AudioPlayerViewModel {
             guard let self else { return }
             do {
                 let result = try await stemTranscriptionService.transcribe(
+                    stemType: stemType,
                     stemURL: stem.url,
                     configuration: configuration,
                     operation: operation
@@ -82,10 +132,7 @@ extension AudioPlayerViewModel {
                 }
 
                 let trackID = UUID()
-                let notationPartID: NotationPartID =
-                    existingTracks.isEmpty || conflictChoice == .replace
-                        ? .stem(stemType)
-                        : .stemTranscription(stemType, trackID: trackID)
+                let notationPartID = NotationPartID.stem(stemType)
                 let mapped = try StemTranscriptionNotationMapper.map(
                     result: result,
                     stemType: stemType,
@@ -103,15 +150,18 @@ extension AudioPlayerViewModel {
                 }
 
                 performUndoableEdit("Transcribe \(stemType.title)") {
-                    if conflictChoice == .replace {
-                        let removedIDs = Set(
-                            self.stemTranscriptionTracks
-                                .filter { $0.stemType == stemType }
-                                .flatMap { $0.notationItemIDs }
-                        )
-                        self.notationItems.removeAll { removedIDs.contains($0.id) }
-                        self.stemTranscriptionTracks.removeAll { $0.stemType == stemType }
-                    }
+                    let removedPartIDs = Set(
+                        self.notationItems
+                            .filter { $0.partID.stemType == stemType }
+                            .map(\.partID)
+                    ).union(
+                        self.stemTranscriptionTracks
+                            .filter { $0.stemType == stemType }
+                            .map(\.notationPartID)
+                    )
+                    self.notationItems.removeAll { $0.partID.stemType == stemType }
+                    self.stemTranscriptionTracks.removeAll { $0.stemType == stemType }
+                    self.visibleNotationPartIDs.subtract(removedPartIDs)
                     self.notationItems.append(contentsOf: mapped.notationItems)
                     self.stemTranscriptionTracks.append(mapped.track)
                     self.visibleNotationPartIDs.insert(mapped.track.notationPartID)
