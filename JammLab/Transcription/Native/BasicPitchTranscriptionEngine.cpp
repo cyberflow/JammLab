@@ -13,89 +13,94 @@ namespace jammlab::transcription
 {
 namespace
 {
-using Clock = std::chrono::steady_clock;
+    using Clock = std::chrono::steady_clock;
 
-constexpr std::size_t minimumModelSamples = 2 * static_cast<std::size_t>(BASIC_PITCH_SAMPLE_RATE);
-constexpr double progressReservedForPostProcessing = 0.02;
-constexpr double boundaryToleranceSeconds = 0.08;
+    constexpr std::size_t minimumModelSamples = 2 * static_cast<std::size_t>(BASIC_PITCH_SAMPLE_RATE);
+    constexpr double progressReservedForPostProcessing = 0.02;
+    constexpr double boundaryEpsilonSeconds = 1.0e-5;
 
-double elapsedSeconds(Clock::time_point start)
-{
-    return std::chrono::duration<double>(Clock::now() - start).count();
-}
-
-void checkCancellation(const ProgressCallback& callback, double progress)
-{
-    if (callback && !callback(std::clamp(progress, 0.0, 1.0))) {
-        throw Error(ErrorCode::cancelled, "Transcription was cancelled");
+    double elapsedSeconds(Clock::time_point start)
+    {
+        return std::chrono::duration<double>(Clock::now() - start).count();
     }
-}
 
-void validateConfiguration(const Configuration& configuration)
-{
-    if (!std::isfinite(configuration.windowDurationSeconds)
-        || configuration.windowDurationSeconds < 2.0
-        || !std::isfinite(configuration.overlapDurationSeconds)
-        || configuration.overlapDurationSeconds < 0
-        || configuration.overlapDurationSeconds >= configuration.windowDurationSeconds) {
-        throw Error(ErrorCode::inferenceFailed, "Invalid transcription window configuration");
+    void checkCancellation(const ProgressCallback& callback, double progress)
+    {
+        if (callback && !callback(std::clamp(progress, 0.0, 1.0))) {
+            throw Error(ErrorCode::cancelled, "Transcription was cancelled");
+        }
     }
-}
 
-void sanitizeSamples(std::vector<float>& samples)
-{
-    for (auto& sample: samples) {
-        sample = std::isfinite(sample) ? std::clamp(sample, -1.0f, 1.0f) : 0.0f;
+    void validateConfiguration(const Configuration& configuration)
+    {
+        if (!std::isfinite(configuration.windowDurationSeconds) || configuration.windowDurationSeconds < 2.0
+            || !std::isfinite(configuration.overlapDurationSeconds) || configuration.overlapDurationSeconds < 0
+            || configuration.overlapDurationSeconds >= configuration.windowDurationSeconds) {
+            throw Error(ErrorCode::inferenceFailed, "Invalid transcription window configuration");
+        }
     }
-}
 
-void stitchNotes(std::vector<Note>& notes)
-{
-    std::sort(notes.begin(), notes.end(), [](const Note& lhs, const Note& rhs) {
-        if (lhs.startTimeSeconds != rhs.startTimeSeconds) {
-            return lhs.startTimeSeconds < rhs.startTimeSeconds;
+    void sanitizeSamples(std::vector<float>& samples)
+    {
+        for (auto& sample: samples) {
+            sample = std::isfinite(sample) ? std::clamp(sample, -1.0f, 1.0f) : 0.0f;
         }
-        if (lhs.pitch != rhs.pitch) {
-            return lhs.pitch < rhs.pitch;
-        }
-        return lhs.endTimeSeconds < rhs.endTimeSeconds;
-    });
+    }
 
-    std::vector<Note> stitched;
-    stitched.reserve(notes.size());
-    for (auto& note: notes) {
-        if (note.pitch < MIN_MIDI_NOTE || note.pitch > MAX_MIDI_NOTE
-            || !std::isfinite(note.startTimeSeconds)
-            || !std::isfinite(note.endTimeSeconds)
-            || note.endTimeSeconds <= note.startTimeSeconds
-            || !std::isfinite(note.confidence)) {
-            continue;
-        }
-
-        auto duplicate = std::find_if(stitched.rbegin(), stitched.rend(), [&](const Note& candidate) {
-            if (candidate.startTimeSeconds + boundaryToleranceSeconds < note.startTimeSeconds
-                && candidate.endTimeSeconds + boundaryToleranceSeconds < note.startTimeSeconds) {
-                return false;
+    void stitchNotes(std::vector<Note>& notes, const std::vector<double>& windowBoundaries)
+    {
+        std::sort(notes.begin(), notes.end(), [](const Note& lhs, const Note& rhs) {
+            if (lhs.startTimeSeconds != rhs.startTimeSeconds) {
+                return lhs.startTimeSeconds < rhs.startTimeSeconds;
             }
-            return candidate.pitch == note.pitch
-                && candidate.endTimeSeconds + boundaryToleranceSeconds >= note.startTimeSeconds;
+            if (lhs.pitch != rhs.pitch) {
+                return lhs.pitch < rhs.pitch;
+            }
+            return lhs.endTimeSeconds < rhs.endTimeSeconds;
         });
 
-        if (duplicate != stitched.rend()) {
-            duplicate->startTimeSeconds = std::min(duplicate->startTimeSeconds, note.startTimeSeconds);
-            duplicate->endTimeSeconds = std::max(duplicate->endTimeSeconds, note.endTimeSeconds);
-            duplicate->confidence = std::max(duplicate->confidence, note.confidence);
-            if (duplicate->pitchBends.empty()) {
-                duplicate->pitchBends = std::move(note.pitchBends);
+        std::vector<Note> stitched;
+        stitched.reserve(notes.size());
+        for (auto& note: notes) {
+            if (note.pitch < MIN_MIDI_NOTE || note.pitch > MAX_MIDI_NOTE || !std::isfinite(note.startTimeSeconds)
+                || !std::isfinite(note.endTimeSeconds) || note.endTimeSeconds <= note.startTimeSeconds
+                || !std::isfinite(note.confidence)) {
+                continue;
             }
-        } else {
-            stitched.push_back(std::move(note));
+
+            auto duplicate = std::find_if(stitched.rbegin(), stitched.rend(), [&](const Note& candidate) {
+                if (candidate.pitch != note.pitch) {
+                    return false;
+                }
+                return std::any_of(windowBoundaries.begin(), windowBoundaries.end(), [&](double boundary) {
+                    return std::abs(candidate.endTimeSeconds - boundary) <= boundaryEpsilonSeconds
+                           && std::abs(note.startTimeSeconds - boundary) <= boundaryEpsilonSeconds;
+                });
+            });
+
+            if (duplicate != stitched.rend()) {
+                duplicate->startTimeSeconds = std::min(duplicate->startTimeSeconds, note.startTimeSeconds);
+                duplicate->endTimeSeconds = std::max(duplicate->endTimeSeconds, note.endTimeSeconds);
+                duplicate->confidence = std::max(duplicate->confidence, note.confidence);
+                if (duplicate->pitchBends.empty()) {
+                    duplicate->pitchBends = std::move(note.pitchBends);
+                }
+            } else {
+                stitched.push_back(std::move(note));
+            }
         }
+        notes = std::move(stitched);
     }
-    notes = std::move(stitched);
-}
 
 } // namespace
+
+namespace detail
+{
+    void stitchNotesAtWindowBoundaries(std::vector<Note>& notes, const std::vector<double>& windowBoundaries)
+    {
+        stitchNotes(notes, windowBoundaries);
+    }
+} // namespace detail
 
 Error::Error(ErrorCode code, const std::string& message)
     : std::runtime_error(message)
@@ -134,13 +139,11 @@ void BasicPitchTranscriptionEngine::ensureModelLoaded(Timings& timings)
     timings.modelLoadSeconds = elapsedSeconds(start);
 }
 
-Result BasicPitchTranscriptionEngine::transcribePCMFile(
-    const std::filesystem::path& pcmFile,
-    std::size_t sampleCount,
-    double sampleRate,
-    const Configuration& configuration,
-    const ProgressCallback& progressCallback
-)
+Result BasicPitchTranscriptionEngine::transcribePCMFile(const std::filesystem::path& pcmFile,
+                                                        std::size_t sampleCount,
+                                                        double sampleRate,
+                                                        const Configuration& configuration,
+                                                        const ProgressCallback& progressCallback)
 {
     const auto totalStart = Clock::now();
     Result result;
@@ -161,18 +164,19 @@ Result BasicPitchTranscriptionEngine::transcribePCMFile(
     }
 
     const auto windowSamples = std::max(
-        minimumModelSamples,
-        static_cast<std::size_t>(std::llround(configuration.windowDurationSeconds * sampleRate))
-    );
-    const auto overlapSamples = static_cast<std::size_t>(
-        std::llround(configuration.overlapDurationSeconds * sampleRate)
-    );
+        minimumModelSamples, static_cast<std::size_t>(std::llround(configuration.windowDurationSeconds * sampleRate)));
+    const auto overlapSamples =
+        static_cast<std::size_t>(std::llround(configuration.overlapDurationSeconds * sampleRate));
     const auto stepSamples = windowSamples - overlapSamples;
     const auto windowCount = sampleCount <= windowSamples
-        ? std::size_t {1}
-        : 1 + (sampleCount - windowSamples + stepSamples - 1) / stepSamples;
+                                 ? std::size_t {1}
+                                 : 1 + (sampleCount - windowSamples + stepSamples - 1) / stepSamples;
 
     result.notes.reserve(windowCount * 128);
+    std::vector<double> windowBoundaries;
+    if (windowCount > 1) {
+        windowBoundaries.reserve(windowCount - 1);
+    }
     const auto inferenceStart = Clock::now();
 
     for (std::size_t windowIndex = 0; windowIndex < windowCount; ++windowIndex) {
@@ -182,34 +186,26 @@ Result BasicPitchTranscriptionEngine::transcribePCMFile(
 
         stream.clear();
         stream.seekg(static_cast<std::streamoff>(windowStartSample * sizeof(float)), std::ios::beg);
-        stream.read(
-            reinterpret_cast<char*>(audio.data()),
-            static_cast<std::streamsize>(readableSamples * sizeof(float))
-        );
+        stream.read(reinterpret_cast<char*>(audio.data()),
+                    static_cast<std::streamsize>(readableSamples * sizeof(float)));
         if (static_cast<std::size_t>(stream.gcount()) != readableSamples * sizeof(float)) {
             throw Error(ErrorCode::audioReadFailed, "Prepared stem audio ended unexpectedly");
         }
         sanitizeSamples(audio);
-        checkCancellation(
-            progressCallback,
-            (1.0 - progressReservedForPostProcessing) * static_cast<double>(windowIndex)
-                / static_cast<double>(windowCount)
-        );
+        checkCancellation(progressCallback,
+                          (1.0 - progressReservedForPostProcessing) * static_cast<double>(windowIndex)
+                              / static_cast<double>(windowCount));
 
         try {
             model_->reset();
-            model_->setParameters(
-                std::clamp(configuration.noteSensitivity, 0.05f, 0.95f),
-                std::clamp(configuration.splitSensitivity, 0.05f, 0.95f),
-                std::max(configuration.minimumNoteDurationMilliseconds, 1.0f),
-                configuration.includePitchBends
-            );
+            model_->setParameters(std::clamp(configuration.noteSensitivity, 0.05f, 0.95f),
+                                  std::clamp(configuration.splitSensitivity, 0.05f, 0.95f),
+                                  std::max(configuration.minimumNoteDurationMilliseconds, 1.0f),
+                                  configuration.includePitchBends);
             model_->transcribeToMIDI(audio.data(), static_cast<int>(audio.size()), [&](double localProgress) {
-                const auto overall = (
-                    static_cast<double>(windowIndex) + std::clamp(localProgress, 0.0, 1.0)
-                ) / static_cast<double>(windowCount);
-                return !progressCallback
-                    || progressCallback((1.0 - progressReservedForPostProcessing) * overall);
+                const auto overall = (static_cast<double>(windowIndex) + std::clamp(localProgress, 0.0, 1.0))
+                                     / static_cast<double>(windowCount);
+                return !progressCallback || progressCallback((1.0 - progressReservedForPostProcessing) * overall);
             });
         } catch (const Error&) {
             throw;
@@ -226,18 +222,18 @@ Result BasicPitchTranscriptionEngine::transcribePCMFile(
         const auto windowEndSeconds = static_cast<double>(windowStartSample + readableSamples) / sampleRate;
         const auto halfOverlapSeconds = configuration.overlapDurationSeconds / 2.0;
         const auto acceptedStart = windowIndex == 0 ? windowStartSeconds : windowStartSeconds + halfOverlapSeconds;
-        const auto acceptedEnd = windowIndex + 1 == windowCount
-            ? windowEndSeconds
-            : windowEndSeconds - halfOverlapSeconds;
+        const auto acceptedEnd =
+            windowIndex + 1 == windowCount ? windowEndSeconds : windowEndSeconds - halfOverlapSeconds;
+        if (windowIndex + 1 < windowCount) {
+            windowBoundaries.push_back(acceptedEnd);
+        }
 
         for (const auto& event: model_->getNoteEvents()) {
-            Note note {
-                event.pitch,
-                windowStartSeconds + event.startTime,
-                windowStartSeconds + event.endTime,
-                event.amplitude,
-                event.bends
-            };
+            Note note {event.pitch,
+                       windowStartSeconds + event.startTime,
+                       windowStartSeconds + event.endTime,
+                       event.amplitude,
+                       event.bends};
             if (note.endTimeSeconds <= acceptedStart || note.startTimeSeconds >= acceptedEnd) {
                 continue;
             }
@@ -250,7 +246,7 @@ Result BasicPitchTranscriptionEngine::transcribePCMFile(
     result.timings.inferenceSeconds = elapsedSeconds(inferenceStart);
     const auto postProcessingStart = Clock::now();
     checkCancellation(progressCallback, 1.0 - progressReservedForPostProcessing);
-    stitchNotes(result.notes);
+    detail::stitchNotesAtWindowBoundaries(result.notes, windowBoundaries);
     result.timings.postProcessingSeconds = elapsedSeconds(postProcessingStart);
     result.processedDurationSeconds = static_cast<double>(sampleCount) / sampleRate;
     result.timings.totalSeconds = elapsedSeconds(totalStart);

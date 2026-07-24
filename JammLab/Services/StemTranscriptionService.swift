@@ -56,10 +56,15 @@ struct RawStemTranscriptionResult: Equatable {
     var warnings: [String]
 }
 
-private struct PreparedTranscriptionAudio {
+struct PreparedTranscriptionAudio {
     var url: URL
+    var temporaryDirectory: URL
     var sampleCount: Int
     var preparationDuration: Double
+
+    func cleanup(fileManager: FileManager = .default) {
+        try? fileManager.removeItem(at: temporaryDirectory)
+    }
 }
 
 final class StemTranscriptionOperation: @unchecked Sendable {
@@ -77,7 +82,16 @@ final class StemTranscriptionOperation: @unchecked Sendable {
     }
 }
 
-final class StemTranscriptionService: @unchecked Sendable {
+protocol StemTranscribing: Sendable {
+    func transcribe(
+        stemURL: URL,
+        configuration: StemTranscriptionConfiguration,
+        operation: StemTranscriptionOperation,
+        progress: @escaping @Sendable (StemTranscriptionPhase, Double) -> Void
+    ) async throws -> RawStemTranscriptionResult
+}
+
+final class StemTranscriptionService: StemTranscribing, @unchecked Sendable {
     static let modelSampleRate = 22_050.0
     private let bridge = JMBasicPitchBridge()
 
@@ -95,7 +109,7 @@ final class StemTranscriptionService: @unchecked Sendable {
                 operation: operation,
                 progress: { progress(.preparingAudio, min(1, max(0, $0))) }
             )
-            defer { try? FileManager.default.removeItem(at: prepared.url) }
+            defer { prepared.cleanup() }
 
             guard !operation.isCancelled else { throw StemTranscriptionError.cancelled }
             progress(.loadingModel, 0)
@@ -163,7 +177,7 @@ final class StemTranscriptionService: @unchecked Sendable {
         }.value
     }
 
-    private func prepareAudio(
+    func prepareAudio(
         at sourceURL: URL,
         operation: StemTranscriptionOperation,
         progress: @escaping (Double) -> Void
@@ -180,6 +194,21 @@ final class StemTranscriptionService: @unchecked Sendable {
         }
         defer { ExtAudioFileDispose(audioFile) }
 
+        var sourceFormat = AudioStreamBasicDescription()
+        var sourceFormatSize = UInt32(MemoryLayout<AudioStreamBasicDescription>.size)
+        let formatStatus = ExtAudioFileGetProperty(
+            audioFile,
+            kExtAudioFileProperty_FileDataFormat,
+            &sourceFormatSize,
+            &sourceFormat
+        )
+        guard formatStatus == noErr,
+              sourceFormat.mSampleRate.isFinite,
+              sourceFormat.mSampleRate > 0
+        else {
+            throw StemTranscriptionError.unsupportedAudioFormat
+        }
+
         var sourceLengthFrames: Int64 = 0
         var propertySize = UInt32(MemoryLayout<Int64>.size)
         let lengthStatus = ExtAudioFileGetProperty(
@@ -189,15 +218,20 @@ final class StemTranscriptionService: @unchecked Sendable {
             &sourceLengthFrames
         )
         guard lengthStatus == noErr else { throw StemTranscriptionError.audioDecodingFailed }
+        let expectedOutputFrames = Double(sourceLengthFrames)
+            * Self.modelSampleRate
+            / sourceFormat.mSampleRate
 
+        let sourceChannelCount = max(1, Int(sourceFormat.mChannelsPerFrame))
+        let bytesPerFrame = UInt32(MemoryLayout<Float>.size * sourceChannelCount)
         var clientFormat = AudioStreamBasicDescription(
             mSampleRate: Self.modelSampleRate,
             mFormatID: kAudioFormatLinearPCM,
             mFormatFlags: kAudioFormatFlagIsFloat | kAudioFormatFlagIsPacked | kAudioFormatFlagsNativeEndian,
-            mBytesPerPacket: UInt32(MemoryLayout<Float>.size),
+            mBytesPerPacket: bytesPerFrame,
             mFramesPerPacket: 1,
-            mBytesPerFrame: UInt32(MemoryLayout<Float>.size),
-            mChannelsPerFrame: 1,
+            mBytesPerFrame: bytesPerFrame,
+            mChannelsPerFrame: UInt32(sourceChannelCount),
             mBitsPerChannel: 32,
             mReserved: 0
         )
@@ -224,16 +258,20 @@ final class StemTranscriptionService: @unchecked Sendable {
         defer { try? output.close() }
 
         let chunkCapacity: UInt32 = 32_768
-        var samples = Array(repeating: Float.zero, count: Int(chunkCapacity))
+        var interleavedSamples = Array(
+            repeating: Float.zero,
+            count: Int(chunkCapacity) * sourceChannelCount
+        )
+        var monoSamples = Array(repeating: Float.zero, count: Int(chunkCapacity))
         var sampleCount = 0
         do {
             while true {
                 guard !operation.isCancelled else { throw StemTranscriptionError.cancelled }
                 var frameCount = chunkCapacity
-                let readStatus = samples.withUnsafeMutableBytes { bytes -> OSStatus in
+                let readStatus = interleavedSamples.withUnsafeMutableBytes { bytes -> OSStatus in
                     let buffer = AudioBuffer(
-                        mNumberChannels: 1,
-                        mDataByteSize: chunkCapacity * UInt32(MemoryLayout<Float>.size),
+                        mNumberChannels: UInt32(sourceChannelCount),
+                        mDataByteSize: chunkCapacity * bytesPerFrame,
                         mData: bytes.baseAddress
                     )
                     var bufferList = AudioBufferList(mNumberBuffers: 1, mBuffers: buffer)
@@ -242,13 +280,21 @@ final class StemTranscriptionService: @unchecked Sendable {
                 guard readStatus == noErr else { throw StemTranscriptionError.audioDecodingFailed }
                 guard frameCount > 0 else { break }
 
-                try samples.withUnsafeBytes { bytes in
+                for frameIndex in 0..<Int(frameCount) {
+                    let sourceOffset = frameIndex * sourceChannelCount
+                    var sum = 0.0
+                    for channelIndex in 0..<sourceChannelCount {
+                        sum += Double(interleavedSamples[sourceOffset + channelIndex])
+                    }
+                    monoSamples[frameIndex] = Float(sum / Double(sourceChannelCount))
+                }
+                try monoSamples.withUnsafeBytes { bytes in
                     let count = Int(frameCount) * MemoryLayout<Float>.size
                     try output.write(contentsOf: Data(bytes: bytes.baseAddress!, count: count))
                 }
                 sampleCount += Int(frameCount)
-                if sourceLengthFrames > 0 {
-                    progress(min(0.99, Double(sampleCount) / Double(sourceLengthFrames)))
+                if expectedOutputFrames > 0 {
+                    progress(min(0.99, Double(sampleCount) / expectedOutputFrames))
                 }
             }
         } catch {
@@ -266,13 +312,20 @@ final class StemTranscriptionService: @unchecked Sendable {
             + Double(elapsed.components.attoseconds) / 1e18
         return PreparedTranscriptionAudio(
             url: outputURL,
+            temporaryDirectory: temporaryDirectory,
             sampleCount: sampleCount,
             preparationDuration: seconds
         )
     }
 
     private func mapBridgeError(_ error: NSError?, cancelled: Bool) -> StemTranscriptionError {
-        if cancelled || error?.code == 8 {
+        if cancelled {
+            return .cancelled
+        }
+        guard error?.domain == JMTranscriptionErrorDomain else {
+            return .inferenceFailed
+        }
+        if error?.code == 8 {
             return .cancelled
         }
         switch error?.code {

@@ -68,6 +68,13 @@ struct Result {
 
 using ProgressCallback = std::function<bool(double)>;
 
+namespace detail
+{
+    // Kept as a pure seam so overlap behavior can be verified without model
+    // inference.
+    void stitchNotesAtWindowBoundaries(std::vector<Note>& notes, const std::vector<double>& windowBoundaries);
+} // namespace detail
+
 class BasicPitchTranscriptionEngine final
 {
 public:
@@ -79,13 +86,11 @@ public:
     BasicPitchTranscriptionEngine(const BasicPitchTranscriptionEngine&) = delete;
     BasicPitchTranscriptionEngine& operator=(const BasicPitchTranscriptionEngine&) = delete;
 
-    Result transcribePCMFile(
-        const std::filesystem::path& pcmFile,
-        std::size_t sampleCount,
-        double sampleRate,
-        const Configuration& configuration,
-        const ProgressCallback& progressCallback = {}
-    );
+    Result transcribePCMFile(const std::filesystem::path& pcmFile,
+                             std::size_t sampleCount,
+                             double sampleRate,
+                             const Configuration& configuration,
+                             const ProgressCallback& progressCallback = {});
 
 private:
     void ensureModelLoaded(Timings& timings);

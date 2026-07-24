@@ -185,99 +185,119 @@ NSArray<NSNumber *> *pitchBends(const std::vector<int>& nativeBends)
 {
     std::lock_guard<std::mutex> lock(_engineMutex);
 
-    @autoreleasepool {
-        NSURL *modelURL = [[NSBundle mainBundle] URLForResource:@"features_model"
-                                                  withExtension:@"ort"
-                                                   subdirectory:@"BasicPitchModel"];
-        if (modelURL == nil) {
-            if (error != nullptr) {
-                *error = [NSError errorWithDomain:JMTranscriptionErrorDomain
-                                             code:JMTranscriptionErrorCodeModelResourceMissing
-                                         userInfo:@{NSLocalizedDescriptionKey: @"The built-in Basic Pitch model is missing."}];
-            }
-            return nil;
+    if (cancellationToken->_cancelled.load()) {
+        if (error != nullptr) {
+            *error = [NSError errorWithDomain:JMTranscriptionErrorDomain
+                                         code:JMTranscriptionErrorCodeCancelled
+                                     userInfo:@{NSLocalizedDescriptionKey: @"Transcription was cancelled."}];
         }
+        return nil;
+    }
 
-        try {
-            if (!_engine) {
-                const auto modelDirectory = std::filesystem::path(
-                    modelURL.URLByDeletingLastPathComponent.fileSystemRepresentation
-                );
-                _engine = std::make_unique<jammlab::transcription::BasicPitchTranscriptionEngine>(modelDirectory);
-            }
+    NSURL *modelURL = [[NSBundle mainBundle] URLForResource:@"features_model"
+                                              withExtension:@"ort"
+                                               subdirectory:@"BasicPitchModel"];
+    if (modelURL == nil) {
+        if (error != nullptr) {
+            *error = [NSError errorWithDomain:JMTranscriptionErrorDomain
+                                         code:JMTranscriptionErrorCodeModelResourceMissing
+                                     userInfo:@{NSLocalizedDescriptionKey: @"The built-in Basic Pitch model is missing."}];
+        }
+        return nil;
+    }
 
-            jammlab::transcription::Configuration nativeConfiguration;
-            nativeConfiguration.noteSensitivity = configuration.noteSensitivity;
-            nativeConfiguration.splitSensitivity = configuration.splitSensitivity;
-            nativeConfiguration.minimumNoteDurationMilliseconds =
-                configuration.minimumNoteDurationMilliseconds;
-            nativeConfiguration.includePitchBends = configuration.includePitchBends;
-            nativeConfiguration.windowDurationSeconds = configuration.windowDurationSeconds;
-            nativeConfiguration.overlapDurationSeconds = configuration.overlapDurationSeconds;
-
-            const auto nativeResult = _engine->transcribePCMFile(
-                std::filesystem::path(fileURL.fileSystemRepresentation),
-                sampleCount,
-                sampleRate,
-                nativeConfiguration,
-                [&](double value) {
-                    if (cancellationToken->_cancelled.load()) {
-                        return false;
-                    }
-                    if (progress) {
-                        progress(value);
-                    }
-                    return !cancellationToken->_cancelled.load();
-                }
+    try {
+        if (!_engine) {
+            const auto modelDirectory = std::filesystem::path(
+                modelURL.URLByDeletingLastPathComponent.fileSystemRepresentation
             );
-
-            NSMutableArray<JMTranscriptionNote *> *notes =
-                [NSMutableArray arrayWithCapacity:nativeResult.notes.size()];
-            for (const auto& note: nativeResult.notes) {
-                [notes addObject:[[JMTranscriptionNote alloc]
-                    initWithPitch:note.pitch
-                    startTimeSeconds:note.startTimeSeconds
-                    endTimeSeconds:note.endTimeSeconds
-                    confidence:note.confidence
-                    pitchBends:pitchBends(note.pitchBends)]];
-            }
-
-            NSMutableArray<NSString *> *warnings =
-                [NSMutableArray arrayWithCapacity:nativeResult.warnings.size()];
-            for (const auto& warning: nativeResult.warnings) {
-                [warnings addObject:[NSString stringWithUTF8String:warning.c_str()]];
-            }
-
-            const auto& timings = nativeResult.timings;
-            JMTranscriptionTimings *objectiveTimings = [[JMTranscriptionTimings alloc]
-                initWithModelLoadSeconds:timings.modelLoadSeconds
-                inferenceSeconds:timings.inferenceSeconds
-                postProcessingSeconds:timings.postProcessingSeconds
-                totalSeconds:timings.totalSeconds];
-            return [[JMTranscriptionResult alloc]
-                initWithNotes:notes
-                processedDurationSeconds:nativeResult.processedDurationSeconds
-                warnings:warnings
-                timings:objectiveTimings];
-        } catch (const jammlab::transcription::Error& exception) {
-            if (error != nullptr) {
-                *error = [NSError errorWithDomain:JMTranscriptionErrorDomain
-                                             code:errorCode(exception.code())
-                                         userInfo:@{
-                                             NSLocalizedDescriptionKey:
-                                                 [NSString stringWithUTF8String:exception.what()]
-                                         }];
-            }
-        } catch (const std::exception& exception) {
-            if (error != nullptr) {
-                *error = [NSError errorWithDomain:JMTranscriptionErrorDomain
-                                             code:JMTranscriptionErrorCodeInferenceFailed
-                                         userInfo:@{
-                                             NSLocalizedDescriptionKey:
-                                                 [NSString stringWithUTF8String:exception.what()]
-                                         }];
-            }
+            _engine = std::make_unique<jammlab::transcription::BasicPitchTranscriptionEngine>(modelDirectory);
         }
+        if (cancellationToken->_cancelled.load()) {
+            throw jammlab::transcription::Error(
+                jammlab::transcription::ErrorCode::cancelled,
+                "Transcription was cancelled"
+            );
+        }
+
+        jammlab::transcription::Configuration nativeConfiguration;
+        nativeConfiguration.noteSensitivity = configuration.noteSensitivity;
+        nativeConfiguration.splitSensitivity = configuration.splitSensitivity;
+        nativeConfiguration.minimumNoteDurationMilliseconds =
+            configuration.minimumNoteDurationMilliseconds;
+        nativeConfiguration.includePitchBends = configuration.includePitchBends;
+        nativeConfiguration.windowDurationSeconds = configuration.windowDurationSeconds;
+        nativeConfiguration.overlapDurationSeconds = configuration.overlapDurationSeconds;
+
+        bool receivedCancellationProbe = false;
+        const auto nativeResult = _engine->transcribePCMFile(
+            std::filesystem::path(fileURL.fileSystemRepresentation),
+            sampleCount,
+            sampleRate,
+            nativeConfiguration,
+            [&](double value) {
+                if (cancellationToken->_cancelled.load()) {
+                    return false;
+                }
+                // The engine's first callback is a pre-model-load cancellation
+                // probe. Keep the Swift UI in loadingModel until the next
+                // callback, which is emitted immediately before inference.
+                if (receivedCancellationProbe && progress) {
+                    progress(value);
+                }
+                receivedCancellationProbe = true;
+                return !cancellationToken->_cancelled.load();
+            }
+        );
+
+        NSMutableArray<JMTranscriptionNote *> *notes =
+            [NSMutableArray arrayWithCapacity:nativeResult.notes.size()];
+        for (const auto& note: nativeResult.notes) {
+            [notes addObject:[[JMTranscriptionNote alloc]
+                initWithPitch:note.pitch
+                startTimeSeconds:note.startTimeSeconds
+                endTimeSeconds:note.endTimeSeconds
+                confidence:note.confidence
+                pitchBends:pitchBends(note.pitchBends)]];
+        }
+
+        NSMutableArray<NSString *> *warnings =
+            [NSMutableArray arrayWithCapacity:nativeResult.warnings.size()];
+        for (const auto& warning: nativeResult.warnings) {
+            [warnings addObject:[NSString stringWithUTF8String:warning.c_str()]];
+        }
+
+        const auto& timings = nativeResult.timings;
+        JMTranscriptionTimings *objectiveTimings = [[JMTranscriptionTimings alloc]
+            initWithModelLoadSeconds:timings.modelLoadSeconds
+            inferenceSeconds:timings.inferenceSeconds
+            postProcessingSeconds:timings.postProcessingSeconds
+            totalSeconds:timings.totalSeconds];
+        return [[JMTranscriptionResult alloc]
+            initWithNotes:notes
+            processedDurationSeconds:nativeResult.processedDurationSeconds
+            warnings:warnings
+            timings:objectiveTimings];
+    } catch (const jammlab::transcription::Error& exception) {
+        if (error != nullptr) {
+            *error = [NSError errorWithDomain:JMTranscriptionErrorDomain
+                                         code:errorCode(exception.code())
+                                     userInfo:@{
+                                         NSLocalizedDescriptionKey:
+                                             [NSString stringWithUTF8String:exception.what()]
+                                     }];
+        }
+        return nil;
+    } catch (const std::exception& exception) {
+        if (error != nullptr) {
+            *error = [NSError errorWithDomain:JMTranscriptionErrorDomain
+                                         code:JMTranscriptionErrorCodeInferenceFailed
+                                     userInfo:@{
+                                         NSLocalizedDescriptionKey:
+                                             [NSString stringWithUTF8String:exception.what()]
+                                     }];
+        }
+        return nil;
     }
     return nil;
 }
