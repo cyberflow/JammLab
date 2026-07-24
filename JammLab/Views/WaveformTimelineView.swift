@@ -51,6 +51,9 @@ struct TimelineViewState: Equatable {
     var stemFiles: [StemFile]
     var stemPeakforms: [StemType: PeakformData]
     var isLoadingStemPeakforms: Bool
+    var stemTranscriptionStates: [StemType: StemTranscriptionViewState]
+    var stemTypesWithTranscription: Set<StemType>
+    var hasPendingStemTranscriptionOverwrite: Bool
 }
 
 struct TimelineViewActions {
@@ -164,6 +167,9 @@ struct StemTrackActions {
     var volumeChanged: (StemType, Float) -> Void
     var muteToggled: (StemType) -> Void
     var soloToggled: (StemType) -> Void
+    var transcribe: (StemType) -> Void
+    var cancelTranscription: (StemType) -> Void
+    var exportTranscriptionMIDI: (StemType) -> Void
 }
 
 struct WaveformTimelineView: View {
@@ -199,6 +205,9 @@ struct WaveformTimelineView: View {
             stemFiles: state.stemFiles,
             stemPeakforms: state.stemPeakforms,
             isLoadingStemPeakforms: state.isLoadingStemPeakforms,
+            transcriptionStates: state.stemTranscriptionStates,
+            stemTypesWithTranscription: state.stemTypesWithTranscription,
+            hasPendingTranscriptionOverwrite: state.hasPendingStemTranscriptionOverwrite,
             duration: state.duration,
             viewport: viewport,
             trackControlWidth: trackControlWidth,
@@ -629,6 +638,9 @@ private struct StemTracksSection: View {
     let stemFiles: [StemFile]
     let stemPeakforms: [StemType: PeakformData]
     let isLoadingStemPeakforms: Bool
+    let transcriptionStates: [StemType: StemTranscriptionViewState]
+    let stemTypesWithTranscription: Set<StemType>
+    let hasPendingTranscriptionOverwrite: Bool
     let duration: TimeInterval
     let viewport: TimelineViewport
     let trackControlWidth: CGFloat
@@ -718,6 +730,8 @@ private struct StemTracksSection: View {
                 .frame(maxWidth: .infinity, alignment: .leading)
 
                 HStack(spacing: AppTheme.Spacing.md) {
+                    transcriptionControl(type: type, isAvailable: item.isAvailable)
+
                     AppLetterToggleButton(
                         title: "M",
                         isActive: item.isMuted,
@@ -796,6 +810,53 @@ private struct StemTracksSection: View {
         }
         .padding(.horizontal, AppTheme.Spacing.md)
         .padding(.vertical, AppTheme.Spacing.sm)
+    }
+
+    @ViewBuilder
+    private func transcriptionControl(type: StemType, isAvailable: Bool) -> some View {
+        let state = transcriptionStates[type] ?? StemTranscriptionViewState()
+        if type.supportsBasicPitchTranscription, state.isRunning {
+            HStack(spacing: AppTheme.Spacing.sm) {
+                ProgressView(value: state.progress)
+                    .progressViewStyle(.linear)
+                    .frame(width: AppTheme.ControlSize.jammValueSliderWidth / 2)
+                    .help(state.status)
+                    .accessibilityLabel("\(type.title) transcription progress")
+                    .accessibilityValue("\(Int((state.progress * 100).rounded())) percent")
+
+                Button {
+                    actions.cancelTranscription(type)
+                } label: {
+                    Image(systemName: "xmark.circle.fill")
+                }
+                .buttonStyle(.plain)
+                .help("Cancel \(type.title) transcription")
+                .accessibilityLabel("Cancel \(type.title) transcription")
+            }
+        } else if type.supportsBasicPitchTranscription {
+            Menu {
+                Button("Transcribe to Notes") {
+                    actions.transcribe(type)
+                }
+                if stemTypesWithTranscription.contains(type) {
+                    Divider()
+                    Button("Export Latest Transcription as MIDI…") {
+                        actions.exportTranscriptionMIDI(type)
+                    }
+                }
+            } label: {
+                Image(systemName: "waveform.badge.plus")
+                    .frame(
+                        width: AppTheme.Timeline.viewportControlButtonSize,
+                        height: AppTheme.Timeline.viewportControlButtonSize
+                    )
+            }
+            .menuStyle(.borderlessButton)
+            .fixedSize()
+            .disabled(!isAvailable || hasPendingTranscriptionOverwrite)
+            .help("Transcribe \(type.title) to notes")
+            .accessibilityLabel("Transcribe \(type.title) to Notes")
+        }
     }
 
     private var areStemTracksActive: Bool {

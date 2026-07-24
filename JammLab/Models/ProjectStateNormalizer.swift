@@ -184,6 +184,92 @@ struct ProjectStateNormalizer {
             }
     }
 
+    static func normalizedStemTranscriptionTracks(
+        _ tracks: [StemTranscriptionTrack],
+        duration: TimeInterval,
+        notationItems: [NotationMeasureItem]
+    ) -> [StemTranscriptionTrack] {
+        let duration = normalizedDuration(duration)
+        let notationItemsByID = Dictionary(
+            notationItems.map { ($0.id, $0) },
+            uniquingKeysWith: { first, _ in first }
+        )
+        var seenTrackIDs = Set<UUID>()
+
+        return tracks.compactMap { track in
+            guard seenTrackIDs.insert(track.id).inserted,
+                  !track.sourceFingerprint.path.isEmpty,
+                  track.sourceFingerprint.fileSize >= 0,
+                  track.sourceFingerprint.modificationTime.isFinite
+            else {
+                return nil
+            }
+
+            let partID = track.notationPartID.stemType == track.stemType
+                ? track.notationPartID
+                : .stem(track.stemType)
+            let notes = track.notes.compactMap { note -> StemTranscriptionNote? in
+                guard (0...127).contains(note.midiPitch),
+                      note.rawStartTimeSeconds.isFinite,
+                      note.rawEndTimeSeconds.isFinite,
+                      note.rawStartTimeSeconds >= 0,
+                      note.rawEndTimeSeconds > note.rawStartTimeSeconds,
+                      note.projectStartTimeSeconds.isFinite,
+                      note.projectEndTimeSeconds.isFinite,
+                      note.projectEndTimeSeconds > note.projectStartTimeSeconds,
+                      note.confidence.isFinite
+                else {
+                    return nil
+                }
+                let projectStart = min(duration, max(0, note.projectStartTimeSeconds))
+                let projectEnd = min(duration, max(0, note.projectEndTimeSeconds))
+                guard projectEnd > projectStart else { return nil }
+
+                return StemTranscriptionNote(
+                    id: note.id,
+                    midiPitch: note.midiPitch,
+                    rawStartTimeSeconds: note.rawStartTimeSeconds,
+                    rawEndTimeSeconds: note.rawEndTimeSeconds,
+                    projectStartTimeSeconds: projectStart,
+                    projectEndTimeSeconds: projectEnd,
+                    confidence: min(1, max(0, note.confidence)),
+                    pitchBends: note.pitchBends,
+                    notationItemIDs: note.notationItemIDs.filter {
+                        notationItemsByID[$0]?.partID == partID
+                    }
+                )
+            }
+            let timings = track.timings.flatMap(normalizedTranscriptionTimings)
+            return StemTranscriptionTrack(
+                id: track.id,
+                stemType: track.stemType,
+                notationPartID: partID,
+                sourceFingerprint: track.sourceFingerprint,
+                createdAt: track.createdAt,
+                configuration: track.configuration,
+                notes: notes,
+                timings: timings,
+                warnings: track.warnings
+            )
+        }
+        .sorted { $0.createdAt < $1.createdAt }
+    }
+
+    private static func normalizedTranscriptionTimings(
+        _ timings: StemTranscriptionTimings
+    ) -> StemTranscriptionTimings? {
+        let values = [
+            timings.audioPreparationSeconds,
+            timings.modelLoadSeconds,
+            timings.inferenceSeconds,
+            timings.postProcessingSeconds,
+            timings.totalSeconds,
+            timings.processedDurationSeconds
+        ]
+        guard values.allSatisfy({ $0.isFinite && $0 >= 0 }) else { return nil }
+        return timings
+    }
+
     private static func normalizedTieTargetItemID(
         for item: NotationMeasureItem,
         availableItemsByID: [String: NotationMeasureItem]

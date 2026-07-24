@@ -4,6 +4,7 @@ struct ProjectEditableState: Equatable {
     var notes: [TimecodedNote]
     var harmonySymbols: [HarmonySymbol] = []
     var notationItems: [NotationMeasureItem] = []
+    var stemTranscriptionTracks: [StemTranscriptionTrack] = []
     var notationPartClefs: [NotationPartID: Clef] = [:]
     var visibleNotationPartIDs: Set<NotationPartID> = [.main]
     var projectKeySelection: ProjectKeySelection? = nil
@@ -28,6 +29,7 @@ struct ProjectPersistedEditableState: Equatable {
     var notes: [TimecodedNote]
     var harmonySymbols: [HarmonySymbol] = []
     var notationItems: [NotationMeasureItem] = []
+    var stemTranscriptionTracks: [StemTranscriptionTrack] = []
     var notationPartClefs: [NotationPartID: Clef] = [:]
     var stemNotationTrackCollapsed: [StemType: Bool] = [:]
     var stemNoteDisplayModes: [StemType: StemNoteDisplayMode] = [:]

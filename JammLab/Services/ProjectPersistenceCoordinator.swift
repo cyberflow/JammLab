@@ -32,6 +32,7 @@ struct ProjectDocumentSnapshot {
     let notes: [TimecodedNote]
     let harmonySymbols: [HarmonySymbol]
     let notationItems: [NotationMeasureItem]
+    let stemTranscriptionTracks: [StemTranscriptionTrack]
     let notationPartClefs: [NotationPartID: Clef]
     let projectKeySelection: ProjectKeySelection?
     let loopRegion: LoopRegion
@@ -223,6 +224,11 @@ struct ProjectPersistenceCoordinator {
                 snapshot.notationItems,
                 duration: snapshot.duration,
                 notationPartClefs: snapshot.notationPartClefs
+            ),
+            stemTranscriptionTracks: ProjectStateNormalizer.normalizedStemTranscriptionTracks(
+                snapshot.stemTranscriptionTracks,
+                duration: snapshot.duration,
+                notationItems: snapshot.notationItems
             ),
             notationPartClefs: NotationPartClefOverrides.normalized(snapshot.notationPartClefs),
             projectKeySelection: snapshot.projectKeySelection,

@@ -39,7 +39,24 @@ extension AudioPlayerViewModel {
     }
 
     var availableNotationParts: [NotationPartDescriptor] {
-        [.main] + knownStemNotationPartTypes().map(NotationPartDescriptor.stem)
+        let stemParts = knownStemNotationPartTypes().map(NotationPartDescriptor.stem)
+        let additionalTranscriptions = StemType.allCases.flatMap { stemType in
+            stemTranscriptionTracks
+                .filter {
+                    $0.stemType == stemType
+                        && $0.notationPartID != .stem(stemType)
+                }
+                .sorted { $0.createdAt < $1.createdAt }
+                .enumerated()
+                .map { index, track in
+                    NotationPartDescriptor.stemTranscription(
+                        stemType,
+                        id: track.notationPartID,
+                        sequence: index + 2
+                    )
+                }
+        }
+        return [.main] + stemParts + additionalTranscriptions
     }
 
     var visibleNotationParts: [NotationPartDescriptor] {

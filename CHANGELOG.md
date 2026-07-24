@@ -8,6 +8,7 @@ development artifact builds use `vMAJOR.MINOR.PATCH-dev.N`.
 
 ## Unreleased
 
+- Added fully offline per-stem Audio-to-MIDI transcription with a bundled Basic Pitch model, native C++ inference, cancellable track progress, polyphonic Notation/MIDI notes, and project persistence. Basic Pitch is unavailable for Drum stems, and re-transcription now warns before replacing existing stem notes and rests.
 - Added inline flat, natural, and sharp signs to Notation with Leland glyphs, one-shot note entry, selected tied-note editing, compact duration and accidental track menus, keyboard shortcuts, persistence, and MusicXML export.
 - Added automatic rhythmic beaming for eighth and sixteenth notes in supported simple and compound Notation meters, including shared stem direction, sloped beams, secondary beam breaks, and beamlets.
 - Fixed Leland eighth-note and shorter flags separating from their stems in Notation chord and Drum rendering.

@@ -115,6 +115,7 @@ extension AudioPlayerViewModel {
         notes = []
         harmonySymbols = []
         notationItems = []
+        stemTranscriptionTracks = []
         notationPartClefs = [:]
         stemNotationTrackCollapsed = [:]
         stemNoteDisplayModes = [:]
@@ -177,6 +178,7 @@ extension AudioPlayerViewModel {
         notes = []
         harmonySymbols = []
         notationItems = []
+        stemTranscriptionTracks = []
         notationPartClefs = [:]
         stemNotationTrackCollapsed = [:]
         stemNoteDisplayModes = [:]
@@ -259,6 +261,11 @@ extension AudioPlayerViewModel {
                 project.notationItems,
                 duration: resolvedProjectDuration,
                 notationPartClefs: restoredClefs
+            )
+            stemTranscriptionTracks = ProjectStateNormalizer.normalizedStemTranscriptionTracks(
+                project.stemTranscriptionTracks,
+                duration: resolvedProjectDuration,
+                notationItems: notationItems
             )
             notationPartClefs = restoredClefs
             sanitizeNotationTieRelationships()
@@ -352,6 +359,16 @@ extension AudioPlayerViewModel {
         stemSeparationRunID = nil
         stemPeakformTask?.cancel()
         stemPeakformTask = nil
+        for operation in stemTranscriptionOperations.values {
+            operation.cancel()
+        }
+        for task in stemTranscriptionTasks.values {
+            task.cancel()
+        }
+        stemTranscriptionOperations = [:]
+        stemTranscriptionTasks = [:]
+        stemTranscriptionRunIDs = [:]
+        stemTranscriptionStates = [:]
         stemSeparationService.cancel()
     }
 
@@ -421,6 +438,7 @@ extension AudioPlayerViewModel {
             notes: notes,
             harmonySymbols: harmonySymbols,
             notationItems: notationItems,
+            stemTranscriptionTracks: stemTranscriptionTracks,
             notationPartClefs: NotationPartClefOverrides.normalized(notationPartClefs),
             projectKeySelection: projectKeySelection,
             loopRegion: loopRegion,

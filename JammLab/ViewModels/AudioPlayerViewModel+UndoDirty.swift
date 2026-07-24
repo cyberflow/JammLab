@@ -6,6 +6,11 @@ extension AudioPlayerViewModel {
             notes: notes,
             harmonySymbols: harmonySymbols,
             notationItems: notationItems,
+            stemTranscriptionTracks: ProjectStateNormalizer.normalizedStemTranscriptionTracks(
+                stemTranscriptionTracks,
+                duration: duration,
+                notationItems: notationItems
+            ),
             notationPartClefs: NotationPartClefOverrides.normalized(notationPartClefs),
             visibleNotationPartIDs: normalizedVisibleNotationPartIDs(),
             projectKeySelection: projectKeySelection,
@@ -39,6 +44,11 @@ extension AudioPlayerViewModel {
                 notationItems,
                 duration: duration,
                 notationPartClefs: notationPartClefs
+            ),
+            stemTranscriptionTracks: ProjectStateNormalizer.normalizedStemTranscriptionTracks(
+                stemTranscriptionTracks,
+                duration: duration,
+                notationItems: notationItems
             ),
             notationPartClefs: NotationPartClefOverrides.normalized(notationPartClefs),
             stemNotationTrackCollapsed: stemNotationTrackCollapsed,
@@ -90,6 +100,11 @@ extension AudioPlayerViewModel {
             state.notationItems,
             duration: duration,
             notationPartClefs: restoredClefs
+        )
+        stemTranscriptionTracks = ProjectStateNormalizer.normalizedStemTranscriptionTracks(
+            state.stemTranscriptionTracks,
+            duration: duration,
+            notationItems: notationItems
         )
         notationPartClefs = restoredClefs
         sanitizeNotationTieRelationships()

@@ -2,7 +2,7 @@ import XCTest
 @testable import JammLab
 
 final class StemWorkflowPersistenceTests: XCTestCase {
-    func testProjectVersionFourteenPersistsProjectEditablePlaybackStateMediaKindArtifactRootBookmarkAndVideoWindowState() throws {
+    func testCurrentProjectVersionPersistsProjectEditablePlaybackStateMediaKindArtifactRootBookmarkAndVideoWindowState() throws {
         let artifactRootBookmarkData = Data("artifact-root-bookmark".utf8)
         let metadata = StemProjectState(
             cacheKey: "cache-123",
@@ -44,7 +44,7 @@ final class StemWorkflowPersistenceTests: XCTestCase {
 
         let decoded = try JSONDecoder().decode(JammLabProject.self, from: JSONEncoder().encode(project))
 
-        XCTAssertEqual(decoded.formatVersion, 14)
+        XCTAssertEqual(decoded.formatVersion, 15)
         XCTAssertEqual(decoded.artifactRootBookmarkData, artifactRootBookmarkData)
         XCTAssertEqual(decoded.mediaKind, .video)
         XCTAssertEqual(decoded.isLoopEnabled, true)
@@ -64,7 +64,7 @@ final class StemWorkflowPersistenceTests: XCTestCase {
         XCTAssertEqual(try XCTUnwrap(decoded.stemState?.mixState.effectiveVolume(for: .drums)), 0.8, accuracy: 0.0001)
     }
 
-    func testProjectVersionFourteenPersistsPitchedNotationItemsAndPartClefs() throws {
+    func testCurrentProjectVersionPersistsPitchedNotationItemsAndPartClefs() throws {
         let pitch = NotationPitch(step: .f, octave: 4, alter: 1)
         let project = JammLabProject(
             audioBookmarkData: Data("bookmark".utf8),
@@ -103,7 +103,7 @@ final class StemWorkflowPersistenceTests: XCTestCase {
 
         let decoded = try JSONDecoder().decode(JammLabProject.self, from: JSONEncoder().encode(project))
 
-        XCTAssertEqual(decoded.formatVersion, 14)
+        XCTAssertEqual(decoded.formatVersion, 15)
         XCTAssertEqual(decoded.notationItems.map(\.id), ["note", "rest"])
         XCTAssertEqual(decoded.notationItems.map(\.kind), [.note, .rest])
         XCTAssertEqual(decoded.notationItems.map(\.pitch), [pitch, nil])
@@ -148,5 +148,6 @@ final class StemWorkflowPersistenceTests: XCTestCase {
         XCTAssertNil(decoded.isNotationTrackCollapsed)
         XCTAssertTrue(decoded.notationPartClefs.isEmpty)
         XCTAssertTrue(decoded.stemNoteDisplayModes.isEmpty)
+        XCTAssertTrue(decoded.stemTranscriptionTracks.isEmpty)
     }
 }

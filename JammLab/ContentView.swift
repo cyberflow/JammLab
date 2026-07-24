@@ -65,9 +65,11 @@ struct ContentView: View {
         }
         .onChange(of: viewModel.importedFile?.sourceMediaURL) { _, _ in
             stemMIDIPageStartTimes.removeAll()
+            viewModel.cancelPendingStemTranscriptionOverwrite()
         }
         .onChange(of: viewModel.currentProjectURL) { _, _ in
             stemMIDIPageStartTimes.removeAll()
+            viewModel.cancelPendingStemTranscriptionOverwrite()
         }
         .sheet(isPresented: $isEditingMarker) {
             RenameNoteDialog(
@@ -92,6 +94,20 @@ struct ContentView: View {
                 viewModel.clearError()
             }
         }
+        .confirmationDialog(
+            "Replace \(viewModel.pendingStemTranscriptionOverwrite?.stemType.title ?? "stem") notation?",
+            isPresented: pendingStemTranscriptionOverwriteBinding,
+            titleVisibility: .visible
+        ) {
+            Button("Replace Existing Notes", role: .destructive) {
+                viewModel.confirmPendingStemTranscriptionOverwrite()
+            }
+            Button("Cancel", role: .cancel) {
+                viewModel.cancelPendingStemTranscriptionOverwrite()
+            }
+        } message: {
+            Text("All existing notes and rests on this stem will be deleted and replaced by the new transcription.")
+        }
     }
 
     private var errorAlertBinding: Binding<Bool> {
@@ -100,6 +116,17 @@ struct ContentView: View {
             set: { isPresented in
                 if !isPresented {
                     viewModel.clearError()
+                }
+            }
+        )
+    }
+
+    private var pendingStemTranscriptionOverwriteBinding: Binding<Bool> {
+        Binding(
+            get: { viewModel.pendingStemTranscriptionOverwrite != nil },
+            set: { isPresented in
+                if !isPresented {
+                    viewModel.cancelPendingStemTranscriptionOverwrite()
                 }
             }
         )
