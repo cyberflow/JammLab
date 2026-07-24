@@ -318,6 +318,7 @@ struct NotationWindowView: View {
             changeSelectedNotePitch: { viewModel.changeSelectedNotationNotePitch(to: $0, shouldAudition: $1) },
             changeClef: { viewModel.setNotationClef($1, for: $0) },
             auditionNotePitch: { viewModel.auditionNotationNotePitch($0, clef: $1) },
+            deleteSelectedNotationMeasureContents: { viewModel.deleteSelectedNotationMeasureContents() },
             deleteSelectedNotationNote: { viewModel.deleteSelectedNotationNote() },
             locatePlaybackMarkerExactly: { viewModel.locatePlaybackMarkerExactly(to: $0) },
             saveHarmony: { viewModel.saveHarmonySymbol($0) },

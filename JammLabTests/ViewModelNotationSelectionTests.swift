@@ -363,6 +363,256 @@ final class ViewModelNotationSelectionTests: XCTestCase {
         XCTAssertFalse(viewModel.isProjectModified)
     }
 
+    @MainActor
+    func testDeletingSelectedMeasureContentsKeepsHarmonySelectionAndSupportsUndoRedo() throws {
+        let viewModel = try loadedNotationViewModel(duration: 8)
+        let mainNote = NotationMeasureItem(
+            id: "main-note",
+            kind: .note,
+            pitch: NotationPitch(step: .c, octave: 4),
+            measureNumber: 1,
+            measureStartTime: 0,
+            offsetInQuarterNotes: 0,
+            durationInQuarterNotes: 1,
+            displayDuration: NotationDuration(denominator: 4)
+        )
+        let mainRest = NotationMeasureItem(
+            id: "main-rest",
+            measureNumber: 1,
+            measureStartTime: 0,
+            offsetInQuarterNotes: 1,
+            durationInQuarterNotes: 3,
+            displayDuration: NotationDuration(denominator: 2, isDotted: true)
+        )
+        let bassNote = NotationMeasureItem(
+            id: "bass-note",
+            partID: .stem(.bass),
+            kind: .note,
+            pitch: NotationPitch(step: .c, octave: 2),
+            measureNumber: 1,
+            measureStartTime: 0,
+            offsetInQuarterNotes: 0,
+            durationInQuarterNotes: 4,
+            displayDuration: NotationDuration(denominator: 1)
+        )
+        let harmony = HarmonySymbol(
+            time: 0,
+            measureNumber: 1,
+            offsetInQuarterNotes: 0,
+            rawText: "Cmaj7"
+        )
+        viewModel.notationItems = [mainNote, mainRest, bassNote]
+        viewModel.harmonySymbols = [harmony]
+        let undoManager = UndoManager()
+        viewModel.undoManager = undoManager
+        viewModel.markProjectClean()
+        let measure = try notationMeasure(1, in: viewModel)
+        viewModel.selectNotationMeasure(measure)
+
+        XCTAssertTrue(viewModel.deleteSelectedNotationMeasureContents())
+
+        XCTAssertEqual(viewModel.notationItems, [bassNote])
+        XCTAssertEqual(viewModel.harmonySymbols, [harmony])
+        XCTAssertEqual(viewModel.selectedNotationMeasures.map(\.number), [1])
+        XCTAssertEqual(viewModel.notationMeasureSelectionAnchor?.number, 1)
+        let clearedMeasure = try notationMeasure(1, in: viewModel)
+        let defaultRest = try XCTUnwrap(clearedMeasure.notationItems.first)
+        XCTAssertEqual(clearedMeasure.notationItems.count, 1)
+        XCTAssertEqual(defaultRest.kind, .rest)
+        XCTAssertEqual(defaultRest.offsetInQuarterNotes, 0)
+        XCTAssertEqual(defaultRest.durationInQuarterNotes, 4)
+        XCTAssertTrue(defaultRest.isSynthesized)
+        XCTAssertTrue(viewModel.isProjectModified)
+        XCTAssertEqual(undoManager.undoActionName, "Delete Measure Contents")
+
+        viewModel.undoLastEdit()
+
+        XCTAssertEqual(viewModel.notationItems, [mainNote, mainRest, bassNote])
+        XCTAssertEqual(viewModel.harmonySymbols, [harmony])
+        XCTAssertEqual(viewModel.selectedNotationMeasures.map(\.number), [1])
+        XCTAssertFalse(viewModel.isProjectModified)
+
+        viewModel.redoLastEdit()
+
+        XCTAssertEqual(viewModel.notationItems, [bassNote])
+        XCTAssertEqual(viewModel.harmonySymbols, [harmony])
+        XCTAssertEqual(viewModel.selectedNotationMeasures.map(\.number), [1])
+        XCTAssertTrue(viewModel.isProjectModified)
+    }
+
+    @MainActor
+    func testDeletingSelectedMeasureRangeOnlyClearsSelectedPart() throws {
+        let viewModel = try loadedNotationViewModel(duration: 10)
+        let mainItems = [
+            NotationMeasureItem(
+                id: "main-1",
+                kind: .note,
+                pitch: NotationPitch(step: .c, octave: 4),
+                measureNumber: 1,
+                measureStartTime: 0,
+                offsetInQuarterNotes: 0,
+                durationInQuarterNotes: 1,
+                displayDuration: NotationDuration(denominator: 4)
+            ),
+            NotationMeasureItem(
+                id: "main-2",
+                kind: .note,
+                pitch: NotationPitch(step: .d, octave: 4),
+                measureNumber: 2,
+                measureStartTime: 2,
+                offsetInQuarterNotes: 0,
+                durationInQuarterNotes: 1,
+                displayDuration: NotationDuration(denominator: 4)
+            ),
+            NotationMeasureItem(
+                id: "main-3",
+                kind: .note,
+                pitch: NotationPitch(step: .e, octave: 4),
+                measureNumber: 3,
+                measureStartTime: 4,
+                offsetInQuarterNotes: 0,
+                durationInQuarterNotes: 1,
+                displayDuration: NotationDuration(denominator: 4)
+            )
+        ]
+        let bassItems = [
+            NotationMeasureItem(
+                id: "bass-1",
+                partID: .stem(.bass),
+                kind: .note,
+                pitch: NotationPitch(step: .c, octave: 2),
+                measureNumber: 1,
+                measureStartTime: 0,
+                offsetInQuarterNotes: 0,
+                durationInQuarterNotes: 1,
+                displayDuration: NotationDuration(denominator: 4)
+            ),
+            NotationMeasureItem(
+                id: "bass-2",
+                partID: .stem(.bass),
+                kind: .note,
+                pitch: NotationPitch(step: .d, octave: 2),
+                measureNumber: 2,
+                measureStartTime: 2,
+                offsetInQuarterNotes: 0,
+                durationInQuarterNotes: 1,
+                displayDuration: NotationDuration(denominator: 4)
+            )
+        ]
+        let harmonies = [
+            HarmonySymbol(time: 0, measureNumber: 1, offsetInQuarterNotes: 0, rawText: "C"),
+            HarmonySymbol(time: 2, measureNumber: 2, offsetInQuarterNotes: 0, rawText: "Dm")
+        ]
+        viewModel.notationItems = mainItems + bassItems
+        viewModel.harmonySymbols = harmonies
+        let firstMeasure = try notationMeasure(1, in: viewModel)
+        let secondMeasure = try notationMeasure(2, in: viewModel)
+        viewModel.selectNotationMeasure(firstMeasure)
+        viewModel.selectNotationMeasure(secondMeasure, extendingSelection: true)
+
+        XCTAssertTrue(viewModel.deleteSelectedNotationMeasureContents())
+
+        XCTAssertEqual(Set(viewModel.notationItems.map(\.id)), ["main-3", "bass-1", "bass-2"])
+        XCTAssertEqual(viewModel.harmonySymbols, harmonies)
+        XCTAssertEqual(viewModel.selectedNotationMeasures.map(\.number), [1, 2])
+        for measureNumber in 1...2 {
+            let measure = try notationMeasure(measureNumber, in: viewModel)
+            XCTAssertEqual(measure.notationItems.count, 1)
+            XCTAssertTrue(try XCTUnwrap(measure.notationItems.first).isSynthesized)
+        }
+    }
+
+    @MainActor
+    func testDeletingSelectedStemMeasureContentsKeepsMainPart() throws {
+        let viewModel = try loadedNotationViewModel(duration: 8)
+        let mainNote = NotationMeasureItem(
+            id: "main-note",
+            kind: .note,
+            pitch: NotationPitch(step: .c, octave: 4),
+            measureNumber: 1,
+            measureStartTime: 0,
+            offsetInQuarterNotes: 0,
+            durationInQuarterNotes: 1,
+            displayDuration: NotationDuration(denominator: 4)
+        )
+        let bassNote = NotationMeasureItem(
+            id: "bass-note",
+            partID: .stem(.bass),
+            kind: .note,
+            pitch: NotationPitch(step: .c, octave: 2),
+            measureNumber: 1,
+            measureStartTime: 0,
+            offsetInQuarterNotes: 0,
+            durationInQuarterNotes: 1,
+            displayDuration: NotationDuration(denominator: 4)
+        )
+        viewModel.notationItems = [mainNote, bassNote]
+        let bassMeasure = try notationMeasure(1, in: viewModel, partID: .stem(.bass))
+        viewModel.selectNotationMeasure(bassMeasure, partID: .stem(.bass))
+
+        XCTAssertTrue(viewModel.deleteSelectedNotationMeasureContents())
+
+        XCTAssertEqual(viewModel.notationItems, [mainNote])
+        XCTAssertEqual(viewModel.selectedNotationMeasures.map(\.partID), [.stem(.bass)])
+        let clearedBassMeasure = try notationMeasure(1, in: viewModel, partID: .stem(.bass))
+        XCTAssertEqual(clearedBassMeasure.notationItems.count, 1)
+        XCTAssertTrue(try XCTUnwrap(clearedBassMeasure.notationItems.first).isSynthesized)
+        let preservedMainMeasure = try notationMeasure(1, in: viewModel)
+        XCTAssertEqual(preservedMainMeasure.notationItems.first(where: { $0.id == mainNote.id }), mainNote)
+    }
+
+    @MainActor
+    func testDeletingAlreadyEmptySelectedMeasureIsNoOp() throws {
+        let viewModel = try loadedNotationViewModel(duration: 8)
+        let undoManager = UndoManager()
+        viewModel.undoManager = undoManager
+        let measure = try notationMeasure(1, in: viewModel)
+        viewModel.selectNotationMeasure(measure)
+        viewModel.markProjectClean()
+
+        XCTAssertFalse(viewModel.deleteSelectedNotationMeasureContents())
+
+        XCTAssertTrue(viewModel.notationItems.isEmpty)
+        XCTAssertEqual(viewModel.selectedNotationMeasures.map(\.number), [1])
+        XCTAssertFalse(viewModel.isProjectModified)
+        XCTAssertFalse(undoManager.canUndo)
+    }
+
+    @MainActor
+    func testDeletingMeasureContentsSanitizesTieFromRemainingMeasure() throws {
+        let viewModel = try loadedNotationViewModel(duration: 8)
+        let source = NotationMeasureItem(
+            id: "tie-source",
+            kind: .note,
+            pitch: NotationPitch(step: .c, octave: 4),
+            measureNumber: 1,
+            measureStartTime: 0,
+            offsetInQuarterNotes: 3,
+            durationInQuarterNotes: 1,
+            displayDuration: NotationDuration(denominator: 4),
+            tieTargetItemID: "tie-target"
+        )
+        let target = NotationMeasureItem(
+            id: "tie-target",
+            kind: .note,
+            pitch: NotationPitch(step: .c, octave: 4),
+            measureNumber: 2,
+            measureStartTime: 2,
+            offsetInQuarterNotes: 0,
+            durationInQuarterNotes: 1,
+            displayDuration: NotationDuration(denominator: 4)
+        )
+        viewModel.notationItems = [source, target]
+        let secondMeasure = try notationMeasure(2, in: viewModel)
+        viewModel.selectNotationMeasure(secondMeasure)
+
+        XCTAssertTrue(viewModel.deleteSelectedNotationMeasureContents())
+
+        let remaining = try XCTUnwrap(viewModel.notationItems.first)
+        XCTAssertEqual(remaining.id, source.id)
+        XCTAssertNil(remaining.tieTargetItemID)
+    }
+
 }
 
 extension XCTestCase {
