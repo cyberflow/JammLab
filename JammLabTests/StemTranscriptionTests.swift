@@ -332,7 +332,7 @@ final class StemTranscriptionTests: XCTestCase {
             from: JSONEncoder().encode(project)
         )
 
-        XCTAssertEqual(decoded.formatVersion, 15)
+        XCTAssertEqual(decoded.formatVersion, 16)
         XCTAssertEqual(decoded.stemTranscriptionTracks, [track])
     }
 

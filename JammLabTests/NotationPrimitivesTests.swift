@@ -121,27 +121,44 @@ final class NotationPrimitivesTests: XCTestCase {
     func testNotationClefSymbolsUseLelandSMuFLCodepointsAndReferenceLines() {
         let treble = NotationClefSymbol(.treble)
         let bass = NotationClefSymbol(.bass)
+        let bass8 = NotationClefSymbol(.bass8)
         let drums = NotationClefSymbol(.drums)
 
+        XCTAssertEqual(Clef.allCases, [.treble, .bass, .bass8, .drums])
         XCTAssertEqual(treble.codepoint, 0xE050)
         XCTAssertEqual(treble.referenceStaffLineFromTop, 3)
         XCTAssertEqual(bass.codepoint, 0xE062)
         XCTAssertEqual(bass.referenceStaffLineFromTop, 1)
+        XCTAssertEqual(bass8.codepoint, 0xE065)
+        XCTAssertEqual(bass8.referenceStaffLineFromTop, 1)
         XCTAssertEqual(drums.codepoint, 0xE069)
         XCTAssertEqual(drums.referenceStaffLineFromTop, 2)
         XCTAssertEqual(Clef.treble.sign, "G")
         XCTAssertEqual(Clef.treble.line, 2)
         XCTAssertEqual(Clef.bass.sign, "F")
         XCTAssertEqual(Clef.bass.line, 4)
+        XCTAssertEqual(Clef.bass8.sign, "F")
+        XCTAssertEqual(Clef.bass8.line, 4)
+        XCTAssertEqual(Clef.bass8.displayName, "Bass 8 Clef")
+        XCTAssertEqual(Clef.bass8.musicXMLOctaveChange, -1)
+        XCTAssertNil(Clef.bass.musicXMLOctaveChange)
         XCTAssertEqual(Clef.drums.sign, "percussion")
         XCTAssertNil(Clef.drums.line)
+
+        let encoded = try? JSONEncoder().encode(Clef.bass8)
+        XCTAssertEqual(encoded.flatMap { try? JSONDecoder().decode(Clef.self, from: $0) }, .bass8)
     }
 
     func testNotationPartClefOverridesRemovePerPartDefaultValues() {
         let unknownPart = NotationPartID(rawValue: "future:baritone")
+        let bassTranscription = NotationPartID.stemTranscription(
+            .bass,
+            trackID: UUID(uuidString: "00000000-0000-0000-0000-000000000711")!
+        )
         let normalized = NotationPartClefOverrides.normalized([
             .main: .treble,
             .stem(.bass): .bass,
+            bassTranscription: .bass8,
             .stem(.drums): .drums,
             unknownPart: .bass
         ])
@@ -151,8 +168,36 @@ final class NotationPrimitivesTests: XCTestCase {
             unknownPart: .bass
         ])
         XCTAssertEqual(NotationPartClefOverrides.clef(for: .main, in: normalized), .treble)
+        XCTAssertEqual(NotationPartClefOverrides.clef(for: .stem(.bass), in: [:]), .bass8)
+        XCTAssertEqual(NotationPartClefOverrides.clef(for: bassTranscription, in: normalized), .bass8)
         XCTAssertEqual(NotationPartClefOverrides.clef(for: .stem(.drums), in: normalized), .drums)
         XCTAssertEqual(NotationPartClefOverrides.clef(for: unknownPart, in: normalized), .bass)
+    }
+
+    func testLegacyBassClefDefaultsRestorePerPartWithoutOverwritingExplicitClefs() {
+        let canonicalBass = NotationPartID.stem(.bass)
+        let transcriptionBass = NotationPartID.stemTranscription(
+            .bass,
+            trackID: UUID(uuidString: "00000000-0000-0000-0000-000000000712")!
+        )
+
+        let legacy = NotationPartClefOverrides.restored(
+            [transcriptionBass: .bass],
+            projectFormatVersion: 15,
+            hasLegacyDrumNotationEvidence: false,
+            legacyBassPartIDs: [canonicalBass, transcriptionBass]
+        )
+        XCTAssertEqual(legacy[canonicalBass], .treble)
+        XCTAssertEqual(legacy[transcriptionBass], .bass)
+
+        let current = NotationPartClefOverrides.restored(
+            [:],
+            projectFormatVersion: 16,
+            hasLegacyDrumNotationEvidence: false,
+            legacyBassPartIDs: [canonicalBass]
+        )
+        XCTAssertNil(current[canonicalBass])
+        XCTAssertEqual(NotationPartClefOverrides.clef(for: canonicalBass, in: current), .bass8)
     }
 
     func testNotationSMuFLDurationControlSymbolsMapDurationsToLelandMetNoteCodepoints() throws {
@@ -590,6 +635,36 @@ final class NotationPrimitivesTests: XCTestCase {
         )
     }
 
+    func testBass8UsesBassStaffPositionsOneSoundingOctaveLower() {
+        let keySignature = KeySignature.normalized(from: "G major")
+        let positions = NotationPitchMapper.editableStaffPositionRange(for: .bass)
+
+        XCTAssertEqual(NotationPitchMapper.editableStaffPositionRange(for: .bass8), positions)
+        for position in positions {
+            let bassPitch = NotationPitchMapper.pitch(
+                forStaffPosition: position,
+                keySignature: keySignature,
+                clef: .bass
+            )
+            let bass8Pitch = NotationPitchMapper.pitch(
+                forStaffPosition: position,
+                keySignature: keySignature,
+                clef: .bass8
+            )
+
+            XCTAssertEqual(bass8Pitch.step, bassPitch.step)
+            XCTAssertEqual(bass8Pitch.alter, bassPitch.alter)
+            XCTAssertEqual(bass8Pitch.octave, bassPitch.octave - 1)
+            XCTAssertEqual(bass8Pitch.midiNoteNumber, bassPitch.midiNoteNumber - 12)
+            XCTAssertEqual(NotationPitchMapper.staffPosition(for: bass8Pitch, clef: .bass8), position)
+        }
+
+        let bassBounds = NotationPitchMapper.editableMIDINoteBounds(for: .bass)
+        let bass8Bounds = NotationPitchMapper.editableMIDINoteBounds(for: .bass8)
+        XCTAssertEqual(bass8Bounds.lowerBound, bassBounds.lowerBound - 12)
+        XCTAssertEqual(bass8Bounds.upperBound, bassBounds.upperBound - 12)
+    }
+
     func testBassKeySignatureAccidentalsUseBassStaffPositions() {
         let sharps = KeySignature(fifths: 7, mode: .major, displayName: "C sharp major")
             .notationAccidentalGlyphs(for: .bass)
@@ -598,6 +673,16 @@ final class NotationPrimitivesTests: XCTestCase {
 
         XCTAssertEqual(sharps.map(\.staffPositionFromTopLine), [2, 5, 1, 4, 7, 3, 6])
         XCTAssertEqual(flats.map(\.staffPositionFromTopLine), [6, 3, 7, 4, 8, 5, 9])
+        XCTAssertEqual(
+            KeySignature(fifths: 7, mode: .major, displayName: "C sharp major")
+                .notationAccidentalGlyphs(for: .bass8),
+            sharps
+        )
+        XCTAssertEqual(
+            KeySignature(fifths: -7, mode: .major, displayName: "C flat major")
+                .notationAccidentalGlyphs(for: .bass8),
+            flats
+        )
     }
 
     func testNotationPitchMapperAdjacentPitchRespectsBoundsAndKeySignature() throws {
@@ -1118,11 +1203,12 @@ final class NotationPrimitivesTests: XCTestCase {
         XCTAssertEqual(NotationClefLayout.referenceAnchorY, 0)
         XCTAssertEqual(NotationClefLayout.targetY(for: .treble), 38)
         XCTAssertEqual(NotationClefLayout.targetY(for: .bass), 22)
+        XCTAssertEqual(NotationClefLayout.targetY(for: .bass8), 22)
         XCTAssertEqual(NotationClefLayout.targetY(for: .drums), 30)
     }
 
     func testNotationClefLayoutTransformAnchorsGlyphAtStaffTarget() throws {
-        for symbol in [NotationClefSymbol.treble, .bass, .drums] {
+        for symbol in [NotationClefSymbol.treble, .bass, .bass8, .drums] {
             let glyphPath = try XCTUnwrap(NotationMusicFontRegistry.glyphPath(
                 for: symbol,
                 fontSize: AppTheme.Timeline.notationClefFontSize
@@ -1142,7 +1228,7 @@ final class NotationPrimitivesTests: XCTestCase {
     }
 
     func testLelandClefGlyphPathsHaveBounds() throws {
-        for symbol in [NotationClefSymbol.treble, .bass, .drums] {
+        for symbol in [NotationClefSymbol.treble, .bass, .bass8, .drums] {
             let glyphPath = try XCTUnwrap(NotationMusicFontRegistry.glyphPath(
                 for: symbol,
                 fontSize: AppTheme.Timeline.notationClefFontSize

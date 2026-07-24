@@ -632,6 +632,9 @@ final class MusicXMLNotationExportRenderer: NotationExportRenderer {
         if let line = measureAttributes.clef.line {
             clef.addChild(element("line", stringValue: "\(line)"))
         }
+        if let octaveChange = measureAttributes.clef.musicXMLOctaveChange {
+            clef.addChild(element("clef-octave-change", stringValue: "\(octaveChange)"))
+        }
         attributes.addChild(clef)
 
         return attributes

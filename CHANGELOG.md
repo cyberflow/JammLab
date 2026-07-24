@@ -9,6 +9,7 @@ development artifact builds use `vMAJOR.MINOR.PATCH-dev.N`.
 ## Unreleased
 
 - Added Backspace and Delete support for clearing selected Notation measures in the selected part while preserving harmony symbols and leaving default whole-measure rests.
+- Added a separate Bass 8 clef with Leland notation, octave-down note preview and MusicXML export, and made it the default clef for new bass-guitar notation tracks while preserving existing projects.
 - Added fully offline per-stem Audio-to-MIDI transcription with a bundled Basic Pitch model, native C++ inference, cancellable track progress, polyphonic Notation/MIDI notes, and project persistence. Basic Pitch is unavailable for Drum stems, and re-transcription now warns before replacing existing stem notes and rests.
 - Added inline flat, natural, and sharp signs to Notation with Leland glyphs, one-shot note entry, selected tied-note editing, compact duration and accidental track menus, keyboard shortcuts, persistence, and MusicXML export.
 - Added automatic rhythmic beaming for eighth and sixteenth notes in supported simple and compound Notation meters, including shared stem direction, sloped beams, secondary beam breaks, and beamlets.

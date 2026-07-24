@@ -44,7 +44,7 @@ final class StemWorkflowPersistenceTests: XCTestCase {
 
         let decoded = try JSONDecoder().decode(JammLabProject.self, from: JSONEncoder().encode(project))
 
-        XCTAssertEqual(decoded.formatVersion, 15)
+        XCTAssertEqual(decoded.formatVersion, 16)
         XCTAssertEqual(decoded.artifactRootBookmarkData, artifactRootBookmarkData)
         XCTAssertEqual(decoded.mediaKind, .video)
         XCTAssertEqual(decoded.isLoopEnabled, true)
@@ -103,7 +103,7 @@ final class StemWorkflowPersistenceTests: XCTestCase {
 
         let decoded = try JSONDecoder().decode(JammLabProject.self, from: JSONEncoder().encode(project))
 
-        XCTAssertEqual(decoded.formatVersion, 15)
+        XCTAssertEqual(decoded.formatVersion, 16)
         XCTAssertEqual(decoded.notationItems.map(\.id), ["note", "rest"])
         XCTAssertEqual(decoded.notationItems.map(\.kind), [.note, .rest])
         XCTAssertEqual(decoded.notationItems.map(\.pitch), [pitch, nil])

@@ -323,7 +323,8 @@ extension AudioPlayerViewModel {
         NotationPartClefOverrides.restored(
             project.notationPartClefs,
             projectFormatVersion: project.formatVersion,
-            hasLegacyDrumNotationEvidence: hasLegacyDrumNotationEvidence(project)
+            hasLegacyDrumNotationEvidence: hasLegacyDrumNotationEvidence(project),
+            legacyBassPartIDs: legacyBassPartIDs(project)
         )
     }
 
@@ -334,6 +335,26 @@ extension AudioPlayerViewModel {
             || project.visibleNotationPartIDs.contains(drumPartID)
             || project.stemNotationTrackCollapsed[.drums] != nil
             || project.stemNoteDisplayModes[.drums] != nil
+    }
+
+    private func legacyBassPartIDs(_ project: JammLabProject) -> Set<NotationPartID> {
+        var partIDs = Set(project.notationItems.compactMap { item in
+            item.partID.stemType == .bass ? item.partID : nil
+        })
+        partIDs.formUnion(project.visibleNotationPartIDs.filter { $0.stemType == .bass })
+
+        for acceptedTrack in ProjectStateNormalizer.acceptedStemTranscriptionTracks(
+            project.stemTranscriptionTracks
+        ) where acceptedTrack.track.stemType == .bass {
+            partIDs.insert(acceptedTrack.partID)
+        }
+
+        if project.stemState?.mixState.item(for: .bass).isAvailable == true
+            || project.stemNotationTrackCollapsed[.bass] != nil
+            || project.stemNoteDisplayModes[.bass] != nil {
+            partIDs.insert(.stem(.bass))
+        }
+        return partIDs
     }
 
     private func clearTransientEditingState() {

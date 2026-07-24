@@ -348,6 +348,7 @@ enum NotationFlagLayout {
 enum NotationClefSymbol: Equatable {
     case treble
     case bass
+    case bass8
     case drums
 
     init(_ clef: Clef) {
@@ -356,6 +357,8 @@ enum NotationClefSymbol: Equatable {
             self = .treble
         case .bass:
             self = .bass
+        case .bass8:
+            self = .bass8
         case .drums:
             self = .drums
         }
@@ -367,6 +370,10 @@ enum NotationClefSymbol: Equatable {
             return 0xE050
         case .bass:
             return 0xE062
+        case .bass8:
+            // The requested mark uses Leland's pictured F clef with 8 above.
+            // Sounding-octave-down semantics are carried separately by Clef.
+            return 0xE065
         case .drums:
             return 0xE069
         }
@@ -376,7 +383,7 @@ enum NotationClefSymbol: Equatable {
         switch self {
         case .treble:
             return 3
-        case .bass:
+        case .bass, .bass8:
             return 1
         case .drums:
             return 2

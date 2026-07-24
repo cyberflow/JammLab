@@ -273,6 +273,62 @@ final class NotationMusicXMLTests: XCTestCase {
         XCTAssertTrue(bassPart.elements(forName: "measure").flatMap { $0.elements(forName: "direction") }.isEmpty)
     }
 
+    func testBass8ClefExportsSoundingPitchWithOctaveDownClefSemantics() throws {
+        let partID = NotationPartID.stem(.bass)
+        let soundingPitch = NotationPitch(step: .e, octave: 1)
+        let score = NotationViewportFactory().scoreState(
+            tempoMap: fourFourTempoMap(duration: 4),
+            duration: 4,
+            currentTime: 0,
+            playbackMarkerTime: 0,
+            isPlaying: false,
+            keyName: nil,
+            clef: .bass8,
+            partID: partID,
+            includesHarmonies: false,
+            notationItems: [
+                NotationMeasureItem(
+                    id: "bass8-note",
+                    partID: partID,
+                    kind: .note,
+                    pitch: soundingPitch,
+                    measureNumber: 1,
+                    measureStartTime: 0,
+                    offsetInQuarterNotes: 0,
+                    durationInQuarterNotes: 1,
+                    displayDuration: NotationDuration(denominator: 4)
+                )
+            ]
+        )
+
+        let data = try NotationExportService(renderers: [
+            MusicXMLNotationExportRenderer(appVersionProvider: { nil })
+        ]).export(
+            NotationExportRequest(
+                displayName: "Bass",
+                score: score,
+                parts: [NotationExportPart(descriptor: .stem(.bass), score: score)]
+            ),
+            format: .musicXML
+        )
+        let document = try XMLDocument(data: data)
+        let root = try XCTUnwrap(document.rootElement())
+        let part = try partElement(id: "P1", in: root)
+        let measure = try XCTUnwrap(part.elements(forName: "measure").first)
+        let attributes = try firstXMLChild(named: "attributes", in: measure)
+        let clef = try firstXMLChild(named: "clef", in: attributes)
+        let clefChildren = childElements(in: clef)
+        let note = try firstXMLChild(named: "note", in: measure)
+        let pitch = try firstXMLChild(named: "pitch", in: note)
+
+        XCTAssertEqual(clefChildren.compactMap(\.name), ["sign", "line", "clef-octave-change"])
+        XCTAssertEqual(try firstXMLChild(named: "sign", in: clef).stringValue, "F")
+        XCTAssertEqual(try firstXMLChild(named: "line", in: clef).stringValue, "4")
+        XCTAssertEqual(try firstXMLChild(named: "clef-octave-change", in: clef).stringValue, "-1")
+        XCTAssertEqual(try firstXMLChild(named: "step", in: pitch).stringValue, "E")
+        XCTAssertEqual(try firstXMLChild(named: "octave", in: pitch).stringValue, "1")
+    }
+
     func testDrumClefExportsUnpitchedGMInstrumentsAndDrumNoteheads() throws {
         let drumPartID = NotationPartID.stem(.drums)
         let drumItems = [

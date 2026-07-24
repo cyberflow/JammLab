@@ -720,6 +720,7 @@ final class MIDIPianoRollTests: XCTestCase {
         let undoManager = UndoManager()
         viewModel.undoManager = undoManager
         let partID = NotationPartID.stem(.bass)
+        viewModel.notationPartClefs[partID] = .treble
         let source = makeNote(
             id: "source",
             partID: partID,
@@ -764,6 +765,7 @@ final class MIDIPianoRollTests: XCTestCase {
     func testPreparedSessionKeepsSamePartSnapshotAndUsesFreshContextForOtherPart() throws {
         let viewModel = try loadedNotationViewModel(duration: 8)
         let bassPart = NotationPartID.stem(.bass)
+        viewModel.notationPartClefs[bassPart] = .treble
         let initialBass = makeNote(
             id: "initial-bass",
             partID: bassPart,
@@ -839,6 +841,7 @@ final class MIDIPianoRollTests: XCTestCase {
         let undoManager = UndoManager()
         viewModel.undoManager = undoManager
         let partID = NotationPartID.stem(.bass)
+        viewModel.notationPartClefs[partID] = .treble
         let source = makeNote(
             id: "source",
             partID: partID,
@@ -904,6 +907,7 @@ final class MIDIPianoRollTests: XCTestCase {
         let undoManager = UndoManager()
         viewModel.undoManager = undoManager
         let partID = NotationPartID.stem(.bass)
+        viewModel.notationPartClefs[partID] = .treble
         let source = makeNote(
             id: "source",
             partID: partID,
@@ -953,6 +957,7 @@ final class MIDIPianoRollTests: XCTestCase {
         let undoManager = UndoManager()
         viewModel.undoManager = undoManager
         let partID = NotationPartID.stem(.bass)
+        viewModel.notationPartClefs[partID] = .treble
         let continuationID = "continuation"
         let root = makeNote(
             id: "root",
@@ -1012,6 +1017,7 @@ final class MIDIPianoRollTests: XCTestCase {
         let undoManager = UndoManager()
         viewModel.undoManager = undoManager
         let partID = NotationPartID.stem(.bass)
+        viewModel.notationPartClefs[partID] = .treble
         let source = makeNote(
             id: "source",
             partID: partID,
@@ -1236,14 +1242,16 @@ final class MIDIPianoRollTests: XCTestCase {
         let legacy = NotationPartClefOverrides.restored(
             [:],
             projectFormatVersion: 13,
-            hasLegacyDrumNotationEvidence: true
+            hasLegacyDrumNotationEvidence: true,
+            legacyBassPartIDs: []
         )
         XCTAssertEqual(legacy[partID], .treble)
 
         let modern = NotationPartClefOverrides.restored(
             [:],
             projectFormatVersion: 14,
-            hasLegacyDrumNotationEvidence: true
+            hasLegacyDrumNotationEvidence: true,
+            legacyBassPartIDs: []
         )
         XCTAssertNil(modern[partID])
     }

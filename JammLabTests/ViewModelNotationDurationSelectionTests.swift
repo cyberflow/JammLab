@@ -1790,7 +1790,7 @@ final class ViewModelNotationDurationSelectionTests: XCTestCase {
         viewModel.setNotationClef(.treble, for: bassPart)
 
         XCTAssertEqual(viewModel.notationClef(for: bassPart), .treble)
-        XCTAssertTrue(viewModel.notationPartClefs.isEmpty)
+        XCTAssertEqual(viewModel.notationPartClefs, [bassPart: .treble])
         XCTAssertEqual(
             viewModel.notationItems.first { $0.id == "bass-note" }?.pitch,
             NotationPitch(step: .f, octave: 4, alter: 1)
@@ -1803,6 +1803,112 @@ final class ViewModelNotationDurationSelectionTests: XCTestCase {
         XCTAssertEqual(viewModel.selectedNotationItem?.attributes.clef, .treble)
         XCTAssertEqual(viewModel.selectedNotationItem?.itemID, "bass-note")
         XCTAssertFalse(viewModel.isProjectModified)
+    }
+
+    @MainActor
+    func testChangingBassToBass8KeepsWrittenPositionOneOctaveLower() throws {
+        let viewModel = try loadedNotationViewModel(duration: 8)
+        let bassPart = NotationPartID.stem(.bass)
+        viewModel.notationPartClefs[bassPart] = .bass
+        viewModel.notationItems = [
+            NotationMeasureItem(
+                id: "bass-note",
+                partID: bassPart,
+                kind: .note,
+                pitch: NotationPitch(step: .f, octave: 2),
+                measureNumber: 1,
+                measureStartTime: 0,
+                offsetInQuarterNotes: 0,
+                durationInQuarterNotes: 1,
+                displayDuration: NotationDuration(denominator: 4)
+            )
+        ]
+        viewModel.markProjectClean()
+
+        viewModel.setNotationClef(.bass8, for: bassPart)
+
+        let pitch = try XCTUnwrap(viewModel.notationItems.first?.pitch)
+        XCTAssertEqual(viewModel.notationClef(for: bassPart), .bass8)
+        XCTAssertNil(viewModel.notationPartClefs[bassPart])
+        XCTAssertEqual(pitch, NotationPitch(step: .f, octave: 1))
+        XCTAssertEqual(
+            NotationPitchMapper.staffPosition(for: pitch, clef: .bass8),
+            NotationPitchMapper.staffPosition(
+                for: NotationPitch(step: .f, octave: 2),
+                clef: .bass
+            )
+        )
+        XCTAssertTrue(viewModel.isProjectModified)
+    }
+
+    @MainActor
+    func testBass8StaffPlacementStoresAndAuditionsOneOctaveBelowBass() throws {
+        let auditioner = MockNotationNoteAuditioner()
+        let viewModel = try loadedNotationViewModel(
+            duration: 8,
+            notationNoteAuditioner: auditioner
+        )
+        let bassPart = NotationPartID.stem(.bass)
+        let bass8Measure = try notationMeasure(1, in: viewModel, partID: bassPart)
+        XCTAssertEqual(bass8Measure.attributes.clef, .bass8)
+
+        let bassMeasure = ScoreMeasure(
+            number: bass8Measure.number,
+            startTime: bass8Measure.startTime,
+            endTime: bass8Measure.endTime,
+            attributes: MeasureAttributes(
+                keySignature: bass8Measure.attributes.keySignature,
+                timeSignature: bass8Measure.attributes.timeSignature,
+                clef: .bass
+            )
+        )
+        let geometry = NotationMeasureCanvasGeometry(
+            measureIndex: 0,
+            cellStartX: 0,
+            cellEndX: 200,
+            contentStartX: 20,
+            contentEndX: 180,
+            staffStartX: 0,
+            staffEndX: 200
+        )
+        let staffTop: CGFloat = 40
+        let pointer = CGPoint(
+            x: 100,
+            y: NotationNotePlacementResolver.yPosition(
+                forStaffPosition: 5,
+                staffTop: staffTop
+            )
+        )
+        let duration = NotationDuration(denominator: 4)
+        let bass8Placement = try XCTUnwrap(NotationNotePlacementResolver.placement(
+            in: bass8Measure,
+            geometry: geometry,
+            point: pointer,
+            staffTop: staffTop,
+            selectedDuration: duration,
+            partID: bassPart
+        ))
+        let bassPlacement = try XCTUnwrap(NotationNotePlacementResolver.placement(
+            in: bassMeasure,
+            geometry: geometry,
+            point: pointer,
+            staffTop: staffTop,
+            selectedDuration: duration,
+            partID: bassPart
+        ))
+
+        XCTAssertEqual(
+            bass8Placement.pitch.midiNoteNumber,
+            bassPlacement.pitch.midiNoteNumber - 12
+        )
+        XCTAssertTrue(viewModel.insertNotationNote(bass8Placement))
+
+        let storedPitch = try XCTUnwrap(
+            viewModel.notationItems.first { $0.partID == bassPart && $0.kind == .note }?.pitch
+        )
+        XCTAssertEqual(storedPitch, bass8Placement.pitch)
+        XCTAssertEqual(auditioner.auditionedPitches, [bass8Placement.pitch])
+        XCTAssertEqual(auditioner.auditionedRoutes, [.melodic])
     }
 
     @MainActor
@@ -1867,6 +1973,7 @@ final class ViewModelNotationDurationSelectionTests: XCTestCase {
     ) throws -> (viewModel: AudioPlayerViewModel, bassPart: NotationPartID) {
         let viewModel = try loadedNotationViewModel(duration: 8)
         let bassPart = NotationPartID.stem(.bass)
+        viewModel.notationPartClefs[bassPart] = .treble
         viewModel.notationItems = [
             NotationMeasureItem(
                 id: "main-note",
