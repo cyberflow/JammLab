@@ -62,7 +62,7 @@ final class NotationAttributeGeometryTests: XCTestCase {
         XCTAssertEqual(geometry.contentEndX - geometry.contentStartX, cellWidth, accuracy: 0.0001)
         XCTAssertEqual(
             NotationMeasureLayout.playheadX(geometry: geometry, progress: 1),
-            geometry.contentEndX,
+            geometry.rhythmicEndX,
             accuracy: 0.0001
         )
         XCTAssertEqual(geometry.staffStartX, AppTheme.Timeline.notationStaffHorizontalInset, accuracy: 0.0001)

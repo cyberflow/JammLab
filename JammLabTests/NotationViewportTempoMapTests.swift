@@ -121,6 +121,59 @@ final class NotationViewportTempoMapTests: XCTestCase {
         XCTAssertEqual(state.visibleMeasures.map(\.number), [1, 2, 1, 2, 3, 4, 5, 6])
     }
 
+    func testFinalPageNavigationRoundTripsAcrossMeterChangeAndNonAlignedDuration() throws {
+        let tempoMap = fourFourTempoMap(
+            duration: 14.2,
+            markers: [timeSignatureMarker(time: 4, beatsPerBar: 3)]
+        )
+        let factory = NotationViewportFactory()
+        let finalPage = factory.viewportState(
+            tempoMap: tempoMap,
+            duration: tempoMap.duration,
+            currentTime: 14,
+            playbackMarkerTime: 0,
+            isPlaying: true,
+            keyName: "C major",
+            visibleMeasureCount: 4,
+            harmonySymbols: [],
+            notes: []
+        )
+        let previousPage = factory.viewportState(
+            tempoMap: tempoMap,
+            duration: tempoMap.duration,
+            currentTime: 0,
+            playbackMarkerTime: 0,
+            isPlaying: false,
+            keyName: "C major",
+            visibleMeasureCount: 4,
+            harmonySymbols: [],
+            notes: [],
+            pageStartMeasureTime: try XCTUnwrap(finalPage.previousPageStartTime)
+        )
+
+        XCTAssertEqual(finalPage.visibleMeasures.count, 4)
+        XCTAssertGreaterThanOrEqual(
+            try XCTUnwrap(finalPage.visibleMeasures.last).endTime,
+            tempoMap.duration
+        )
+        XCTAssertEqual(
+            try XCTUnwrap(previousPage.nextPageStartTime),
+            try XCTUnwrap(finalPage.visibleMeasures.first).startTime,
+            accuracy: 0.0001
+        )
+        XCTAssertEqual(
+            try XCTUnwrap(finalPage.previousPageStartTime),
+            try XCTUnwrap(previousPage.visibleMeasures.first).startTime,
+            accuracy: 0.0001
+        )
+        XCTAssertEqual(
+            Set(previousPage.visibleMeasures.map(NotationMeasureIdentity.init))
+                .intersection(finalPage.visibleMeasures.map(NotationMeasureIdentity.init))
+                .count,
+            3
+        )
+    }
+
     private func fourFourTempoMap(
         duration: TimeInterval,
         firstBeatTime: TimeInterval = 0,

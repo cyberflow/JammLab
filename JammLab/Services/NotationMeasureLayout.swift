@@ -44,6 +44,44 @@ struct NotationMeasureCanvasGeometry: Equatable {
     let contentEndX: CGFloat
     let staffStartX: CGFloat
     let staffEndX: CGFloat
+    let rhythmicStartX: CGFloat
+    let rhythmicEndX: CGFloat
+    let rhythmicSpacingMap: NotationRhythmicSpacingMap?
+
+    init(
+        measureIndex: Int,
+        cellStartX: CGFloat,
+        cellEndX: CGFloat,
+        contentStartX: CGFloat,
+        contentEndX: CGFloat,
+        staffStartX: CGFloat,
+        staffEndX: CGFloat,
+        leadingAnchorInset: CGFloat = AppTheme.Timeline.notationItemAnchorInset,
+        trailingAnchorInset: CGFloat = AppTheme.Timeline.notationItemAnchorInset,
+        rhythmicSpacingMap: NotationRhythmicSpacingMap? = nil
+    ) {
+        self.measureIndex = measureIndex
+        self.cellStartX = cellStartX
+        self.cellEndX = cellEndX
+        self.contentStartX = contentStartX
+        self.contentEndX = contentEndX
+        self.staffStartX = staffStartX
+        self.staffEndX = staffEndX
+        self.rhythmicSpacingMap = rhythmicSpacingMap
+
+        let visualStartX = max(contentStartX, staffStartX)
+        let visualEndX = max(visualStartX, min(contentEndX, staffEndX))
+        let proposedStartX = visualStartX + max(0, leadingAnchorInset)
+        let proposedEndX = visualEndX - max(0, trailingAnchorInset)
+        if proposedStartX <= proposedEndX {
+            rhythmicStartX = proposedStartX
+            rhythmicEndX = proposedEndX
+        } else {
+            let midpoint = (visualStartX + visualEndX) / 2
+            rhythmicStartX = midpoint
+            rhythmicEndX = midpoint
+        }
+    }
 
     var includesRawStartBarline: Bool {
         measureIndex > 0 || !contentStartsAfterCellBoundary
@@ -174,6 +212,48 @@ struct NotationMeasureLayout {
         }
     }
 
+    static func canvasGeometries(
+        totalWidth: CGFloat,
+        bodyWidths: [CGFloat],
+        attributeReserveWidths: [CGFloat],
+        leadingAnchorInsets: [CGFloat],
+        trailingAnchorInsets: [CGFloat],
+        rhythmicSpacingMaps: [NotationRhythmicSpacingMap?]
+    ) -> [NotationMeasureCanvasGeometry] {
+        let measureCount = bodyWidths.count
+        guard measureCount > 0 else { return [] }
+
+        var cursorX: CGFloat = 0
+        return bodyWidths.indices.map { index in
+            let cellStartX = cursorX
+            let reserveWidth = attributeReserveWidths.indices.contains(index)
+                ? max(0, attributeReserveWidths[index])
+                : 0
+            let bodyWidth = max(0, bodyWidths[index])
+            let contentStartX = cellStartX + reserveWidth
+            let cellEndX = contentStartX + bodyWidth
+            cursorX = cellEndX
+
+            return canvasGeometry(
+                measureIndex: index,
+                measureCount: measureCount,
+                cellStartX: cellStartX,
+                cellEndX: cellEndX,
+                contentStartX: contentStartX,
+                totalWidth: totalWidth,
+                leadingAnchorInset: leadingAnchorInsets.indices.contains(index)
+                    ? leadingAnchorInsets[index]
+                    : AppTheme.Timeline.notationItemAnchorInset,
+                trailingAnchorInset: trailingAnchorInsets.indices.contains(index)
+                    ? trailingAnchorInsets[index]
+                    : AppTheme.Timeline.notationItemAnchorInset,
+                rhythmicSpacingMap: rhythmicSpacingMaps.indices.contains(index)
+                    ? rhythmicSpacingMaps[index]
+                    : nil
+            )
+        }
+    }
+
     static func systemMeasureNumberLabelX(geometry: NotationMeasureCanvasGeometry) -> CGFloat {
         systemMeasureNumberLabelTrailingX(geometry: geometry) - measureNumberLabelWidth
     }
@@ -245,8 +325,7 @@ struct NotationMeasureLayout {
         let anchorX = notationAnchorX(
             geometry: geometry,
             offsetInQuarterNotes: offsetInQuarterNotes,
-            timeSignature: timeSignature,
-            anchorInset: 0
+            timeSignature: timeSignature
         )
         return min(max(anchorX, bounds.lowerBound), bounds.upperBound)
     }
@@ -481,9 +560,10 @@ struct NotationMeasureLayout {
         geometry: NotationMeasureCanvasGeometry,
         progress: CGFloat
     ) -> CGFloat {
-        let clampedProgress = max(0, min(progress, 1))
-        let width = max(0, geometry.contentEndX - geometry.contentStartX)
-        return geometry.contentStartX + clampedProgress * width
+        rhythmicX(
+            forProgress: Double(max(0, min(progress, 1))),
+            geometry: geometry
+        )
     }
 
     static func playheadIndicatorX(
@@ -505,48 +585,52 @@ struct NotationMeasureLayout {
         minimumBeatSpacing: CGFloat = AppTheme.Timeline.notationSlashMinimumBeatSpacing
     ) -> [CGFloat] {
         let beatCount = timeSignature.beatsPerBar
-        let contentWidth = geometry.contentEndX - geometry.contentStartX
+        let contentWidth = geometry.rhythmicEndX - geometry.rhythmicStartX
         guard beatCount > 0, contentWidth > 0 else { return [] }
 
-        let beatSpacing = contentWidth / CGFloat(beatCount)
-        guard beatSpacing >= max(0, minimumBeatSpacing) else { return [] }
-
         let beatLength = 4.0 / Double(max(1, timeSignature.beatUnit))
-        return (0..<beatCount).map { index in
+        let centers = (0..<beatCount).map { index in
             notationAnchorX(
                 geometry: geometry,
                 offsetInQuarterNotes: Double(index) * beatLength,
                 timeSignature: timeSignature
             )
         }
+        let safeMinimumBeatSpacing = max(0, minimumBeatSpacing)
+        guard zip(centers, centers.dropFirst()).allSatisfy({
+            $1 - $0 >= safeMinimumBeatSpacing
+        }) else {
+            return []
+        }
+        return centers
     }
 
     static func notationAnchorX(
         geometry: NotationMeasureCanvasGeometry,
         offsetInQuarterNotes: Double,
-        timeSignature: TimeSignature,
-        anchorInset: CGFloat = AppTheme.Timeline.notationItemAnchorInset
+        timeSignature: TimeSignature
     ) -> CGFloat {
         let quarterLength = quarterLength(for: timeSignature)
-        guard quarterLength > 0 else { return geometry.contentStartX }
+        guard quarterLength > 0 else { return geometry.rhythmicStartX }
 
-        let contentWidth = max(0, geometry.contentEndX - geometry.contentStartX)
-        let effectiveInset = min(max(0, anchorInset), contentWidth)
         let progress = max(0, min(offsetInQuarterNotes / quarterLength, 1))
-        let rawX = geometry.contentStartX + effectiveInset + CGFloat(progress) * contentWidth
-        return min(max(rawX, geometry.contentStartX), geometry.contentEndX)
+        return rhythmicX(forProgress: progress, geometry: geometry)
     }
 
     static func notationAnchorProgress(
         atX x: CGFloat,
-        geometry: NotationMeasureCanvasGeometry,
-        anchorInset: CGFloat = AppTheme.Timeline.notationItemAnchorInset
+        geometry: NotationMeasureCanvasGeometry
     ) -> Double {
-        let contentWidth = max(0, geometry.contentEndX - geometry.contentStartX)
-        guard contentWidth > 0 else { return 0 }
-
-        let effectiveInset = min(max(0, anchorInset), contentWidth)
-        let rawProgress = (x - geometry.contentStartX - effectiveInset) / contentWidth
+        let width = max(0, geometry.rhythmicEndX - geometry.rhythmicStartX)
+        guard width > 0 else { return 0 }
+        if let spacingMap = geometry.rhythmicSpacingMap {
+            return spacingMap.progress(
+                atX: x,
+                startX: geometry.rhythmicStartX,
+                endX: geometry.rhythmicEndX
+            )
+        }
+        let rawProgress = (x - geometry.rhythmicStartX) / width
         return Double(max(0, min(rawProgress, 1)))
     }
 
@@ -560,6 +644,22 @@ struct NotationMeasureLayout {
             offsetInQuarterNotes: offsetInQuarterNotes,
             timeSignature: timeSignature
         )
+    }
+
+    private static func rhythmicX(
+        forProgress progress: Double,
+        geometry: NotationMeasureCanvasGeometry
+    ) -> CGFloat {
+        if let spacingMap = geometry.rhythmicSpacingMap {
+            return spacingMap.x(
+                forProgress: progress,
+                startX: geometry.rhythmicStartX,
+                endX: geometry.rhythmicEndX
+            )
+        }
+        let clampedProgress = max(0, min(progress, 1))
+        let width = max(0, geometry.rhythmicEndX - geometry.rhythmicStartX)
+        return geometry.rhythmicStartX + CGFloat(clampedProgress) * width
     }
 
     static func notationItemX(
@@ -580,17 +680,12 @@ struct NotationMeasureLayout {
 
     private static func centersSingleFullMeasureWholeRest(
         measure: ScoreMeasure,
-        item: NotationMeasureItem,
-        tolerance: Double = 0.0001
+        item: NotationMeasureItem
     ) -> Bool {
-        guard measure.notationItems.count == 1 else { return false }
-        guard measure.notationItems.first?.id == item.id else { return false }
-        guard item.kind == .rest else { return false }
-        guard item.displayDuration.denominator == 1 else { return false }
-        guard abs(item.offsetInQuarterNotes) <= tolerance else { return false }
-
-        let measureQuarterLength = quarterLength(for: measure.attributes.timeSignature)
-        return abs(item.durationInQuarterNotes - measureQuarterLength) <= tolerance
+        NotationMeasureTiming.isSingleFullMeasureWholeRest(
+            measure,
+            item: item
+        )
     }
 
     static func harmonyLabelX(
@@ -666,7 +761,10 @@ struct NotationMeasureLayout {
         cellStartX: CGFloat,
         cellEndX: CGFloat,
         contentStartX: CGFloat,
-        totalWidth: CGFloat
+        totalWidth: CGFloat,
+        leadingAnchorInset: CGFloat = AppTheme.Timeline.notationItemAnchorInset,
+        trailingAnchorInset: CGFloat = AppTheme.Timeline.notationItemAnchorInset,
+        rhythmicSpacingMap: NotationRhythmicSpacingMap? = nil
     ) -> NotationMeasureCanvasGeometry {
         let safeCellStartX = max(0, cellStartX)
         let safeCellEndX = max(safeCellStartX, cellEndX)
@@ -696,7 +794,10 @@ struct NotationMeasureLayout {
             contentStartX: clampedContentStartX,
             contentEndX: safeCellEndX,
             staffStartX: staffStartX,
-            staffEndX: max(staffStartX, staffEndX)
+            staffEndX: max(staffStartX, staffEndX),
+            leadingAnchorInset: leadingAnchorInset,
+            trailingAnchorInset: trailingAnchorInset,
+            rhythmicSpacingMap: rhythmicSpacingMap
         )
     }
 

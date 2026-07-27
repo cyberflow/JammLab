@@ -115,7 +115,7 @@ final class NotationMeasureGeometryTests: XCTestCase {
         XCTAssertEqual(geometries[3].contentEndX, totalWidth, accuracy: 0.0001)
         XCTAssertEqual(
             NotationMeasureLayout.playheadX(geometry: geometries[3], progress: 1),
-            totalWidth,
+            geometries[3].rhythmicEndX,
             accuracy: 0.0001
         )
         XCTAssertLessThanOrEqual(

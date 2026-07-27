@@ -23,6 +23,7 @@ struct NotationTrackActions {
 
 struct NotationTrackView: View {
     let state: NotationViewportState
+    let measureLayout: NotationSystemMeasureLayout?
     let partID: NotationPartID
     let playbackDisplayState: PlaybackDisplayState?
     let selectedHarmonySymbolID: HarmonySymbol.ID?
@@ -46,6 +47,7 @@ struct NotationTrackView: View {
 
     init(
         state: NotationViewportState,
+        measureLayout: NotationSystemMeasureLayout? = nil,
         partID: NotationPartID = .main,
         playbackDisplayState: PlaybackDisplayState? = nil,
         selectedHarmonySymbolID: HarmonySymbol.ID? = nil,
@@ -61,6 +63,7 @@ struct NotationTrackView: View {
         cornerRadius: CGFloat = AppTheme.Radius.small
     ) {
         self.state = state
+        self.measureLayout = measureLayout
         self.partID = partID
         self.playbackDisplayState = playbackDisplayState
         self.selectedHarmonySymbolID = selectedHarmonySymbolID
@@ -267,6 +270,11 @@ struct NotationTrackView: View {
         width: CGFloat,
         attributeDisplays: [NotationAttributeDisplay]
     ) -> [NotationMeasureCanvasGeometry] {
+        if let measureLayout,
+           measureLayout.matches(state.visibleMeasures) {
+            return measureLayout.geometries(totalWidth: width)
+        }
+
         let safeMeasureCount = max(1, measureCount)
         return NotationMeasureLayout.canvasGeometries(
             measureCount: safeMeasureCount,
@@ -1803,12 +1811,10 @@ struct NotationTrackView: View {
     }
 
     private func activeMeasureIndex(for anchorTime: TimeInterval) -> Int? {
-        state.visibleMeasures.indices.first { index in
-            let measure = state.visibleMeasures[index]
-            let isLastVisibleMeasure = index == state.visibleMeasures.indices.upperBound - 1
-            return state.anchorTime >= measure.startTime
-                && (state.anchorTime < measure.endTime || (isLastVisibleMeasure && state.anchorTime <= measure.endTime))
-        }
+        NotationMeasureTiming.visibleMeasureIndex(
+            containing: anchorTime,
+            in: state.visibleMeasures
+        )
     }
 
     private func attributeDisplay(

@@ -318,6 +318,41 @@ enum NotationMeasureTiming {
     static func quarterLength(for timeSignature: TimeSignature) -> Double {
         Double(timeSignature.beatsPerBar) * 4.0 / Double(max(1, timeSignature.beatUnit))
     }
+
+    static func isSingleFullMeasureWholeRest(
+        _ measure: ScoreMeasure,
+        item expectedItem: NotationMeasureItem? = nil
+    ) -> Bool {
+        guard measure.notationItems.count == 1,
+              let item = measure.notationItems.first,
+              expectedItem == nil || expectedItem?.id == item.id,
+              item.kind == .rest,
+              item.displayDuration.denominator == 1,
+              abs(item.offsetInQuarterNotes) <= timelineTolerance
+        else {
+            return false
+        }
+
+        return abs(
+            item.durationInQuarterNotes
+                - quarterLength(for: measure.attributes.timeSignature)
+        ) <= timelineTolerance
+    }
+
+    static func visibleMeasureIndex(
+        containing time: TimeInterval,
+        in measures: [ScoreMeasure]
+    ) -> Int? {
+        measures.indices.first { index in
+            let measure = measures[index]
+            let isLastMeasure = index == measures.indices.upperBound - 1
+            return time >= measure.startTime
+                && (
+                    time < measure.endTime
+                        || (isLastMeasure && time <= measure.endTime)
+                )
+        }
+    }
 }
 
 struct HarmonySymbol: Identifiable, Codable, Equatable {

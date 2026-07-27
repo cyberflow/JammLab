@@ -31,7 +31,7 @@ final class NotationHarmonyLabelLayoutTests: XCTestCase {
         )
     }
 
-    func testNotationMeasureLayoutClampsFirstHarmonyLabelToVisibleStaffStart() {
+    func testNotationMeasureLayoutKeepsFirstHarmonyLabelInsideVisibleStaff() {
         let geometry = NotationMeasureCanvasGeometry(
             measureIndex: 0,
             cellStartX: 0,
@@ -48,7 +48,13 @@ final class NotationHarmonyLabelLayoutTests: XCTestCase {
             timeSignature: .fourFour
         )
 
-        XCTAssertEqual(labelX, geometry.staffStartX, accuracy: 0.0001)
+        XCTAssertGreaterThanOrEqual(labelX, geometry.staffStartX)
+        XCTAssertEqual(
+            labelX,
+            geometry.rhythmicStartX
+                - AppTheme.Timeline.notationHarmonyAnchorLeadingOffset,
+            accuracy: 0.0001
+        )
     }
 
     func testNotationMeasureLayoutKeepsAttributedFirstHarmonyLabelAfterAttributes() {
