@@ -212,6 +212,137 @@ final class StemTranscriptionTests: XCTestCase {
         XCTAssertNil(output.notationItems[1].tieTargetItemID)
     }
 
+    func testNotationMappingAppliesCommonPracticeAccidentalsInChronologicalOrder() throws {
+        let rawNotes = [
+            transcriptionNote(midiPitch: 66, startTime: 0.75, pitchBends: [2]),
+            transcriptionNote(midiPitch: 66, startTime: 0),
+            transcriptionNote(midiPitch: 65, startTime: 0.5),
+            transcriptionNote(midiPitch: 65, startTime: 0.25)
+        ]
+
+        let output = try mapNotation(notes: rawNotes, keyName: "G major")
+
+        XCTAssertNil(
+            try rootNotationItem(atRawStartTime: 0, in: output).explicitAccidental
+        )
+        XCTAssertEqual(
+            try rootNotationItem(atRawStartTime: 0.25, in: output).explicitAccidental,
+            .natural
+        )
+        XCTAssertNil(
+            try rootNotationItem(atRawStartTime: 0.5, in: output).explicitAccidental
+        )
+        XCTAssertEqual(
+            try rootNotationItem(atRawStartTime: 0.75, in: output).explicitAccidental,
+            .sharp
+        )
+        XCTAssertEqual(
+            output.track.notes.map(\.rawStartTimeSeconds),
+            rawNotes.map(\.startTimeSeconds)
+        )
+        XCTAssertEqual(output.track.notes.first?.pitchBends, [2])
+        for note in output.track.notes {
+            let root = try rootNotationItem(for: note, in: output)
+            XCTAssertEqual(root.pitch?.midiNoteNumber, note.midiPitch)
+        }
+    }
+
+    func testNotationMappingHandlesFlatKeysAndKeepsOctavesIndependent() throws {
+        let output = try mapNotation(
+            notes: [
+                transcriptionNote(midiPitch: 70, startTime: 0),
+                transcriptionNote(midiPitch: 63, startTime: 0.25),
+                transcriptionNote(midiPitch: 76, startTime: 0.5),
+                transcriptionNote(midiPitch: 64, startTime: 0.75),
+                transcriptionNote(midiPitch: 71, startTime: 1),
+                transcriptionNote(midiPitch: 70, startTime: 1.25)
+            ],
+            keyName: "F major"
+        )
+
+        XCTAssertNil(
+            try rootNotationItem(atRawStartTime: 0, in: output).explicitAccidental
+        )
+        XCTAssertEqual(
+            try rootNotationItem(atRawStartTime: 0.25, in: output).explicitAccidental,
+            .flat
+        )
+        XCTAssertNil(
+            try rootNotationItem(atRawStartTime: 0.5, in: output).explicitAccidental
+        )
+        XCTAssertEqual(
+            try rootNotationItem(atRawStartTime: 0.75, in: output).explicitAccidental,
+            .natural
+        )
+        XCTAssertEqual(
+            try rootNotationItem(atRawStartTime: 1, in: output).explicitAccidental,
+            .natural
+        )
+        XCTAssertEqual(
+            try rootNotationItem(atRawStartTime: 1.25, in: output).explicitAccidental,
+            .flat
+        )
+    }
+
+    func testNotationMappingResetsAccidentalsAtBarlineWithoutSeedingFromTieContinuation() throws {
+        let output = try mapNotation(
+            notes: [
+                transcriptionNote(midiPitch: 61, startTime: 1.75, duration: 0.5),
+                transcriptionNote(midiPitch: 61, startTime: 2.5),
+                transcriptionNote(midiPitch: 61, startTime: 2.75)
+            ],
+            keyName: "C major",
+            projectDuration: 4
+        )
+        let tiedNote = output.track.notes[0]
+
+        XCTAssertEqual(tiedNote.notationItemIDs.count, 2)
+        XCTAssertEqual(
+            try notationItem(id: tiedNote.notationItemIDs[0], in: output).explicitAccidental,
+            .sharp
+        )
+        XCTAssertNil(
+            try notationItem(id: tiedNote.notationItemIDs[1], in: output).explicitAccidental
+        )
+        XCTAssertEqual(
+            try rootNotationItem(atRawStartTime: 2.5, in: output).explicitAccidental,
+            .sharp
+        )
+        XCTAssertNil(
+            try rootNotationItem(atRawStartTime: 2.75, in: output).explicitAccidental
+        )
+    }
+
+    func testNotationMappingShowsAllConflictingAccidentalsAtSameOnset() throws {
+        for conflictingMIDIPitches in [[65, 66], [66, 65]] {
+            let output = try mapNotation(
+                notes: [
+                    transcriptionNote(midiPitch: 65, startTime: 0),
+                    transcriptionNote(midiPitch: conflictingMIDIPitches[0], startTime: 0.25),
+                    transcriptionNote(midiPitch: conflictingMIDIPitches[1], startTime: 0.25),
+                    transcriptionNote(midiPitch: 65, startTime: 0.5)
+                ],
+                keyName: "G major"
+            )
+            let sameOnsetNotes = output.track.notes.filter { $0.rawStartTimeSeconds == 0.25 }
+            let sameOnsetAccidentals = try sameOnsetNotes.map {
+                try rootNotationItem(for: $0, in: output).explicitAccidental
+            }
+
+            XCTAssertEqual(
+                try rootNotationItem(atRawStartTime: 0, in: output).explicitAccidental,
+                .natural
+            )
+            let renderedAccidentals = sameOnsetAccidentals.compactMap { $0 }
+            XCTAssertEqual(renderedAccidentals.count, 2)
+            XCTAssertTrue(renderedAccidentals.contains(.natural))
+            XCTAssertTrue(renderedAccidentals.contains(.sharp))
+            XCTAssertNil(
+                try rootNotationItem(atRawStartTime: 0.5, in: output).explicitAccidental
+            )
+        }
+    }
+
     func testNotationMappingAppliesSourceTrimAndProjectRateWithoutChangingRawTimes() throws {
         let result = RawStemTranscriptionResult(
             notes: [
@@ -611,6 +742,80 @@ final class StemTranscriptionTests: XCTestCase {
             durationInQuarterNotes: 1,
             displayDuration: NotationDuration(denominator: 4)
         )
+    }
+
+    private func transcriptionNote(
+        midiPitch: Int,
+        startTime: TimeInterval,
+        duration: TimeInterval = 0.1,
+        confidence: Double = 0.9,
+        pitchBends: [Int] = []
+    ) -> RawStemTranscriptionNote {
+        RawStemTranscriptionNote(
+            midiPitch: midiPitch,
+            startTimeSeconds: startTime,
+            endTimeSeconds: startTime + duration,
+            confidence: confidence,
+            pitchBends: pitchBends
+        )
+    }
+
+    private func mapNotation(
+        notes: [RawStemTranscriptionNote],
+        keyName: String,
+        projectDuration: TimeInterval = 4
+    ) throws -> StemTranscriptionNotationOutput {
+        try StemTranscriptionNotationMapper.map(
+            result: RawStemTranscriptionResult(
+                notes: notes,
+                timings: timings,
+                warnings: []
+            ),
+            stemType: .piano,
+            sourceFingerprint: fingerprint,
+            timelineMapping: .aligned(duration: projectDuration),
+            configuration: .neuralNoteDefaults,
+            tempoMap: TempoMap(
+                baseSettings: BeatGridSettings(
+                    bpm: 120,
+                    timeSignature: .fourFour
+                ),
+                markers: [],
+                duration: projectDuration
+            ),
+            projectDuration: projectDuration,
+            keyName: keyName
+        )
+    }
+
+    private func rootNotationItem(
+        atRawStartTime rawStartTime: TimeInterval,
+        in output: StemTranscriptionNotationOutput
+    ) throws -> NotationMeasureItem {
+        let storedNote = try XCTUnwrap(
+            output.track.notes.first {
+                abs($0.rawStartTimeSeconds - rawStartTime)
+                    < NotationMeasureTiming.timelineTolerance
+            }
+        )
+        return try rootNotationItem(for: storedNote, in: output)
+    }
+
+    private func rootNotationItem(
+        for storedNote: StemTranscriptionNote,
+        in output: StemTranscriptionNotationOutput
+    ) throws -> NotationMeasureItem {
+        try notationItem(
+            id: XCTUnwrap(storedNote.notationItemIDs.first),
+            in: output
+        )
+    }
+
+    private func notationItem(
+        id: String,
+        in output: StemTranscriptionNotationOutput
+    ) throws -> NotationMeasureItem {
+        try XCTUnwrap(output.notationItems.first { $0.id == id })
     }
 
     private func waitUntil(
