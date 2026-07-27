@@ -17,12 +17,25 @@ final class NotationSlashBeatLayoutTests: XCTestCase {
             geometry: geometry,
             timeSignature: .fourFour
         )
+        let beatSpacing = (geometry.rhythmicEndX - geometry.rhythmicStartX) / 4
 
         XCTAssertEqual(centers.count, 4)
-        XCTAssertEqual(centers[0], 10, accuracy: 0.0001)
-        XCTAssertEqual(centers[1], 50, accuracy: 0.0001)
-        XCTAssertEqual(centers[2], 90, accuracy: 0.0001)
-        XCTAssertEqual(centers[3], 130, accuracy: 0.0001)
+        XCTAssertEqual(centers[0], geometry.rhythmicStartX, accuracy: 0.0001)
+        XCTAssertEqual(
+            centers[1],
+            geometry.rhythmicStartX + beatSpacing,
+            accuracy: 0.0001
+        )
+        XCTAssertEqual(
+            centers[2],
+            geometry.rhythmicStartX + beatSpacing * 2,
+            accuracy: 0.0001
+        )
+        XCTAssertEqual(
+            centers[3],
+            geometry.rhythmicStartX + beatSpacing * 3,
+            accuracy: 0.0001
+        )
     }
 
     func testNotationMeasureLayoutPositionsSlashBeatCentersAfterAttributes() {
@@ -44,22 +57,22 @@ final class NotationSlashBeatLayoutTests: XCTestCase {
             geometry: geometry,
             timeSignature: attributes.timeSignature
         )
-        let beatSpacing = (geometry.contentEndX - geometry.contentStartX) / 3
+        let beatSpacing = (geometry.rhythmicEndX - geometry.rhythmicStartX) / 3
 
         XCTAssertEqual(centers.count, 3)
         XCTAssertEqual(
             centers[0],
-            geometry.contentStartX + AppTheme.Timeline.notationItemAnchorInset,
+            geometry.rhythmicStartX,
             accuracy: 0.0001
         )
         XCTAssertEqual(
             centers[1],
-            geometry.contentStartX + AppTheme.Timeline.notationItemAnchorInset + beatSpacing,
+            geometry.rhythmicStartX + beatSpacing,
             accuracy: 0.0001
         )
         XCTAssertEqual(
             centers[2],
-            geometry.contentStartX + AppTheme.Timeline.notationItemAnchorInset + beatSpacing * 2,
+            geometry.rhythmicStartX + beatSpacing * 2,
             accuracy: 0.0001
         )
     }
@@ -81,8 +94,13 @@ final class NotationSlashBeatLayoutTests: XCTestCase {
         )
 
         XCTAssertEqual(centers.count, 7)
-        XCTAssertEqual(centers[0], 10, accuracy: 0.0001)
-        XCTAssertEqual(centers[6], 190, accuracy: 0.0001)
+        XCTAssertEqual(centers[0], geometry.rhythmicStartX, accuracy: 0.0001)
+        XCTAssertEqual(
+            centers[6],
+            geometry.rhythmicStartX
+                + (geometry.rhythmicEndX - geometry.rhythmicStartX) * 6 / 7,
+            accuracy: 0.0001
+        )
     }
 
     func testNotationMeasureLayoutPositionsSlashBeatCentersForNonQuarterBeatUnit() {
@@ -105,9 +123,19 @@ final class NotationSlashBeatLayoutTests: XCTestCase {
         )
 
         XCTAssertEqual(centers.count, 6)
-        XCTAssertEqual(centers[0], 10, accuracy: 0.0001)
-        XCTAssertEqual(centers[1], 40, accuracy: 0.0001)
-        XCTAssertEqual(centers[5], 160, accuracy: 0.0001)
+        XCTAssertEqual(centers[0], geometry.rhythmicStartX, accuracy: 0.0001)
+        XCTAssertEqual(
+            centers[1],
+            geometry.rhythmicStartX
+                + (geometry.rhythmicEndX - geometry.rhythmicStartX) / 6,
+            accuracy: 0.0001
+        )
+        XCTAssertEqual(
+            centers[5],
+            geometry.rhythmicStartX
+                + (geometry.rhythmicEndX - geometry.rhythmicStartX) * 5 / 6,
+            accuracy: 0.0001
+        )
     }
 
     func testNotationMeasureLayoutOmitsSlashBeatCentersWhenContentIsInvalidOrTooNarrow() {

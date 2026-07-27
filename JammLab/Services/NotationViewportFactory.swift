@@ -190,12 +190,27 @@ struct NotationViewportFactory {
         }
 
         let requestedPageStartIndex = pageStartMeasureTime.flatMap(content.measureIndex(containing:))
-        let pageStart = requestedPageStartIndex ?? pageStartIndex(
+        let rawPageStart = requestedPageStartIndex ?? pageStartIndex(
             forActiveMeasureIndex: activeMeasureIndex,
             visibleMeasureCount: safeVisibleMeasureCount
         )
+        let pageStart = Self.normalizedPageStartIndex(
+            rawStartIndex: rawPageStart,
+            visibleMeasureCount: safeVisibleMeasureCount,
+            totalMeasureCount: content.measures.count
+        )
         let pageEnd = min(content.measures.count, pageStart + safeVisibleMeasureCount)
         let visibleMeasures = Array(content.measures[pageStart..<pageEnd])
+        let previousPageStartIndex = Self.previousPageStartIndex(
+            currentStartIndex: pageStart,
+            visibleMeasureCount: safeVisibleMeasureCount,
+            totalMeasureCount: content.measures.count
+        )
+        let nextPageStartIndex = Self.nextPageStartIndex(
+            currentStartIndex: pageStart,
+            visibleMeasureCount: safeVisibleMeasureCount,
+            totalMeasureCount: content.measures.count
+        )
 
         guard let firstVisibleMeasure = visibleMeasures.first else {
             return .pending(visibleMeasureCount: safeVisibleMeasureCount, keySignature: content.keySignature)
@@ -217,12 +232,12 @@ struct NotationViewportFactory {
                 scoreTieConnections,
                 visibleIn: visibleMeasures
             ),
-            previousPageStartTime: pageStart > 0
-                ? content.measures[max(0, pageStart - safeVisibleMeasureCount)].startTime
-                : nil,
-            nextPageStartTime: pageEnd < content.measures.count
-                ? content.measures[pageEnd].startTime
-                : nil
+            previousPageStartTime: previousPageStartIndex.map {
+                content.measures[$0].startTime
+            },
+            nextPageStartTime: nextPageStartIndex.map {
+                content.measures[$0].startTime
+            }
         )
     }
 
@@ -375,6 +390,55 @@ struct NotationViewportFactory {
     private func pageStartIndex(forActiveMeasureIndex activeMeasureIndex: Int, visibleMeasureCount: Int) -> Int {
         let safeVisibleMeasureCount = max(1, visibleMeasureCount)
         return (activeMeasureIndex / safeVisibleMeasureCount) * safeVisibleMeasureCount
+    }
+
+    static func normalizedPageStartIndex(
+        rawStartIndex: Int,
+        visibleMeasureCount: Int,
+        totalMeasureCount: Int
+    ) -> Int {
+        let safeVisibleMeasureCount = max(1, visibleMeasureCount)
+        let safeTotalMeasureCount = max(0, totalMeasureCount)
+        let finalPageStart = max(0, safeTotalMeasureCount - safeVisibleMeasureCount)
+        return min(max(0, rawStartIndex), finalPageStart)
+    }
+
+    static func previousPageStartIndex(
+        currentStartIndex: Int,
+        visibleMeasureCount: Int,
+        totalMeasureCount: Int
+    ) -> Int? {
+        let safeVisibleMeasureCount = max(1, visibleMeasureCount)
+        let currentStart = normalizedPageStartIndex(
+            rawStartIndex: currentStartIndex,
+            visibleMeasureCount: safeVisibleMeasureCount,
+            totalMeasureCount: totalMeasureCount
+        )
+        guard currentStart > 0 else { return nil }
+
+        let finalPageStart = max(0, max(0, totalMeasureCount) - safeVisibleMeasureCount)
+        if currentStart == finalPageStart,
+           !currentStart.isMultiple(of: safeVisibleMeasureCount) {
+            return (currentStart / safeVisibleMeasureCount) * safeVisibleMeasureCount
+        }
+        return max(0, currentStart - safeVisibleMeasureCount)
+    }
+
+    static func nextPageStartIndex(
+        currentStartIndex: Int,
+        visibleMeasureCount: Int,
+        totalMeasureCount: Int
+    ) -> Int? {
+        let safeVisibleMeasureCount = max(1, visibleMeasureCount)
+        let currentStart = normalizedPageStartIndex(
+            rawStartIndex: currentStartIndex,
+            visibleMeasureCount: safeVisibleMeasureCount,
+            totalMeasureCount: totalMeasureCount
+        )
+        let finalPageStart = max(0, max(0, totalMeasureCount) - safeVisibleMeasureCount)
+        guard currentStart < finalPageStart else { return nil }
+
+        return min(currentStart + safeVisibleMeasureCount, finalPageStart)
     }
 
     private func globalMeasureIndex(for target: ScoreMeasure, tempoMap: TempoMap) -> Int? {

@@ -34,6 +34,7 @@ struct TimelineViewState: Equatable {
     var beatGrid: BeatGridConfiguration
     var notationViewport: NotationViewportState
     var stemNotationViewports: [StemType: NotationViewportState]
+    var notationMeasureLayout: NotationSystemMeasureLayout?
     var notationDurationDenominator: Int
     var notationDurationIsDotted: Bool
     var pendingNotationAccidental: NotationAccidental?
@@ -227,6 +228,7 @@ struct WaveformTimelineView: View {
             notationDurationIsDotted: state.notationDurationIsDotted,
             pendingNotationAccidental: state.pendingNotationAccidental,
             notationViewports: state.stemNotationViewports,
+            measureLayout: state.notationMeasureLayout,
             notationCollapsed: state.stemNotationTrackCollapsed,
             noteDisplayModes: state.stemNoteDisplayModes,
             selectedLogicalItemIDs: state.selectedLogicalNotationItemIDs,
@@ -435,6 +437,7 @@ struct WaveformTimelineView: View {
         if !state.isNotationTrackCollapsed {
             NotationTrackView(
                 state: state.notationViewport,
+                measureLayout: state.notationMeasureLayout,
                 partID: .main,
                 playbackDisplayState: state.playbackDisplayState,
                 selectedHarmonySymbolID: state.selectedHarmonySymbolID,
@@ -657,6 +660,7 @@ private struct StemTracksSection: View {
     let notationDurationIsDotted: Bool
     let pendingNotationAccidental: NotationAccidental?
     let notationViewports: [StemType: NotationViewportState]
+    let measureLayout: NotationSystemMeasureLayout?
     let notationCollapsed: [StemType: Bool]
     let noteDisplayModes: [StemType: StemNoteDisplayMode]
     let selectedLogicalItemIDs: Set<String>
@@ -905,6 +909,7 @@ private struct StemTracksSection: View {
         } else {
             NotationTrackView(
                 state: viewportState,
+                measureLayout: measureLayout,
                 partID: .stem(type),
                 playbackDisplayState: nil,
                 selectedHarmonySymbolID: nil,

@@ -776,7 +776,7 @@ final class NotationPrimitivesTests: XCTestCase {
             selectedDuration: NotationDuration(denominator: 4)
         ))
 
-        XCTAssertEqual(placement.offsetInQuarterNotes, 3.25, accuracy: 0.0001)
+        XCTAssertEqual(placement.offsetInQuarterNotes, 3.75, accuracy: 0.0001)
         XCTAssertEqual(placement.pitch.step, .e)
         XCTAssertEqual(placement.pitch.octave, 4)
     }

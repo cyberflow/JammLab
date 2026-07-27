@@ -176,7 +176,7 @@ enum NotationTrackLayoutItems {
                     item: notationItem
                 )
             }
-            let chordLayout = chordLayout(in: measure)
+            let chordLayout = NotationHorizontalLayoutResolver.chordLayout(in: measure)
             return measure.notationItems.map { notationItem in
                 NotationItemLayoutItem(
                     measure: measure,
@@ -223,6 +223,19 @@ enum NotationTrackLayoutItems {
     static func accidentals(
         from layoutItems: [NotationItemLayoutItem]
     ) -> [NotationAccidentalLayoutItem] {
+        let columnsByMeasure = Dictionary(
+            uniqueKeysWithValues: Dictionary(
+                grouping: layoutItems,
+                by: { NotationMeasureIdentity($0.measure) }
+            ).compactMap { identity, items -> (NotationMeasureIdentity, [String: Int])? in
+                guard let measure = items.first?.measure else { return nil }
+                return (
+                    identity,
+                    NotationHorizontalLayoutResolver.accidentalColumnByItemID(in: measure)
+                )
+            }
+        )
+
         let candidates = layoutItems.compactMap { item -> AccidentalCandidate? in
             guard item.measure.attributes.clef != .drums,
                   item.notationItem.kind == .note,
@@ -231,164 +244,29 @@ enum NotationTrackLayoutItems {
             else { return nil }
             return AccidentalCandidate(
                 itemID: item.notationItem.id,
-                measureNumber: item.measure.number,
-                measureStartTime: item.measure.startTime,
-                onset: item.notationItem.offsetInQuarterNotes,
                 accidental: accidental,
                 noteX: item.x,
                 staffPosition: NotationPitchMapper.staffPosition(
                     for: pitch,
                     clef: item.measure.attributes.clef
-                )
+                ),
+                column: columnsByMeasure[NotationMeasureIdentity(item.measure)]?[
+                    item.notationItem.id
+                ] ?? 0
             )
         }
-        let grouped = Dictionary(grouping: candidates) {
-            AccidentalGroupKey(
-                measureNumber: $0.measureNumber,
-                measureStartTick: Int(($0.measureStartTime * 1_000_000).rounded()),
-                onsetTick: Int(($0.onset * 1_000_000).rounded())
+        return candidates.map { candidate in
+            NotationAccidentalLayoutItem(
+                itemID: candidate.itemID,
+                accidental: candidate.accidental,
+                x: candidate.noteX
+                    - AppTheme.Timeline.notationInlineAccidentalNoteOffset
+                    - CGFloat(candidate.column)
+                        * AppTheme.Timeline.notationInlineAccidentalColumnSpacing,
+                staffPosition: candidate.staffPosition
             )
-        }
-
-        return grouped.values.flatMap { group -> [NotationAccidentalLayoutItem] in
-            var staffPositionsByColumn: [[Int]] = []
-            return group.sorted {
-                if $0.staffPosition != $1.staffPosition {
-                    return $0.staffPosition < $1.staffPosition
-                }
-                return $0.itemID < $1.itemID
-            }.map { candidate in
-                let column = staffPositionsByColumn.firstIndex {
-                    columnPositions in
-                    columnPositions.allSatisfy {
-                        abs($0 - candidate.staffPosition)
-                            >= AppTheme.Timeline.notationInlineAccidentalMinimumStaffPositionDistance
-                    }
-                } ?? staffPositionsByColumn.count
-                if column == staffPositionsByColumn.count {
-                    staffPositionsByColumn.append([])
-                }
-                staffPositionsByColumn[column].append(candidate.staffPosition)
-                return NotationAccidentalLayoutItem(
-                    itemID: candidate.itemID,
-                    accidental: candidate.accidental,
-                    x: candidate.noteX
-                        - AppTheme.Timeline.notationInlineAccidentalNoteOffset
-                        - CGFloat(column)
-                            * AppTheme.Timeline.notationInlineAccidentalColumnSpacing,
-                    staffPosition: candidate.staffPosition
-                )
-            }
         }
         .sorted { $0.itemID < $1.itemID }
-    }
-
-    private static func chordLayout(in measure: ScoreMeasure) -> NotationChordLayout {
-        let notes = measure.notationItems.filter { $0.kind == .note && $0.pitch != nil }
-        let onsetGroups = Dictionary(grouping: notes) {
-            Int(($0.offsetInQuarterNotes * 1_000_000).rounded())
-        }
-        var layout = NotationChordLayout()
-
-        for onsetGroup in onsetGroups.values where onsetGroup.count > 1 {
-            let durationGroups = Dictionary(grouping: onsetGroup) {
-                Int(($0.durationInQuarterNotes * 1_000_000).rounded())
-            }.values.sorted {
-                let lhsDuration = $0.first?.durationInQuarterNotes ?? 0
-                let rhsDuration = $1.first?.durationInQuarterNotes ?? 0
-                if abs(lhsDuration - rhsDuration) > NotationMeasureTiming.timelineTolerance {
-                    return lhsDuration > rhsDuration
-                }
-                return ($0.first?.id ?? "") < ($1.first?.id ?? "")
-            }
-
-            for (laneIndex, durationGroup) in durationGroups.enumerated() {
-                let laneOffset = (CGFloat(laneIndex) - CGFloat(durationGroups.count - 1) / 2)
-                    * AppTheme.Timeline.notationPolyphonicLaneSpacing
-                let positioned = durationGroup.compactMap { note -> PositionedNotationItem? in
-                    guard let pitch = note.pitch else { return nil }
-                    return PositionedNotationItem(
-                        item: note,
-                        staffPosition: NotationPitchMapper.staffPosition(
-                            for: pitch,
-                            clef: measure.attributes.clef
-                        ),
-                        drumStemDirection: measure.attributes.clef == .drums
-                            ? NotationDrumStemLayout.direction(
-                                forMIDINoteNumber: pitch.midiNoteNumber
-                            )
-                            : nil
-                    )
-                }
-                .sorted {
-                    $0.staffPosition == $1.staffPosition
-                        ? $0.item.id < $1.item.id
-                        : $0.staffPosition < $1.staffPosition
-                }
-                if measure.attributes.clef == .drums,
-                   positioned.allSatisfy({ $0.drumStemDirection != nil }) {
-                    for stemDirection in [NotationStemDirection.up, .down] {
-                        let stemGroup = positioned.filter {
-                            $0.drumStemDirection == stemDirection
-                        }
-                        applyChordLayout(
-                            to: stemGroup,
-                            laneOffset: laneOffset,
-                            stemDirection: stemDirection,
-                            layout: &layout
-                        )
-                    }
-                } else {
-                    applyChordLayout(
-                        to: positioned,
-                        laneOffset: laneOffset,
-                        stemDirection: averageStaffPositionStemDirection(for: positioned),
-                        layout: &layout
-                    )
-                }
-            }
-        }
-        return layout
-    }
-
-    private static func averageStaffPositionStemDirection(
-        for notes: [PositionedNotationItem]
-    ) -> NotationStemDirection {
-        let staffPositions = notes.map(\.staffPosition)
-        let averagePosition = staffPositions.isEmpty
-            ? 4
-            : Int((Double(staffPositions.reduce(0, +)) / Double(staffPositions.count)).rounded())
-        return NotationStemDirection.direction(forStaffPosition: averagePosition)
-    }
-
-    private static func applyChordLayout(
-        to notes: [PositionedNotationItem],
-        laneOffset: CGFloat,
-        stemDirection: NotationStemDirection,
-        layout: inout NotationChordLayout
-    ) {
-        guard !notes.isEmpty else { return }
-
-        var shiftsRight = stemDirection == .up
-        var countsByStaffPosition: [Int: Int] = [:]
-        for (noteIndex, note) in notes.enumerated() {
-            var noteOffset = laneOffset
-            let staffPosition = note.staffPosition
-            let duplicateIndex = countsByStaffPosition[staffPosition, default: 0]
-            countsByStaffPosition[staffPosition] = duplicateIndex + 1
-            if !duplicateIndex.isMultiple(of: 2) {
-                noteOffset += AppTheme.Timeline.notationDuplicateNoteOffset
-            }
-            if noteIndex > 0,
-               abs(staffPosition - notes[noteIndex - 1].staffPosition) == 1 {
-                noteOffset += shiftsRight
-                    ? AppTheme.Timeline.notationChordSecondOffset
-                    : -AppTheme.Timeline.notationChordSecondOffset
-                shiftsRight.toggle()
-            }
-            layout.xOffsetByItemID[note.item.id] = noteOffset
-            layout.stemDirectionByItemID[note.item.id] = stemDirection
-        }
     }
 
     static func ties(
@@ -461,29 +339,10 @@ enum NotationTrackLayoutItems {
 
 private struct AccidentalCandidate {
     var itemID: String
-    var measureNumber: Int
-    var measureStartTime: TimeInterval
-    var onset: Double
     var accidental: NotationAccidental
     var noteX: CGFloat
     var staffPosition: Int
-}
-
-private struct AccidentalGroupKey: Hashable {
-    var measureNumber: Int
-    var measureStartTick: Int
-    var onsetTick: Int
-}
-
-private struct NotationChordLayout {
-    var xOffsetByItemID: [String: CGFloat] = [:]
-    var stemDirectionByItemID: [String: NotationStemDirection] = [:]
-}
-
-private struct PositionedNotationItem {
-    var item: NotationMeasureItem
-    var staffPosition: Int
-    var drumStemDirection: NotationStemDirection?
+    var column: Int
 }
 
 private struct NotationChordRenderKey: Hashable {

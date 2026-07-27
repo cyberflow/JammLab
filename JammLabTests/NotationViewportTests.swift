@@ -80,6 +80,53 @@ final class NotationViewportTests: XCTestCase {
         XCTAssertEqual(state.nextPageStartTime, 12)
     }
 
+    func testFinalViewportPageBackfillsPreviousMeasures() {
+        let tempoMap = fourFourTempoMap(duration: 22)
+        let state = notationViewportState(
+            tempoMap: tempoMap,
+            currentTime: 21,
+            visibleMeasureCount: 5
+        )
+
+        XCTAssertEqual(state.visibleMeasures.map(\.number), [7, 8, 9, 10, 11])
+        XCTAssertEqual(state.previousPageStartTime, 10)
+        XCTAssertNil(state.nextPageStartTime)
+    }
+
+    func testExplicitFinalPageStartBackfillsAndRoundTripsNavigation() throws {
+        let tempoMap = fourFourTempoMap(duration: 22)
+        let factory = NotationViewportFactory()
+        let previousPage = factory.viewportState(
+            tempoMap: tempoMap,
+            duration: tempoMap.duration,
+            currentTime: 0,
+            playbackMarkerTime: 0,
+            isPlaying: false,
+            keyName: "C major",
+            visibleMeasureCount: 5,
+            pageStartMeasureTime: 10
+        )
+        let finalPage = factory.viewportState(
+            tempoMap: tempoMap,
+            duration: tempoMap.duration,
+            currentTime: 0,
+            playbackMarkerTime: 0,
+            isPlaying: false,
+            keyName: "C major",
+            visibleMeasureCount: 5,
+            pageStartMeasureTime: 20
+        )
+
+        XCTAssertEqual(previousPage.visibleMeasures.map(\.number), [6, 7, 8, 9, 10])
+        XCTAssertEqual(previousPage.nextPageStartTime, 12)
+        XCTAssertEqual(finalPage.visibleMeasures.map(\.number), [7, 8, 9, 10, 11])
+        XCTAssertEqual(finalPage.previousPageStartTime, 10)
+        XCTAssertEqual(
+            try XCTUnwrap(previousPage.nextPageStartTime),
+            try XCTUnwrap(finalPage.visibleMeasures.first).startTime
+        )
+    }
+
     func testNotationViewportStartsAtMeasureOneWhenTrackStartsAtZero() throws {
         let state = notationViewportState(
             tempoMap: fourFourTempoMap(duration: 120),

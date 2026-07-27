@@ -68,31 +68,43 @@ struct NotationScoreState: Equatable {
         guard isReady, !measures.isEmpty else { return [] }
 
         let safeMeasuresPerSystem = max(1, measuresPerSystem)
-        return stride(from: 0, to: measures.count, by: safeMeasuresPerSystem).map { startIndex in
+        return stride(from: 0, to: measures.count, by: safeMeasuresPerSystem).compactMap { startIndex in
             let endIndex = min(startIndex + safeMeasuresPerSystem, measures.count)
-            let systemMeasures = Array(measures[startIndex..<endIndex])
-
-            return NotationSystemState(
+            return system(
                 index: startIndex / safeMeasuresPerSystem,
-                viewportState: NotationViewportState(
-                    availability: availability,
-                    clef: systemMeasures.first?.attributes.clef ?? .treble,
-                    keySignature: systemMeasures.first?.attributes.keySignature ?? keySignature,
-                    timeSignature: systemMeasures.first?.attributes.timeSignature ?? .fourFour,
-                    firstVisibleMeasureNumber: systemMeasures.first?.number ?? 1,
-                    visibleMeasureCount: systemMeasures.count,
-                    visibleMeasures: systemMeasures,
-                    anchorTime: anchorTime,
-                    activeMeasureNumber: activeMeasureNumber,
-                    tieConnections: NotationTieResolver.connections(
-                        tieConnections,
-                        visibleIn: systemMeasures
-                    ),
-                    previousPageStartTime: nil,
-                    nextPageStartTime: nil
-                )
+                measureRange: startIndex..<endIndex
             )
         }
+    }
+
+    func system(index: Int, measureRange: Range<Int>) -> NotationSystemState? {
+        guard isReady,
+              !measureRange.isEmpty,
+              measureRange.lowerBound >= measures.startIndex,
+              measureRange.upperBound <= measures.endIndex
+        else { return nil }
+
+        let systemMeasures = Array(measures[measureRange])
+        return NotationSystemState(
+            index: index,
+            viewportState: NotationViewportState(
+                availability: availability,
+                clef: systemMeasures.first?.attributes.clef ?? .treble,
+                keySignature: systemMeasures.first?.attributes.keySignature ?? keySignature,
+                timeSignature: systemMeasures.first?.attributes.timeSignature ?? .fourFour,
+                firstVisibleMeasureNumber: systemMeasures.first?.number ?? 1,
+                visibleMeasureCount: systemMeasures.count,
+                visibleMeasures: systemMeasures,
+                anchorTime: anchorTime,
+                activeMeasureNumber: activeMeasureNumber,
+                tieConnections: NotationTieResolver.connections(
+                    tieConnections,
+                    visibleIn: systemMeasures
+                ),
+                previousPageStartTime: nil,
+                nextPageStartTime: nil
+            )
+        )
     }
 }
 

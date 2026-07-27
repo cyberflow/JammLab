@@ -54,8 +54,9 @@ final class NotationAnchorLayoutTests: XCTestCase {
             timeSignature: .fourFour
         )
 
-        XCTAssertEqual(endX, geometry.contentEndX, accuracy: 0.0001)
-        XCTAssertEqual(outOfRangeX, geometry.contentEndX, accuracy: 0.0001)
+        XCTAssertEqual(endX, geometry.rhythmicEndX, accuracy: 0.0001)
+        XCTAssertEqual(outOfRangeX, geometry.rhythmicEndX, accuracy: 0.0001)
+        XCTAssertLessThan(endX, geometry.staffEndX)
     }
 
     func testNotationMeasureLayoutMapsAnchorXBackToProgress() {
@@ -119,5 +120,31 @@ final class NotationAnchorLayoutTests: XCTestCase {
             accuracy: 0.0001
         )
         XCTAssertGreaterThan(harmonyStartX, geometry.cellStartX)
+    }
+
+    func testLateSixteenthAnchorStaysClearOfTrailingBarlineAndRoundTrips() {
+        let geometry = NotationMeasureCanvasGeometry(
+            measureIndex: 0,
+            cellStartX: 0,
+            cellEndX: 180,
+            contentStartX: 0,
+            contentEndX: 180,
+            staffStartX: 10,
+            staffEndX: 170,
+            trailingAnchorInset: 20
+        )
+        let progress = 15.0 / 16.0
+        let x = NotationMeasureLayout.notationAnchorX(
+            geometry: geometry,
+            offsetInQuarterNotes: 3.75,
+            timeSignature: .fourFour
+        )
+
+        XCTAssertGreaterThanOrEqual(geometry.staffEndX - x, 20)
+        XCTAssertEqual(
+            NotationMeasureLayout.notationAnchorProgress(atX: x, geometry: geometry),
+            progress,
+            accuracy: 0.0001
+        )
     }
 }

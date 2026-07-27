@@ -20,6 +20,12 @@ enum NotesFilter: String, CaseIterable, Identifiable {
     }
 }
 
+struct TimelineNotationLayoutBundle {
+    var mainViewport: NotationViewportState
+    var stemViewports: [StemType: NotationViewportState]
+    var measureLayout: NotationSystemMeasureLayout?
+}
+
 extension ContentView {
     var scrollableWorkspaceContent: some View {
         GeometryReader { proxy in
@@ -156,7 +162,10 @@ extension ContentView {
     }
 
     func timelineViewState(notationTrackContentWidth: CGFloat) -> TimelineViewState {
-        TimelineViewState(
+        let notationLayoutBundle = timelineNotationLayoutBundle(
+            availableWidth: notationTrackContentWidth
+        )
+        return TimelineViewState(
             peakformData: viewModel.peakformData,
             duration: viewModel.duration,
             currentTime: viewModel.currentTime,
@@ -172,13 +181,9 @@ extension ContentView {
             pendingHarmonyEditorRequest: viewModel.pendingHarmonyEditorRequest,
             selectedRegionID: viewModel.selectedRegionID,
             beatGrid: beatGrid,
-            notationViewport: viewModel.isNotationTrackCollapsed
-                ? .pending(
-                    visibleMeasureCount: 1,
-                    keySignature: KeySignature.normalized(from: viewModel.effectiveKeyName)
-                )
-                : notationViewportState(availableWidth: notationTrackContentWidth, partID: .main),
-            stemNotationViewports: stemNotationViewports(availableWidth: notationTrackContentWidth),
+            notationViewport: notationLayoutBundle.mainViewport,
+            stemNotationViewports: notationLayoutBundle.stemViewports,
+            notationMeasureLayout: notationLayoutBundle.measureLayout,
             notationDurationDenominator: viewModel.notationDurationDenominator,
             notationDurationIsDotted: viewModel.notationDurationIsDotted,
             pendingNotationAccidental: viewModel.pendingNotationAccidental,
@@ -246,23 +251,97 @@ extension ContentView {
         )
     }
 
-    func stemNotationViewports(availableWidth: CGFloat) -> [StemType: NotationViewportState] {
-        Dictionary(uniqueKeysWithValues: viewModel.stemFiles.map { stemFile in
-            let isCollapsed = viewModel.isStemNotationTrackCollapsed(stemFile.type)
-            let viewport: NotationViewportState = isCollapsed
-                ? .pending(
-                    visibleMeasureCount: 1,
-                    keySignature: KeySignature.normalized(from: viewModel.effectiveKeyName)
-                )
-                : notationViewportState(
-                    availableWidth: availableWidth,
-                    partID: .stem(stemFile.type),
-                    pageStartMeasureTime: viewModel.stemNoteDisplayMode(for: stemFile.type) == .midi
-                        ? stemMIDIPageStartTimes[stemFile.type]
-                        : nil
-                )
-            return (stemFile.type, viewport)
+    func timelineNotationLayoutBundle(
+        availableWidth: CGFloat
+    ) -> TimelineNotationLayoutBundle {
+        let pendingViewport = NotationViewportState.pending(
+            visibleMeasureCount: 1,
+            keySignature: KeySignature.normalized(from: viewModel.effectiveKeyName)
+        )
+        var sharedPartIDs: [NotationPartID] = []
+        if !viewModel.isNotationTrackCollapsed {
+            sharedPartIDs.append(.main)
+        }
+        sharedPartIDs.append(contentsOf: viewModel.stemFiles.compactMap { stemFile in
+            guard !viewModel.isStemNotationTrackCollapsed(stemFile.type),
+                  viewModel.stemNoteDisplayMode(for: stemFile.type) == .notation
+            else { return nil }
+            return .stem(stemFile.type)
         })
+
+        let factory = NotationViewportFactory()
+        let contentsByPart = Dictionary(
+            uniqueKeysWithValues: sharedPartIDs.map { partID in
+                (
+                    partID,
+                    notationProjectionCache.content(
+                        tempoMap: viewModel.tempoMap,
+                        duration: viewModel.duration,
+                        keyName: viewModel.effectiveKeyName,
+                        clef: viewModel.notationClef(for: partID),
+                        partID: partID,
+                        includesHarmonies: partID.isMain,
+                        notationItems: viewModel.notationItems,
+                        harmonySymbols: viewModel.harmonySymbols,
+                        notes: viewModel.notes
+                    )
+                )
+            }
+        )
+        let statesForMeasureCount: (Int) -> [NotationViewportState] = { measureCount in
+            sharedPartIDs.compactMap { partID in
+                guard let content = contentsByPart[partID] else { return nil }
+                return factory.viewportState(
+                    content: content,
+                    duration: viewModel.duration,
+                    currentTime: viewModel.currentTime,
+                    playbackMarkerTime: viewModel.playbackMarkerTime,
+                    isPlaying: viewModel.playbackState == .playing,
+                    visibleMeasureCount: measureCount,
+                    pageStartMeasureTime: nil
+                )
+            }
+        }
+
+        let sharedStates: [NotationViewportState]
+        if sharedPartIDs.isEmpty {
+            sharedStates = []
+        } else {
+            let measureCount = NotationVisibleMeasureFitter.fittedMeasureCount(
+                availableWidth: availableWidth,
+                maximumMeasureCount: AppTheme.Timeline.notationMaximumVisibleMeasureCount,
+                statesForMeasureCount: statesForMeasureCount
+            )
+            sharedStates = statesForMeasureCount(measureCount)
+        }
+        let sharedStateByPart = Dictionary(
+            uniqueKeysWithValues: zip(sharedPartIDs, sharedStates)
+        )
+        let mainViewport = viewModel.isNotationTrackCollapsed
+            ? pendingViewport
+            : sharedStateByPart[.main] ?? pendingViewport
+        let stemViewports = Dictionary(uniqueKeysWithValues: viewModel.stemFiles.map { stemFile in
+            let type = stemFile.type
+            let viewport: NotationViewportState
+            if viewModel.isStemNotationTrackCollapsed(type) {
+                viewport = pendingViewport
+            } else if viewModel.stemNoteDisplayMode(for: type) == .midi {
+                viewport = notationViewportState(
+                    availableWidth: availableWidth,
+                    partID: .stem(type),
+                    pageStartMeasureTime: stemMIDIPageStartTimes[type]
+                )
+            } else {
+                viewport = sharedStateByPart[.stem(type)] ?? pendingViewport
+            }
+            return (type, viewport)
+        })
+
+        return TimelineNotationLayoutBundle(
+            mainViewport: mainViewport,
+            stemViewports: stemViewports,
+            measureLayout: NotationSystemMeasureLayout.make(states: sharedStates)
+        )
     }
 
     var timelineViewActions: TimelineViewActions {

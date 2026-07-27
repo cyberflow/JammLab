@@ -21,7 +21,7 @@ final class NotationFallbackGeometryTests: XCTestCase {
         XCTAssertEqual(barlines.last?.x ?? -1, geometries[0].staffEndX, accuracy: 0.0001)
         XCTAssertEqual(
             NotationMeasureLayout.playheadX(geometry: geometries[0], progress: 0),
-            geometries[0].contentStartX,
+            geometries[0].rhythmicStartX,
             accuracy: 0.0001
         )
         XCTAssertEqual(
@@ -30,7 +30,7 @@ final class NotationFallbackGeometryTests: XCTestCase {
                 progress: 0,
                 indicatorWidth: AppTheme.Stroke.thick
             ),
-            geometries[0].staffStartX,
+            geometries[0].rhythmicStartX,
             accuracy: 0.0001
         )
     }
