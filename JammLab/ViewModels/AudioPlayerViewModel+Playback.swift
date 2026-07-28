@@ -1,11 +1,25 @@
 import Foundation
 
+struct PreparedAudioPreparation {
+    var runID: UUID
+    var asset: PreparedPlaybackAsset
+}
+
+struct AudioPlaybackTransactionFailure: LocalizedError {
+    var primaryDescription: String
+    var recoveryDescription: String
+
+    var errorDescription: String? {
+        "\(primaryDescription) Previous playback could not be restored: \(recoveryDescription)"
+    }
+}
+
 extension AudioPlayerViewModel {
     func prepareOriginalPlayback(
         for file: ImportedAudioFile,
         kind: AudioPreparationKind,
         volume: Float? = nil
-    ) async throws -> PreparedPlaybackAsset {
+    ) async throws -> PreparedAudioPreparation {
         audioPreparationTask?.cancel()
         let runID = UUID()
         audioPreparationRunID = runID
@@ -49,7 +63,7 @@ extension AudioPlayerViewModel {
                 pendingPlaybackMode: .original,
                 isCancellable: false
             )
-            return asset
+            return PreparedAudioPreparation(runID: runID, asset: asset)
         } catch {
             if audioPreparationRunID == runID {
                 audioPreparationTask = nil
@@ -67,10 +81,25 @@ extension AudioPlayerViewModel {
         }
     }
 
-    func finishAudioPreparation() {
+    func finishAudioPreparation(runID: UUID) {
+        guard audioPreparationRunID == runID else { return }
         audioPreparationTask = nil
         audioPreparationRunID = nil
         audioPreparationState = .idle
+    }
+
+    func failAudioPreparation(runID: UUID, error: Error, kind: AudioPreparationKind) {
+        guard audioPreparationRunID == runID else { return }
+        audioPreparationTask = nil
+        audioPreparationRunID = nil
+        audioPreparationState = AudioPreparationViewState(
+            kind: kind,
+            phase: error is CancellationError ? .cancelled : .failed,
+            progress: nil,
+            status: error is CancellationError ? "Audio preparation cancelled" : error.localizedDescription,
+            pendingPlaybackMode: nil,
+            isCancellable: false
+        )
     }
 
     func cancelAudioPreparation() {
@@ -275,7 +304,7 @@ extension AudioPlayerViewModel {
     }
 
     func restorePlaybackMode(_ mode: PlaybackMode, preservedTime: TimeInterval) {
-        if playbackEngine is MultiTrackAudioPlayer {
+        if playbackEngine.requiresPreparedPlayback {
             beginPreparedPlaybackModeSwitch(
                 mode,
                 preservedTime: preservedTime,
@@ -291,7 +320,8 @@ extension AudioPlayerViewModel {
         _ mode: PlaybackMode,
         preservedTime: TimeInterval,
         errorPrefix: String,
-        registersUndo: Bool
+        registersUndo: Bool,
+        failureRollbackMode: PlaybackMode? = nil
     ) {
         let targetMode: PlaybackMode = mode == .stems && canUseStemsPlayback ? .stems : .original
         guard targetMode != playbackMode || preparedPlaybackAssets[targetMode] == nil else { return }
@@ -300,6 +330,10 @@ extension AudioPlayerViewModel {
         audioPreparationTask?.cancel()
         let runID = UUID()
         let previousMode = playbackMode
+        let rollbackMode = failureRollbackMode ?? previousMode
+        let cachedRollbackAsset = preparedPlaybackAssets[rollbackMode]
+        let rollbackStems = stemFiles
+        let rollbackMixState = stemMixState
         let wasPlaying = playbackState == .playing
         audioPreparationRunID = runID
         activePlaybackEngine.pause()
@@ -365,10 +399,19 @@ extension AudioPlayerViewModel {
                     isCancellable: false
                 )
                 try configurePlayer(with: asset)
-                preparedPlaybackAssets[targetMode] = asset
-                playbackMode = targetMode
+                if targetMode == .stems {
+                    playbackEngine.applyMix(stemMixState)
+                }
                 seekExactly(to: preservedTime)
 
+                if wasPlaying {
+                    try activePlaybackEngine.play()
+                    videoFollower.play(rate: playbackRate)
+                    playbackState = .playing
+                }
+
+                preparedPlaybackAssets[targetMode] = asset
+                playbackMode = targetMode
                 if registersUndo, previousMode != targetMode {
                     undoManager?.registerUndo(withTarget: self) { target in
                         target.restorePlaybackMode(previousMode, preservedTime: preservedTime)
@@ -377,19 +420,43 @@ extension AudioPlayerViewModel {
                     refreshUndoAvailability()
                     refreshProjectModifiedState()
                 }
-
-                if wasPlaying {
-                    try activePlaybackEngine.play()
-                    videoFollower.play(rate: playbackRate)
-                    playbackState = .playing
-                }
-                finishAudioPreparation()
+                finishAudioPreparation(runID: runID)
             } catch {
                 guard audioPreparationRunID == runID else { return }
-                if wasPlaying, activePlaybackEngine.isLoaded {
-                    try? activePlaybackEngine.play()
-                    videoFollower.play(rate: playbackRate)
-                    playbackState = .playing
+                var recoveryError: Error?
+                do {
+                    let rollbackAsset: PreparedPlaybackAsset
+                    if let cachedRollbackAsset {
+                        rollbackAsset = cachedRollbackAsset
+                    } else if rollbackMode == .stems {
+                        rollbackAsset = try await preparer.prepareStems(
+                            rollbackStems,
+                            mixState: rollbackMixState,
+                            progress: { _ in }
+                        )
+                    } else {
+                        rollbackAsset = try await preparer.prepareOriginal(
+                            url: importedFile.url,
+                            volume: volume,
+                            progress: { _ in }
+                        )
+                    }
+                    guard audioPreparationRunID == runID else { return }
+                    try configurePlayer(with: rollbackAsset)
+                    if rollbackMode == .stems {
+                        playbackEngine.applyMix(rollbackMixState)
+                    }
+                    seekExactly(to: preservedTime)
+                    if wasPlaying {
+                        try activePlaybackEngine.play()
+                        videoFollower.play(rate: playbackRate)
+                        playbackState = .playing
+                    }
+                    preparedPlaybackAssets[rollbackMode] = rollbackAsset
+                    playbackMode = rollbackMode
+                } catch {
+                    recoveryError = error
+                    playbackState = .paused
                 }
                 audioPreparationTask = nil
                 audioPreparationRunID = nil
@@ -402,7 +469,10 @@ extension AudioPlayerViewModel {
                     isCancellable: false
                 )
                 if !(error is CancellationError) {
-                    errorMessage = "\(errorPrefix): \(error.localizedDescription)"
+                    let recoverySuffix = recoveryError.map {
+                        " Previous playback could not be restored: \($0.localizedDescription)"
+                    } ?? ""
+                    errorMessage = "\(errorPrefix): \(error.localizedDescription)\(recoverySuffix)"
                 }
             }
         }

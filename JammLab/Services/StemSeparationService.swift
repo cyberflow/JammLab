@@ -155,10 +155,13 @@ final class StemSeparationService {
                 computeMode: appSettingsStore.stemBackendComputeMode.helperArgument
             )
         } catch let error as StemHelperCapabilityError {
+            try Task.checkCancellation()
             throw StemSeparationError.helperCapabilityMismatch(error.localizedDescription)
         } catch let error as StemHelperLaunchError {
+            try Task.checkCancellation()
             throw StemSeparationError.helperNotRunning(error.diagnostics)
         } catch {
+            try Task.checkCancellation()
             throw StemSeparationError.helperNotRunning(error.localizedDescription)
         }
 

@@ -40,6 +40,51 @@ final class MultiTrackAudioPlayerConversionTests: XCTestCase {
         }
     }
 
+    func testMatchingFormatDecodeChecksCancellationBetweenChunks() throws {
+        let url = try temporaryAudioFile(duration: 2, namePrefix: "cancelled-decode")
+        defer { try? FileManager.default.removeItem(at: url.deletingLastPathComponent()) }
+        let file = try AVAudioFile(forReading: url)
+        let outputFormat = file.processingFormat
+        var cancellationChecks = 0
+
+        XCTAssertThrowsError(
+            try AudioFileBufferDecoder.decode(
+                file: file,
+                to: outputFormat,
+                cancellationCheck: {
+                    cancellationChecks += 1
+                    if cancellationChecks == 3 {
+                        throw CancellationError()
+                    }
+                }
+            )
+        ) { error in
+            XCTAssertTrue(error is CancellationError)
+        }
+        XCTAssertEqual(cancellationChecks, 3)
+        XCTAssertLessThan(file.framePosition, file.length)
+    }
+
+    func testCancellingPreparationPropagatesToDetachedDecodeWorker() async throws {
+        let url = try temporaryAudioFile(duration: 2, namePrefix: "cancelled-preparation")
+        defer { try? FileManager.default.removeItem(at: url.deletingLastPathComponent()) }
+        let task = Task {
+            try await MultiTrackAudioPreparer().prepareOriginal(
+                url: url,
+                volume: 1
+            ) { _ in }
+        }
+
+        task.cancel()
+
+        do {
+            _ = try await task.value
+            XCTFail("Expected cancellation")
+        } catch {
+            XCTAssertTrue(error is CancellationError)
+        }
+    }
+
     func testDecodeConvertsIntegerPCMWithoutTruncatingSamples() throws {
         let directory = FileManager.default.temporaryDirectory
             .appendingPathComponent(UUID().uuidString, isDirectory: true)
@@ -90,5 +135,96 @@ final class MultiTrackAudioPlayerConversionTests: XCTestCase {
         }
 
         try file.write(from: buffer)
+    }
+}
+
+final class AudioPlaybackTransactionTests: XCTestCase {
+    @MainActor
+    func testImportedAudioInstallFailureRestoresPreviousPlayback() throws {
+        let engine = MockPlaybackEngine()
+        let viewModel = AudioPlayerViewModel(playbackEngine: engine)
+        let oldFile = ImportedAudioFile(
+            url: URL(fileURLWithPath: "/tmp/old.wav"),
+            displayName: "old.wav",
+            duration: 30
+        )
+        let newFile = ImportedAudioFile(
+            url: URL(fileURLWithPath: "/tmp/new.wav"),
+            displayName: "new.wav",
+            duration: 45
+        )
+        try viewModel.loadImportedAudio(oldFile)
+        viewModel.preparedPlaybackAssets[.original] = PreparedPlaybackAsset(storage: .originalURL(oldFile.url))
+        viewModel.currentTime = 12
+        viewModel.playbackState = .playing
+        engine.currentTime = 12
+        engine.isPlaying = true
+        engine.queuedLoadErrors = [TestPlaybackTransactionError.installFailed]
+
+        XCTAssertThrowsError(
+            try viewModel.loadImportedAudio(
+                newFile,
+                preparedAsset: PreparedPlaybackAsset(storage: .originalURL(newFile.url))
+            )
+        )
+
+        XCTAssertEqual(viewModel.importedFile, oldFile)
+        XCTAssertEqual(viewModel.playbackState, .playing)
+        XCTAssertTrue(engine.isLoaded)
+        XCTAssertTrue(engine.isPlaying)
+        XCTAssertEqual(engine.currentTime, 12, accuracy: 0.0001)
+    }
+
+    @MainActor
+    func testImportedAudioInstallAndRecoveryFailureCannotRemainGhostPlaying() throws {
+        let engine = MockPlaybackEngine()
+        let viewModel = AudioPlayerViewModel(playbackEngine: engine)
+        let oldFile = ImportedAudioFile(
+            url: URL(fileURLWithPath: "/tmp/old.wav"),
+            displayName: "old.wav",
+            duration: 30
+        )
+        let newFile = ImportedAudioFile(
+            url: URL(fileURLWithPath: "/tmp/new.wav"),
+            displayName: "new.wav",
+            duration: 45
+        )
+        try viewModel.loadImportedAudio(oldFile)
+        viewModel.preparedPlaybackAssets[.original] = PreparedPlaybackAsset(storage: .originalURL(oldFile.url))
+        viewModel.playbackState = .playing
+        engine.isPlaying = true
+        engine.queuedLoadErrors = [
+            TestPlaybackTransactionError.installFailed,
+            TestPlaybackTransactionError.recoveryFailed
+        ]
+
+        XCTAssertThrowsError(
+            try viewModel.loadImportedAudio(
+                newFile,
+                preparedAsset: PreparedPlaybackAsset(storage: .originalURL(newFile.url))
+            )
+        ) { error in
+            XCTAssertTrue(error is AudioPlaybackTransactionFailure)
+        }
+
+        XCTAssertEqual(viewModel.importedFile, oldFile)
+        XCTAssertEqual(viewModel.playbackState, .paused)
+        XCTAssertFalse(engine.isLoaded)
+        XCTAssertFalse(engine.isPlaying)
+        XCTAssertNil(viewModel.clockTask)
+    }
+}
+
+private enum TestPlaybackTransactionError: LocalizedError {
+    case installFailed
+    case recoveryFailed
+
+    var errorDescription: String? {
+        switch self {
+        case .installFailed:
+            return "install failed"
+        case .recoveryFailed:
+            return "recovery failed"
+        }
     }
 }

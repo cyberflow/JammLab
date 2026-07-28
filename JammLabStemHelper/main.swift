@@ -125,7 +125,9 @@ private final class StemHelperRunner {
             let metadata = StemCacheMetadata(
                 cacheKey: request.cacheKey,
                 sourceFingerprint: request.sourceFingerprint,
-                backendIdentifier: backend.displayName,
+                backendIdentifier: backend.identifier(
+                    separatorVersion: resolution.capabilities.separatorVersion
+                ),
                 separationMethodID: request.separationMethodID,
                 modelName: request.modelName,
                 settingsVersion: request.settingsVersion,
@@ -234,9 +236,8 @@ private final class StemHelperRunner {
         let heartbeatThread = HeartbeatThread { [weak self] in
             self?.writeHeartbeat(activeJobID: heartbeatJobID)
         }
-        let cancellationWatcher = CancellationWatcherThread(jobDirectory: jobDirectory) { [weak self, weak process] in
+        let cancellationWatcher = CancellationWatcherThread(jobDirectory: jobDirectory) { [weak process] in
             process?.terminate()
-            self?.activeProcess = nil
         }
         heartbeatThread.start()
         cancellationWatcher.start()

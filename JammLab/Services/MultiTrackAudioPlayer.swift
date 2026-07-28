@@ -21,8 +21,22 @@ private final class SingleUseAudioBufferProvider: @unchecked Sendable {
 }
 
 enum AudioFileBufferDecoder {
-    static func decode(file: AVAudioFile, to outputFormat: AVAudioFormat) throws -> AVAudioPCMBuffer {
+    static func decode(
+        file: AVAudioFile,
+        to outputFormat: AVAudioFormat,
+        cancellationCheck: () throws -> Void = {}
+    ) throws -> AVAudioPCMBuffer {
         let inputFormat = file.processingFormat
+        try cancellationCheck()
+
+        if formatsMatch(inputFormat, outputFormat) {
+            return try readMatchingFormat(
+                file: file,
+                format: inputFormat,
+                cancellationCheck: cancellationCheck
+            )
+        }
+
         guard let inputBuffer = AVAudioPCMBuffer(
             pcmFormat: inputFormat,
             frameCapacity: AVAudioFrameCount(file.length)
@@ -31,9 +45,7 @@ enum AudioFileBufferDecoder {
         }
 
         try file.read(into: inputBuffer)
-        if formatsMatch(inputFormat, outputFormat), inputBuffer.floatChannelData != nil {
-            return inputBuffer
-        }
+        try cancellationCheck()
 
         guard let converter = AVAudioConverter(from: inputFormat, to: outputFormat) else {
             throw MultiTrackAudioPlayerError.audioConversionFailed
@@ -60,6 +72,48 @@ enum AudioFileBufferDecoder {
         if conversionError != nil || outputBuffer.floatChannelData == nil {
             throw MultiTrackAudioPlayerError.audioConversionFailed
         }
+        try cancellationCheck()
+        return outputBuffer
+    }
+
+    private static func readMatchingFormat(
+        file: AVAudioFile,
+        format: AVAudioFormat,
+        cancellationCheck: () throws -> Void
+    ) throws -> AVAudioPCMBuffer {
+        guard
+            let outputBuffer = AVAudioPCMBuffer(
+                pcmFormat: format,
+                frameCapacity: AVAudioFrameCount(file.length)
+            ),
+            let outputChannels = outputBuffer.floatChannelData
+        else {
+            throw MultiTrackAudioPlayerError.audioConversionFailed
+        }
+
+        let chunkCapacity: AVAudioFrameCount = 16_384
+        while file.framePosition < file.length {
+            try cancellationCheck()
+            let remaining = AVAudioFrameCount(file.length - file.framePosition)
+            let requestedFrames = min(chunkCapacity, remaining)
+            guard
+                let chunk = AVAudioPCMBuffer(pcmFormat: format, frameCapacity: requestedFrames),
+                let chunkChannels = chunk.floatChannelData
+            else {
+                throw MultiTrackAudioPlayerError.audioConversionFailed
+            }
+
+            try file.read(into: chunk, frameCount: requestedFrames)
+            guard chunk.frameLength > 0 else { break }
+            let destinationOffset = Int(outputBuffer.frameLength)
+            let byteCount = Int(chunk.frameLength) * MemoryLayout<Float>.size
+            for channel in 0..<Int(format.channelCount) {
+                memcpy(outputChannels[channel] + destinationOffset, chunkChannels[channel], byteCount)
+            }
+            outputBuffer.frameLength += chunk.frameLength
+        }
+
+        try cancellationCheck()
         return outputBuffer
     }
 
@@ -104,6 +158,7 @@ enum MultiTrackAudioPlayerError: LocalizedError {
 
 @MainActor
 final class MultiTrackAudioPlayer: AudioPlaybackControlling {
+    let requiresPreparedPlayback = true
     enum TrackID: Hashable {
         case original
         case stem(StemType)
@@ -115,7 +170,6 @@ final class MultiTrackAudioPlayer: AudioPlaybackControlling {
     private var clickNode: AVAudioSourceNode?
     private var renderLease: AudioRenderGraphLease?
     private var renderTracks: [TrackID: AudioRenderTrack] = [:]
-    private var trackOrder: [AudioRenderTrack] = []
     private var outputFormat: AVAudioFormat?
     private let transportState = AudioTransportRenderState()
     private let clickState = ClickRenderState()
@@ -370,7 +424,6 @@ final class MultiTrackAudioPlayer: AudioPlaybackControlling {
         }
 
         renderTracks = Dictionary(uniqueKeysWithValues: tracks.map { ($0.id, $0) })
-        trackOrder = tracks
         let renderLease = AudioRenderGraphLease(tracks: tracks)
         self.renderLease = renderLease
         self.outputFormat = outputFormat
@@ -540,7 +593,6 @@ final class MultiTrackAudioPlayer: AudioPlaybackControlling {
         engine = AVAudioEngine()
         timePitch = AVAudioUnitTimePitch()
         renderTracks = [:]
-        trackOrder = []
         outputFormat = nil
         duration = 0
         durationFrames = 0
@@ -570,12 +622,10 @@ final class MultiTrackAudioPlayer: AudioPlaybackControlling {
         }
     }
 
-    private nonisolated static func waitForRenderQuiescence(_ renderLease: AudioRenderGraphLease?) {
+    nonisolated static func waitForRenderQuiescence(_ renderLease: AudioRenderGraphLease?) {
         guard let renderLease else { return }
-        var remainingAttempts = 1_000
-        while !renderLease.isRenderInactive, remainingAttempts > 0 {
+        while !renderLease.isRenderInactive {
             Thread.sleep(forTimeInterval: 0.000_1)
-            remainingAttempts -= 1
         }
     }
 }

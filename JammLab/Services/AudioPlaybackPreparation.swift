@@ -159,13 +159,17 @@ struct MultiTrackAudioPreparer: AudioPlaybackPreparing {
         progress: @escaping @Sendable (AudioPreparationProgress) -> Void
     ) async throws -> PreparedPlaybackAsset {
         let memoryPolicy = memoryPolicy
-        return try await Task.detached(priority: .userInitiated) {
+        let worker = Task.detached(priority: .userInitiated) {
             try Task.checkCancellation()
             progress(AudioPreparationProgress(completedUnitCount: 0, totalUnitCount: 1, status: "Decoding audio"))
             let file = try AVAudioFile(forReading: url)
             let outputFormat = try Self.renderFormat(for: file.processingFormat)
             try memoryPolicy.validate(frameCount: file.length, channelCount: outputFormat.channelCount)
-            let buffer = try AudioFileBufferDecoder.decode(file: file, to: outputFormat)
+            let buffer = try AudioFileBufferDecoder.decode(
+                file: file,
+                to: outputFormat,
+                cancellationCheck: Task.checkCancellation
+            )
             try Task.checkCancellation()
             progress(AudioPreparationProgress(completedUnitCount: 1, totalUnitCount: 1, status: "Audio decoded"))
             return PreparedPlaybackAsset(
@@ -174,7 +178,12 @@ struct MultiTrackAudioPreparer: AudioPlaybackPreparing {
                     tracks: [PreparedAudioTrack(stemType: nil, buffer: buffer, volume: volume)]
                 )
             )
-        }.value
+        }
+        return try await withTaskCancellationHandler {
+            try await worker.value
+        } onCancel: {
+            worker.cancel()
+        }
     }
 
     func prepareStems(
@@ -187,7 +196,8 @@ struct MultiTrackAudioPreparer: AudioPlaybackPreparing {
         }
 
         let memoryPolicy = memoryPolicy
-        return try await Task.detached(priority: .userInitiated) {
+        let worker = Task.detached(priority: .userInitiated) {
+            try Task.checkCancellation()
             let firstFile = try AVAudioFile(forReading: stems[0].url)
             let outputFormat = try Self.renderFormat(for: firstFile.processingFormat)
             var preparedTracks: [PreparedAudioTrack] = []
@@ -195,6 +205,7 @@ struct MultiTrackAudioPreparer: AudioPlaybackPreparing {
 
             var estimatedFrames: AVAudioFramePosition = 0
             for stem in stems {
+                try Task.checkCancellation()
                 let file = try AVAudioFile(forReading: stem.url)
                 estimatedFrames += file.length
             }
@@ -208,7 +219,11 @@ struct MultiTrackAudioPreparer: AudioPlaybackPreparing {
                     status: "Decoding \(stem.type.title)"
                 ))
                 let file = try AVAudioFile(forReading: stem.url)
-                let buffer = try AudioFileBufferDecoder.decode(file: file, to: outputFormat)
+                let buffer = try AudioFileBufferDecoder.decode(
+                    file: file,
+                    to: outputFormat,
+                    cancellationCheck: Task.checkCancellation
+                )
                 preparedTracks.append(PreparedAudioTrack(
                     stemType: stem.type,
                     buffer: buffer,
@@ -223,7 +238,12 @@ struct MultiTrackAudioPreparer: AudioPlaybackPreparing {
                 status: "Stems decoded"
             ))
             return PreparedPlaybackAsset(storage: .decoded(outputFormat: outputFormat, tracks: preparedTracks))
-        }.value
+        }
+        return try await withTaskCancellationHandler {
+            try await worker.value
+        } onCancel: {
+            worker.cancel()
+        }
     }
 
     private static func renderFormat(for sourceFormat: AVAudioFormat) throws -> AVAudioFormat {

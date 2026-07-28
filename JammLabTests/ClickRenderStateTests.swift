@@ -249,13 +249,42 @@ final class AudioTransportRenderStateTests: XCTestCase {
         XCTAssertEqual(state.currentFrame, 3)
     }
 
-    func testAtomicRenderValuesRoundTripAcrossConcurrentReaders() {
+    func testAtomicRenderCounterProducesExactConcurrentTotal() {
         let value = AudioRenderAtomicInt64()
-        DispatchQueue.concurrentPerform(iterations: 1_000) { index in
-            value.value = Int64(index)
-            _ = value.value
+        DispatchQueue.concurrentPerform(iterations: 10_000) { _ in
+            value.increment()
         }
 
-        XCTAssertTrue((0..<1_000).contains(Int(value.value)))
+        XCTAssertEqual(value.value, 10_000)
+
+        DispatchQueue.concurrentPerform(iterations: 10_000) { _ in
+            value.decrement()
+        }
+
+        XCTAssertEqual(value.value, 0)
+    }
+
+    func testRenderQuiescenceWaitsForEveryActiveLease() {
+        let lease = AudioRenderGraphLease(tracks: [])
+        lease.beginRender()
+        lease.beginRender()
+        XCTAssertEqual(lease.activeRenderCount, 2)
+
+        let waitStarted = DispatchSemaphore(value: 0)
+        let waitFinished = DispatchSemaphore(value: 0)
+        DispatchQueue.global(qos: .userInitiated).async {
+            waitStarted.signal()
+            MultiTrackAudioPlayer.waitForRenderQuiescence(lease)
+            waitFinished.signal()
+        }
+
+        XCTAssertEqual(waitStarted.wait(timeout: .now() + 1), .success)
+        lease.endRender()
+        XCTAssertEqual(lease.activeRenderCount, 1)
+        XCTAssertEqual(waitFinished.wait(timeout: .now() + 0.02), .timedOut)
+
+        lease.endRender()
+        XCTAssertEqual(waitFinished.wait(timeout: .now() + 1), .success)
+        XCTAssertTrue(lease.isRenderInactive)
     }
 }

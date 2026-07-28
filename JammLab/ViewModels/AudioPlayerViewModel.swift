@@ -117,6 +117,7 @@ final class AudioPlayerViewModel: ObservableObject {
     var waveformTask: Task<Void, Never>?
     var audioPreparationTask: Task<PreparedPlaybackAsset, Error>?
     var audioPreparationRunID: UUID?
+    var mediaLoadRunID: UUID?
     var preparedPlaybackAssets: [PlaybackMode: PreparedPlaybackAsset] = [:]
     var notationMeasureSelectionAnchor: NotationMeasureSelection?
     var stemSeparationTask: Task<Void, Never>?
@@ -204,7 +205,7 @@ final class AudioPlayerViewModel: ObservableObject {
         self.peakformProvider = peakformProvider
         self.playbackEngine = resolvedPlaybackEngine
         self.playbackPreparer = playbackPreparer
-            ?? (resolvedPlaybackEngine is MultiTrackAudioPlayer
+            ?? (resolvedPlaybackEngine.requiresPreparedPlayback
                 ? MultiTrackAudioPreparer()
                 : LegacyAudioPlaybackPreparer())
         self.videoFollower = videoFollower ?? VideoFollowerController()

@@ -81,6 +81,10 @@ final class AudioRenderGraphLease: @unchecked Sendable {
     var isRenderInactive: Bool {
         activeCallbacks.value == 0
     }
+
+    var activeRenderCount: Int64 {
+        activeCallbacks.value
+    }
 }
 
 final class AudioTransportRenderState: @unchecked Sendable {

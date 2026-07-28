@@ -2,6 +2,7 @@ import Foundation
 
 @MainActor
 protocol AudioPlaybackControlling: AnyObject {
+    var requiresPreparedPlayback: Bool { get }
     var isLoaded: Bool { get }
     var isPlaying: Bool { get }
     var currentTime: TimeInterval { get }
@@ -29,6 +30,8 @@ protocol AudioPlaybackControlling: AnyObject {
 }
 
 extension AudioPlaybackControlling {
+    var requiresPreparedPlayback: Bool { false }
+
     func install(prepared asset: PreparedPlaybackAsset) throws {
         switch asset.storage {
         case .originalURL(let url):

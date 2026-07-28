@@ -4,7 +4,7 @@ import SwiftUI
 private let notationTrackCoordinateSpaceName = "NotationTrackCoordinateSpace"
 
 struct NotationTrackView: View {
-    private let renderSceneCache = NotationTrackRenderSceneCache()
+    @State private var renderSceneCache = NotationTrackRenderSceneCache()
     let state: NotationViewportState
     let measureLayout: NotationSystemMeasureLayout?
     let partID: NotationPartID

@@ -20,25 +20,27 @@ final class StemHelperProcessControllerTests: XCTestCase {
         XCTAssertEqual(launcher.launchCount, 0)
     }
 
-    func testStemHelperControllerIgnoresWrongVersionHeartbeat() async throws {
+    func testStemHelperControllerRejectsFreshWrongVersionHeartbeatWithoutLaunchingSecondHelper() async throws {
         let directory = temporaryDirectory()
         try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
         let helperURL = try executableHelperFile(in: directory)
         let heartbeatURL = directory.appendingPathComponent(StemJobFiles.heartbeatFilename)
         try writeHeartbeat(to: heartbeatURL, helperVersion: StemJobFiles.helperVersion - 1, updatedAt: Date())
         let launcher = MockStemHelperLauncher()
-        launcher.onLaunch = { _ in
-            try self.writeHeartbeat(to: heartbeatURL, updatedAt: Date())
-        }
         let controller = StemHelperProcessController(
             helperExecutableURL: helperURL,
             heartbeatURL: heartbeatURL,
             launcher: launcher
         )
 
-        try await controller.ensureRunning(timeout: 0.5)
-
-        XCTAssertEqual(launcher.launchCount, 1)
+        do {
+            try await controller.ensureRunning(timeout: 0.5)
+            XCTFail("Expected capability mismatch")
+        } catch is StemHelperCapabilityError {
+            XCTAssertEqual(launcher.launchCount, 0)
+        } catch {
+            XCTFail("Unexpected error: \(error)")
+        }
     }
 
     func testStemHelperControllerLaunchesWhenHeartbeatIsMissing() async throws {

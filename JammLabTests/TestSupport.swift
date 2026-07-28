@@ -171,6 +171,7 @@ struct MockPeakformProvider: PeakformProvider {
 
 @MainActor
 final class MockPlaybackEngine: AudioPlaybackControlling {
+    var requiresPreparedPlayback = false
     var isLoaded = false
     var isPlaying = false
     var currentTime: TimeInterval = 0
@@ -189,12 +190,21 @@ final class MockPlaybackEngine: AudioPlaybackControlling {
     var seekCount = 0
     var loopEnabled = false
     var loopRegion = LoopRegion.empty
+    var queuedLoadErrors: [Error] = []
+    var queuedPlayErrors: [Error] = []
 
     func load(url: URL) throws {
+        isLoaded = false
+        if !queuedLoadErrors.isEmpty {
+            throw queuedLoadErrors.removeFirst()
+        }
         isLoaded = true
     }
 
     func play() throws {
+        if !queuedPlayErrors.isEmpty {
+            throw queuedPlayErrors.removeFirst()
+        }
         isPlaying = true
     }
 
@@ -237,6 +247,10 @@ final class MockPlaybackEngine: AudioPlaybackControlling {
     }
 
     func load(stems: [StemFile], mixState: StemMixState) throws {
+        isLoaded = false
+        if !queuedLoadErrors.isEmpty {
+            throw queuedLoadErrors.removeFirst()
+        }
         isLoaded = true
         self.mixState = mixState
     }

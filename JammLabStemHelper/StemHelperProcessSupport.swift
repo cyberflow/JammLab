@@ -20,6 +20,10 @@ struct HelperBackend {
             .map { $0.contains(" ") ? "\"\($0)\"" : $0 }
             .joined(separator: " ")
     }
+
+    func identifier(separatorVersion: String) -> String {
+        "\(executableURL.lastPathComponent)/\(separatorVersion)"
+    }
 }
 
 struct ProcessResult {

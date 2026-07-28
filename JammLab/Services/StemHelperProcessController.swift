@@ -126,13 +126,14 @@ actor StemHelperProcessController {
         requiredModel: String? = nil,
         computeMode: String? = nil
     ) async throws {
-        if let heartbeat = readHeartbeat(),
-           heartbeat.isFresh,
-           capabilityMismatch(
-               heartbeat,
-               requiredModel: requiredModel,
-               computeMode: computeMode
-           ) == nil {
+        if let heartbeat = readHeartbeat(), heartbeat.isFresh {
+            if let mismatch = capabilityMismatch(
+                heartbeat,
+                requiredModel: requiredModel,
+                computeMode: computeMode
+            ) {
+                throw StemHelperCapabilityError.incompatibleHeartbeat(mismatch)
+            }
             return
         }
 

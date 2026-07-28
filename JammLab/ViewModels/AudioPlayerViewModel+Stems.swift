@@ -58,7 +58,7 @@ extension AudioPlayerViewModel {
                 guard stemSeparationRunID == runID else { return }
                 let message = error.localizedDescription
                 let diagnostics = (error as? StemSeparationError)?.diagnostics
-                let isCancellation = isStemSeparationCancellation(error)
+                let isCancellation = Task.isCancelled || isStemSeparationCancellation(error)
                 stemSeparationState = StemSeparationViewState(
                     phase: isCancellation ? .cancelled : .failed(message),
                     progress: nil,
@@ -104,7 +104,7 @@ extension AudioPlayerViewModel {
     }
 
     func setPlaybackMode(_ mode: PlaybackMode) {
-        if playbackEngine is MultiTrackAudioPlayer {
+        if playbackEngine.requiresPreparedPlayback {
             beginPreparedPlaybackModeSwitch(
                 mode,
                 preservedTime: currentTime,
@@ -161,6 +161,8 @@ extension AudioPlayerViewModel {
 
 
     func registerStemMetadata(_ metadata: StemCacheMetadata, activatePlayback: Bool = false) {
+        let replacesActiveMultiTrackStems = playbackEngine.requiresPreparedPlayback
+            && playbackMode == .stems
         preparedPlaybackAssets[.stems] = nil
         stemCacheMetadata = metadata
         stemFiles = metadata.stems
@@ -173,12 +175,22 @@ extension AudioPlayerViewModel {
         )
 
         if activatePlayback || playbackMode == .stems {
-            switchPlaybackMode(
-                .stems,
-                preservedTime: currentTime,
-                errorPrefix: "Stem playback failed",
-                reloadIfCurrentMode: true
-            )
+            if playbackEngine.requiresPreparedPlayback {
+                beginPreparedPlaybackModeSwitch(
+                    .stems,
+                    preservedTime: currentTime,
+                    errorPrefix: "Stem playback failed",
+                    registersUndo: false,
+                    failureRollbackMode: replacesActiveMultiTrackStems ? .original : nil
+                )
+            } else {
+                switchPlaybackMode(
+                    .stems,
+                    preservedTime: currentTime,
+                    errorPrefix: "Stem playback failed",
+                    reloadIfCurrentMode: true
+                )
+            }
         }
     }
 
