@@ -77,6 +77,8 @@ enum MultiTrackAudioPlayerError: LocalizedError {
     case unsupportedAudioFormat
     case audioConversionFailed
     case outputDeviceUnavailable
+    case unsupportedPreparedAsset
+    case preparationMemoryLimitExceeded(requiredBytes: UInt64, limitBytes: UInt64)
 
     var errorDescription: String? {
         switch self {
@@ -90,6 +92,12 @@ enum MultiTrackAudioPlayerError: LocalizedError {
             return "Audio decoding failed."
         case .outputDeviceUnavailable:
             return "Audio output device is unavailable."
+        case .unsupportedPreparedAsset:
+            return "This playback engine cannot install the prepared audio."
+        case .preparationMemoryLimitExceeded(let requiredBytes, let limitBytes):
+            let required = ByteCountFormatter.string(fromByteCount: Int64(clamping: requiredBytes), countStyle: .memory)
+            let limit = ByteCountFormatter.string(fromByteCount: Int64(clamping: limitBytes), countStyle: .memory)
+            return "This audio needs about \(required) to prepare, above the \(limit) safety limit. Close other projects or use a shorter file."
         }
     }
 }
@@ -163,6 +171,24 @@ final class MultiTrackAudioPlayer: AudioPlaybackControlling {
             )
         }
         try loadTracks(tracks, outputFormat: format)
+    }
+
+    func install(prepared asset: PreparedPlaybackAsset) throws {
+        switch asset.storage {
+        case .decoded(let outputFormat, let preparedTracks):
+            let tracks = preparedTracks.map { preparedTrack in
+                AudioRenderTrack(
+                    id: preparedTrack.stemType.map { .stem($0) } ?? .original,
+                    buffer: preparedTrack.buffer,
+                    volume: preparedTrack.volume
+                )
+            }
+            try loadTracks(tracks, outputFormat: outputFormat)
+        case .originalURL(let url):
+            try load(url: url)
+        case .stems(let stems, let mixState):
+            try load(stems: stems, mixState: mixState)
+        }
     }
 
     func play() throws {

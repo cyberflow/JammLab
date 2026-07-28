@@ -1,6 +1,87 @@
 import Foundation
 
 extension AudioPlayerViewModel {
+    func prepareOriginalPlayback(
+        for file: ImportedAudioFile,
+        kind: AudioPreparationKind,
+        volume: Float? = nil
+    ) async throws -> PreparedPlaybackAsset {
+        audioPreparationTask?.cancel()
+        let runID = UUID()
+        audioPreparationRunID = runID
+        audioPreparationState = AudioPreparationViewState(
+            kind: kind,
+            phase: .decoding,
+            progress: 0,
+            status: "Preparing audio",
+            pendingPlaybackMode: .original,
+            isCancellable: true
+        )
+
+        let preparer = playbackPreparer
+        let volume = volume ?? mainTrackVolume
+        let task = Task {
+            try await preparer.prepareOriginal(url: file.url, volume: volume) { [weak self] progress in
+                Task { @MainActor in
+                    guard self?.audioPreparationRunID == runID else { return }
+                    self?.audioPreparationState = AudioPreparationViewState(
+                        kind: kind,
+                        phase: .decoding,
+                        progress: progress.fractionCompleted,
+                        status: progress.status,
+                        pendingPlaybackMode: .original,
+                        isCancellable: true
+                    )
+                }
+            }
+        }
+        audioPreparationTask = task
+
+        do {
+            let asset = try await task.value
+            try Task.checkCancellation()
+            guard audioPreparationRunID == runID else { throw CancellationError() }
+            audioPreparationState = AudioPreparationViewState(
+                kind: kind,
+                phase: .installing,
+                progress: 1,
+                status: "Installing audio",
+                pendingPlaybackMode: .original,
+                isCancellable: false
+            )
+            return asset
+        } catch {
+            if audioPreparationRunID == runID {
+                audioPreparationTask = nil
+                audioPreparationRunID = nil
+                audioPreparationState = AudioPreparationViewState(
+                    kind: kind,
+                    phase: error is CancellationError ? .cancelled : .failed,
+                    progress: nil,
+                    status: error is CancellationError ? "Audio preparation cancelled" : error.localizedDescription,
+                    pendingPlaybackMode: nil,
+                    isCancellable: false
+                )
+            }
+            throw error
+        }
+    }
+
+    func finishAudioPreparation() {
+        audioPreparationTask = nil
+        audioPreparationRunID = nil
+        audioPreparationState = .idle
+    }
+
+    func cancelAudioPreparation() {
+        guard audioPreparationState.isCancellable else { return }
+        audioPreparationTask?.cancel()
+        audioPreparationState.phase = .cancelled
+        audioPreparationState.progress = nil
+        audioPreparationState.status = "Cancelling audio preparation"
+        audioPreparationState.isCancellable = false
+    }
+
     var clickVolumeText: String {
         "\(Int((clickVolume * 100).rounded()))%"
     }
@@ -194,7 +275,137 @@ extension AudioPlayerViewModel {
     }
 
     func restorePlaybackMode(_ mode: PlaybackMode, preservedTime: TimeInterval) {
+        if playbackEngine is MultiTrackAudioPlayer {
+            beginPreparedPlaybackModeSwitch(
+                mode,
+                preservedTime: preservedTime,
+                errorPrefix: "Playback mode restore failed",
+                registersUndo: false
+            )
+            return
+        }
         switchPlaybackMode(mode, preservedTime: preservedTime, errorPrefix: "Playback mode restore failed")
+    }
+
+    func beginPreparedPlaybackModeSwitch(
+        _ mode: PlaybackMode,
+        preservedTime: TimeInterval,
+        errorPrefix: String,
+        registersUndo: Bool
+    ) {
+        let targetMode: PlaybackMode = mode == .stems && canUseStemsPlayback ? .stems : .original
+        guard targetMode != playbackMode || preparedPlaybackAssets[targetMode] == nil else { return }
+        guard let importedFile else { return }
+
+        audioPreparationTask?.cancel()
+        let runID = UUID()
+        let previousMode = playbackMode
+        let wasPlaying = playbackState == .playing
+        audioPreparationRunID = runID
+        activePlaybackEngine.pause()
+        videoFollower.pause()
+        if wasPlaying {
+            playbackState = .paused
+        }
+
+        audioPreparationState = AudioPreparationViewState(
+            kind: .switchingMode,
+            phase: .decoding,
+            progress: 0,
+            status: targetMode == .stems ? "Preparing stems" : "Preparing original audio",
+            pendingPlaybackMode: targetMode,
+            isCancellable: true
+        )
+
+        let preparer = playbackPreparer
+        let stems = stemFiles
+        let mixState = stemMixState
+        let volume = mainTrackVolume
+        let progressHandler: @Sendable (AudioPreparationProgress) -> Void = { [weak self] progress in
+            Task { @MainActor in
+                guard self?.audioPreparationRunID == runID else { return }
+                self?.audioPreparationState = AudioPreparationViewState(
+                    kind: .switchingMode,
+                    phase: .decoding,
+                    progress: progress.fractionCompleted,
+                    status: progress.status,
+                    pendingPlaybackMode: targetMode,
+                    isCancellable: true
+                )
+            }
+        }
+
+        let task = Task {
+            if let cached = preparedPlaybackAssets[targetMode] {
+                return cached
+            }
+            if targetMode == .stems {
+                return try await preparer.prepareStems(stems, mixState: mixState, progress: progressHandler)
+            }
+            return try await preparer.prepareOriginal(
+                url: importedFile.url,
+                volume: volume,
+                progress: progressHandler
+            )
+        }
+        audioPreparationTask = task
+
+        Task { [weak self] in
+            guard let self else { return }
+            do {
+                let asset = try await task.value
+                try Task.checkCancellation()
+                guard audioPreparationRunID == runID else { return }
+                audioPreparationState = AudioPreparationViewState(
+                    kind: .switchingMode,
+                    phase: .installing,
+                    progress: 1,
+                    status: "Installing \(targetMode.title)",
+                    pendingPlaybackMode: targetMode,
+                    isCancellable: false
+                )
+                try configurePlayer(with: asset)
+                preparedPlaybackAssets[targetMode] = asset
+                playbackMode = targetMode
+                seekExactly(to: preservedTime)
+
+                if registersUndo, previousMode != targetMode {
+                    undoManager?.registerUndo(withTarget: self) { target in
+                        target.restorePlaybackMode(previousMode, preservedTime: preservedTime)
+                    }
+                    undoManager?.setActionName("Change Playback Mode")
+                    refreshUndoAvailability()
+                    refreshProjectModifiedState()
+                }
+
+                if wasPlaying {
+                    try activePlaybackEngine.play()
+                    videoFollower.play(rate: playbackRate)
+                    playbackState = .playing
+                }
+                finishAudioPreparation()
+            } catch {
+                guard audioPreparationRunID == runID else { return }
+                if wasPlaying, activePlaybackEngine.isLoaded {
+                    try? activePlaybackEngine.play()
+                    videoFollower.play(rate: playbackRate)
+                    playbackState = .playing
+                }
+                audioPreparationTask = nil
+                audioPreparationRunID = nil
+                audioPreparationState = AudioPreparationViewState(
+                    kind: .switchingMode,
+                    phase: error is CancellationError ? .cancelled : .failed,
+                    progress: nil,
+                    status: error is CancellationError ? "Playback preparation cancelled" : error.localizedDescription,
+                    pendingPlaybackMode: nil,
+                    isCancellable: false
+                )
+                if !(error is CancellationError) {
+                    errorMessage = "\(errorPrefix): \(error.localizedDescription)"
+                }
+            }
+        }
     }
 
     func switchPlaybackMode(
@@ -257,6 +468,11 @@ extension AudioPlayerViewModel {
 
     func configurePlayer(with file: ImportedAudioFile) throws {
         try playbackEngine.load(url: file.url)
+        applyPlaybackConfiguration()
+    }
+
+    func configurePlayer(with preparedAsset: PreparedPlaybackAsset) throws {
+        try playbackEngine.install(prepared: preparedAsset)
         applyPlaybackConfiguration()
     }
 

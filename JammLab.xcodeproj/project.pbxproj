@@ -102,6 +102,8 @@
 		9F8F01012C50000100112233 /* AppDefaults.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9F8F00012C50000100112233 /* AppDefaults.swift */; };
 		9F8F01022C50000100112233 /* AppDefaults.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9F8F00012C50000100112233 /* AppDefaults.swift */; };
 		9F8F01032C50000100112233 /* AudioPlaybackControlling.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9F8F00022C50000100112233 /* AudioPlaybackControlling.swift */; };
+		A14B01013000000100112233 /* AudioPlaybackPreparation.swift in Sources */ = {isa = PBXBuildFile; fileRef = A14B00013000000100112233 /* AudioPlaybackPreparation.swift */; };
+		A14B01023000000100112233 /* AudioPreparationCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = A14B00023000000100112233 /* AudioPreparationCard.swift */; };
 		9F9001012C60000100112233 /* TransportControlsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9F9000012C60000100112233 /* TransportControlsView.swift */; };
 		9F9001032C60000100112233 /* InspectorSidebarView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9F9000032C60000100112233 /* InspectorSidebarView.swift */; };
 		9F9101012C70000100112233 /* TempoGridCalculator.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9F9100012C70000100112233 /* TempoGridCalculator.swift */; };
@@ -405,6 +407,8 @@
 		9F8E00032C40000100112233 /* main.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = main.swift; sourceTree = "<group>"; };
 		9F8F00012C50000100112233 /* AppDefaults.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppDefaults.swift; sourceTree = "<group>"; };
 		9F8F00022C50000100112233 /* AudioPlaybackControlling.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AudioPlaybackControlling.swift; sourceTree = "<group>"; };
+		A14B00013000000100112233 /* AudioPlaybackPreparation.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AudioPlaybackPreparation.swift; sourceTree = "<group>"; };
+		A14B00023000000100112233 /* AudioPreparationCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AudioPreparationCard.swift; sourceTree = "<group>"; };
 		9F9000012C60000100112233 /* TransportControlsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TransportControlsView.swift; sourceTree = "<group>"; };
 		9F9000032C60000100112233 /* InspectorSidebarView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InspectorSidebarView.swift; sourceTree = "<group>"; };
 		9F9100012C70000100112233 /* TempoGridCalculator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TempoGridCalculator.swift; sourceTree = "<group>"; };
@@ -687,6 +691,7 @@
 				9FB001002D06000100112233 /* AudioDeviceService.swift */,
 				9F8A00042C00000100112233 /* AudioFileImporter.swift */,
 				9F8F00022C50000100112233 /* AudioPlaybackControlling.swift */,
+				A14B00013000000100112233 /* AudioPlaybackPreparation.swift */,
 				9FCB00012D80000100112233 /* AudioSampleConverter.swift */,
 				9F8A00172C00000100112233 /* BeatGridCalculator.swift */,
 				9FBE00012F70000100112233 /* NotationBeamLayout.swift */,
@@ -996,6 +1001,7 @@
 				9F9500012CB0000100112233 /* AbletonNumberField.swift */,
 				9F9600012CC0000100112233 /* JammValueSlider.swift */,
 				9FDE00032F60000100112233 /* AppControlButton.swift */,
+				A14B00023000000100112233 /* AudioPreparationCard.swift */,
 				9F8C00032C20000100112233 /* NotationControls.swift */,
 				9FCB00032D80000100112233 /* AppLetterToggleButton.swift */,
 				9FCB00052D80000100112233 /* AppPopoverDismissModifier.swift */,
@@ -1231,6 +1237,7 @@
 				9FB001012D06000100112233 /* AudioDeviceService.swift in Sources */,
 				9F8A01042C00000100112233 /* AudioFileImporter.swift in Sources */,
 				9F8F01032C50000100112233 /* AudioPlaybackControlling.swift in Sources */,
+				A14B01013000000100112233 /* AudioPlaybackPreparation.swift in Sources */,
 				9FCB01012D80000100112233 /* AudioSampleConverter.swift in Sources */,
 				9F8A01032C00000100112233 /* AudioPlayerViewModel.swift in Sources */,
 				9F7001052F80000100112233 /* AudioPlayerViewModel+StemTranscription.swift in Sources */,
@@ -1247,6 +1254,7 @@
 				9FB200062D30000100112233 /* AudioPlayerViewModel+Video.swift in Sources */,
 				9FB200072D30000100112233 /* AudioPlayerViewModel+UndoDirty.swift in Sources */,
 				9FDE01032F60000100112233 /* AppControlButton.swift in Sources */,
+				A14B01023000000100112233 /* AudioPreparationCard.swift in Sources */,
 				9F8C01032C20000100112233 /* NotationControls.swift in Sources */,
 				9FCB01032D80000100112233 /* AppLetterToggleButton.swift in Sources */,
 				9FCB01052D80000100112233 /* AppPopoverDismissModifier.swift in Sources */,

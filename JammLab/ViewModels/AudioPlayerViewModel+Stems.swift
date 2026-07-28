@@ -104,6 +104,16 @@ extension AudioPlayerViewModel {
     }
 
     func setPlaybackMode(_ mode: PlaybackMode) {
+        if playbackEngine is MultiTrackAudioPlayer {
+            beginPreparedPlaybackModeSwitch(
+                mode,
+                preservedTime: currentTime,
+                errorPrefix: "Playback mode switch failed",
+                registersUndo: true
+            )
+            return
+        }
+
         performUndoableEdit("Change Playback Mode") {
             switchPlaybackMode(mode, preservedTime: currentTime, errorPrefix: "Playback mode switch failed")
         }
@@ -151,6 +161,7 @@ extension AudioPlayerViewModel {
 
 
     func registerStemMetadata(_ metadata: StemCacheMetadata, activatePlayback: Bool = false) {
+        preparedPlaybackAssets[.stems] = nil
         stemCacheMetadata = metadata
         stemFiles = metadata.stems
         stemMixState.setAvailability(from: metadata.stems)
@@ -185,9 +196,6 @@ extension AudioPlayerViewModel {
                 stemMixState = preferredMixState
             }
 
-            if preferredPlaybackMode == .stems {
-                playbackMode = .stems
-            }
             registerStemMetadata(metadata)
 
             return true
@@ -220,9 +228,6 @@ extension AudioPlayerViewModel {
                     expectedFingerprint: currentFingerprint,
                     fallbackFingerprint: projectStemState?.sourceFingerprint
                 ) {
-                    if projectStemState?.playbackMode == .stems {
-                        playbackMode = .stems
-                    }
                     registerStemMetadata(metadata)
                     return
                 }
@@ -282,9 +287,6 @@ extension AudioPlayerViewModel {
                 return
             }
 
-            if projectStemState.playbackMode == .stems {
-                playbackMode = .stems
-            }
             registerStemMetadata(metadata)
         } catch {
             stemSeparationState = StemSeparationViewState(
@@ -314,6 +316,7 @@ extension AudioPlayerViewModel {
 
     func resetStemState(mixState: StemMixState = StemMixState()) {
         playbackMode = .original
+        preparedPlaybackAssets[.stems] = nil
         stemFiles = []
         clearStemPeakforms()
         stemMixState = mixState

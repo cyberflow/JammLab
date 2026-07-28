@@ -3,6 +3,43 @@ import XCTest
 @testable import JammLab
 
 final class MultiTrackAudioPlayerConversionTests: XCTestCase {
+    func testBackgroundPreparerDecodesOriginalAndReportsCompletion() async throws {
+        let url = try temporaryAudioFile(duration: 0.1, namePrefix: "prepared")
+        defer { try? FileManager.default.removeItem(at: url.deletingLastPathComponent()) }
+        let completed = expectation(description: "Preparation completed")
+
+        let asset = try await MultiTrackAudioPreparer().prepareOriginal(
+            url: url,
+            volume: 0.75
+        ) { progress in
+            if progress.fractionCompleted == 1 {
+                completed.fulfill()
+            }
+        }
+        await fulfillment(of: [completed], timeout: 2)
+
+        guard case .decoded(let format, let tracks) = asset.storage else {
+            return XCTFail("Expected decoded playback asset")
+        }
+        XCTAssertEqual(format.commonFormat, .pcmFormatFloat32)
+        XCTAssertEqual(tracks.count, 1)
+        XCTAssertNil(tracks[0].stemType)
+        XCTAssertEqual(tracks[0].volume, 0.75)
+        XCTAssertGreaterThan(tracks[0].buffer.frameLength, 0)
+    }
+
+    func testPreparationMemoryPolicyRejectsOversizedCandidate() {
+        let policy = AudioPreparationMemoryPolicy(maximumCandidateBytes: 1_024)
+
+        XCTAssertThrowsError(
+            try policy.validate(frameCount: 10_000, channelCount: 2)
+        ) { error in
+            guard case MultiTrackAudioPlayerError.preparationMemoryLimitExceeded = error else {
+                return XCTFail("Unexpected error: \(error)")
+            }
+        }
+    }
+
     func testDecodeConvertsIntegerPCMWithoutTruncatingSamples() throws {
         let directory = FileManager.default.temporaryDirectory
             .appendingPathComponent(UUID().uuidString, isDirectory: true)

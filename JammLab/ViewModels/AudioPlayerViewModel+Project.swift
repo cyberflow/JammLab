@@ -11,10 +11,19 @@ extension AudioPlayerViewModel {
                 return
             }
 
-            try loadImportedAudio(file)
+            let candidateMediaLease = try SecurityScopedResourceLease(
+                url: file.sourceMediaURL,
+                requiresAccess: isSandboxed()
+            )
+            let preparedAsset = try await prepareOriginalPlayback(for: file, kind: .importing)
+            _ = candidateMediaLease
+            try loadImportedAudio(file, preparedAsset: preparedAsset)
+            finishAudioPreparation()
         } catch {
             isImporting = false
-            errorMessage = error.localizedDescription
+            if !(error is CancellationError) {
+                errorMessage = error.localizedDescription
+            }
         }
     }
 
@@ -24,10 +33,19 @@ extension AudioPlayerViewModel {
 
         do {
             let file = try await importer.importFile(from: url)
-            try loadImportedAudio(file)
+            let candidateMediaLease = try SecurityScopedResourceLease(
+                url: file.sourceMediaURL,
+                requiresAccess: isSandboxed()
+            )
+            let preparedAsset = try await prepareOriginalPlayback(for: file, kind: .importing)
+            _ = candidateMediaLease
+            try loadImportedAudio(file, preparedAsset: preparedAsset)
+            finishAudioPreparation()
         } catch {
             isImporting = false
-            errorMessage = error.localizedDescription
+            if !(error is CancellationError) {
+                errorMessage = error.localizedDescription
+            }
         }
     }
 
@@ -81,6 +99,7 @@ extension AudioPlayerViewModel {
     }
 
     func newProject() {
+        cancelAudioPreparation()
         stopPlaybackClock()
         playbackEngine.unload()
         performWithoutVideoWindowDirtyTracking {
@@ -99,6 +118,7 @@ extension AudioPlayerViewModel {
     }
 
     private func resetForNewProject() {
+        preparedPlaybackAssets = [:]
         importedFile = nil
         analysisResult = nil
         peakformData = nil
@@ -127,6 +147,7 @@ extension AudioPlayerViewModel {
         userTimelineVisibleRange = 0...0
         currentProjectURL = nil
         isImporting = false
+        audioPreparationState = .idle
         isAnalyzing = false
         isBuildingWaveform = false
         resetStemState()
@@ -147,6 +168,38 @@ extension AudioPlayerViewModel {
         beginSecurityScopedAccess(for: file.sourceMediaURL)
         do {
             try configurePlayer(with: file)
+        } catch {
+            endSecurityScopedAccess()
+            throw error
+        }
+
+        importedFile = file
+        performWithoutVideoWindowDirtyTracking {
+            videoFollower.load(videoURL: file.videoURL)
+        }
+        resetForImportedFile(file)
+        clearUndoHistory()
+
+        _ = restoreCachedStems(for: file.url)
+        restoreVideoWindowOpenState(file.mediaKind == .video)
+        markProjectClean()
+
+        buildPeakform(file: file)
+        analyze(file: file, includesTempo: true, includesKey: true)
+    }
+
+    func loadImportedAudio(
+        _ file: ImportedAudioFile,
+        preparedAsset: PreparedPlaybackAsset
+    ) throws {
+        playbackEngine.stop()
+        videoFollower.stop()
+        cancelBackgroundWork()
+
+        beginSecurityScopedAccess(for: file.sourceMediaURL)
+        do {
+            try configurePlayer(with: preparedAsset)
+            preparedPlaybackAssets = [.original: preparedAsset]
         } catch {
             endSecurityScopedAccess()
             throw error
@@ -199,25 +252,47 @@ extension AudioPlayerViewModel {
         errorMessage = nil
         isImporting = true
         stopPlaybackClock()
-        var didAdoptProject = false
 
         do {
-            beginProjectSecurityScopedAccess(for: url)
+            let candidateProjectLease = try SecurityScopedResourceLease(
+                url: url,
+                requiresAccess: isSandboxed()
+            )
             let project = try projectService.load(from: url)
+            var candidateArtifactLease: SecurityScopedResourceLease?
             if let artifactRootURL = try? project.resolvedArtifactRootURL() {
-                beginProjectSecurityScopedAccess(for: artifactRootURL)
+                candidateArtifactLease = try SecurityScopedResourceLease(
+                    url: artifactRootURL,
+                    requiresAccess: isSandboxed()
+                )
             }
             let mediaResult = try await projectPersistenceCoordinator.resolveProjectMedia(project: project, projectURL: url)
+            var candidateMediaLease: SecurityScopedResourceLease?
             if let resolvedMediaURL = mediaResult.resolvedMediaURL {
-                beginSecurityScopedAccess(for: resolvedMediaURL)
+                candidateMediaLease = try SecurityScopedResourceLease(
+                    url: resolvedMediaURL,
+                    requiresAccess: isSandboxed()
+                )
             }
             let projectDuration = mediaResult.projectDuration
+            let file = mediaResult.file
+            let nextMainTrackVolume = clampedVolume(
+                project.mainTrackVolume ?? AppSliderDefaults.mainTrackVolume
+            )
+            let preparedAsset = try await prepareOriginalPlayback(
+                for: file,
+                kind: .openingProject,
+                volume: nextMainTrackVolume
+            )
+            _ = candidateProjectLease
+            _ = candidateArtifactLease
+            _ = candidateMediaLease
 
             playbackEngine.stop()
             videoFollower.stop()
             playbackRate = ProjectStateNormalizer.normalizedPlaybackRate(project.playbackRate)
             pitchShiftSemitones = ProjectStateNormalizer.normalizedPitchShift(project.pitchShiftSemitones)
-            mainTrackVolume = clampedVolume(project.mainTrackVolume ?? AppSliderDefaults.mainTrackVolume)
+            mainTrackVolume = nextMainTrackVolume
             clickVolume = clampedVolume(project.clickVolume ?? AppSliderDefaults.clickVolume)
             isSnapEnabled = project.isSnapEnabled ?? false
             beatGridSettings = ProjectStateNormalizer.normalizedBeatGridSettings(
@@ -232,18 +307,23 @@ extension AudioPlayerViewModel {
             shouldAcceptAnalyzedTempo = mediaResult.shouldAnalyzeTempo
             isClickEnabled = (project.isClickEnabled ?? false) && beatGridSettings.bpm != nil
             let restoredPlaybackMode = project.playbackMode ?? project.stemState?.playbackMode ?? .original
-            let file = mediaResult.file
             let resolvedProjectDuration = mediaResult.projectDuration
             beatGridSettings = beatGridSettings.clamped(to: resolvedProjectDuration)
             synchronizeTempoBPM(tempoBPM)
-            try configurePlayer(with: file)
+            try configurePlayer(with: preparedAsset)
+            preparedPlaybackAssets = [.original: preparedAsset]
 
             importedFile = file
+            beginSecurityScopedAccess(for: mediaResult.resolvedMediaURL ?? file.sourceMediaURL)
+            if let artifactRootURL = try? project.resolvedArtifactRootURL() {
+                _ = beginProjectSecurityScopedAccess(for: artifactRootURL)
+            } else {
+                _ = beginProjectSecurityScopedAccess(for: url)
+            }
             performWithoutVideoWindowDirtyTracking {
                 videoFollower.load(videoURL: file.videoURL)
             }
             currentProjectURL = url
-            didAdoptProject = true
             duration = resolvedProjectDuration
             let restoredPlaybackMarkerTime = ProjectStateNormalizer.normalizedTimelineTime(
                 project.playbackMarkerTime,
@@ -294,6 +374,7 @@ extension AudioPlayerViewModel {
             stemNoteDisplayModes = StemNoteDisplayModes.normalized(project.stemNoteDisplayModes)
             visibleNotationPartIDs = normalizedVisibleNotationPartIDs(from: project.visibleNotationPartIDs)
             isImporting = false
+            finishAudioPreparation()
             clearUndoHistory()
             markProjectClean()
             if let warningMessage = mediaResult.warningMessage {
@@ -311,9 +392,8 @@ extension AudioPlayerViewModel {
             )
         } catch {
             isImporting = false
-            if !didAdoptProject {
-                endSecurityScopedAccess()
-                endProjectSecurityScopedAccess()
+            if error is CancellationError {
+                return
             }
             errorMessage = "Project open failed: \(error.localizedDescription)"
         }
