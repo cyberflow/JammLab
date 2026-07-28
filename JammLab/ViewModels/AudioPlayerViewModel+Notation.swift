@@ -11,9 +11,8 @@ private struct NotationAccidentalEditTarget {
     var selectedItemID: String
     var partID: NotationPartID
     var clef: Clef
-    var chainIDs: Set<String>
-    var rootItemID: String
     var alreadyApplied: Bool
+    var updatedItems: [NotationMeasureItem]
 }
 
 private enum TiedNotationNoteCommandResolution {
@@ -34,160 +33,6 @@ private enum TiedNotationNoteCommandResolution {
 }
 
 extension AudioPlayerViewModel {
-    var canShowNotationWindow: Bool {
-        duration > 0
-    }
-
-    var availableNotationParts: [NotationPartDescriptor] {
-        let stemParts = knownStemNotationPartTypes().map(NotationPartDescriptor.stem)
-        let additionalTranscriptions = StemType.allCases.flatMap { stemType in
-            stemTranscriptionTracks
-                .filter {
-                    $0.stemType == stemType
-                        && $0.notationPartID != .stem(stemType)
-                }
-                .sorted { $0.createdAt < $1.createdAt }
-                .enumerated()
-                .map { index, track in
-                    NotationPartDescriptor.stemTranscription(
-                        stemType,
-                        id: track.notationPartID,
-                        sequence: index + 2
-                    )
-                }
-        }
-        return [.main] + stemParts + additionalTranscriptions
-    }
-
-    var visibleNotationParts: [NotationPartDescriptor] {
-        let visibleIDs = normalizedVisibleNotationPartIDs()
-        return availableNotationParts.filter { visibleIDs.contains($0.id) }
-    }
-
-    func isStemNotationTrackCollapsed(_ stemType: StemType) -> Bool {
-        stemNotationTrackCollapsed[stemType] ?? true
-    }
-
-    func stemNoteDisplayMode(for stemType: StemType) -> StemNoteDisplayMode {
-        stemNoteDisplayModes[stemType] ?? .notation
-    }
-
-    func toggleStemNoteDisplayMode(_ stemType: StemType) {
-        let nextMode: StemNoteDisplayMode = stemNoteDisplayMode(for: stemType) == .notation
-            ? .midi
-            : .notation
-        if nextMode == .midi {
-            stemNoteDisplayModes[stemType] = .midi
-        } else {
-            stemNoteDisplayModes.removeValue(forKey: stemType)
-        }
-        stemNotationTrackCollapsed[stemType] = false
-        refreshProjectModifiedState()
-    }
-
-    func toggleNotationWindowPartVisibility(_ partID: NotationPartID) {
-        var next = normalizedVisibleNotationPartIDs()
-        if next.contains(partID) {
-            next.remove(partID)
-        } else {
-            next.insert(partID)
-        }
-
-        let normalized = normalizedVisibleNotationPartIDs(from: next)
-        guard normalized != visibleNotationPartIDs else { return }
-        visibleNotationPartIDs = normalized
-        refreshProjectModifiedState()
-    }
-
-    func normalizedVisibleNotationPartIDs(from rawPartIDs: Set<NotationPartID>? = nil) -> Set<NotationPartID> {
-        let allowedPartIDs = Set(availableNotationParts.map(\.id))
-        var normalized = (rawPartIDs ?? visibleNotationPartIDs).intersection(allowedPartIDs)
-        if normalized.isEmpty {
-            normalized = allowedPartIDs.contains(.main) ? [.main] : Set(allowedPartIDs.prefix(1))
-        }
-        return normalized
-    }
-
-    func notationClef(for partID: NotationPartID) -> Clef {
-        NotationPartClefOverrides.clef(for: partID, in: notationPartClefs)
-    }
-
-    func setNotationClef(_ clef: Clef, for partID: NotationPartID) {
-        let sourceClef = notationClef(for: partID)
-        guard sourceClef != clef else { return }
-
-        let octaveDelta = sourceClef == .drums || clef == .drums
-            ? 0
-            : clef.notationMetrics.storedPitchOctaveOffset
-                - sourceClef.notationMetrics.storedPitchOctaveOffset
-        let candidateItems = notationItems.map { item -> NotationMeasureItem in
-            guard item.partID == partID,
-                  !item.isSynthesized,
-                  item.kind == .note,
-                  var pitch = item.pitch
-            else {
-                return item
-            }
-
-            pitch.octave += octaveDelta
-            var transposed = item
-            transposed.pitch = pitch
-            if clef == .drums {
-                transposed.explicitAccidental = nil
-            }
-            return transposed
-        }
-        let invalidPitch = candidateItems.first { item in
-            item.partID == partID
-                && item.kind == .note
-                && item.pitch.map { !NotationInputPolicy.isEditable($0, in: clef) } == true
-        }?.pitch
-        guard invalidPitch == nil else {
-            errorMessage = "Cannot change to \(clef.displayName): the part contains notes outside the supported input map."
-            return
-        }
-
-        errorMessage = nil
-        performUndoableEdit("Change Notation Clef") {
-            if clef == NotationPartClefOverrides.defaultClef(for: partID) {
-                notationPartClefs.removeValue(forKey: partID)
-            } else {
-                notationPartClefs[partID] = clef
-            }
-
-            notationItems = candidateItems
-            notationItems = ProjectStateNormalizer.normalizedNotationItems(
-                notationItems,
-                duration: duration,
-                notationPartClefs: notationPartClefs
-            )
-            refreshNotationSelections(for: partID)
-        }
-    }
-
-    func selectDrumInstrument(midiNoteNumber: Int) {
-        guard DrumInstrumentMap.allowedMIDINoteNumbers.contains(midiNoteNumber) else { return }
-        selectedDrumInstrumentMIDINoteNumber = midiNoteNumber
-        let pitch = NotationPitchMapper.pitch(
-            forMIDINoteNumber: midiNoteNumber,
-            keySignature: .cMajor
-        )
-        auditionNotationNotePitch(pitch, clef: .drums)
-    }
-
-    private func knownStemNotationPartTypes() -> [StemType] {
-        let stemTypes = Set(stemFiles.map(\.type))
-        let notationStemTypes = Set(notationItems.compactMap(\.partID.stemType))
-        let collapsedStemTypes = Set(stemNotationTrackCollapsed.keys)
-        let visibleStemTypes = Set(visibleNotationPartIDs.compactMap(\.stemType))
-        let knownTypes = stemTypes
-            .union(notationStemTypes)
-            .union(collapsedStemTypes)
-            .union(visibleStemTypes)
-
-        return StemType.allCases.filter { knownTypes.contains($0) }
-    }
-
     var canChangeNotationDuration: Bool {
         duration > 0 && (isNotationEntryModeEnabled || canEditSelectedNotationItem)
     }
@@ -376,14 +221,7 @@ extension AudioPlayerViewModel {
         guard !target.alreadyApplied else { return true }
 
         performUndoableEdit("Set \(accidental.displayName) Accidental") {
-            notationItems = notationItems.map { item in
-                guard target.chainIDs.contains(item.id), var pitch = item.pitch else { return item }
-                pitch.alter = accidental.alter
-                var updated = item
-                updated.pitch = pitch
-                updated.explicitAccidental = item.id == target.rootItemID ? accidental : nil
-                return updated
-            }
+            notationItems = target.updatedItems
             notationItems = ProjectStateNormalizer.normalizedNotationItems(
                 notationItems,
                 duration: duration,
@@ -409,46 +247,13 @@ extension AudioPlayerViewModel {
         accidental: NotationAccidental
     ) -> NotationAccidentalEditTarget? {
         guard let match = notationItemMatch(for: selection),
-              match.item.kind == .note,
-              match.item.pitch != nil,
-              match.measure.attributes.clef != .drums
-        else {
-            return nil
-        }
-
-        let chainIDs = NotationNoteEditPlanner.logicalChainItemIDs(
-            in: notationItems,
-            containing: match.item.id,
-            partID: match.item.partID
-        )
-        guard !chainIDs.isEmpty else { return nil }
-
-        let chainItems = notationItems.filter { chainIDs.contains($0.id) }
-        let incomingTargetIDs = Set(chainItems.compactMap(\.tieTargetItemID))
-        let rootItemID = chainItems.first(where: { !incomingTargetIDs.contains($0.id) })?.id
-            ?? match.item.id
-
-        let hasCollision = chainItems.contains { chainItem in
-            guard var pitch = chainItem.pitch else { return true }
-            pitch.alter = accidental.alter
-            return notationItems.contains { candidate in
-                !chainIDs.contains(candidate.id)
-                    && candidate.partID == chainItem.partID
-                    && candidate.kind == .note
-                    && candidate.pitch?.midiNoteNumber == pitch.midiNoteNumber
-                    && candidate.measureNumber == chainItem.measureNumber
-                    && abs(candidate.measureStartTime - chainItem.measureStartTime)
-                        < NotationMeasureTiming.timelineTolerance
-                    && abs(candidate.offsetInQuarterNotes - chainItem.offsetInQuarterNotes)
-                        < NotationMeasureTiming.timelineTolerance
-            }
-        }
-        guard !hasCollision else { return nil }
-
-        let alreadyApplied = chainItems.allSatisfy { item in
-            item.pitch?.alter == accidental.alter
-                && item.explicitAccidental == (item.id == rootItemID ? accidental : nil)
-        }
+              let plan = NotationAccidentalPlanner.plan(
+                accidental: accidental,
+                selectedItem: match.item,
+                measure: match.measure,
+                allItems: notationItems
+              )
+        else { return nil }
 
         return NotationAccidentalEditTarget(
             measureNumber: match.measure.number,
@@ -456,9 +261,8 @@ extension AudioPlayerViewModel {
             selectedItemID: match.item.id,
             partID: match.item.partID,
             clef: match.measure.attributes.clef,
-            chainIDs: chainIDs,
-            rootItemID: rootItemID,
-            alreadyApplied: alreadyApplied
+            alreadyApplied: plan.alreadyApplied,
+            updatedItems: plan.updatedItems
         )
     }
 
@@ -1679,7 +1483,7 @@ extension AudioPlayerViewModel {
         )
     }
 
-    private func refreshNotationSelections(for partID: NotationPartID) {
+    func refreshNotationSelections(for partID: NotationPartID) {
         let measures = currentNotationScoreMeasures(partID: partID)
 
         if let selection = selectedNotationItem, selection.partID == partID {

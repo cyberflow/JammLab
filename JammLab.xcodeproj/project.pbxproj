@@ -98,6 +98,11 @@
 		9F8E01012C40000100112233 /* StemSeparationJobModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9F8E00012C40000100112233 /* StemSeparationJobModels.swift */; };
 		9F8E01022C40000100112233 /* main.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9F8E00032C40000100112233 /* main.swift */; };
 		A14C01013000000100112233 /* StemHelperProcessSupport.swift in Sources */ = {isa = PBXBuildFile; fileRef = A14C00013000000100112233 /* StemHelperProcessSupport.swift */; };
+		A14D01013000000100112233 /* NotationTrackRenderScene.swift in Sources */ = {isa = PBXBuildFile; fileRef = A14D00013000000100112233 /* NotationTrackRenderScene.swift */; };
+		A14D01023000000100112233 /* NotationEditingPlanners.swift in Sources */ = {isa = PBXBuildFile; fileRef = A14D00023000000100112233 /* NotationEditingPlanners.swift */; };
+		A14D01033000000100112233 /* NotationWindowToolbar.swift in Sources */ = {isa = PBXBuildFile; fileRef = A14D00033000000100112233 /* NotationWindowToolbar.swift */; };
+		A14D01043000000100112233 /* AudioPlayerViewModel+NotationParts.swift in Sources */ = {isa = PBXBuildFile; fileRef = A14D00043000000100112233 /* AudioPlayerViewModel+NotationParts.swift */; };
+		A14D01053000000100112233 /* NotationTrackInteractionModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = A14D00053000000100112233 /* NotationTrackInteractionModels.swift */; };
 		9F8E01032C40000100112233 /* StemModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9F8D00012C30000100112233 /* StemModels.swift */; };
 		9F8E01042C40000100112233 /* StemSeparationJobModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9F8E00012C40000100112233 /* StemSeparationJobModels.swift */; };
 		9F8F01012C50000100112233 /* AppDefaults.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9F8F00012C50000100112233 /* AppDefaults.swift */; };
@@ -407,6 +412,11 @@
 		9F8E00022C40000100112233 /* JammLabStemHelper */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = JammLabStemHelper; sourceTree = BUILT_PRODUCTS_DIR; };
 		9F8E00032C40000100112233 /* main.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = main.swift; sourceTree = "<group>"; };
 		A14C00013000000100112233 /* StemHelperProcessSupport.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StemHelperProcessSupport.swift; sourceTree = "<group>"; };
+		A14D00013000000100112233 /* NotationTrackRenderScene.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotationTrackRenderScene.swift; sourceTree = "<group>"; };
+		A14D00023000000100112233 /* NotationEditingPlanners.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotationEditingPlanners.swift; sourceTree = "<group>"; };
+		A14D00033000000100112233 /* NotationWindowToolbar.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotationWindowToolbar.swift; sourceTree = "<group>"; };
+		A14D00043000000100112233 /* AudioPlayerViewModel+NotationParts.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "AudioPlayerViewModel+NotationParts.swift"; sourceTree = "<group>"; };
+		A14D00053000000100112233 /* NotationTrackInteractionModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotationTrackInteractionModels.swift; sourceTree = "<group>"; };
 		9F8F00012C50000100112233 /* AppDefaults.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppDefaults.swift; sourceTree = "<group>"; };
 		9F8F00022C50000100112233 /* AudioPlaybackControlling.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AudioPlaybackControlling.swift; sourceTree = "<group>"; };
 		A14B00013000000100112233 /* AudioPlaybackPreparation.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AudioPlaybackPreparation.swift; sourceTree = "<group>"; };
@@ -668,6 +678,7 @@
 				9F8A000A2C00000100112233 /* ImportedAudioFile.swift */,
 				9F8A00072C00000100112233 /* LoopRegion.swift */,
 				9FEA00022D70000100112233 /* NotationViewportState.swift */,
+				A14D00023000000100112233 /* NotationEditingPlanners.swift */,
 				9FBA00012D40000100112233 /* PitchDetection.swift */,
 				9F8A00132C00000100112233 /* JammLabProject.swift */,
 				9FEA00062D70000100112233 /* ProjectKeySelection.swift */,
@@ -708,6 +719,7 @@
 				9FC000012F30000100112233 /* NotationTieService.swift */,
 				9F2700012EA0000100112233 /* NotationSMuFL.swift */,
 				9FEA00032D70000100112233 /* NotationViewportFactory.swift */,
+				A14D00013000000100112233 /* NotationTrackRenderScene.swift */,
 				9FEA00052D70000100112233 /* NotationVisibleMeasureFitter.swift */,
 				9F8A00192C00000100112233 /* ProjectArtifactStore.swift */,
 				9F8A00142C00000100112233 /* ProjectDocumentService.swift */,
@@ -769,6 +781,7 @@
 				9FB201082D30000100112233 /* AudioPlayerViewModel+Markers.swift */,
 				9FB201092D30000100112233 /* AudioPlayerViewModel+LoopEditing.swift */,
 				9FB201052D30000100112233 /* AudioPlayerViewModel+Notation.swift */,
+				A14D00043000000100112233 /* AudioPlayerViewModel+NotationParts.swift */,
 				9FEE00022D90000100112233 /* AudioPlayerViewModel+NotationExport.swift */,
 				9FB201062D30000100112233 /* AudioPlayerViewModel+Video.swift */,
 				9FB201072D30000100112233 /* AudioPlayerViewModel+UndoDirty.swift */,
@@ -823,6 +836,7 @@
 				9FDD00042D60000100112233 /* NoteColorPresentation.swift */,
 				9FCB00072D80000100112233 /* NotationHarmonyInlineTextField.swift */,
 				9FD100002E00000100112233 /* NotationTrackLayoutItems.swift */,
+				A14D00053000000100112233 /* NotationTrackInteractionModels.swift */,
 				9FAD00012F40000100112233 /* MIDIPianoRollView.swift */,
 				9FDE00022F60000100112233 /* MIDIPianoRollLayout.swift */,
 				9FEA00042D70000100112233 /* NotationTrackView.swift */,
@@ -1017,6 +1031,7 @@
 				9F9000032C60000100112233 /* InspectorSidebarView.swift */,
 				9FCB00042D80000100112233 /* JammModeToggleButton.swift */,
 				9F8C00052C20000100112233 /* NoteRowView.swift */,
+				A14D00033000000100112233 /* NotationWindowToolbar.swift */,
 				9F9800012CF0000100112233 /* RenameNoteDialog.swift */,
 				9FCB000B2D80000100112233 /* StemSeparationToolbarButton.swift */,
 				9F9700012CD0000100112233 /* TimelineViewportControlBar.swift */,
@@ -1253,6 +1268,7 @@
 				9FB200082D30000100112233 /* AudioPlayerViewModel+Markers.swift in Sources */,
 				9FB200092D30000100112233 /* AudioPlayerViewModel+LoopEditing.swift in Sources */,
 				9FB200052D30000100112233 /* AudioPlayerViewModel+Notation.swift in Sources */,
+				A14D01043000000100112233 /* AudioPlayerViewModel+NotationParts.swift in Sources */,
 				9FEE01022D90000100112233 /* AudioPlayerViewModel+NotationExport.swift in Sources */,
 				9FB200062D30000100112233 /* AudioPlayerViewModel+Video.swift in Sources */,
 				9FB200072D30000100112233 /* AudioPlayerViewModel+UndoDirty.swift in Sources */,
@@ -1268,6 +1284,7 @@
 				9F9601012CC0000100112233 /* JammValueSlider.swift in Sources */,
 				9FCB01042D80000100112233 /* JammModeToggleButton.swift in Sources */,
 				9F8C01022C20000100112233 /* AppPanel.swift in Sources */,
+				A14D01033000000100112233 /* NotationWindowToolbar.swift in Sources */,
 				9FCB01022D80000100112233 /* CompactValuePicker.swift in Sources */,
 				9F8C01012C20000100112233 /* AppTheme.swift in Sources */,
 				9F8A01152C00000100112233 /* BeatGridCalculator.swift in Sources */,
@@ -1290,6 +1307,7 @@
 				9FDE01022F60000100112233 /* MIDIPianoRollLayout.swift in Sources */,
 				9FCB01072D80000100112233 /* NotationHarmonyInlineTextField.swift in Sources */,
 				9FD100012E00000100112233 /* NotationTrackLayoutItems.swift in Sources */,
+				A14D01053000000100112233 /* NotationTrackInteractionModels.swift in Sources */,
 				9FBE01012F70000100112233 /* NotationBeamLayout.swift in Sources */,
 				9FBE01032F70000100112233 /* NotationBeamGrouping.swift in Sources */,
 				9FBE01042F70000100112233 /* NotationBeamGeometry.swift in Sources */,
@@ -1304,8 +1322,10 @@
 				9FAD01022F40000100112233 /* NotationNoteEditPlanner.swift in Sources */,
 				9FC001012F30000100112233 /* NotationTieService.swift in Sources */,
 				9FEA01032D70000100112233 /* NotationViewportFactory.swift in Sources */,
+				A14D01013000000100112233 /* NotationTrackRenderScene.swift in Sources */,
 				9FEA01052D70000100112233 /* NotationVisibleMeasureFitter.swift in Sources */,
 				9FEA01022D70000100112233 /* NotationViewportState.swift in Sources */,
+				A14D01023000000100112233 /* NotationEditingPlanners.swift in Sources */,
 				9F8B01032C10000100112233 /* PeakformTimelineView.swift in Sources */,
 				9FEA01062D70000100112233 /* ProjectKeySelection.swift in Sources */,
 				9F8A01192C00000100112233 /* ProjectArtifactStore.swift in Sources */,
