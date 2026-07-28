@@ -8,6 +8,7 @@ development artifact builds use `vMAJOR.MINOR.PATCH-dev.N`.
 
 ## Unreleased
 
+- Fixed automatic Stem transcription notation to show flats, naturals, and sharps consistently with the key signature and common-practice measure rules.
 - Improved Notation measure spacing to prevent late notes from stretching a single measure across the view, keep visible parts aligned, backfill the final page, and balance score systems without avoidable one-measure rows.
 - Added Backspace and Delete support for clearing selected Notation measures in the selected part while preserving harmony symbols and leaving default whole-measure rests.
 - Added a separate Bass 8 clef with Leland notation, octave-down note preview and MusicXML export, and made it the default clef for new bass-guitar notation tracks while preserving existing projects.

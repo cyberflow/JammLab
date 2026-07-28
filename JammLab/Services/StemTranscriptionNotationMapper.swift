@@ -87,6 +87,12 @@ enum StemTranscriptionNotationMapper {
             ))
         }
 
+        notationItems = applyingCommonPracticeAccidentals(
+            to: notationItems,
+            storedNotes: storedNotes,
+            measures: content.measures
+        )
+
         let track = StemTranscriptionTrack(
             id: trackID,
             stemType: stemType,
@@ -183,5 +189,186 @@ enum StemTranscriptionNotationMapper {
             abs($0.durationInQuarterNotes - quarterDuration)
                 < abs($1.durationInQuarterNotes - quarterDuration)
         } ?? NotationDuration()
+    }
+
+    private static func applyingCommonPracticeAccidentals(
+        to sourceItems: [NotationMeasureItem],
+        storedNotes: [StemTranscriptionNote],
+        measures: [ScoreMeasure]
+    ) -> [NotationMeasureItem] {
+        var items = sourceItems
+        let itemIndexByID = Dictionary(
+            uniqueKeysWithValues: items.indices.map { (items[$0].id, $0) }
+        )
+        let keySignatureByMeasure = Dictionary(
+            uniqueKeysWithValues: measures.map {
+                (AccidentalMeasureKey(measure: $0), $0.attributes.keySignature)
+            }
+        )
+        let candidates = storedNotes.enumerated().compactMap {
+            sourceOrder,
+            storedNote -> TranscribedAccidentalCandidate? in
+            guard let rootItemID = storedNote.notationItemIDs.first,
+                  let itemIndex = itemIndexByID[rootItemID],
+                  let pitch = items[itemIndex].pitch
+            else {
+                return nil
+            }
+
+            let item = items[itemIndex]
+            let measureKey = AccidentalMeasureKey(item: item)
+            guard let keySignature = keySignatureByMeasure[measureKey] else {
+                return nil
+            }
+            return TranscribedAccidentalCandidate(
+                rootItemID: rootItemID,
+                sourceOrder: sourceOrder,
+                measureKey: measureKey,
+                offsetInQuarterNotes: item.offsetInQuarterNotes,
+                pitch: pitch,
+                keySignature: keySignature
+            )
+        }
+        .sorted(by: accidentalCandidatePrecedes)
+
+        var activeAlters: [AccidentalPitchPosition: Int] = [:]
+        var currentMeasureKey: AccidentalMeasureKey?
+        var candidateIndex = 0
+        while candidateIndex < candidates.count {
+            let first = candidates[candidateIndex]
+            if currentMeasureKey != first.measureKey {
+                currentMeasureKey = first.measureKey
+                activeAlters.removeAll(keepingCapacity: true)
+            }
+
+            var onsetEndIndex = candidateIndex + 1
+            while onsetEndIndex < candidates.count,
+                  candidates[onsetEndIndex].measureKey == first.measureKey,
+                  candidates[onsetEndIndex].offsetInQuarterNotes == first.offsetInQuarterNotes {
+                onsetEndIndex += 1
+            }
+
+            applyAccidentals(
+                to: candidates[candidateIndex..<onsetEndIndex],
+                activeAlters: &activeAlters,
+                itemIndexByID: itemIndexByID,
+                items: &items
+            )
+            candidateIndex = onsetEndIndex
+        }
+
+        return items
+    }
+
+    private static func accidentalCandidatePrecedes(
+        _ lhs: TranscribedAccidentalCandidate,
+        _ rhs: TranscribedAccidentalCandidate
+    ) -> Bool {
+        if lhs.measureKey.startTime != rhs.measureKey.startTime {
+            return lhs.measureKey.startTime < rhs.measureKey.startTime
+        }
+        if lhs.measureKey.number != rhs.measureKey.number {
+            return lhs.measureKey.number < rhs.measureKey.number
+        }
+        if lhs.offsetInQuarterNotes != rhs.offsetInQuarterNotes {
+            return lhs.offsetInQuarterNotes < rhs.offsetInQuarterNotes
+        }
+        return lhs.sourceOrder < rhs.sourceOrder
+    }
+
+    private static func applyAccidentals(
+        to onsetCandidates: ArraySlice<TranscribedAccidentalCandidate>,
+        activeAlters: inout [AccidentalPitchPosition: Int],
+        itemIndexByID: [String: Int],
+        items: inout [NotationMeasureItem]
+    ) {
+        let candidatesByPosition = Dictionary(
+            grouping: onsetCandidates,
+            by: \.pitchPosition
+        )
+
+        for (position, positionCandidates) in candidatesByPosition {
+            let distinctAlters = Set(positionCandidates.map(\.pitch.alter))
+            if distinctAlters.count > 1 {
+                for candidate in positionCandidates {
+                    setExplicitAccidental(
+                        for: candidate,
+                        itemIndexByID: itemIndexByID,
+                        items: &items
+                    )
+                }
+                continue
+            }
+
+            guard let first = positionCandidates.first else { continue }
+            let currentAlter = activeAlters[position]
+                ?? first.keySignature.defaultAlter(for: first.pitch.step)
+            if first.pitch.alter != currentAlter {
+                setExplicitAccidental(
+                    for: first,
+                    itemIndexByID: itemIndexByID,
+                    items: &items
+                )
+            }
+            activeAlters[position] = first.pitch.alter
+        }
+    }
+
+    private static func setExplicitAccidental(
+        for candidate: TranscribedAccidentalCandidate,
+        itemIndexByID: [String: Int],
+        items: inout [NotationMeasureItem]
+    ) {
+        guard let itemIndex = itemIndexByID[candidate.rootItemID],
+              items[itemIndex].pitch == candidate.pitch
+        else {
+            return
+        }
+        items[itemIndex].explicitAccidental = notationAccidental(forAlter: candidate.pitch.alter)
+    }
+
+    private static func notationAccidental(forAlter alter: Int) -> NotationAccidental? {
+        switch alter {
+        case -1: return .flat
+        case 0: return .natural
+        case 1: return .sharp
+        default: return nil
+        }
+    }
+
+    private struct TranscribedAccidentalCandidate {
+        var rootItemID: String
+        var sourceOrder: Int
+        var measureKey: AccidentalMeasureKey
+        var offsetInQuarterNotes: Double
+        var pitch: NotationPitch
+        var keySignature: KeySignature
+
+        var pitchPosition: AccidentalPitchPosition {
+            AccidentalPitchPosition(
+                stepIndex: pitch.step.diatonicIndex,
+                octave: pitch.octave
+            )
+        }
+    }
+
+    private struct AccidentalMeasureKey: Hashable {
+        var number: Int
+        var startTime: TimeInterval
+
+        init(measure: ScoreMeasure) {
+            number = measure.number
+            startTime = measure.startTime
+        }
+
+        init(item: NotationMeasureItem) {
+            number = item.measureNumber
+            startTime = item.measureStartTime
+        }
+    }
+
+    private struct AccidentalPitchPosition: Hashable {
+        var stepIndex: Int
+        var octave: Int
     }
 }
