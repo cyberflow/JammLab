@@ -78,8 +78,15 @@ extension XCTestCase {
     }
 
     func writeHeartbeat(to url: URL, helperVersion: Int, updatedAt: Date) throws {
+        let helperURL = url.deletingLastPathComponent().appendingPathComponent("JammLabStemHelper")
         let heartbeat = StemHelperHeartbeat(
+            protocolVersion: StemJobFiles.protocolVersion,
             helperVersion: helperVersion,
+            separatorVersion: "test-separator",
+            executableIdentity: helperURL.standardizedFileURL.resolvingSymlinksInPath().path,
+            manifestSHA256: "test-manifest",
+            supportedModels: StemSeparationMethod.allCases.map(\.modelName),
+            supportedComputeModes: ["cpu", "auto"],
             updatedAt: updatedAt,
             activeJobID: nil
         )

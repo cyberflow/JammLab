@@ -9,6 +9,7 @@ development artifact builds use `vMAJOR.MINOR.PATCH-dev.N`.
 ## Unreleased
 
 - Moved audio and Stem playback preparation off the main thread, with cancellable progress, safer memory limits, and transactional project/mode switching that keeps the current audio available if preparation fails.
+- Hardened the bundled Stem helper with a versioned v6 job protocol, startup capability checks, stale-helper detection, and one validated manifest for bundled models and compute modes.
 - Fixed automatic Stem transcription notation to show flats, naturals, and sharps consistently with the key signature and common-practice measure rules.
 - Improved Notation measure spacing to prevent late notes from stretching a single measure across the view, keep visible parts aligned, backfill the final page, and balance score systems without avoidable one-measure rows.
 - Added Backspace and Delete support for clearing selected Notation measures in the selected part while preserving harmony symbols and leaving default whole-measure rests.

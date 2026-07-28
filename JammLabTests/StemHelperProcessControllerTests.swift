@@ -127,4 +127,44 @@ final class StemHelperProcessControllerTests: XCTestCase {
         XCTAssertTrue(process.didTerminate)
     }
 
+    func testStemHelperControllerRejectsPersistentCapabilityMismatch() async throws {
+        let directory = temporaryDirectory()
+        try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
+        let helperURL = try executableHelperFile(in: directory)
+        let heartbeatURL = directory.appendingPathComponent(StemJobFiles.heartbeatFilename)
+        let launcher = MockStemHelperLauncher()
+        launcher.onLaunch = { _ in
+            let heartbeat = StemHelperHeartbeat(
+                protocolVersion: StemJobFiles.protocolVersion,
+                helperVersion: StemJobFiles.helperVersion,
+                separatorVersion: "test-separator",
+                executableIdentity: helperURL.standardizedFileURL.resolvingSymlinksInPath().path,
+                manifestSHA256: "test-manifest",
+                supportedModels: ["htdemucs.yaml"],
+                supportedComputeModes: ["cpu"],
+                updatedAt: Date(),
+                activeJobID: nil
+            )
+            try JSONEncoder().encode(heartbeat).write(to: heartbeatURL, options: .atomic)
+        }
+        let controller = StemHelperProcessController(
+            helperExecutableURL: helperURL,
+            heartbeatURL: heartbeatURL,
+            launcher: launcher
+        )
+
+        do {
+            try await controller.ensureRunning(
+                timeout: 0.3,
+                requiredModel: "UVR-MDX-NET-Inst_HQ_5.onnx",
+                computeMode: "cpu"
+            )
+            XCTFail("Expected capability mismatch")
+        } catch is StemHelperCapabilityError {
+            XCTAssertEqual(launcher.launchCount, 1)
+        } catch {
+            XCTFail("Unexpected error: \(error)")
+        }
+    }
+
 }

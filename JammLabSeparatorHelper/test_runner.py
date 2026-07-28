@@ -11,6 +11,21 @@ import runner
 
 
 class RunnerTests(unittest.TestCase):
+    def test_capabilities_json_comes_from_checked_in_manifest(self):
+        output = io.StringIO()
+        with contextlib.redirect_stdout(output):
+            self.assertEqual(runner.print_capabilities_json(), 0)
+
+        capabilities = __import__("json").loads(output.getvalue())
+        self.assertEqual(capabilities["protocolVersion"], 6)
+        self.assertEqual(capabilities["separatorVersion"], "2")
+        self.assertEqual(
+            capabilities["supportedModels"],
+            ["htdemucs.yaml", "htdemucs_6s.yaml", "UVR-MDX-NET-Inst_HQ_5.onnx"],
+        )
+        self.assertEqual(capabilities["supportedComputeModes"], ["cpu", "auto"])
+        self.assertEqual(len(capabilities["manifestSHA256"]), 64)
+
     def test_parse_log_level_accepts_named_levels(self):
         self.assertEqual(runner.parse_log_level("INFO"), logging.INFO)
         self.assertEqual(runner.parse_log_level("debug"), logging.DEBUG)

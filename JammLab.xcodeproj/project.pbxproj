@@ -97,6 +97,7 @@
 		A14A01013000000100112233 /* AudioRenderAtomics.c in Sources */ = {isa = PBXBuildFile; fileRef = A14A00013000000100112233 /* AudioRenderAtomics.c */; };
 		9F8E01012C40000100112233 /* StemSeparationJobModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9F8E00012C40000100112233 /* StemSeparationJobModels.swift */; };
 		9F8E01022C40000100112233 /* main.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9F8E00032C40000100112233 /* main.swift */; };
+		A14C01013000000100112233 /* StemHelperProcessSupport.swift in Sources */ = {isa = PBXBuildFile; fileRef = A14C00013000000100112233 /* StemHelperProcessSupport.swift */; };
 		9F8E01032C40000100112233 /* StemModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9F8D00012C30000100112233 /* StemModels.swift */; };
 		9F8E01042C40000100112233 /* StemSeparationJobModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9F8E00012C40000100112233 /* StemSeparationJobModels.swift */; };
 		9F8F01012C50000100112233 /* AppDefaults.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9F8F00012C50000100112233 /* AppDefaults.swift */; };
@@ -405,6 +406,7 @@
 		9F8E00012C40000100112233 /* StemSeparationJobModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StemSeparationJobModels.swift; sourceTree = "<group>"; };
 		9F8E00022C40000100112233 /* JammLabStemHelper */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = JammLabStemHelper; sourceTree = BUILT_PRODUCTS_DIR; };
 		9F8E00032C40000100112233 /* main.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = main.swift; sourceTree = "<group>"; };
+		A14C00013000000100112233 /* StemHelperProcessSupport.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StemHelperProcessSupport.swift; sourceTree = "<group>"; };
 		9F8F00012C50000100112233 /* AppDefaults.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppDefaults.swift; sourceTree = "<group>"; };
 		9F8F00022C50000100112233 /* AudioPlaybackControlling.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AudioPlaybackControlling.swift; sourceTree = "<group>"; };
 		A14B00013000000100112233 /* AudioPlaybackPreparation.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AudioPlaybackPreparation.swift; sourceTree = "<group>"; };
@@ -1032,6 +1034,7 @@
 			isa = PBXGroup;
 			children = (
 				9F8E00032C40000100112233 /* main.swift */,
+				A14C00013000000100112233 /* StemHelperProcessSupport.swift */,
 			);
 			path = JammLabStemHelper;
 			sourceTree = "<group>";
@@ -1502,6 +1505,7 @@
 			files = (
 				9F8F01022C50000100112233 /* AppDefaults.swift in Sources */,
 				9F8E01022C40000100112233 /* main.swift in Sources */,
+				A14C01013000000100112233 /* StemHelperProcessSupport.swift in Sources */,
 				9F8E01032C40000100112233 /* StemModels.swift in Sources */,
 				9F8E01042C40000100112233 /* StemSeparationJobModels.swift in Sources */,
 				9F9301022C90000100112233 /* StemBackendResolver.swift in Sources */,

@@ -7,10 +7,9 @@ BUILD_DIR="$ROOT_DIR/build/JammLabSeparatorHelper"
 VENV_DIR="$BUILD_DIR/venv"
 DIST_DIR="$BUILD_DIR/dist"
 MODEL_CACHE_DIR="$BUILD_DIR/model-cache"
-MODEL_MANIFEST="$MODEL_CACHE_DIR/jammlab-models.txt"
+HELPER_MANIFEST="$HELPER_DIR/helper-manifest.json"
 PYINSTALLER_CONFIG_DIR="$BUILD_DIR/pyinstaller-config"
 PYTHON_BIN="${PYTHON_BIN:-python3}"
-SEPARATOR_MODELS="${SEPARATOR_MODELS:-htdemucs.yaml htdemucs_6s.yaml UVR-MDX-NET-Inst_HQ_5.onnx}"
 
 mkdir -p "$BUILD_DIR" "$PYINSTALLER_CONFIG_DIR"
 export PYINSTALLER_CONFIG_DIR
@@ -23,6 +22,7 @@ fi
 "$VENV_DIR/bin/python" -m pip install -r "$HELPER_DIR/requirements-build.txt"
 
 mkdir -p "$MODEL_CACHE_DIR"
+SEPARATOR_MODELS="$("$PYTHON_BIN" -c 'import json,sys; print(" ".join(model["name"] for model in json.load(open(sys.argv[1]))["models"]))' "$HELPER_MANIFEST")"
 for model in $SEPARATOR_MODELS; do
   "$VENV_DIR/bin/python" "$HELPER_DIR/runner.py" \
     --prefetch_model "$model" \
@@ -31,7 +31,6 @@ for model in $SEPARATOR_MODELS; do
     --validate_model_cache "$model" \
     --model_file_dir "$MODEL_CACHE_DIR"
 done
-printf "%s\n" $SEPARATOR_MODELS > "$MODEL_MANIFEST"
 
 rm -rf "$DIST_DIR" "$BUILD_DIR/work"
 (
@@ -54,4 +53,5 @@ find "$DIST_DIR/JammLabSeparatorHelper" -type f -name "*.py" \
   -exec perl -i -0pe 's/\A#![^\n]*\n//' {} +
 
 "$HELPER_EXEC" --env_info
+"$HELPER_EXEC" --capabilities_json
 echo "Built $DIST_DIR/JammLabSeparatorHelper"

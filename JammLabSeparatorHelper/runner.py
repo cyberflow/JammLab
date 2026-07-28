@@ -10,7 +10,9 @@ normalization while the Python runtime is bundled inside the app.
 from __future__ import annotations
 
 import argparse
+import hashlib
 import importlib.metadata
+import json
 import logging
 import os
 import platform
@@ -21,15 +23,10 @@ import tempfile
 from pathlib import Path
 
 
-HELPER_VERSION = "1"
+HELPER_VERSION = "2"
 BUNDLED_MODEL_CACHE_DIR_NAME = "bundled-model-cache"
 RUNTIME_DIR_NAME = "JammLabSeparatorHelper"
 DEFAULT_COMPUTE_DEVICE = "cpu"
-REQUIRED_MODEL_CACHE_FILES = {
-    "htdemucs.yaml": ["htdemucs.yaml", "955717e8-8726e21a.th"],
-    "htdemucs_6s.yaml": ["htdemucs_6s.yaml", "5c90dfd2-34c22ccb.th"],
-    "UVR-MDX-NET-Inst_HQ_5.onnx": ["UVR-MDX-NET-Inst_HQ_5.onnx"],
-}
 
 
 def _package_version(name: str) -> str:
@@ -47,6 +44,21 @@ def bundled_resource_root() -> Path:
 
 def bundled_model_cache_dir() -> Path:
     return bundled_resource_root() / BUNDLED_MODEL_CACHE_DIR_NAME
+
+
+def helper_manifest_bytes() -> bytes:
+    return (bundled_resource_root() / "helper-manifest.json").read_bytes()
+
+
+def helper_manifest() -> dict:
+    return json.loads(helper_manifest_bytes())
+
+
+def required_model_cache_files() -> dict[str, list[str]]:
+    return {
+        model["name"]: list(model["requiredFiles"])
+        for model in helper_manifest()["models"]
+    }
 
 
 def bundled_ffmpeg_path() -> Path | None:
@@ -139,7 +151,7 @@ def copy_seed_model_cache(model_dir: Path, seed_dir: Path | None = None) -> int:
 
 
 def missing_required_model_files(model_dir: Path, model_filename: str) -> list[str]:
-    required_files = REQUIRED_MODEL_CACHE_FILES.get(model_filename, [model_filename])
+    required_files = required_model_cache_files().get(model_filename, [model_filename])
     return [filename for filename in required_files if not (model_dir / filename).is_file()]
 
 
@@ -187,12 +199,27 @@ def print_env_info() -> int:
     return 0
 
 
+def print_capabilities_json() -> int:
+    manifest = helper_manifest()
+    capabilities = {
+        "protocolVersion": manifest["protocolVersion"],
+        "separatorVersion": manifest["separatorVersion"],
+        "executableIdentity": str(Path(sys.executable).resolve()),
+        "manifestSHA256": hashlib.sha256(helper_manifest_bytes()).hexdigest(),
+        "supportedModels": [model["name"] for model in manifest["models"]],
+        "supportedComputeModes": manifest["supportedComputeModes"],
+    }
+    print(json.dumps(capabilities, sort_keys=True, separators=(",", ":")))
+    return 0
+
+
 def parse_args(argv: list[str]) -> argparse.Namespace:
     parser = argparse.ArgumentParser(
         prog="JammLabSeparatorHelper",
         description="Bundled JammLab stem separator backend.",
     )
     parser.add_argument("--env_info", action="store_true", help="Print bundled backend diagnostics and exit.")
+    parser.add_argument("--capabilities_json", action="store_true", help="Print the bundled capability manifest as JSON and exit.")
     parser.add_argument("--prefetch_model", help="Download/cache a model into --model_file_dir and exit.")
     parser.add_argument("--validate_model_cache", help="Validate that --model_file_dir contains required files for a model and exit.")
     parser.add_argument("audio_path", nargs="?", help="Audio file to separate.")
@@ -297,6 +324,8 @@ def main(argv: list[str] | None = None) -> int:
     args = parse_args(list(sys.argv[1:] if argv is None else argv))
     if args.env_info:
         return print_env_info()
+    if args.capabilities_json:
+        return print_capabilities_json()
     if args.validate_model_cache:
         return validate_model_cache(args)
     if args.prefetch_model:

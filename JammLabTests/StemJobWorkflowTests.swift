@@ -4,6 +4,7 @@ import XCTest
 final class StemJobWorkflowTests: XCTestCase {
     func testStemJobModelsRoundTrip() throws {
         let request = StemJobRequest(
+            protocolVersion: StemJobFiles.protocolVersion,
             jobID: "job-1",
             audioPath: "/tmp/song.mp3",
             cacheKey: "cache",
@@ -14,8 +15,6 @@ final class StemJobWorkflowTests: XCTestCase {
             expectedStemTypes: StemSeparationMethod.vocalInstrumental.stemTypes,
             modelName: StemSeparationMethod.vocalInstrumental.modelName,
             settingsVersion: 2,
-            audioSeparatorPath: nil,
-            audioSeparatorBookmarkData: nil,
             computeMode: "auto",
             createdAt: Date(timeIntervalSince1970: 100)
         )
@@ -45,7 +44,7 @@ final class StemJobWorkflowTests: XCTestCase {
         XCTAssertEqual(try JSONDecoder().decode(StemJobResult.self, from: JSONEncoder().encode(result)), result)
     }
 
-    func testLegacyStemJobRequestWithoutAudioSeparatorPathDecodes() throws {
+    func testV6StemJobRequestRejectsLegacyPayload() throws {
         let json = """
         {
           "jobID": "job-legacy",
@@ -64,25 +63,21 @@ final class StemJobWorkflowTests: XCTestCase {
         }
         """
 
-        let request = try JSONDecoder().decode(StemJobRequest.self, from: Data(json.utf8))
-
-        XCTAssertEqual(request.jobID, "job-legacy")
-        XCTAssertNil(request.audioSeparatorPath)
-        XCTAssertNil(request.audioSeparatorBookmarkData)
-        XCTAssertNil(request.computeMode)
-        XCTAssertNil(request.separationMethodID)
-        XCTAssertNil(request.expectedStemTypes)
+        XCTAssertThrowsError(
+            try JSONDecoder().decode(StemJobRequest.self, from: Data(json.utf8))
+        )
     }
 
     func testStemJobFilesUseVersionedCurrentJobsDirectory() {
         let appSupport = URL(fileURLWithPath: "/tmp/JammLab", isDirectory: true)
         let jobsDirectory = StemJobFiles.currentJobsDirectory(in: appSupport)
 
-        XCTAssertEqual(StemJobFiles.helperVersion, 5)
-        XCTAssertEqual(jobsDirectory.path, "/tmp/JammLab/\(StemJobFiles.jobsDirectoryName)/v5")
+        XCTAssertEqual(StemJobFiles.helperVersion, 6)
+        XCTAssertEqual(StemJobFiles.protocolVersion, 6)
+        XCTAssertEqual(jobsDirectory.path, "/tmp/JammLab/\(StemJobFiles.jobsDirectoryName)/v6")
         XCTAssertEqual(
             jobsDirectory.appendingPathComponent(StemJobFiles.heartbeatFilename).path,
-            "/tmp/JammLab/\(StemJobFiles.jobsDirectoryName)/v5/\(StemJobFiles.heartbeatFilename)"
+            "/tmp/JammLab/\(StemJobFiles.jobsDirectoryName)/v6/\(StemJobFiles.heartbeatFilename)"
         )
     }
 
