@@ -105,6 +105,7 @@ final class MultiTrackAudioPlayer: AudioPlaybackControlling {
     private var sourceNode: AVAudioSourceNode?
     private var timePitch = AVAudioUnitTimePitch()
     private var clickNode: AVAudioSourceNode?
+    private var renderLease: AudioRenderGraphLease?
     private var renderTracks: [TrackID: AudioRenderTrack] = [:]
     private var trackOrder: [AudioRenderTrack] = []
     private var outputFormat: AVAudioFormat?
@@ -136,6 +137,7 @@ final class MultiTrackAudioPlayer: AudioPlaybackControlling {
 
     deinit {
         engine.stop()
+        Self.waitForRenderQuiescence(renderLease)
     }
 
     func load(url: URL) throws {
@@ -166,18 +168,25 @@ final class MultiTrackAudioPlayer: AudioPlaybackControlling {
     func play() throws {
         guard isLoaded else { return }
 
-        if !engine.isRunning {
-            try engine.start()
-        }
-
+        engine.stop()
+        Self.waitForRenderQuiescence(renderLease)
         transportState.play()
         clickState.play(startFrame: transportState.currentFrame)
+        do {
+            try engine.start()
+        } catch {
+            transportState.pause()
+            clickState.pause(at: transportState.currentFrame)
+            throw error
+        }
         isPlaying = true
     }
 
     func pause() {
         guard isLoaded else { return }
 
+        engine.stop()
+        Self.waitForRenderQuiescence(renderLease)
         transportState.pause()
         clickState.pause(at: transportState.currentFrame)
         isPlaying = false
@@ -186,6 +195,8 @@ final class MultiTrackAudioPlayer: AudioPlaybackControlling {
     func stop() {
         guard isLoaded else { return }
 
+        engine.stop()
+        Self.waitForRenderQuiescence(renderLease)
         transportState.stop()
         clickState.stop()
         isPlaying = false
@@ -198,28 +209,36 @@ final class MultiTrackAudioPlayer: AudioPlaybackControlling {
     func seek(to time: TimeInterval) {
         guard isLoaded, let outputFormat else { return }
 
-        let frame = frame(for: time, sampleRate: outputFormat.sampleRate)
-        transportState.seek(to: frame)
-        clickState.seek(to: frame)
+        mutateRenderState {
+            let frame = frame(for: time, sampleRate: outputFormat.sampleRate)
+            transportState.seek(to: frame)
+            clickState.seek(to: frame)
+        }
     }
 
     func setLoop(enabled: Bool, region: LoopRegion) {
         isLoopEnabled = enabled
         loopRegion = region
-        applyLoopState()
+        mutateRenderState {
+            applyLoopState()
+        }
     }
 
     func setPlaybackRate(_ rate: Float) {
         playbackRate = ProjectStateNormalizer.normalizedPlaybackRate(rate)
-        timePitch.rate = playbackRate
-        clickState.setPlaybackRate(playbackRate)
-        updateClickOutputDelay()
+        mutateRenderState {
+            timePitch.rate = playbackRate
+            clickState.setPlaybackRate(playbackRate)
+            updateClickOutputDelay()
+        }
     }
 
     func setPitchShift(semitones: Float) {
         pitchShiftSemitones = ProjectStateNormalizer.normalizedPitchShift(semitones)
-        timePitch.pitch = pitchShiftSemitones * 100
-        updateClickOutputDelay()
+        mutateRenderState {
+            timePitch.pitch = pitchShiftSemitones * 100
+            updateClickOutputDelay()
+        }
     }
 
     func setMainVolume(_ volume: Float) {
@@ -235,34 +254,46 @@ final class MultiTrackAudioPlayer: AudioPlaybackControlling {
 
     func setClickEnabled(_ isEnabled: Bool) {
         isClickEnabled = isEnabled
-        clickState.setEnabled(isEnabled)
+        mutateRenderState {
+            clickState.setEnabled(isEnabled)
+        }
     }
 
     func setClickVolume(_ volume: Float) {
         clickVolume = min(1, max(0, volume))
-        clickState.setVolume(clickVolume)
+        mutateRenderState {
+            clickState.setVolume(clickVolume)
+        }
     }
 
     func setClickSettings(_ settings: BeatGridSettings) {
         clickSettings = settings
-        clickState.setSettings(settings)
-        if let clickTempoMap {
-            clickState.setTempoMap(clickTempoMap)
+        mutateRenderState {
+            clickState.setSettings(settings)
+            if let clickTempoMap {
+                clickState.setTempoMap(clickTempoMap)
+            }
         }
     }
 
     func setTempoMap(_ tempoMap: TempoMap) {
         clickTempoMap = tempoMap
-        clickState.setTempoMap(tempoMap)
+        mutateRenderState {
+            clickState.setTempoMap(tempoMap)
+        }
     }
 
     func setClickSoundSettings(_ settings: ClickSoundSettings) {
         clickSoundSettings = settings.clamped()
-        clickState.setSoundSettings(clickSoundSettings)
+        mutateRenderState {
+            clickState.setSoundSettings(clickSoundSettings)
+        }
     }
 
     func resetClickSchedule() {
-        clickState.seek(to: transportState.currentFrame)
+        mutateRenderState {
+            clickState.seek(to: transportState.currentFrame)
+        }
     }
 
     func setAudioOutputDevice(uid: String?) throws {
@@ -278,6 +309,7 @@ final class MultiTrackAudioPlayer: AudioPlaybackControlling {
 
         do {
             engine.stop()
+            Self.waitForRenderQuiescence(renderLease)
             try applyOutputDeviceSelection()
             if isLoaded {
                 seek(to: preservedTime)
@@ -288,6 +320,8 @@ final class MultiTrackAudioPlayer: AudioPlaybackControlling {
         } catch {
             outputDeviceUID = previousUID
             do {
+                engine.stop()
+                Self.waitForRenderQuiescence(renderLease)
                 try applyOutputDeviceSelection()
                 if isLoaded {
                     seek(to: preservedTime)
@@ -311,6 +345,8 @@ final class MultiTrackAudioPlayer: AudioPlaybackControlling {
 
         renderTracks = Dictionary(uniqueKeysWithValues: tracks.map { ($0.id, $0) })
         trackOrder = tracks
+        let renderLease = AudioRenderGraphLease(tracks: tracks)
+        self.renderLease = renderLease
         self.outputFormat = outputFormat
         durationFrames = tracks.map(\.frameLength).min() ?? 0
         duration = TimeInterval(durationFrames) / outputFormat.sampleRate
@@ -330,8 +366,10 @@ final class MultiTrackAudioPlayer: AudioPlaybackControlling {
         clickState.setSoundSettings(clickSoundSettings)
         clickState.setEnabled(isClickEnabled)
 
-        let sourceNode = makeTrackSourceNode(format: outputFormat)
-        let clickNode = AVAudioSourceNode(format: outputFormat) { [clickState] _, _, frameCount, outputData in
+        let sourceNode = makeTrackSourceNode(format: outputFormat, lease: renderLease)
+        let clickNode = AVAudioSourceNode(format: outputFormat) { [clickState, renderLease] _, _, frameCount, outputData in
+            renderLease.beginRender()
+            defer { renderLease.endRender() }
             clickState.render(frameCount: frameCount, outputData: outputData)
             return noErr
         }
@@ -350,17 +388,21 @@ final class MultiTrackAudioPlayer: AudioPlaybackControlling {
         try applyOutputDeviceSelection()
         engine.prepare()
         updateClickOutputDelay()
-        try engine.start()
         applyLoopState()
         isLoaded = true
     }
 
-    private func makeTrackSourceNode(format: AVAudioFormat) -> AVAudioSourceNode {
+    private func makeTrackSourceNode(
+        format: AVAudioFormat,
+        lease: AudioRenderGraphLease
+    ) -> AVAudioSourceNode {
         let transportState = self.transportState
-        let tracks = self.trackOrder
+        let tracks = lease.tracks
         let channelCount = Int(format.channelCount)
 
         return AVAudioSourceNode(format: format) { _, _, frameCount, outputData in
+            lease.beginRender()
+            defer { lease.endRender() }
             let outputBuffers = UnsafeMutableAudioBufferListPointer(outputData)
             for buffer in outputBuffers {
                 memset(buffer.mData, 0, Int(buffer.mDataByteSize))
@@ -463,9 +505,11 @@ final class MultiTrackAudioPlayer: AudioPlaybackControlling {
     }
 
     private func resetEngine() {
+        engine.stop()
+        Self.waitForRenderQuiescence(renderLease)
         sourceNode = nil
         clickNode = nil
-        engine.stop()
+        renderLease = nil
 
         engine = AVAudioEngine()
         timePitch = AVAudioUnitTimePitch()
@@ -478,5 +522,34 @@ final class MultiTrackAudioPlayer: AudioPlaybackControlling {
         clickState.configure(durationFrames: 0, sourceSampleRate: 44_100, audioSampleRate: 44_100)
         isLoaded = false
         isPlaying = false
+    }
+
+    private func mutateRenderState(_ mutation: () -> Void) {
+        let shouldRestart = engine.isRunning && isPlaying
+        if engine.isRunning {
+            engine.stop()
+            Self.waitForRenderQuiescence(renderLease)
+        }
+
+        mutation()
+
+        if shouldRestart {
+            do {
+                try engine.start()
+            } catch {
+                transportState.pause()
+                clickState.pause(at: transportState.currentFrame)
+                isPlaying = false
+            }
+        }
+    }
+
+    private nonisolated static func waitForRenderQuiescence(_ renderLease: AudioRenderGraphLease?) {
+        guard let renderLease else { return }
+        var remainingAttempts = 1_000
+        while !renderLease.isRenderInactive, remainingAttempts > 0 {
+            Thread.sleep(forTimeInterval: 0.000_1)
+            remainingAttempts -= 1
+        }
     }
 }

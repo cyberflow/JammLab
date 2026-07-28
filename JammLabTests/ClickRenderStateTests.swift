@@ -219,3 +219,43 @@ final class ClickRenderStateTests: XCTestCase {
         return frames
     }
 }
+
+final class AudioTransportRenderStateTests: XCTestCase {
+    func testPublishedFrameTracksRenderProgressAndSeek() {
+        let state = AudioTransportRenderState()
+        state.configure(durationFrames: 8)
+        state.seek(to: 3)
+
+        XCTAssertEqual(state.currentFrame, 3)
+
+        state.play()
+        XCTAssertEqual(state.nextSourceFrame(), 3)
+        XCTAssertEqual(state.currentFrame, 4)
+
+        state.pause()
+        XCTAssertEqual(state.currentFrame, 4)
+    }
+
+    func testLoopPublishesWrappedFrameWithoutTornTransportState() {
+        let state = AudioTransportRenderState()
+        state.configure(durationFrames: 10)
+        state.setLoop(enabled: true, startFrame: 2, endFrame: 5)
+        state.seek(to: 4)
+        state.play()
+
+        XCTAssertEqual(state.nextSourceFrame(), 4)
+        XCTAssertEqual(state.currentFrame, 2)
+        XCTAssertEqual(state.nextSourceFrame(), 2)
+        XCTAssertEqual(state.currentFrame, 3)
+    }
+
+    func testAtomicRenderValuesRoundTripAcrossConcurrentReaders() {
+        let value = AudioRenderAtomicInt64()
+        DispatchQueue.concurrentPerform(iterations: 1_000) { index in
+            value.value = Int64(index)
+            _ = value.value
+        }
+
+        XCTAssertTrue((0..<1_000).contains(Int(value.value)))
+    }
+}

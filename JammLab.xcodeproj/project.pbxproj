@@ -94,6 +94,7 @@
 		9F8D01032C30000100112233 /* MultiTrackAudioPlayer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9F8D00032C30000100112233 /* MultiTrackAudioPlayer.swift */; };
 		9F8D01042C30000100112233 /* AudioRenderState.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9F8D00042C30000100112233 /* AudioRenderState.swift */; };
 		9F8D01052C30000100112233 /* ClickRenderState.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9F8D00052C30000100112233 /* ClickRenderState.swift */; };
+		A14A01013000000100112233 /* AudioRenderAtomics.c in Sources */ = {isa = PBXBuildFile; fileRef = A14A00013000000100112233 /* AudioRenderAtomics.c */; };
 		9F8E01012C40000100112233 /* StemSeparationJobModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9F8E00012C40000100112233 /* StemSeparationJobModels.swift */; };
 		9F8E01022C40000100112233 /* main.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9F8E00032C40000100112233 /* main.swift */; };
 		9F8E01032C40000100112233 /* StemModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9F8D00012C30000100112233 /* StemModels.swift */; };
@@ -397,6 +398,8 @@
 		9F8D00032C30000100112233 /* MultiTrackAudioPlayer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MultiTrackAudioPlayer.swift; sourceTree = "<group>"; };
 		9F8D00042C30000100112233 /* AudioRenderState.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AudioRenderState.swift; sourceTree = "<group>"; };
 		9F8D00052C30000100112233 /* ClickRenderState.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ClickRenderState.swift; sourceTree = "<group>"; };
+		A14A00013000000100112233 /* AudioRenderAtomics.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; path = AudioRenderAtomics.c; sourceTree = "<group>"; };
+		A14A00023000000100112233 /* AudioRenderAtomics.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = AudioRenderAtomics.h; sourceTree = "<group>"; };
 		9F8E00012C40000100112233 /* StemSeparationJobModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StemSeparationJobModels.swift; sourceTree = "<group>"; };
 		9F8E00022C40000100112233 /* JammLabStemHelper */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = JammLabStemHelper; sourceTree = BUILT_PRODUCTS_DIR; };
 		9F8E00032C40000100112233 /* main.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = main.swift; sourceTree = "<group>"; };
@@ -642,6 +645,8 @@
 				9F7003002F80000100112233 /* Transcription */,
 				9F8A000B2C00000100112233 /* Assets.xcassets */,
 				9F8A000C2C00000100112233 /* JammLab.entitlements */,
+				A14A00013000000100112233 /* AudioRenderAtomics.c */,
+				A14A00023000000100112233 /* AudioRenderAtomics.h */,
 				9F7000202F80000100112233 /* JammLab-Bridging-Header.h */,
 			);
 			path = JammLab;
@@ -1304,6 +1309,7 @@
 				9F2701012EA0000100112233 /* NotationSMuFL.swift in Sources */,
 				9F8D01042C30000100112233 /* AudioRenderState.swift in Sources */,
 				9F8D01052C30000100112233 /* ClickRenderState.swift in Sources */,
+				A14A01013000000100112233 /* AudioRenderAtomics.c in Sources */,
 				9F8D01032C30000100112233 /* MultiTrackAudioPlayer.swift in Sources */,
 				9F9301012C90000100112233 /* StemBackendResolver.swift in Sources */,
 				9F8D01012C30000100112233 /* StemModels.swift in Sources */,
