@@ -15,9 +15,17 @@ if [[ ! -x "$SOURCE_DIR/JammLabSeparatorHelper" ]]; then
   exit 1
 fi
 
-CAPABILITIES_JSON="$("$SOURCE_DIR/JammLabSeparatorHelper" --capabilities_json)"
-if [[ -z "$CAPABILITIES_JSON" ]]; then
-  echo "error: bundled separator helper did not publish capabilities. Run scripts/build_separator_helper.sh before building JammLab." >&2
+if ! CAPABILITIES_JSON="$("$SOURCE_DIR/JammLabSeparatorHelper" --capabilities_json 2>&1)"; then
+  echo "error: bundled separator helper is stale or incompatible and cannot publish protocol capabilities." >&2
+  echo "error: rebuild it with scripts/build_separator_helper.sh before building JammLab." >&2
+  printf '%s\n' "$CAPABILITIES_JSON" >&2
+  exit 1
+fi
+
+if [[ -z "$CAPABILITIES_JSON" || "$CAPABILITIES_JSON" != \{* ]] ||
+  ! printf '%s' "$CAPABILITIES_JSON" | /usr/bin/plutil -convert json -o /dev/null - >/dev/null 2>&1; then
+  echo "error: bundled separator helper returned invalid capability JSON. Run scripts/build_separator_helper.sh before building JammLab." >&2
+  printf '%s\n' "$CAPABILITIES_JSON" >&2
   exit 1
 fi
 
