@@ -219,3 +219,72 @@ final class ClickRenderStateTests: XCTestCase {
         return frames
     }
 }
+
+final class AudioTransportRenderStateTests: XCTestCase {
+    func testPublishedFrameTracksRenderProgressAndSeek() {
+        let state = AudioTransportRenderState()
+        state.configure(durationFrames: 8)
+        state.seek(to: 3)
+
+        XCTAssertEqual(state.currentFrame, 3)
+
+        state.play()
+        XCTAssertEqual(state.nextSourceFrame(), 3)
+        XCTAssertEqual(state.currentFrame, 4)
+
+        state.pause()
+        XCTAssertEqual(state.currentFrame, 4)
+    }
+
+    func testLoopPublishesWrappedFrameWithoutTornTransportState() {
+        let state = AudioTransportRenderState()
+        state.configure(durationFrames: 10)
+        state.setLoop(enabled: true, startFrame: 2, endFrame: 5)
+        state.seek(to: 4)
+        state.play()
+
+        XCTAssertEqual(state.nextSourceFrame(), 4)
+        XCTAssertEqual(state.currentFrame, 2)
+        XCTAssertEqual(state.nextSourceFrame(), 2)
+        XCTAssertEqual(state.currentFrame, 3)
+    }
+
+    func testAtomicRenderCounterProducesExactConcurrentTotal() {
+        let value = AudioRenderAtomicInt64()
+        DispatchQueue.concurrentPerform(iterations: 10_000) { _ in
+            value.increment()
+        }
+
+        XCTAssertEqual(value.value, 10_000)
+
+        DispatchQueue.concurrentPerform(iterations: 10_000) { _ in
+            value.decrement()
+        }
+
+        XCTAssertEqual(value.value, 0)
+    }
+
+    func testRenderQuiescenceWaitsForEveryActiveLease() {
+        let lease = AudioRenderGraphLease(tracks: [])
+        lease.beginRender()
+        lease.beginRender()
+        XCTAssertEqual(lease.activeRenderCount, 2)
+
+        let waitStarted = DispatchSemaphore(value: 0)
+        let waitFinished = DispatchSemaphore(value: 0)
+        DispatchQueue.global(qos: .userInitiated).async {
+            waitStarted.signal()
+            MultiTrackAudioPlayer.waitForRenderQuiescence(lease)
+            waitFinished.signal()
+        }
+
+        XCTAssertEqual(waitStarted.wait(timeout: .now() + 1), .success)
+        lease.endRender()
+        XCTAssertEqual(lease.activeRenderCount, 1)
+        XCTAssertEqual(waitFinished.wait(timeout: .now() + 0.02), .timedOut)
+
+        lease.endRender()
+        XCTAssertEqual(waitFinished.wait(timeout: .now() + 1), .success)
+        XCTAssertTrue(lease.isRenderInactive)
+    }
+}

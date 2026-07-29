@@ -2,32 +2,78 @@ import Foundation
 
 extension AudioPlayerViewModel {
     func importAudio() async {
+        let operationID = UUID()
+        mediaLoadRunID = operationID
+        audioPreparationTask?.cancel()
         errorMessage = nil
         isImporting = true
 
         do {
             guard let file = try await importer.importFile() else {
+                guard mediaLoadRunID == operationID else { return }
+                mediaLoadRunID = nil
                 isImporting = false
                 return
             }
+            guard mediaLoadRunID == operationID else { return }
 
-            try loadImportedAudio(file)
+            let candidateMediaLease = try SecurityScopedResourceLease(
+                url: file.sourceMediaURL,
+                requiresAccess: isSandboxed()
+            )
+            let preparation = try await prepareOriginalPlayback(for: file, kind: .importing)
+            guard mediaLoadRunID == operationID else { return }
+            _ = candidateMediaLease
+            do {
+                try loadImportedAudio(file, preparedAsset: preparation.asset)
+                finishAudioPreparation(runID: preparation.runID)
+            } catch {
+                failAudioPreparation(runID: preparation.runID, error: error, kind: .importing)
+                throw error
+            }
+            mediaLoadRunID = nil
         } catch {
+            guard mediaLoadRunID == operationID else { return }
+            mediaLoadRunID = nil
             isImporting = false
-            errorMessage = error.localizedDescription
+            if !(error is CancellationError) {
+                errorMessage = error.localizedDescription
+            }
         }
     }
 
     func importAudio(from url: URL) async {
+        let operationID = UUID()
+        mediaLoadRunID = operationID
+        audioPreparationTask?.cancel()
         errorMessage = nil
         isImporting = true
 
         do {
             let file = try await importer.importFile(from: url)
-            try loadImportedAudio(file)
+            guard mediaLoadRunID == operationID else { return }
+            let candidateMediaLease = try SecurityScopedResourceLease(
+                url: file.sourceMediaURL,
+                requiresAccess: isSandboxed()
+            )
+            let preparation = try await prepareOriginalPlayback(for: file, kind: .importing)
+            guard mediaLoadRunID == operationID else { return }
+            _ = candidateMediaLease
+            do {
+                try loadImportedAudio(file, preparedAsset: preparation.asset)
+                finishAudioPreparation(runID: preparation.runID)
+            } catch {
+                failAudioPreparation(runID: preparation.runID, error: error, kind: .importing)
+                throw error
+            }
+            mediaLoadRunID = nil
         } catch {
+            guard mediaLoadRunID == operationID else { return }
+            mediaLoadRunID = nil
             isImporting = false
-            errorMessage = error.localizedDescription
+            if !(error is CancellationError) {
+                errorMessage = error.localizedDescription
+            }
         }
     }
 
@@ -81,6 +127,9 @@ extension AudioPlayerViewModel {
     }
 
     func newProject() {
+        mediaLoadRunID = nil
+        cancelAudioPreparation()
+        audioPreparationTask?.cancel()
         stopPlaybackClock()
         playbackEngine.unload()
         performWithoutVideoWindowDirtyTracking {
@@ -99,6 +148,7 @@ extension AudioPlayerViewModel {
     }
 
     private func resetForNewProject() {
+        preparedPlaybackAssets = [:]
         importedFile = nil
         analysisResult = nil
         peakformData = nil
@@ -126,7 +176,9 @@ extension AudioPlayerViewModel {
         timelineVisibleRange = 0...0
         userTimelineVisibleRange = 0...0
         currentProjectURL = nil
+        mediaLoadRunID = nil
         isImporting = false
+        audioPreparationState = .idle
         isAnalyzing = false
         isBuildingWaveform = false
         resetStemState()
@@ -152,6 +204,73 @@ extension AudioPlayerViewModel {
             throw error
         }
 
+        importedFile = file
+        performWithoutVideoWindowDirtyTracking {
+            videoFollower.load(videoURL: file.videoURL)
+        }
+        resetForImportedFile(file)
+        clearUndoHistory()
+
+        _ = restoreCachedStems(for: file.url)
+        restoreVideoWindowOpenState(file.mediaKind == .video)
+        markProjectClean()
+
+        buildPeakform(file: file)
+        analyze(file: file, includesTempo: true, includesKey: true)
+    }
+
+    func loadImportedAudio(
+        _ file: ImportedAudioFile,
+        preparedAsset: PreparedPlaybackAsset
+    ) throws {
+        let previousMode = playbackMode
+        let previousAsset = preparedPlaybackAssets[previousMode] ?? {
+            if previousMode == .stems, !stemFiles.isEmpty {
+                return PreparedPlaybackAsset(storage: .stems(stemFiles, stemMixState))
+            }
+            return importedFile.map { PreparedPlaybackAsset(storage: .originalURL($0.url)) }
+        }()
+        let previousTime = currentTime
+        let previousPlaybackState = playbackState
+        stopPlaybackClock()
+        playbackEngine.stop()
+        videoFollower.stop()
+        cancelBackgroundWork()
+
+        do {
+            try configurePlayer(with: preparedAsset)
+            preparedPlaybackAssets = [.original: preparedAsset]
+        } catch {
+            let installError = error
+            if let previousAsset {
+                do {
+                    try configurePlayer(with: previousAsset)
+                    guard playbackEngine.isLoaded else {
+                        throw MultiTrackAudioPlayerError.unsupportedPreparedAsset
+                    }
+                    if previousMode == .stems {
+                        playbackEngine.applyMix(stemMixState)
+                    }
+                    playbackEngine.seek(to: previousTime)
+                    if previousPlaybackState == .playing {
+                        try playbackEngine.play()
+                        videoFollower.play(rate: playbackRate)
+                        startPlaybackClock()
+                    }
+                } catch {
+                    playbackState = .paused
+                    throw AudioPlaybackTransactionFailure(
+                        primaryDescription: installError.localizedDescription,
+                        recoveryDescription: error.localizedDescription
+                    )
+                }
+            } else if previousPlaybackState == .playing {
+                playbackState = .paused
+            }
+            throw installError
+        }
+
+        beginSecurityScopedAccess(for: file.sourceMediaURL)
         importedFile = file
         performWithoutVideoWindowDirtyTracking {
             videoFollower.load(videoURL: file.videoURL)
@@ -196,28 +315,103 @@ extension AudioPlayerViewModel {
     }
 
     func openProject(at url: URL) async {
+        let operationID = UUID()
+        mediaLoadRunID = operationID
+        audioPreparationTask?.cancel()
         errorMessage = nil
         isImporting = true
-        stopPlaybackClock()
-        var didAdoptProject = false
 
         do {
-            beginProjectSecurityScopedAccess(for: url)
+            let candidateProjectLease = try SecurityScopedResourceLease(
+                url: url,
+                requiresAccess: isSandboxed()
+            )
             let project = try projectService.load(from: url)
+            var candidateArtifactLease: SecurityScopedResourceLease?
             if let artifactRootURL = try? project.resolvedArtifactRootURL() {
-                beginProjectSecurityScopedAccess(for: artifactRootURL)
+                candidateArtifactLease = try SecurityScopedResourceLease(
+                    url: artifactRootURL,
+                    requiresAccess: isSandboxed()
+                )
             }
             let mediaResult = try await projectPersistenceCoordinator.resolveProjectMedia(project: project, projectURL: url)
+            guard mediaLoadRunID == operationID else { return }
+            var candidateMediaLease: SecurityScopedResourceLease?
             if let resolvedMediaURL = mediaResult.resolvedMediaURL {
-                beginSecurityScopedAccess(for: resolvedMediaURL)
+                candidateMediaLease = try SecurityScopedResourceLease(
+                    url: resolvedMediaURL,
+                    requiresAccess: isSandboxed()
+                )
             }
             let projectDuration = mediaResult.projectDuration
+            let file = mediaResult.file
+            let nextMainTrackVolume = clampedVolume(
+                project.mainTrackVolume ?? AppSliderDefaults.mainTrackVolume
+            )
+            let preparation = try await prepareOriginalPlayback(
+                for: file,
+                kind: .openingProject,
+                volume: nextMainTrackVolume
+            )
+            guard mediaLoadRunID == operationID else { return }
+            _ = candidateProjectLease
+            _ = candidateArtifactLease
+            _ = candidateMediaLease
 
+            let previousMode = playbackMode
+            let previousAsset = preparedPlaybackAssets[previousMode] ?? {
+                if previousMode == .stems, !stemFiles.isEmpty {
+                    return PreparedPlaybackAsset(storage: .stems(stemFiles, stemMixState))
+                }
+                return importedFile.map { PreparedPlaybackAsset(storage: .originalURL($0.url)) }
+            }()
+            let previousTime = currentTime
+            let previousPlaybackState = playbackState
+            stopPlaybackClock()
             playbackEngine.stop()
             videoFollower.stop()
+            do {
+                try configurePlayer(with: preparation.asset)
+            } catch {
+                let installError = error
+                if let previousAsset {
+                    do {
+                        try configurePlayer(with: previousAsset)
+                        guard playbackEngine.isLoaded else {
+                            throw MultiTrackAudioPlayerError.unsupportedPreparedAsset
+                        }
+                        if previousMode == .stems {
+                            playbackEngine.applyMix(stemMixState)
+                        }
+                        playbackEngine.seek(to: previousTime)
+                        if previousPlaybackState == .playing {
+                            try playbackEngine.play()
+                            videoFollower.play(rate: playbackRate)
+                            startPlaybackClock()
+                        }
+                    } catch {
+                        playbackState = .paused
+                        let transactionError = AudioPlaybackTransactionFailure(
+                            primaryDescription: installError.localizedDescription,
+                            recoveryDescription: error.localizedDescription
+                        )
+                        failAudioPreparation(
+                            runID: preparation.runID,
+                            error: transactionError,
+                            kind: .openingProject
+                        )
+                        throw transactionError
+                    }
+                } else if previousPlaybackState == .playing {
+                    playbackState = .paused
+                }
+                failAudioPreparation(runID: preparation.runID, error: installError, kind: .openingProject)
+                throw installError
+            }
+
             playbackRate = ProjectStateNormalizer.normalizedPlaybackRate(project.playbackRate)
             pitchShiftSemitones = ProjectStateNormalizer.normalizedPitchShift(project.pitchShiftSemitones)
-            mainTrackVolume = clampedVolume(project.mainTrackVolume ?? AppSliderDefaults.mainTrackVolume)
+            mainTrackVolume = nextMainTrackVolume
             clickVolume = clampedVolume(project.clickVolume ?? AppSliderDefaults.clickVolume)
             isSnapEnabled = project.isSnapEnabled ?? false
             beatGridSettings = ProjectStateNormalizer.normalizedBeatGridSettings(
@@ -232,18 +426,24 @@ extension AudioPlayerViewModel {
             shouldAcceptAnalyzedTempo = mediaResult.shouldAnalyzeTempo
             isClickEnabled = (project.isClickEnabled ?? false) && beatGridSettings.bpm != nil
             let restoredPlaybackMode = project.playbackMode ?? project.stemState?.playbackMode ?? .original
-            let file = mediaResult.file
             let resolvedProjectDuration = mediaResult.projectDuration
             beatGridSettings = beatGridSettings.clamped(to: resolvedProjectDuration)
             synchronizeTempoBPM(tempoBPM)
-            try configurePlayer(with: file)
+            applyPlaybackConfiguration()
+            preparedPlaybackAssets = [.original: preparation.asset]
+            finishAudioPreparation(runID: preparation.runID)
 
             importedFile = file
+            beginSecurityScopedAccess(for: mediaResult.resolvedMediaURL ?? file.sourceMediaURL)
+            if let artifactRootURL = try? project.resolvedArtifactRootURL() {
+                _ = beginProjectSecurityScopedAccess(for: artifactRootURL)
+            } else {
+                _ = beginProjectSecurityScopedAccess(for: url)
+            }
             performWithoutVideoWindowDirtyTracking {
                 videoFollower.load(videoURL: file.videoURL)
             }
             currentProjectURL = url
-            didAdoptProject = true
             duration = resolvedProjectDuration
             let restoredPlaybackMarkerTime = ProjectStateNormalizer.normalizedTimelineTime(
                 project.playbackMarkerTime,
@@ -294,6 +494,7 @@ extension AudioPlayerViewModel {
             stemNoteDisplayModes = StemNoteDisplayModes.normalized(project.stemNoteDisplayModes)
             visibleNotationPartIDs = normalizedVisibleNotationPartIDs(from: project.visibleNotationPartIDs)
             isImporting = false
+            mediaLoadRunID = nil
             clearUndoHistory()
             markProjectClean()
             if let warningMessage = mediaResult.warningMessage {
@@ -310,10 +511,11 @@ extension AudioPlayerViewModel {
                 marksProjectModifiedForAutoKey: shouldAnalyzeKey
             )
         } catch {
+            guard mediaLoadRunID == operationID else { return }
+            mediaLoadRunID = nil
             isImporting = false
-            if !didAdoptProject {
-                endSecurityScopedAccess()
-                endProjectSecurityScopedAccess()
+            if error is CancellationError {
+                return
             }
             errorMessage = "Project open failed: \(error.localizedDescription)"
         }

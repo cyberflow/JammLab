@@ -22,7 +22,7 @@ env:
 
 jobs:
   python-tests:
-    name: Python Helper Tests
+    name: Separator Helper Tests
     runs-on: macos-26
     steps:
       - name: Checkout
@@ -30,6 +30,9 @@ jobs:
 
       - name: Run Python helper tests
         run: python3 -m unittest JammLabSeparatorHelper/test_runner.py
+
+      - name: Run separator helper embed tests
+        run: bash scripts/test_embed_separator_helper.sh
 
   swift-tests:
     name: Swift Tests

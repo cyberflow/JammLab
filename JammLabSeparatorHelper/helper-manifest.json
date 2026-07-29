@@ -1,0 +1,30 @@
+{
+  "protocolVersion": 6,
+  "separatorVersion": "2",
+  "supportedComputeModes": [
+    "cpu",
+    "auto"
+  ],
+  "models": [
+    {
+      "name": "htdemucs.yaml",
+      "requiredFiles": [
+        "htdemucs.yaml",
+        "955717e8-8726e21a.th"
+      ]
+    },
+    {
+      "name": "htdemucs_6s.yaml",
+      "requiredFiles": [
+        "htdemucs_6s.yaml",
+        "5c90dfd2-34c22ccb.th"
+      ]
+    },
+    {
+      "name": "UVR-MDX-NET-Inst_HQ_5.onnx",
+      "requiredFiles": [
+        "UVR-MDX-NET-Inst_HQ_5.onnx"
+      ]
+    }
+  ]
+}

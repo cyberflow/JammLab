@@ -10,6 +10,8 @@ datas = []
 binaries = []
 hiddenimports = []
 
+datas += [("helper-manifest.json", ".")]
+
 for package in [
     "audio_separator",
     "imageio_ffmpeg",

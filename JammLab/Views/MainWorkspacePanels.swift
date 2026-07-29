@@ -112,6 +112,15 @@ extension ContentView {
             }
             .frame(maxWidth: .infinity, alignment: .topLeading)
             .frame(height: height, alignment: .topLeading)
+
+            if viewModel.audioPreparationState.isActive {
+                AudioPreparationCard(
+                    state: viewModel.audioPreparationState,
+                    onCancel: viewModel.cancelAudioPreparation
+                )
+                .padding(AppTheme.Spacing.md)
+                .transition(.opacity)
+            }
         }
         .frame(maxWidth: .infinity, alignment: .topLeading)
         .frame(height: height, alignment: .topLeading)

@@ -27,19 +27,18 @@ enum StemJobPhase: String, Codable, Equatable {
 }
 
 struct StemJobRequest: Codable, Equatable {
+    var protocolVersion: Int
     var jobID: String
     var audioPath: String
     var cacheKey: String
     var cacheDirectoryPath: String
     var modelDirectoryPath: String
     var sourceFingerprint: StemSourceFingerprint
-    var separationMethodID: String? = nil
-    var expectedStemTypes: [StemType]? = nil
+    var separationMethodID: String
+    var expectedStemTypes: [StemType]
     var modelName: String
     var settingsVersion: Int
-    var audioSeparatorPath: String?
-    var audioSeparatorBookmarkData: Data?
-    var computeMode: String?
+    var computeMode: String
     var createdAt: Date
 }
 
@@ -73,7 +72,13 @@ struct StemJobResult: Codable, Equatable {
 }
 
 struct StemHelperHeartbeat: Codable, Equatable {
+    var protocolVersion: Int = StemJobFiles.protocolVersion
     var helperVersion: Int
+    var separatorVersion: String = ""
+    var executableIdentity: String = ""
+    var manifestSHA256: String = ""
+    var supportedModels: [String] = []
+    var supportedComputeModes: [String] = []
     var updatedAt: Date
     var activeJobID: String?
 
@@ -82,8 +87,18 @@ struct StemHelperHeartbeat: Codable, Equatable {
     }
 }
 
+struct StemHelperCapabilities: Codable, Equatable {
+    var protocolVersion: Int
+    var separatorVersion: String
+    var executableIdentity: String
+    var manifestSHA256: String
+    var supportedModels: [String]
+    var supportedComputeModes: [String]
+}
+
 enum StemJobFiles {
-    static let helperVersion = 5
+    static let protocolVersion = 6
+    static let helperVersion = 6
     static let jobsDirectoryName = "StemJobs"
     static let currentJobsDirectoryName = "v\(helperVersion)"
     static let cacheDirectoryName = "StemCache"

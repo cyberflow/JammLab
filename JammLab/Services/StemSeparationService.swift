@@ -9,6 +9,7 @@ enum StemSeparationError: LocalizedError {
     case helperJobTimedOut(String)
     case incompleteOutput([StemType])
     case invalidStemDuration(StemType)
+    case helperCapabilityMismatch(String)
     case cancelled
 
     var errorDescription: String? {
@@ -26,6 +27,8 @@ enum StemSeparationError: LocalizedError {
             return "Stem helper finished, but these stems are missing: \(names)."
         case .invalidStemDuration(let type):
             return "\(type.title) stem duration does not match the original track."
+        case .helperCapabilityMismatch(let details):
+            return "The bundled Stem helper is incompatible with this separation request. \(details)"
         case .cancelled:
             return "Stem separation was cancelled."
         }
@@ -45,6 +48,8 @@ enum StemSeparationError: LocalizedError {
             return "Incomplete helper output. Missing stems: \(missingTypes.map(\.rawValue).joined(separator: ", "))"
         case .invalidStemDuration(let type):
             return "Invalid stem duration for \(type.rawValue)"
+        case .helperCapabilityMismatch(let details):
+            return "Stem helper capability mismatch\n\(details)"
         }
     }
 }
@@ -145,10 +150,18 @@ final class StemSeparationService {
 
         progress(StemSeparationProgress(phase: .checkingBackend, progress: nil, status: "Waiting for helper"))
         do {
-            try await helperProcessController.ensureRunning()
+            try await helperProcessController.ensureRunning(
+                requiredModel: method.modelName,
+                computeMode: appSettingsStore.stemBackendComputeMode.helperArgument
+            )
+        } catch let error as StemHelperCapabilityError {
+            try Task.checkCancellation()
+            throw StemSeparationError.helperCapabilityMismatch(error.localizedDescription)
         } catch let error as StemHelperLaunchError {
+            try Task.checkCancellation()
             throw StemSeparationError.helperNotRunning(error.diagnostics)
         } catch {
+            try Task.checkCancellation()
             throw StemSeparationError.helperNotRunning(error.localizedDescription)
         }
 
@@ -273,6 +286,7 @@ final class StemSeparationService {
         let input = try jobInput(for: audioURL, jobDirectory: jobDirectory, mode: inputMode)
 
         let request = StemJobRequest(
+            protocolVersion: StemJobFiles.protocolVersion,
             jobID: jobDirectory.lastPathComponent,
             audioPath: input.audioPath,
             cacheKey: cacheKey,
@@ -283,8 +297,6 @@ final class StemSeparationService {
             expectedStemTypes: method.stemTypes,
             modelName: method.modelName,
             settingsVersion: Self.settingsVersion,
-            audioSeparatorPath: nil,
-            audioSeparatorBookmarkData: nil,
             computeMode: appSettingsStore.stemBackendComputeMode.helperArgument,
             createdAt: Date()
         )

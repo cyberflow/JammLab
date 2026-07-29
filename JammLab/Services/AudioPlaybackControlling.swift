@@ -2,6 +2,7 @@ import Foundation
 
 @MainActor
 protocol AudioPlaybackControlling: AnyObject {
+    var requiresPreparedPlayback: Bool { get }
     var isLoaded: Bool { get }
     var isPlaying: Bool { get }
     var currentTime: TimeInterval { get }
@@ -17,6 +18,7 @@ protocol AudioPlaybackControlling: AnyObject {
     func setPitchShift(semitones: Float)
     func setMainVolume(_ volume: Float)
     func load(stems: [StemFile], mixState: StemMixState) throws
+    func install(prepared asset: PreparedPlaybackAsset) throws
     func applyMix(_ mixState: StemMixState)
     func setClickEnabled(_ isEnabled: Bool)
     func setClickVolume(_ volume: Float)
@@ -28,6 +30,19 @@ protocol AudioPlaybackControlling: AnyObject {
 }
 
 extension AudioPlaybackControlling {
+    var requiresPreparedPlayback: Bool { false }
+
+    func install(prepared asset: PreparedPlaybackAsset) throws {
+        switch asset.storage {
+        case .originalURL(let url):
+            try load(url: url)
+        case .stems(let stems, let mixState):
+            try load(stems: stems, mixState: mixState)
+        case .decoded:
+            throw MultiTrackAudioPlayerError.unsupportedPreparedAsset
+        }
+    }
+
     func load(stems: [StemFile], mixState: StemMixState) throws {
         throw MultiTrackAudioPlayerError.unsupportedStemLoad
     }

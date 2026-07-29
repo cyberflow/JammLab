@@ -5,11 +5,20 @@ StemHelperRunner().run()
 private final class StemHelperRunner {
     private let fileManager = FileManager.default
     private var activeProcess: Process?
+    private var resolvedBackend: HelperBackend?
+    private var capabilities: StemHelperCapabilities?
 
     func run() {
         print("JammLabStemHelper started. Watching \(jobsDirectory().path)")
         try? fileManager.createDirectory(at: jobsDirectory(), withIntermediateDirectories: true)
         try? fileManager.createDirectory(at: modelDirectory(), withIntermediateDirectories: true)
+        do {
+            let resolution = try resolveBackend(jobDirectory: jobsDirectory())
+            resolvedBackend = resolution.backend
+            capabilities = resolution.capabilities
+        } catch {
+            print("JammLabStemHelper capability probe failed: \(error.localizedDescription)")
+        }
 
         while true {
             writeHeartbeat(activeJobID: nil)
@@ -49,10 +58,32 @@ private final class StemHelperRunner {
     private func process(_ jobDirectory: URL) {
         do {
             let request: StemJobRequest = try readJSON(from: jobDirectory.appendingPathComponent(StemJobFiles.requestFilename))
+            guard request.protocolVersion == StemJobFiles.protocolVersion else {
+                throw HelperError.protocolMismatch(
+                    expected: StemJobFiles.protocolVersion,
+                    actual: request.protocolVersion
+                )
+            }
             writeHeartbeat(activeJobID: request.jobID)
             try updateStatus(.checkingBackend, request: request, jobDirectory: jobDirectory, message: "Checking backend")
 
-            let backend = try resolveBackend(jobDirectory: jobDirectory)
+            let resolution: (backend: HelperBackend, capabilities: StemHelperCapabilities)
+            if let resolvedBackend, let capabilities {
+                resolution = (resolvedBackend, capabilities)
+            } else {
+                resolution = try resolveBackend(jobDirectory: jobDirectory)
+                resolvedBackend = resolution.backend
+                capabilities = resolution.capabilities
+            }
+            let backend = resolution.backend
+            guard resolution.capabilities.supportedModels.contains(request.modelName),
+                  resolution.capabilities.supportedComputeModes.contains(request.computeMode)
+            else {
+                throw HelperError.unsupportedCapability(
+                    model: request.modelName,
+                    computeMode: request.computeMode
+                )
+            }
             try ensureNotCancelled(jobDirectory)
             try updateStatus(
                 .processing,
@@ -89,12 +120,14 @@ private final class StemHelperRunner {
             let stems = try normalizeStems(
                 from: workDirectory,
                 cacheDirectory: URL(fileURLWithPath: request.cacheDirectoryPath),
-                expectedTypes: request.expectedStemTypes ?? StemSeparationMethod.defaultValue.stemTypes
+                expectedTypes: request.expectedStemTypes
             )
             let metadata = StemCacheMetadata(
                 cacheKey: request.cacheKey,
                 sourceFingerprint: request.sourceFingerprint,
-                backendIdentifier: backend.displayName,
+                backendIdentifier: backend.identifier(
+                    separatorVersion: resolution.capabilities.separatorVersion
+                ),
                 separationMethodID: request.separationMethodID,
                 modelName: request.modelName,
                 settingsVersion: request.settingsVersion,
@@ -113,7 +146,9 @@ private final class StemHelperRunner {
         }
     }
 
-    private func resolveBackend(jobDirectory: URL) throws -> HelperBackend {
+    private func resolveBackend(
+        jobDirectory: URL
+    ) throws -> (backend: HelperBackend, capabilities: StemHelperCapabilities) {
         let candidates = StemBackendResolver().bundledSeparatorCandidates.map(HelperBackend.init(candidate:))
 
         var diagnostics: [String] = []
@@ -121,18 +156,30 @@ private final class StemHelperRunner {
             do {
                 let result = try runBackend(
                     backend,
-                    arguments: ["--env_info"],
+                    arguments: ["--capabilities_json"],
                     jobDirectory: jobDirectory,
                     heartbeatJobID: nil
                 )
                 guard result.exitCode == 0 else {
-                    diagnostics.append("\(backend.commandDescription(extraArguments: ["--env_info"])) failed with \(result.exitCode)")
+                    diagnostics.append("\(backend.commandDescription(extraArguments: ["--capabilities_json"])) failed with \(result.exitCode)")
                     continue
                 }
-                if !result.output.localizedCaseInsensitiveContains("JammLabSeparatorHelper") {
-                    diagnostics.append("\(backend.displayName) did not report bundled helper identity")
+                guard let jsonLine = result.output
+                    .split(separator: "\n")
+                    .last(where: { $0.trimmingCharacters(in: .whitespaces).hasPrefix("{") }),
+                      let data = String(jsonLine).data(using: .utf8),
+                      let capabilities = try? JSONDecoder().decode(StemHelperCapabilities.self, from: data)
+                else {
+                    diagnostics.append("\(backend.displayName) did not report valid capability JSON")
+                    continue
                 }
-                return backend
+                guard capabilities.protocolVersion == StemJobFiles.protocolVersion else {
+                    diagnostics.append(
+                        "\(backend.displayName) uses protocol \(capabilities.protocolVersion), expected \(StemJobFiles.protocolVersion)"
+                    )
+                    continue
+                }
+                return (backend, capabilities)
             } catch {
                 diagnostics.append("\(backend.displayName): \(error.localizedDescription)")
             }
@@ -154,7 +201,7 @@ private final class StemHelperRunner {
             "--model_file_dir",
             request.modelDirectoryPath,
             "--compute_device",
-            request.computeMode ?? "cpu"
+            request.computeMode
         ]
     }
 
@@ -189,9 +236,8 @@ private final class StemHelperRunner {
         let heartbeatThread = HeartbeatThread { [weak self] in
             self?.writeHeartbeat(activeJobID: heartbeatJobID)
         }
-        let cancellationWatcher = CancellationWatcherThread(jobDirectory: jobDirectory) { [weak self, weak process] in
+        let cancellationWatcher = CancellationWatcherThread(jobDirectory: jobDirectory) { [weak process] in
             process?.terminate()
-            self?.activeProcess = nil
         }
         heartbeatThread.start()
         cancellationWatcher.start()
@@ -324,8 +370,18 @@ private final class StemHelperRunner {
     }
 
     private func writeHeartbeat(activeJobID: String?) {
+        let executableIdentity = URL(fileURLWithPath: CommandLine.arguments[0])
+            .standardizedFileURL
+            .resolvingSymlinksInPath()
+            .path
         let heartbeat = StemHelperHeartbeat(
+            protocolVersion: StemJobFiles.protocolVersion,
             helperVersion: StemJobFiles.helperVersion,
+            separatorVersion: capabilities?.separatorVersion ?? "",
+            executableIdentity: executableIdentity,
+            manifestSHA256: capabilities?.manifestSHA256 ?? "",
+            supportedModels: capabilities?.supportedModels ?? [],
+            supportedComputeModes: capabilities?.supportedComputeModes ?? [],
             updatedAt: Date(),
             activeJobID: activeJobID
         )
@@ -378,142 +434,5 @@ private final class StemHelperRunner {
         } else {
             try? data.write(to: url, options: .atomic)
         }
-    }
-}
-
-private struct HelperBackend {
-    var executableURL: URL
-    var argumentsPrefix: [String]
-    var displayName: String
-
-    init(candidate: StemBackendCandidate) {
-        executableURL = candidate.executableURL
-        argumentsPrefix = candidate.argumentsPrefix
-        displayName = candidate.displayName
-    }
-
-    func commandDescription(extraArguments: [String]) -> String {
-        commandDescription(executableURL: executableURL, extraArguments: extraArguments)
-    }
-
-    func commandDescription(executableURL: URL, extraArguments: [String]) -> String {
-        ([executableURL.path] + argumentsPrefix + extraArguments)
-            .map { $0.contains(" ") ? "\"\($0)\"" : $0 }
-            .joined(separator: " ")
-    }
-
-}
-
-private struct ProcessResult {
-    var exitCode: Int32
-    var output: String
-}
-
-private enum HelperError: LocalizedError {
-    case backendNotFound(String)
-    case backendFailed(String)
-    case incompleteOutput(String)
-    case cancelled
-
-    var errorDescription: String? {
-        switch self {
-        case .backendNotFound(let details):
-            return "Bundled stem separator was not found or failed --env_info.\n\(details)"
-        case .backendFailed(let details):
-            return "Stem backend failed.\n\(details)"
-        case .incompleteOutput(let stem):
-            return "Stem backend did not produce \(stem)."
-        case .cancelled:
-            return "Stem helper job cancelled."
-        }
-    }
-}
-
-private final class HeartbeatThread {
-    private let lock = NSLock()
-    private var isStopped = false
-    private let action: () -> Void
-
-    init(action: @escaping () -> Void) {
-        self.action = action
-    }
-
-    func start() {
-        Thread.detachNewThread { [weak self] in
-            while self?.stopped == false {
-                self?.action()
-                Thread.sleep(forTimeInterval: 2)
-            }
-        }
-    }
-
-    func stop() {
-        lock.lock()
-        isStopped = true
-        lock.unlock()
-    }
-
-    private var stopped: Bool {
-        lock.lock()
-        defer { lock.unlock() }
-        return isStopped
-    }
-}
-
-private final class CancellationWatcherThread {
-    private let lock = NSLock()
-    private var isStopped = false
-    private let jobDirectory: URL
-    private let action: () -> Void
-
-    init(jobDirectory: URL, action: @escaping () -> Void) {
-        self.jobDirectory = jobDirectory
-        self.action = action
-    }
-
-    func start() {
-        Thread.detachNewThread { [weak self] in
-            while self?.stopped == false {
-                if self?.isCancelled == true {
-                    self?.action()
-                    self?.stop()
-                    return
-                }
-                Thread.sleep(forTimeInterval: 0.5)
-            }
-        }
-    }
-
-    func stop() {
-        lock.lock()
-        isStopped = true
-        lock.unlock()
-    }
-
-    private var stopped: Bool {
-        lock.lock()
-        defer { lock.unlock() }
-        return isStopped
-    }
-
-    private var isCancelled: Bool {
-        FileManager.default.fileExists(atPath: jobDirectory.appendingPathComponent(StemJobFiles.cancelFilename).path)
-    }
-}
-
-private final class ProcessOutputBuffer: @unchecked Sendable {
-    private let lock = NSLock()
-    private var data = Data()
-
-    var stringValue: String {
-        lock.lock()
-        defer { lock.unlock() }
-        return String(data: data, encoding: .utf8) ?? ""
-    }
-
-    func append(_ newData: Data) {
-        lock.lock()
-        data.append(newData)
-        lock.unlock()
     }
 }

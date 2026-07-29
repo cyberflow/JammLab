@@ -33,6 +33,17 @@ enum StemHelperLaunchError: LocalizedError {
     }
 }
 
+enum StemHelperCapabilityError: LocalizedError {
+    case incompatibleHeartbeat(String)
+
+    var errorDescription: String? {
+        switch self {
+        case .incompatibleHeartbeat(let details):
+            return details
+        }
+    }
+}
+
 protocol StemHelperLaunchedProcess: AnyObject {
     var isRunning: Bool { get }
     func terminate()
@@ -76,14 +87,13 @@ private final class FoundationStemHelperProcess: StemHelperLaunchedProcess {
     }
 }
 
-final class StemHelperProcessController {
+actor StemHelperProcessController {
     private let helperExecutableURL: URL
     private let heartbeatURL: URL
     private let expectedHelperVersion: Int
     private let fileManager: FileManager
     private let launcher: StemHelperProcessLaunching
     private let pollInterval: UInt64 = 200_000_000
-    private let lock = NSLock()
     private var launchedProcess: StemHelperLaunchedProcess?
 
     init(
@@ -101,11 +111,7 @@ final class StemHelperProcessController {
     }
 
     deinit {
-        lock.lock()
-        let process = launchedProcess
-        launchedProcess = nil
-        lock.unlock()
-        process?.terminate()
+        launchedProcess?.terminate()
     }
 
     static func defaultHelperExecutableURL(bundle: Bundle = .main) -> URL {
@@ -115,23 +121,36 @@ final class StemHelperProcessController {
             .appendingPathComponent("JammLabStemHelper")
     }
 
-    func ensureRunning(timeout: TimeInterval = 3) async throws {
-        if isHeartbeatFresh {
+    func ensureRunning(
+        timeout: TimeInterval = 3,
+        requiredModel: String? = nil,
+        computeMode: String? = nil
+    ) async throws {
+        if let heartbeat = readHeartbeat(), heartbeat.isFresh {
+            if let mismatch = capabilityMismatch(
+                heartbeat,
+                requiredModel: requiredModel,
+                computeMode: computeMode
+            ) {
+                throw StemHelperCapabilityError.incompatibleHeartbeat(mismatch)
+            }
             return
         }
 
+        try? fileManager.removeItem(at: heartbeatURL)
         try launchIfNeeded()
-        try await waitForFreshHeartbeat(timeout: timeout)
+        try await waitForFreshHeartbeat(
+            timeout: timeout,
+            requiredModel: requiredModel,
+            computeMode: computeMode
+        )
     }
 
     private func launchIfNeeded() throws {
-        lock.lock()
         if let launchedProcess, launchedProcess.isRunning {
-            lock.unlock()
             return
         }
         launchedProcess = nil
-        lock.unlock()
 
         guard fileManager.fileExists(atPath: helperExecutableURL.path) else {
             throw StemHelperLaunchError.missingExecutable(helperExecutableURL)
@@ -142,32 +161,74 @@ final class StemHelperProcessController {
         }
 
         let process = try launcher.launchStemHelper(at: helperExecutableURL)
-
-        lock.lock()
         launchedProcess = process
-        lock.unlock()
     }
 
-    private func waitForFreshHeartbeat(timeout: TimeInterval) async throws {
+    private func waitForFreshHeartbeat(
+        timeout: TimeInterval,
+        requiredModel: String?,
+        computeMode: String?
+    ) async throws {
         let startedAt = Date()
+        var lastMismatch: String?
         while Date().timeIntervalSince(startedAt) < timeout {
-            if isHeartbeatFresh {
-                return
+            if let heartbeat = readHeartbeat(), heartbeat.isFresh {
+                if let mismatch = capabilityMismatch(
+                    heartbeat,
+                    requiredModel: requiredModel,
+                    computeMode: computeMode
+                ) {
+                    lastMismatch = mismatch
+                } else {
+                    return
+                }
             }
 
             try await Task.sleep(nanoseconds: pollInterval)
         }
 
+        if let lastMismatch {
+            throw StemHelperCapabilityError.incompatibleHeartbeat(lastMismatch)
+        }
         throw StemHelperLaunchError.heartbeatTimedOut("heartbeat: \(heartbeatURL.path)")
     }
 
-    private var isHeartbeatFresh: Bool {
+    private func readHeartbeat() -> StemHelperHeartbeat? {
         guard let data = try? Data(contentsOf: heartbeatURL),
               let heartbeat = try? JSONDecoder().decode(StemHelperHeartbeat.self, from: data)
         else {
-            return false
+            return nil
+        }
+        return heartbeat
+    }
+
+    private func capabilityMismatch(
+        _ heartbeat: StemHelperHeartbeat,
+        requiredModel: String?,
+        computeMode: String?
+    ) -> String? {
+        guard heartbeat.protocolVersion == StemJobFiles.protocolVersion,
+              heartbeat.helperVersion == expectedHelperVersion
+        else {
+            return "Expected protocol/helper v\(StemJobFiles.protocolVersion)/v\(expectedHelperVersion), got v\(heartbeat.protocolVersion)/v\(heartbeat.helperVersion)."
         }
 
-        return heartbeat.helperVersion == expectedHelperVersion && heartbeat.isFresh
+        let expectedIdentity = helperExecutableURL
+            .standardizedFileURL
+            .resolvingSymlinksInPath()
+            .path
+        guard heartbeat.executableIdentity == expectedIdentity else {
+            return "A stale Stem helper is running from \(heartbeat.executableIdentity.isEmpty ? "an unknown path" : heartbeat.executableIdentity)."
+        }
+        guard !heartbeat.separatorVersion.isEmpty, !heartbeat.manifestSHA256.isEmpty else {
+            return "The helper did not publish its separator version or manifest identity."
+        }
+        if let requiredModel, !heartbeat.supportedModels.contains(requiredModel) {
+            return "Model \(requiredModel) is not bundled."
+        }
+        if let computeMode, !heartbeat.supportedComputeModes.contains(computeMode) {
+            return "Compute mode \(computeMode) is not supported."
+        }
+        return nil
     }
 }

@@ -3,25 +3,8 @@ import SwiftUI
 
 private let notationTrackCoordinateSpaceName = "NotationTrackCoordinateSpace"
 
-struct NotationTrackActions {
-    var selectHarmony: (HarmonySymbol.ID?) -> Void
-    var selectMeasure: (ScoreMeasure?, Bool, NotationPartID) -> Void
-    var selectItem: (NotationItemSelection?, Bool) -> Void
-    var canInsertNotationNote: (NotationNotePlacement) -> Bool
-    var insertNotationNote: (NotationNotePlacement) -> Bool
-    var insertNotationRest: (NotationRestPlacement) -> Bool
-    var changeSelectedNotePitch: (NotationPitch, Bool) -> Bool
-    var changeClef: (NotationPartID, Clef) -> Void
-    var auditionNotePitch: (NotationPitch, Clef) -> Void
-    var deleteSelectedNotationMeasureContents: () -> Bool
-    var deleteSelectedNotationNote: () -> Bool
-    var locatePlaybackMarkerExactly: (TimeInterval) -> Void
-    var saveHarmony: (HarmonySymbol) -> Void
-    var deleteHarmony: (HarmonySymbol.ID) -> Void
-    var adjacentHarmonyPlacement: (TimeInterval, HarmonyNavigationDirection) -> HarmonyPlacement?
-}
-
 struct NotationTrackView: View {
+    @State private var renderSceneCache = NotationTrackRenderSceneCache()
     let state: NotationViewportState
     let measureLayout: NotationSystemMeasureLayout?
     let partID: NotationPartID
@@ -270,17 +253,18 @@ struct NotationTrackView: View {
         width: CGFloat,
         attributeDisplays: [NotationAttributeDisplay]
     ) -> [NotationMeasureCanvasGeometry] {
-        if let measureLayout,
-           measureLayout.matches(state.visibleMeasures) {
-            return measureLayout.geometries(totalWidth: width)
-        }
-
-        let safeMeasureCount = max(1, measureCount)
-        return NotationMeasureLayout.canvasGeometries(
-            measureCount: safeMeasureCount,
-            totalWidth: width,
-            attributeReserveWidths: measureAttributeReserveWidths(attributeDisplays: attributeDisplays)
-        )
+        renderSceneCache.scene(
+            input: NotationTrackRenderScene.Input(
+                visibleMeasures: state.visibleMeasures,
+                measureLayout: measureLayout,
+                renderedMeasureCount: max(1, measureCount),
+                width: width,
+                attributeDisplays: attributeDisplays,
+                attributeReserveWidths: measureAttributeReserveWidths(
+                    attributeDisplays: attributeDisplays
+                )
+            )
+        ).geometries
     }
 
     private func drawStaffLines(
@@ -309,7 +293,9 @@ struct NotationTrackView: View {
         staffBottom: CGFloat,
         in context: inout GraphicsContext
     ) {
-        for barline in NotationMeasureLayout.barlineGeometries(for: geometries) {
+        let barlines = renderSceneCache.scene(matching: geometries)?.barlines
+            ?? NotationMeasureLayout.barlineGeometries(for: geometries)
+        for barline in barlines {
             drawBarline(
                 x: barline.x,
                 isOuterBoundary: barline.isOuterBoundary,
@@ -1448,10 +1434,11 @@ struct NotationTrackView: View {
             width: width,
             attributeDisplays: attributeDisplays
         )
-        let targets = NotationMeasureLayout.barlineHitTargets(
-            for: geometries,
-            measures: state.visibleMeasures
-        )
+        let targets = renderSceneCache.scene(matching: geometries)?.barlineHitTargets
+            ?? NotationMeasureLayout.barlineHitTargets(
+                for: geometries,
+                measures: state.visibleMeasures
+            )
         let staffTop = staffTop(in: height)
         let hitY = max(0, staffTop - AppTheme.Spacing.xs)
         let hitHeight = AppTheme.Timeline.notationStaffLineSpacing * 4 + AppTheme.Spacing.sm
@@ -1832,7 +1819,10 @@ struct NotationTrackView: View {
     private func regionLabelLayoutItems(
         geometries: [NotationMeasureCanvasGeometry]
     ) -> [RegionLabelLayoutItem] {
-        NotationTrackLayoutItems.regionLabels(
+        if let items = renderSceneCache.scene(matching: geometries)?.regionLabels {
+            return items
+        }
+        return NotationTrackLayoutItems.regionLabels(
             visibleMeasures: state.visibleMeasures,
             geometries: geometries
         )
@@ -1841,7 +1831,10 @@ struct NotationTrackView: View {
     private func harmonyLayoutItems(
         geometries: [NotationMeasureCanvasGeometry]
     ) -> [HarmonyLayoutItem] {
-        NotationTrackLayoutItems.harmonies(
+        if let items = renderSceneCache.scene(matching: geometries)?.harmonies {
+            return items
+        }
+        return NotationTrackLayoutItems.harmonies(
             visibleMeasures: state.visibleMeasures,
             geometries: geometries
         )
@@ -1850,7 +1843,10 @@ struct NotationTrackView: View {
     private func notationItemLayoutItems(
         geometries: [NotationMeasureCanvasGeometry]
     ) -> [NotationItemLayoutItem] {
-        NotationTrackLayoutItems.notationItems(
+        if let items = renderSceneCache.scene(matching: geometries)?.notationItems {
+            return items
+        }
+        return NotationTrackLayoutItems.notationItems(
             visibleMeasures: state.visibleMeasures,
             geometries: geometries
         )
@@ -2261,62 +2257,6 @@ private struct KeySignatureAccidentalsView: View {
             }
         }
         .frame(height: Self.staffTopInset * 2 + AppTheme.Timeline.notationStaffLineSpacing * 4)
-    }
-}
-
-private struct HarmonyEditorDraft: Equatable {
-    var id: HarmonySymbol.ID
-    var time: TimeInterval
-    var measureNumber: Int
-    var offsetInQuarterNotes: Double
-    var text: String
-    var isNew: Bool
-}
-
-private struct NotationHarmonyPlacement: Equatable {
-    var measureIndex: Int
-    var time: TimeInterval
-    var measureNumber: Int
-    var offsetInQuarterNotes: Double
-
-    var harmonyPlacement: HarmonyPlacement {
-        HarmonyPlacement(
-            time: time,
-            measureNumber: measureNumber,
-            offsetInQuarterNotes: offsetInQuarterNotes
-        )
-    }
-}
-
-private struct NotationDraggedNotePitchPreview: Equatable {
-    var selection: NotationItemSelection
-    var pitch: NotationPitch
-    var didAudition: Bool
-
-    func matches(_ selection: NotationItemSelection) -> Bool {
-        self.selection == selection
-    }
-}
-
-private extension NotationTrackActions {
-    static var noop: NotationTrackActions {
-        NotationTrackActions(
-            selectHarmony: { _ in },
-            selectMeasure: { _, _, _ in },
-            selectItem: { _, _ in },
-            canInsertNotationNote: { _ in false },
-            insertNotationNote: { _ in false },
-            insertNotationRest: { _ in false },
-            changeSelectedNotePitch: { _, _ in false },
-            changeClef: { _, _ in },
-            auditionNotePitch: { _, _ in },
-            deleteSelectedNotationMeasureContents: { false },
-            deleteSelectedNotationNote: { false },
-            locatePlaybackMarkerExactly: { _ in },
-            saveHarmony: { _ in },
-            deleteHarmony: { _ in },
-            adjacentHarmonyPlacement: { _, _ in nil }
-        )
     }
 }
 

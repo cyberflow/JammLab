@@ -27,13 +27,9 @@ struct StemBackendResolver {
             StemBackendCandidate(
                 executableURL: helperExecutableURL,
                 argumentsPrefix: [],
-                displayName: "JammLabSeparatorHelper/\(StemBackendResolver.separatorVersion)"
+                displayName: StemBackendResolver.separatorExecutableName
             )
         ]
-    }
-
-    static var separatorVersion: String {
-        "1"
     }
 
     static func defaultBundledSeparatorExecutableURL(

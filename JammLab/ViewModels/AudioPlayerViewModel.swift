@@ -62,6 +62,7 @@ final class AudioPlayerViewModel: ObservableObject {
     @Published var timelineVisibleRange: ClosedRange<TimeInterval> = 0...0
     @Published var currentProjectURL: URL?
     @Published var isImporting = false
+    @Published var audioPreparationState: AudioPreparationViewState = .idle
     @Published var isAnalyzing = false
     @Published var isBuildingWaveform = false
     @Published var playbackMode: PlaybackMode = .original
@@ -97,6 +98,7 @@ final class AudioPlayerViewModel: ObservableObject {
     let analyzer: AudioAnalyzing
     let peakformProvider: PeakformProvider
     let playbackEngine: AudioPlaybackControlling
+    let playbackPreparer: any AudioPlaybackPreparing
     let videoFollower: VideoFollowerControlling
     let appSettingsStore: AppSettingsStore
     let stemSeparationService: StemSeparationService
@@ -113,6 +115,10 @@ final class AudioPlayerViewModel: ObservableObject {
     var clockTask: Task<Void, Never>?
     var analysisTask: Task<Void, Never>?
     var waveformTask: Task<Void, Never>?
+    var audioPreparationTask: Task<PreparedPlaybackAsset, Error>?
+    var audioPreparationRunID: UUID?
+    var mediaLoadRunID: UUID?
+    var preparedPlaybackAssets: [PlaybackMode: PreparedPlaybackAsset] = [:]
     var notationMeasureSelectionAnchor: NotationMeasureSelection?
     var stemSeparationTask: Task<Void, Never>?
     var stemSeparationRunID: UUID?
@@ -176,6 +182,7 @@ final class AudioPlayerViewModel: ObservableObject {
         analyzer: AudioAnalyzing = AudioAnalyzer(),
         peakformProvider: PeakformProvider = CachedPeakformProvider(),
         playbackEngine: AudioPlaybackControlling? = nil,
+        playbackPreparer: (any AudioPlaybackPreparing)? = nil,
         videoFollower: VideoFollowerControlling? = nil,
         appSettingsStore: AppSettingsStore = AppSettingsStore(),
         stemSeparationService: StemSeparationService? = nil,
@@ -192,10 +199,15 @@ final class AudioPlayerViewModel: ObservableObject {
         isSandboxed: @escaping () -> Bool = AudioPlayerViewModel.defaultSandboxDetection
     ) {
         let resolvedStemSeparationService = stemSeparationService ?? StemSeparationService(appSettingsStore: appSettingsStore)
+        let resolvedPlaybackEngine = playbackEngine ?? MultiTrackAudioPlayer()
         self.importer = importer
         self.analyzer = analyzer
         self.peakformProvider = peakformProvider
-        self.playbackEngine = playbackEngine ?? MultiTrackAudioPlayer()
+        self.playbackEngine = resolvedPlaybackEngine
+        self.playbackPreparer = playbackPreparer
+            ?? (resolvedPlaybackEngine.requiresPreparedPlayback
+                ? MultiTrackAudioPreparer()
+                : LegacyAudioPlaybackPreparer())
         self.videoFollower = videoFollower ?? VideoFollowerController()
         self.appSettingsStore = appSettingsStore
         self.stemSeparationService = resolvedStemSeparationService
@@ -251,6 +263,7 @@ final class AudioPlayerViewModel: ObservableObject {
         clockTask?.cancel()
         analysisTask?.cancel()
         waveformTask?.cancel()
+        audioPreparationTask?.cancel()
         stemSeparationTask?.cancel()
         stemPeakformTask?.cancel()
         stemSeparationService.cancel()

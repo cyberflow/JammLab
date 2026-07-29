@@ -58,7 +58,7 @@ extension AudioPlayerViewModel {
                 guard stemSeparationRunID == runID else { return }
                 let message = error.localizedDescription
                 let diagnostics = (error as? StemSeparationError)?.diagnostics
-                let isCancellation = isStemSeparationCancellation(error)
+                let isCancellation = Task.isCancelled || isStemSeparationCancellation(error)
                 stemSeparationState = StemSeparationViewState(
                     phase: isCancellation ? .cancelled : .failed(message),
                     progress: nil,
@@ -104,6 +104,16 @@ extension AudioPlayerViewModel {
     }
 
     func setPlaybackMode(_ mode: PlaybackMode) {
+        if playbackEngine.requiresPreparedPlayback {
+            beginPreparedPlaybackModeSwitch(
+                mode,
+                preservedTime: currentTime,
+                errorPrefix: "Playback mode switch failed",
+                registersUndo: true
+            )
+            return
+        }
+
         performUndoableEdit("Change Playback Mode") {
             switchPlaybackMode(mode, preservedTime: currentTime, errorPrefix: "Playback mode switch failed")
         }
@@ -151,6 +161,9 @@ extension AudioPlayerViewModel {
 
 
     func registerStemMetadata(_ metadata: StemCacheMetadata, activatePlayback: Bool = false) {
+        let replacesActiveMultiTrackStems = playbackEngine.requiresPreparedPlayback
+            && playbackMode == .stems
+        preparedPlaybackAssets[.stems] = nil
         stemCacheMetadata = metadata
         stemFiles = metadata.stems
         stemMixState.setAvailability(from: metadata.stems)
@@ -162,12 +175,22 @@ extension AudioPlayerViewModel {
         )
 
         if activatePlayback || playbackMode == .stems {
-            switchPlaybackMode(
-                .stems,
-                preservedTime: currentTime,
-                errorPrefix: "Stem playback failed",
-                reloadIfCurrentMode: true
-            )
+            if playbackEngine.requiresPreparedPlayback {
+                beginPreparedPlaybackModeSwitch(
+                    .stems,
+                    preservedTime: currentTime,
+                    errorPrefix: "Stem playback failed",
+                    registersUndo: false,
+                    failureRollbackMode: replacesActiveMultiTrackStems ? .original : nil
+                )
+            } else {
+                switchPlaybackMode(
+                    .stems,
+                    preservedTime: currentTime,
+                    errorPrefix: "Stem playback failed",
+                    reloadIfCurrentMode: true
+                )
+            }
         }
     }
 
@@ -185,9 +208,6 @@ extension AudioPlayerViewModel {
                 stemMixState = preferredMixState
             }
 
-            if preferredPlaybackMode == .stems {
-                playbackMode = .stems
-            }
             registerStemMetadata(metadata)
 
             return true
@@ -220,9 +240,6 @@ extension AudioPlayerViewModel {
                     expectedFingerprint: currentFingerprint,
                     fallbackFingerprint: projectStemState?.sourceFingerprint
                 ) {
-                    if projectStemState?.playbackMode == .stems {
-                        playbackMode = .stems
-                    }
                     registerStemMetadata(metadata)
                     return
                 }
@@ -282,9 +299,6 @@ extension AudioPlayerViewModel {
                 return
             }
 
-            if projectStemState.playbackMode == .stems {
-                playbackMode = .stems
-            }
             registerStemMetadata(metadata)
         } catch {
             stemSeparationState = StemSeparationViewState(
@@ -314,6 +328,7 @@ extension AudioPlayerViewModel {
 
     func resetStemState(mixState: StemMixState = StemMixState()) {
         playbackMode = .original
+        preparedPlaybackAssets[.stems] = nil
         stemFiles = []
         clearStemPeakforms()
         stemMixState = mixState

@@ -229,6 +229,70 @@ final class NotationMeasureGeometryTests: XCTestCase {
         XCTAssertNotEqual(retimedTargets.map(\.targetTime), originalTargets.map(\.targetTime))
     }
 
+    func testNotationRenderSceneCacheReusesPureGeometrySnapshot() {
+        let measures = [
+            scoreMeasure(number: 1, start: 0, end: 2),
+            scoreMeasure(number: 2, start: 2, end: 4)
+        ]
+        let input = NotationTrackRenderScene.Input(
+            visibleMeasures: measures,
+            measureLayout: nil,
+            renderedMeasureCount: 2,
+            width: 600,
+            attributeDisplays: [.full, .none],
+            attributeReserveWidths: [80, 0]
+        )
+        let cache = NotationTrackRenderSceneCache()
+
+        let first = cache.scene(input: input)
+        let second = cache.scene(input: input)
+
+        XCTAssertEqual(first, second)
+        XCTAssertEqual(cache.buildCount, 1)
+        XCTAssertEqual(first.geometries.count, 2)
+        XCTAssertEqual(first.barlineHitTargets.map(\.targetTime), [0, 2, 4])
+    }
+
+    func testNotationRenderSceneCacheInvalidatesForWidthOrScoreChanges() {
+        let measure = scoreMeasure(number: 1, start: 0, end: 2)
+        let input = NotationTrackRenderScene.Input(
+            visibleMeasures: [measure],
+            measureLayout: nil,
+            renderedMeasureCount: 1,
+            width: 300,
+            attributeDisplays: [.full],
+            attributeReserveWidths: [80]
+        )
+        let cache = NotationTrackRenderSceneCache()
+        _ = cache.scene(input: input)
+        var resizedInput = input
+        resizedInput.width = 500
+        _ = cache.scene(input: resizedInput)
+        var changedScoreInput = resizedInput
+        changedScoreInput.visibleMeasures = [
+            scoreMeasure(number: 1, start: 0, end: 3)
+        ]
+        _ = cache.scene(input: changedScoreInput)
+
+        XCTAssertEqual(cache.buildCount, 3)
+    }
+
+    func testNotationPartPlannerAlwaysKeepsAnAvailablePartVisible() {
+        let available: [NotationPartDescriptor] = [.main, .stem(.vocals)]
+
+        XCTAssertEqual(
+            NotationPartStatePlanner.normalizedVisiblePartIDs([], availableParts: available),
+            [.main]
+        )
+        XCTAssertEqual(
+            NotationPartStatePlanner.normalizedVisiblePartIDs(
+                [.stem(.vocals), .stem(.drums)],
+                availableParts: available
+            ),
+            [.stem(.vocals)]
+        )
+    }
+
     private func scoreMeasure(
         number: Int,
         start: TimeInterval,
