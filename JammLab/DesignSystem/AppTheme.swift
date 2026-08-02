@@ -120,6 +120,8 @@ enum AppTheme {
         static let notationMinHeight: CGFloat = 420
         static let tunerWidth: CGFloat = 360
         static let tunerMinHeight: CGFloat = 460
+        static let updateSheetWidth: CGFloat = 640
+        static let updateReleaseNotesHeight: CGFloat = 240
     }
 
     enum Colors {
