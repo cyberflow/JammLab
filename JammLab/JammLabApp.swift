@@ -10,12 +10,14 @@ struct JammLabApp: App {
     @NSApplicationDelegateAdaptor(JammLabAppDelegate.self) private var appDelegate
     @StateObject private var settingsStore: AppSettingsStore
     @StateObject private var viewModel: AudioPlayerViewModel
+    @StateObject private var updateCoordinator: AppUpdateCoordinator
     @StateObject private var recentProjectsStore = RecentProjectsStore.shared
 
     init() {
         let settingsStore = AppSettingsStore()
         _settingsStore = StateObject(wrappedValue: settingsStore)
         _viewModel = StateObject(wrappedValue: AudioPlayerViewModel(appSettingsStore: settingsStore))
+        _updateCoordinator = StateObject(wrappedValue: AppUpdateCoordinator.live())
     }
 
     var body: some Scene {
@@ -23,6 +25,7 @@ struct JammLabApp: App {
             ContentView(viewModel: viewModel)
                 .frame(minWidth: AppTheme.Window.minWidth, minHeight: AppTheme.Window.minHeight)
                 .environment(\.appColors, AppThemeColors(palette: settingsStore.colorPalette))
+                .appUpdateCheckHost(coordinator: updateCoordinator)
                 .onAppear {
                     appDelegate.viewModel = viewModel
                 }

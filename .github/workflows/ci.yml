@@ -55,6 +55,24 @@ jobs:
           ONLY_ACTIVE_ARCH=YES
           ARCHS=arm64
 
+      - name: Validate release entitlements
+        run: |
+          python3 - <<'PY'
+          import plistlib
+          from pathlib import Path
+
+          base = plistlib.loads(Path("JammLab/JammLab.entitlements").read_bytes())
+          release = plistlib.loads(Path("JammLab/JammLab.Release.entitlements").read_bytes())
+          expected = dict(base)
+          expected["com.apple.security.network.client"] = True
+
+          if release != expected:
+              raise SystemExit(
+                  "Release entitlements must equal the base entitlements plus "
+                  "com.apple.security.network.client=true"
+              )
+          PY
+
   build-smoke:
     name: Unsigned Build Smoke (${{ matrix.configuration }})
     runs-on: macos-26
@@ -129,21 +147,58 @@ jobs:
         run: scripts/build_separator_helper.sh
 
       - name: Build unsigned release app
-        run: >
-          xcodebuild build
-          -project "$XCODE_PROJECT"
-          -scheme "$XCODE_SCHEME"
-          -configuration Release
-          -destination "$XCODE_DESTINATION"
-          -derivedDataPath "$DERIVED_DATA_PATH"
-          CODE_SIGN_IDENTITY=-
-          CODE_SIGN_STYLE=Manual
-          DEVELOPMENT_TEAM=
-          PROVISIONING_PROFILE_SPECIFIER=
-          MARKETING_VERSION="$APP_VERSION"
-          CURRENT_PROJECT_VERSION="${{ github.run_number }}"
-          ONLY_ACTIVE_ARCH=YES
-          ARCHS=arm64
+        run: |
+          set -euo pipefail
+          update_check_build_setting=()
+          if [[ "$RELEASE_CHANNEL" == "stable" ]]; then
+            update_check_build_setting+=("SWIFT_ACTIVE_COMPILATION_CONDITIONS=JAMMLAB_STABLE_RELEASE")
+          fi
+
+          xcodebuild test -quiet \
+            -project "$XCODE_PROJECT" \
+            -scheme "$XCODE_SCHEME" \
+            -configuration Release \
+            -destination "$XCODE_DESTINATION" \
+            -derivedDataPath "$DERIVED_DATA_PATH" \
+            CODE_SIGNING_ALLOWED=NO \
+            CODE_SIGNING_REQUIRED=NO \
+            ENABLE_TESTABILITY=YES \
+            ONLY_ACTIVE_ARCH=YES \
+            ARCHS=arm64 \
+            -only-testing:JammLabTests/AppVersionTests/testCompiledReleasePolicyMatchesBuildFlags \
+            "${update_check_build_setting[@]}"
+
+          xcodebuild build \
+            -project "$XCODE_PROJECT" \
+            -scheme "$XCODE_SCHEME" \
+            -configuration Release \
+            -destination "$XCODE_DESTINATION" \
+            -derivedDataPath "$DERIVED_DATA_PATH" \
+            CODE_SIGN_IDENTITY=- \
+            CODE_SIGN_STYLE=Manual \
+            DEVELOPMENT_TEAM= \
+            PROVISIONING_PROFILE_SPECIFIER= \
+            MARKETING_VERSION="$APP_VERSION" \
+            CURRENT_PROJECT_VERSION="${{ github.run_number }}" \
+            ONLY_ACTIVE_ARCH=YES \
+            ARCHS=arm64 \
+            "${update_check_build_setting[@]}"
+
+          app_path="$DERIVED_DATA_PATH/Build/Products/Release/JammLab.app"
+          built_version="$(plutil -extract CFBundleShortVersionString raw -o - "$app_path/Contents/Info.plist")"
+          if [[ "$built_version" != "$APP_VERSION" ]]; then
+            echo "Release app version '$built_version' does not match '$APP_VERSION'" >&2
+            exit 1
+          fi
+
+          entitlements_file="$(mktemp)"
+          trap 'rm -f "$entitlements_file"' EXIT
+          codesign -d --entitlements :- "$app_path" > "$entitlements_file"
+          network_client="$(plutil -extract 'com\.apple\.security\.network\.client' raw -o - "$entitlements_file")"
+          if [[ "$network_client" != "true" ]]; then
+            echo "Release app is missing com.apple.security.network.client=true" >&2
+            exit 1
+          fi
 
       - name: Package unsigned DMG
         run: >

@@ -103,6 +103,11 @@
 		A14D01033000000100112233 /* NotationWindowToolbar.swift in Sources */ = {isa = PBXBuildFile; fileRef = A14D00033000000100112233 /* NotationWindowToolbar.swift */; };
 		A14D01043000000100112233 /* AudioPlayerViewModel+NotationParts.swift in Sources */ = {isa = PBXBuildFile; fileRef = A14D00043000000100112233 /* AudioPlayerViewModel+NotationParts.swift */; };
 		A14D01053000000100112233 /* NotationTrackInteractionModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = A14D00053000000100112233 /* NotationTrackInteractionModels.swift */; };
+		A15A01013000000100112233 /* AppUpdateModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = A15A00013000000100112233 /* AppUpdateModels.swift */; };
+		A15A01023000000100112233 /* GitHubLatestReleaseClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = A15A00023000000100112233 /* GitHubLatestReleaseClient.swift */; };
+		A15A01033000000100112233 /* AppUpdateCoordinator.swift in Sources */ = {isa = PBXBuildFile; fileRef = A15A00033000000100112233 /* AppUpdateCoordinator.swift */; };
+		A15A01043000000100112233 /* UpdateAvailableView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A15A00043000000100112233 /* UpdateAvailableView.swift */; };
+		A15A01053000000100112233 /* AppUpdateCheckerTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A15A00053000000100112233 /* AppUpdateCheckerTests.swift */; };
 		9F8E01032C40000100112233 /* StemModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9F8D00012C30000100112233 /* StemModels.swift */; };
 		9F8E01042C40000100112233 /* StemSeparationJobModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9F8E00012C40000100112233 /* StemSeparationJobModels.swift */; };
 		9F8F01012C50000100112233 /* AppDefaults.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9F8F00012C50000100112233 /* AppDefaults.swift */; };
@@ -417,6 +422,12 @@
 		A14D00033000000100112233 /* NotationWindowToolbar.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotationWindowToolbar.swift; sourceTree = "<group>"; };
 		A14D00043000000100112233 /* AudioPlayerViewModel+NotationParts.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "AudioPlayerViewModel+NotationParts.swift"; sourceTree = "<group>"; };
 		A14D00053000000100112233 /* NotationTrackInteractionModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotationTrackInteractionModels.swift; sourceTree = "<group>"; };
+		A15A00013000000100112233 /* AppUpdateModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppUpdateModels.swift; sourceTree = "<group>"; };
+		A15A00023000000100112233 /* GitHubLatestReleaseClient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GitHubLatestReleaseClient.swift; sourceTree = "<group>"; };
+		A15A00033000000100112233 /* AppUpdateCoordinator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppUpdateCoordinator.swift; sourceTree = "<group>"; };
+		A15A00043000000100112233 /* UpdateAvailableView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UpdateAvailableView.swift; sourceTree = "<group>"; };
+		A15A00053000000100112233 /* AppUpdateCheckerTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppUpdateCheckerTests.swift; sourceTree = "<group>"; };
+		A15A00063000000100112233 /* JammLab.Release.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = JammLab.Release.entitlements; sourceTree = "<group>"; };
 		9F8F00012C50000100112233 /* AppDefaults.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppDefaults.swift; sourceTree = "<group>"; };
 		9F8F00022C50000100112233 /* AudioPlaybackControlling.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AudioPlaybackControlling.swift; sourceTree = "<group>"; };
 		A14B00013000000100112233 /* AudioPlaybackPreparation.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AudioPlaybackPreparation.swift; sourceTree = "<group>"; };
@@ -661,6 +672,7 @@
 				9F7003002F80000100112233 /* Transcription */,
 				9F8A000B2C00000100112233 /* Assets.xcassets */,
 				9F8A000C2C00000100112233 /* JammLab.entitlements */,
+				A15A00063000000100112233 /* JammLab.Release.entitlements */,
 				A14A00013000000100112233 /* AudioRenderAtomics.c */,
 				A14A00023000000100112233 /* AudioRenderAtomics.h */,
 				9F7000202F80000100112233 /* JammLab-Bridging-Header.h */,
@@ -674,6 +686,7 @@
 				9F8A00062C00000100112233 /* AnalysisResult.swift */,
 				9F8F00012C50000100112233 /* AppDefaults.swift */,
 				9F9400012CA0000100112233 /* AppSettingsStore.swift */,
+				A15A00013000000100112233 /* AppUpdateModels.swift */,
 				9F8A00162C00000100112233 /* BeatGridSettings.swift */,
 				9F8A000A2C00000100112233 /* ImportedAudioFile.swift */,
 				9F8A00072C00000100112233 /* LoopRegion.swift */,
@@ -706,6 +719,7 @@
 				9F8F00022C50000100112233 /* AudioPlaybackControlling.swift */,
 				A14B00013000000100112233 /* AudioPlaybackPreparation.swift */,
 				9FCB00012D80000100112233 /* AudioSampleConverter.swift */,
+				A15A00023000000100112233 /* GitHubLatestReleaseClient.swift */,
 				9F8A00172C00000100112233 /* BeatGridCalculator.swift */,
 				9FBE00012F70000100112233 /* NotationBeamLayout.swift */,
 				9FBE00032F70000100112233 /* NotationBeamGrouping.swift */,
@@ -770,6 +784,7 @@
 		9F8A03052C00000100112233 /* ViewModels */ = {
 			isa = PBXGroup;
 			children = (
+				A15A00033000000100112233 /* AppUpdateCoordinator.swift */,
 				9F8A00032C00000100112233 /* AudioPlayerViewModel.swift */,
 				9FB201012D30000100112233 /* AudioPlayerViewModel+Project.swift */,
 				9FDE00042F60000100112233 /* AudioPlayerViewModel+Analysis.swift */,
@@ -882,6 +897,7 @@
 		9F8B03012C10000100112233 /* JammLabTests */ = {
 			isa = PBXGroup;
 			children = (
+				A15A00053000000100112233 /* AppUpdateCheckerTests.swift */,
 				9F7000222F80000100112233 /* StemTranscriptionTests.swift */,
 				9F7000232F80000100112233 /* BasicPitchNativeTests.mm */,
 				9FAB00012CE0000100112233 /* AudioFileImporterDurationTests.swift */,
@@ -1039,6 +1055,7 @@
 				9F8C00072C20000100112233 /* TransportBarView.swift */,
 				9FCB00082D80000100112233 /* TransportButton.swift */,
 				9F9000012C60000100112233 /* TransportControlsView.swift */,
+				A15A00043000000100112233 /* UpdateAvailableView.swift */,
 				9FAF00022D02000100112233 /* WindowCloseGuard.swift */,
 				9F8C00082C20000100112233 /* WindowTitleUpdater.swift */,
 			);
@@ -1249,6 +1266,10 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				A15A01013000000100112233 /* AppUpdateModels.swift in Sources */,
+				A15A01023000000100112233 /* GitHubLatestReleaseClient.swift in Sources */,
+				A15A01033000000100112233 /* AppUpdateCoordinator.swift in Sources */,
+				A15A01043000000100112233 /* UpdateAvailableView.swift in Sources */,
 				9F8A01062C00000100112233 /* AnalysisResult.swift in Sources */,
 				9F8F01012C50000100112233 /* AppDefaults.swift in Sources */,
 				9F8A01052C00000100112233 /* AudioAnalyzer.swift in Sources */,
@@ -1398,6 +1419,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				A15A01053000000100112233 /* AppUpdateCheckerTests.swift in Sources */,
 				9F7001222F80000100112233 /* StemTranscriptionTests.swift in Sources */,
 				9F7001232F80000100112233 /* BasicPitchNativeTests.mm in Sources */,
 				9FAB01012CE0000100112233 /* AudioFileImporterDurationTests.swift in Sources */,
@@ -1731,7 +1753,7 @@
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_INCLUDE_ALL_APPICON_ASSETS = YES;
 				AUTOMATION_APPLE_EVENTS = NO;
-				CODE_SIGN_ENTITLEMENTS = JammLab/JammLab.entitlements;
+				CODE_SIGN_ENTITLEMENTS = JammLab/JammLab.Release.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				GCC_PREPROCESSOR_DEFINITIONS = (
 					"$(inherited)",
@@ -1754,7 +1776,7 @@
 				ENABLE_APP_SANDBOX = YES;
 				ENABLE_HARDENED_RUNTIME = YES;
 				ENABLE_INCOMING_NETWORK_CONNECTIONS = NO;
-				ENABLE_OUTGOING_NETWORK_CONNECTIONS = NO;
+				ENABLE_OUTGOING_NETWORK_CONNECTIONS = YES;
 				ENABLE_RESOURCE_ACCESS_AUDIO_INPUT = YES;
 				ENABLE_RESOURCE_ACCESS_BLUETOOTH = NO;
 				ENABLE_RESOURCE_ACCESS_CALENDARS = NO;

@@ -8,6 +8,7 @@ development artifact builds use `vMAJOR.MINOR.PATCH-dev.N`.
 
 ## Unreleased
 
+- Added a stable-release update check that shows GitHub release notes at launch, supports reminding later or skipping one version, and keeps development and beta builds offline.
 - Moved audio and Stem playback preparation off the main thread, with cancellable progress, safer memory limits, and transactional project/mode switching that keeps the current audio available if preparation fails.
 - Hardened the bundled Stem helper with a versioned v6 job protocol, startup capability checks, stale-helper detection, and one validated manifest for bundled models and compute modes.
 - Fixed automatic Stem transcription notation to show flats, naturals, and sharps consistently with the key signature and common-practice measure rules.
