@@ -8,38 +8,32 @@ development artifact builds use `vMAJOR.MINOR.PATCH-dev.N`.
 
 ## Unreleased
 
-- Added a stable-release update check that shows GitHub release notes at launch, supports reminding later or skipping one version, and keeps development and beta builds offline.
-- Moved audio and Stem playback preparation off the main thread, with cancellable progress, safer memory limits, and transactional project/mode switching that keeps the current audio available if preparation fails.
-- Hardened the bundled Stem helper with a versioned v6 job protocol, startup capability checks, stale-helper detection, and one validated manifest for bundled models and compute modes.
-- Fixed automatic Stem transcription notation to show flats, naturals, and sharps consistently with the key signature and common-practice measure rules.
-- Improved Notation measure spacing to prevent late notes from stretching a single measure across the view, keep visible parts aligned, backfill the final page, and balance score systems without avoidable one-measure rows.
-- Added Backspace and Delete support for clearing selected Notation measures in the selected part while preserving harmony symbols and leaving default whole-measure rests.
-- Added a separate Bass 8 clef with Leland notation, octave-down note preview and MusicXML export, and made it the default clef for new bass-guitar notation tracks while preserving existing projects.
-- Added fully offline per-stem Audio-to-MIDI transcription with a bundled Basic Pitch model, native C++ inference, cancellable track progress, polyphonic Notation/MIDI notes, and project persistence. Basic Pitch is unavailable for Drum stems, and re-transcription now warns before replacing existing stem notes and rests.
-- Added inline flat, natural, and sharp signs to Notation with Leland glyphs, one-shot note entry, selected tied-note editing, compact duration and accidental track menus, keyboard shortcuts, persistence, and MusicXML export.
-- Added automatic rhythmic beaming for eighth and sixteenth notes in supported simple and compound Notation meters, including shared stem direction, sloped beams, secondary beam breaks, and beamlets.
-- Fixed Leland eighth-note and shorter flags separating from their stems in Notation chord and Drum rendering.
-- Added Drum Clef notation with a 16-sound GM drum palette, percussion noteheads, voice-aware stem directions, constrained Notation/MIDI entry, percussion preview, legacy-project clef migration, and unpitched MusicXML export.
+## 1.2.0
+
+### New Features
+
+- Added fully offline per-stem Audio-to-MIDI transcription with the bundled Basic Pitch model, cancellable progress, polyphonic Notation and MIDI tracks, project persistence, and MIDI export. Drum stems remain excluded, and re-transcription warns before replacing existing notes and rests.
+- Added polyphonic Notation and MIDI editing with chords, overlapping durations, chord-aware layout, mouse movement and resizing, automatic page turns, tied long notes, and a persistent per-Stem piano-roll display.
+- Expanded Notation entry and editing with pitched notes and rests, ledger-line pitches from G3 through D6, sixteenth notes, augmentation dots, cross-measure ties, keyboard shortcuts, drag and arrow-key pitch editing, and measure-content deletion that preserves harmony.
+- Added inline flats, naturals, and sharps plus automatic rhythmic beaming for eighth and sixteenth notes, with Leland glyphs, shared stem directions, secondary beam breaks, beamlets, persistence, and MusicXML export.
+- Added multi-part Stem notation with collapsible tracks, aligned score systems, part visibility, Region labels, instrument metadata, selected-part MusicXML export, Drum Clef with a 16-sound GM palette, and octave-down Bass 8 clef.
+- Added a bar-and-beat position readout to the transport time display.
+- Added automatic update checks for stable releases, with GitHub release notes, download links, remind-later behavior, and per-version skipping while development and beta builds remain offline.
+
+### Improvements
+
+- Moved audio and Stem playback preparation off the main thread with cancellable progress, safer memory limits, and transactional project and mode switching that keeps the current audio available if preparation fails.
+- Hardened the bundled Stem helper with the versioned v6 job protocol, startup capability checks, stale-helper diagnostics, and a validated manifest for bundled models and compute modes.
+- Improved Notation measure and system spacing to keep visible parts aligned, prevent late notes from overstretching measures, backfill final pages, and avoid unnecessary one-measure rows.
+- Refined the Notation workspace with clearer tooltips and numpad shortcuts, vertical scrolling for expanded tracks, consistent Rest and track controls, and aligned Stem Mute and Solo buttons.
+
+### Fixes
+
+- Corrected flats, naturals, and sharps produced by automatic Stem transcription so they follow the key signature and common-practice measure rules.
+- Fixed Leland flags separating from stems when rendering short notes in chords and Drum notation.
 - Prevented saved-video cleanup from deleting folders outside JammLab's temporary media cache.
-- Added polyphonic Notation and MIDI editing with chords, overlapping note durations, chord-aware score layout, multi-voice MusicXML export, and rests shown only during globally silent intervals.
-- Added a persistent MIDI piano-roll display for Stem tracks with playback-following measures, vertical pitch scrolling, and duration-aware note entry on a sixteenth-note grid.
-- Added mouse editing for Stem MIDI notes, including sixteenth-grid horizontal movement, semitone pitch dragging, two-sided duration resizing, exact-duplicate prevention, automatic page turns, and tied notation for long durations.
-- Added tied-note entry with the `T` shortcut, Leland-based controls, automatic note splitting and tie chains across measure boundaries, selected-note continuation outside note-entry mode, blocked-state tooltips without system alert sounds, score rendering, project persistence, and MusicXML export.
-- Added persistent augmentation-dot entry and editing for Notation notes and rests, with Leland glyphs, keyboard shortcuts, and MusicXML export.
-- Added sixteenth-note and rest entry with `3`/`Num3` duration shortcuts, plus downward stems for notes above the middle staff line.
-- Added Notation note-entry mode for placing pitched notes with Leland-rendered note glyphs, note selection preview, cross-rest insertion, rest recomposition, and MusicXML export.
-- Expanded Notation entry to ledger-line pitches from G3 through D6 and added rest-entry controls for inserting selected rest durations.
-- Added Notation note editing for dragging note pitch, arrow-key pitch changes, and deleting selected notes back to rests.
-- Added per-stem Notation parts with collapsible stem notation tracks, score-aligned multi-part Notation systems, shared Region labels, part visibility controls, and multi-part MusicXML export.
-- Added clearer hover tooltips and numpad shortcuts for Notation duration buttons.
-- Added a bar/beat position readout to the transport time display.
-- Fixed multi-part Notation accessibility selection announcements and prevented harmony editing from clearing a selected stem note.
-- Prevented an oversized Notation duration change from removing later notes or rests in the measure.
-- Stabilized the Rest entry icon, matched Notation track controls, aligned stem Mute/Solo buttons, and limited MusicXML export to the selected Parts.
-- Added full instrument names, abbreviations, and standard instrument sounds to exported MusicXML parts and Notation score labels.
-- Added vertical workspace scrolling when expanded Notation tracks exceed the main window height.
-- Changed Rest entry mode to remove a selected note and recompose pauses from the remaining sounding notes.
-- Added per-part treble and bass clefs with Leland glyphs, clef-aware note editing, pitch transposition, and MusicXML export.
+- Preserved later notes and rests when changing to an oversized Notation duration, and recomposed rests safely when removing selected notes.
+- Fixed multi-part accessibility selection announcements and kept harmony editing from clearing the selected Stem note.
 
 ## 1.1.0
 
