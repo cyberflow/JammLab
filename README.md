@@ -47,6 +47,9 @@ not need the packaged helper may set `SKIP_BUNDLED_SEPARATOR_HELPER=1`.
 GitHub CI uses these modes:
 
 - feature branches and pull requests to `main`: Python helper tests and Swift tests;
+- helper, dependency, packaging-script or workflow changes: a clean pinned
+  helper build, offline separation checks, Release app/DMG packaging and
+  cross-job artifact checksum verification;
 - `main` pushes: tests plus unsigned Debug/Release build smoke;
 - stable release tags `vMAJOR.MINOR.PATCH`: tests, bundled separator build,
   unsigned Release app build, DMG packaging, source archive upload, and a
@@ -55,6 +58,13 @@ GitHub CI uses these modes:
   as a GitHub prerelease and not marked latest;
 - development tags `vMAJOR.MINOR.PATCH-dev.N`: the same artifact build, uploaded
   only as workflow artifacts. Dev tags do not create GitHub Releases.
+
+The CI workflow can also be run manually, with `disable_caches` enabled for a
+cold validation run. Manual runs never publish releases. `Helper Validation`
+is the stable completion check, including when expensive checks are skipped.
+The helper uses the exact Python version in
+`JammLabSeparatorHelper/.python-version` and a macOS arm64 dependency lock;
+see CONTRIBUTING.md for the update procedure.
 
 Release versions are derived from Git tags. Tags such as `v1.0.0`,
 `v1.0.0-beta`, and `v1.0.0-dev.1` all build the app with

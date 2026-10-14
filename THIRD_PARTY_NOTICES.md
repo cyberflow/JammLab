@@ -8,6 +8,12 @@ The bundled Python separator inventory was generated from the local
 PyInstaller helper. Review this file whenever `JammLabSeparatorHelper`
 dependencies, model files, or binary packaging change.
 
+The inventory is now pinned in
+`JammLabSeparatorHelper/requirements-macos-arm64.lock` for arm64 CPython 3.14.5.
+Clean installs verify the complete package inventory and dependency consistency.
+This change preserves the package versions listed below; it does not upgrade
+the separator, inference libraries or model weights.
+
 Apple system frameworks used by the native macOS app are not listed here.
 
 ## Release Review Notes

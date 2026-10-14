@@ -8,6 +8,8 @@ development artifact builds use `vMAJOR.MINOR.PATCH-dev.N`.
 
 ## Unreleased
 
+- Made bundled Stem helper builds repeatable with pinned Python dependencies and added offline separation and release-artifact checks to CI.
+
 ## 1.2.0
 
 ### New Features

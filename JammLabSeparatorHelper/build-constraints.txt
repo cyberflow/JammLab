@@ -1,0 +1,6 @@
+# Tools used in isolated source builds. Keep aligned with the platform lock.
+setuptools==81.0.0
+wheel==0.47.0
+packaging==26.2
+cython==3.2.5
+numpy==2.4.6
