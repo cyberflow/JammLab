@@ -8,6 +8,9 @@ development artifact builds use `vMAJOR.MINOR.PATCH-dev.N`.
 
 ## Unreleased
 
+- Fixed development and beta release builds failing in CI with the macOS system Bash.
+- Made bundled Stem helper builds repeatable with pinned Python dependencies and added offline separation and release-artifact checks to CI.
+
 ## 1.2.0
 
 ### New Features
